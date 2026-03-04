@@ -5,15 +5,16 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\ApiClient;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ResetPasswordController extends Controller
 {
     public function __construct(private readonly ApiClient $api) {}
 
-    public function show(): View
+    public function show(): Response
     {
-        return view('auth.reset-password');
+        return Inertia::render('reset-password');
     }
 
     public function reset(Request $request): mixed
@@ -38,6 +39,6 @@ class ResetPasswordController extends Controller
             return back()->withErrors(['courier_code' => $result['message']])->withInput();
         }
 
-        return redirect('/login')->with('success', 'Password reset successfully. Please log in.');
+        return to_route('login')->with('success', 'Password reset successfully. Please log in.');
     }
 }

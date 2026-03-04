@@ -596,7 +596,7 @@ Approved Payouts:  ₱62,500.00
 
 ```json
 {
-    "dispatch_code": "DISPATCH-001",
+    "dispatch_code": "E-GEOFXXXXXX1234",
     "client_request_id": "<uuid-v4>"
 }
 ```
@@ -653,7 +653,7 @@ Generate idempotency key → call check-dispatch-eligibility
 
 ```json
 {
-    "dispatch_code": "DISPATCH-001",
+    "dispatch_code": "E-GEOFXXXXXX1234",
     "client_request_id": "<new-uuid-v4>",
     "device_info": {
         "os": "android|ios",

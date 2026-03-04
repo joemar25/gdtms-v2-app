@@ -6,6 +6,7 @@
 .phpactor.json
 .phpunit.result.cache
 /.claude
+/.github
 /.fleet
 /.idea
 /.nova

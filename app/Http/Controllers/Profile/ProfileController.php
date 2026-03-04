@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Services\ApiClient;
 use App\Services\AppSettings;
 use App\Services\AuthStorage;
+use App\Services\DeviceInfo;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ProfileController extends Controller
 {
@@ -15,16 +17,19 @@ class ProfileController extends Controller
         private readonly ApiClient $api,
         private readonly AuthStorage $auth,
         private readonly AppSettings $settings,
+        private readonly DeviceInfo $deviceInfo,
     ) {}
 
-    public function index(): View
+    public function index(): Response
     {
         $courier = $this->auth->getCourier();
 
-        return view('profile.index', [
+        return Inertia::render('profile', [
             'courier'      => $courier,
+            'app_version'  => config('mobile.app_version'),
             'auto_accept'  => $this->settings->getAutoAcceptDispatch(),
             'dark_mode'    => $this->settings->getDarkMode(),
+            'device_info'  => $this->deviceInfo->toArray(),
         ]);
     }
 
@@ -46,6 +51,6 @@ class ProfileController extends Controller
         $this->api->post('logout');
         $this->auth->clearAll();
 
-        return redirect('/login')->with('message', 'You have been logged out.');
+        return to_route('login')->with('message', 'You have been logged out.');
     }
 }

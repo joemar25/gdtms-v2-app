@@ -30,7 +30,7 @@ class DispatchAcceptController extends Controller
 
         // Already accepted — treat as success
         if (isset($result['errors']) && str_contains(strtolower($result['message'] ?? ''), 'already')) {
-            return redirect('/dashboard')->with('success', 'Dispatch was already accepted.');
+            return to_route('dashboard')->with('success', 'Dispatch was already accepted.');
         }
 
         if (isset($result['errors']) || isset($result['network_error']) || isset($result['server_error'])) {
@@ -38,14 +38,14 @@ class DispatchAcceptController extends Controller
         }
 
         if (isset($result['unauthorized'])) {
-            return redirect('/login');
+            return to_route('login');
         }
 
-        return redirect('/dashboard')->with('success', 'Dispatch accepted! Your deliveries are ready.');
+        return to_route('dashboard')->with('success', 'Dispatch accepted! Your deliveries are ready.');
     }
 
     public function reject(): mixed
     {
-        return redirect('/dispatches/scan')->with('info', 'Dispatch rejected.');
+        return to_route('dispatches.scan')->with('info', 'Dispatch rejected.');
     }
 }

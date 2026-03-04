@@ -1,518 +1,460 @@
 {
-	"info": {
-		"_postman_id": "courier-mobile-api",
-		"name": "Courier Mobile API",
-		"description": "API endpoints for courier mobile app - All routes use authenticated courier from Sanctum token (no courier ID needed in URL)",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{authToken}}",
-				"type": "string"
-			}
-		]
-	},
-	"item": [
-		{
-			"name": "Authentication",
-			"item": [
-				{
-					"name": "Login (Phone-based)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    const json = pm.response.json();",
-									"    if (json.data && json.data.token) {",
-									"        pm.environment.set('authToken', json.data.token);",
-									"        console.log('Token saved:', json.data.token);",
-									"    }",
-									"}"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"phone_number\": \"09123456789\",\n    \"password\": \"Test@123\",\n    \"device_name\": \"Postman Test\",\n    \"device_identifier\": \"device-12345\",\n    \"device_type\": \"android\",\n    \"app_version\": \"1.0.0\"\n}"
-						},
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/login",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"login"
-							]
-						},
-						"description": "Login courier using phone number and password. Returns Sanctum token. device_type must be one of: android, ios, flutter, web."
-					},
-					"response": []
-				},
-				{
-					"name": "Reset Password",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"courier_code\": \"CC99999\",\n    \"new_password\": \"NewPassword@123\",\n    \"new_password_confirmation\": \"NewPassword@123\"\n}"
-						},
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/reset-password",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"reset-password"
-							]
-						},
-						"description": "Reset courier password using courier code (no auth required)"
-					},
-					"response": []
-				},
-				{
-					"name": "Logout",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    pm.environment.set('authToken', '');",
-									"    console.log('Token cleared');",
-									"}"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/logout",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"logout"
-							]
-						},
-						"description": "Logout courier and revoke all Sanctum tokens"
-					},
-					"response": []
-				},
-				{
-					"name": "Logout All Devices",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    pm.environment.set('authToken', '');",
-									"    console.log('Token cleared');",
-									"}"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/logout-all",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"logout-all"
-							]
-						},
-						"description": "Revoke all Sanctum tokens across all devices for the authenticated courier"
-					},
-					"response": []
-				},
-				{
-					"name": "Test Auth",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/test",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"test"
-							]
-						},
-						"description": "Verify API is working with Sanctum authentication. Returns current user info."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Dispatches (Authenticated)",
-			"item": [
-				{
-					"name": "Get Pending Dispatches",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/pending-dispatches?page=1&per_page=10",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"pending-dispatches"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "per_page",
-									"value": "10"
-								}
-							]
-						},
-						"description": "Get dispatches pending acceptance by authenticated courier (status: dispatched only). Once accepted, dispatches move to courier_received and appear only in /deliveries. Paginated, default 10 per page."
-					},
-					"response": []
-				},
-				{
-					"name": "Accept Dispatch",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"dispatch_code\": \"DISPATCH-001\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"device_info\": {\n        \"os\": \"android\",\n        \"app_version\": \"1.0.0\",\n        \"device_model\": \"Samsung Galaxy S21\",\n        \"device_id\": \"device-12345\"\n    }\n}"
-						},
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/accept-dispatch",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"accept-dispatch"
-							]
-						},
-						"description": "Accept a dispatch for authenticated courier (courier ID automatically used from token). dispatch_code must be uppercase alphanumeric with hyphens/underscores. client_request_id must be a valid UUID. device_info.os must be one of: android, ios, windows, macos, linux."
-					},
-					"response": []
-				},
-				{
-					"name": "Check Dispatch Eligibility",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"dispatch_code\": \"DISPATCH-001\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
-						},
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/check-dispatch-eligibility",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"check-dispatch-eligibility"
-							]
-						},
-						"description": "Check if authenticated courier is eligible for a dispatch. client_request_id must be a valid UUID."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Deliveries (Authenticated)",
-			"item": [
-				{
-					"name": "Get My Deliveries",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/deliveries?status=pending&active=true&page=1&per_page=20",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"deliveries"
-							],
-							"query": [
-								{
-									"key": "status",
-									"value": "pending",
-									"description": "pending, delivered, rts, osa, roll-back, lost, undelivered"
-								},
-								{
-									"key": "active",
-									"value": "true",
-									"description": "true or false - filter by active deliveries"
-								},
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "per_page",
-									"value": "10"
-								},
-								{
-									"key": "from_date",
-									"value": "2025-01-01",
-									"disabled": true
-								},
-								{
-									"key": "to_date",
-									"value": "2025-12-31",
-									"disabled": true
-								}
-							]
-						},
-						"description": "Get deliveries for authenticated courier. Only deliveries from batches the courier has accepted (status: courier_received) are returned. Default per_page is 10."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Delivery Details",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/deliveries/:barcode",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"deliveries",
-								":barcode"
-							],
-							"variable": [
-								{
-									"key": "barcode",
-									"value": "B2025010100001"
-								}
-							]
-						},
-						"description": "Get delivery details by barcode. Only returns the delivery if it belongs to the authenticated courier's batch. Returns 404 'Delivery not found' if the barcode does not exist or belongs to a different courier (no information leakage)."
-					},
-					"response": []
-				},
-				{
-					"name": "Update Delivery Status",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"delivery_status\": \"delivered\",\n    \"note\": \"Package delivered successfully\",\n    \"recipient\": \"John Doe\",\n    \"relationship\": \"Self\",\n    \"reason\": null,\n    \"placement_type\": null,\n    \"recipient_signature\": null,\n    \"delivery_images\": [\n        {\n            \"file\": \"https://example.com/image.jpg\",\n            \"type\": \"package\"\n        }\n    ]\n}"
-						},
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/deliveries/:barcode",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"deliveries",
-								":barcode"
-							],
-							"variable": [
-								{
-									"key": "barcode",
-									"value": "B2025010100001"
-								}
-							]
-						},
-						"description": "Update delivery status by barcode. Only allowed if the delivery belongs to the authenticated courier's batch — rejected otherwise. delivery_status must be one of: delivered, rts, osa. recipient is required when delivery_status is 'delivered'. delivery_images[].type must be one of: package, recipient, location, damage, other. Max 10 images."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Payment & Dashboard (Authenticated)",
-			"item": [
-				{
-					"name": "Create Payment Request",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"from_date\": \"2025-01-01\",\n    \"to_date\": \"2025-01-31\"\n}"
-						},
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/payment-request",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"payment-request"
-							]
-						},
-						"description": "Create payment request for authenticated courier (no courier ID needed). from_date and to_date are optional; to_date must be >= from_date."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Dashboard Summary",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{baseURL}}/api/mbl/dashboard-summary",
-							"host": [
-								"{{baseURL}}"
-							],
-							"path": [
-								"api",
-								"mbl",
-								"dashboard-summary"
-							]
-						},
-						"description": "Get dashboard summary for authenticated courier (no courier ID needed)"
-					},
-					"response": []
-				}
-			]
-		}
-	]
+    "info": {
+        "_postman_id": "892be2ca-d1ea-42c6-9b0a-5bcf348f74fd",
+        "name": "Courier Mobile API",
+        "description": "API endpoints for courier mobile app - All routes use authenticated courier from Sanctum token (no courier ID needed in URL)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "34777683"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Login (Phone-based)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const json = pm.response.json();",
+                                    "    if (json.data && json.data.token) {",
+                                    "        pm.environment.set('authToken', json.data.token);",
+                                    "        console.log('Token saved:', json.data.token);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {},
+                                "requests": {}
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone_number\": \"REDACTED_TEST_NUMBER\",\n    \"password\": \"REDACTED_TEST_NUMBER\",\n    \"device_name\": \"Mar Test\",\n    \"device_identifier\": \"device-12345\",\n    \"device_type\": \"android\",\n    \"app_version\": \"1.0.0\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/login",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "login"]
+                        },
+                        "description": "Login courier using phone number and password. Returns Sanctum token. device_type must be one of: android, ios, flutter, web."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"courier_code\": \"CC99999\",\n    \"new_password\": \"NewPassword@123\",\n    \"new_password_confirmation\": \"NewPassword@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/reset-password",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "reset-password"]
+                        },
+                        "description": "Reset courier password using courier code (no auth required)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.environment.set('authToken', '');",
+                                    "    console.log('Token cleared');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/logout",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "logout"]
+                        },
+                        "description": "Logout courier and revoke all Sanctum tokens"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout All Devices",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.environment.set('authToken', '');",
+                                    "    console.log('Token cleared');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/logout-all",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "logout-all"]
+                        },
+                        "description": "Revoke all Sanctum tokens across all devices for the authenticated courier"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Test Auth",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/test",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "test"]
+                        },
+                        "description": "Verify API is working with Sanctum authentication. Returns current user info."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Dispatches (Authenticated)",
+            "item": [
+                {
+                    "name": "Get Pending Dispatches",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/pending-dispatches?page=1&per_page=10",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "pending-dispatches"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Get active dispatches for authenticated courier — includes 'dispatched' (pending acceptance) and 'courier_received' (accepted/in-progress). Paginated, default 10 per page."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Accept Dispatch",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"dispatch_code\": \"E-GEOFM005431748820260303110534\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"device_info\": {\n        \"os\": \"android\",\n        \"app_version\": \"1.0.0\",\n        \"device_model\": \"Samsung Galaxy S21\",\n        \"device_id\": \"device-12345\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/accept-dispatch",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "accept-dispatch"]
+                        },
+                        "description": "Accept a dispatch for authenticated courier (courier ID automatically used from token). dispatch_code must be uppercase alphanumeric with hyphens/underscores. client_request_id must be a valid UUID. device_info.os must be one of: android, ios, windows, macos, linux."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Check Dispatch Eligibility",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"dispatch_code\": \"E-GEOFM005431748820260303110534\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/check-dispatch-eligibility",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "check-dispatch-eligibility"]
+                        },
+                        "description": "Check if authenticated courier is eligible for a dispatch. client_request_id must be a valid UUID."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Deliveries (Authenticated)",
+            "item": [
+                {
+                    "name": "Get My Deliveries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/deliveries?status=pending&active=true&page=1&per_page=10",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "deliveries"],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "pending",
+                                    "description": "pending, delivered, rts, osa, roll-back, lost, undelivered"
+                                },
+                                {
+                                    "key": "active",
+                                    "value": "true",
+                                    "description": "true or false - filter by active deliveries"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "from_date",
+                                    "value": "2025-01-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "to_date",
+                                    "value": "2025-12-31",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Get deliveries for authenticated courier (no courier ID needed). Default per_page is 50."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Delivery Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/deliveries/:barcode",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "deliveries", ":barcode"],
+                            "variable": [
+                                {
+                                    "key": "barcode",
+                                    "value": "FSI56D4FB35"
+                                }
+                            ]
+                        },
+                        "description": "Get specific delivery details by barcode value"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Delivery Status",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"delivery_status\": \"delivered\",\n    \"note\": \"Package delivered successfully\",\n    \"recipient\": \"John Doe\",\n    \"relationship\": \"Self\",\n    \"reason\": null,\n    \"placement_type\": null,\n    \"recipient_signature\": null,\n    \"delivery_images\": [\n        {\n            \"file\": \"https://example.com/image.jpg\",\n            \"type\": \"package\"\n        }\n    ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/deliveries/:barcode",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "deliveries", ":barcode"],
+                            "variable": [
+                                {
+                                    "key": "barcode",
+                                    "value": "FSI56D4FB35"
+                                }
+                            ]
+                        },
+                        "description": "Update delivery status by barcode value. delivery_status must be one of: pending, delivered, rts, osa, roll-back, lost, undelivered. recipient is required when delivery_status is 'delivered'. delivery_images[].type must be one of: package, recipient, location, damage, other. Max 10 images."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Payment & Dashboard (Authenticated)",
+            "item": [
+                {
+                    "name": "Create Payment Request",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"from_date\": \"2025-01-01\",\n    \"to_date\": \"2025-01-31\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/payment-request",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "payment-request"]
+                        },
+                        "description": "Create payment request for authenticated courier (no courier ID needed). from_date and to_date are optional; to_date must be >= from_date."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Dashboard Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/dashboard-summary",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "dashboard-summary"]
+                        },
+                        "description": "Get dashboard summary for authenticated courier (no courier ID needed)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Wallet Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/wallet-summary",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "wallet-summary"]
+                        },
+                        "description": "Get wallet summary for authenticated courier. Returns: total_earnings (sum of paid requests), tentative_pending_payout (sum of pending/approved requests), and latest_request details with earnings breakdown."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{authToken}}",
+                "type": "string"
+            }
+        ]
+    }
 }

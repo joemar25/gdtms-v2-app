@@ -5,18 +5,19 @@ namespace App\Http\Controllers\Delivery;
 use App\Http\Controllers\Controller;
 use App\Services\ApiClient;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DeliveryUpdateController extends Controller
 {
     public function __construct(private readonly ApiClient $api) {}
 
-    public function show(string $barcode): View
+    public function show(string $barcode): Response
     {
         $result = $this->api->get("deliveries/{$barcode}");
         $hasError = isset($result['network_error']) || isset($result['server_error']) || isset($result['unauthorized']);
 
-        return view('delivery.update', [
+        return Inertia::render('deliveries/update', [
             'delivery' => $hasError ? null : ($result['data'] ?? $result),
             'barcode' => $barcode,
             'error' => $hasError ? ($result['message'] ?? 'Failed to load delivery.') : null,
@@ -63,9 +64,9 @@ class DeliveryUpdateController extends Controller
         }
 
         if (isset($result['unauthorized'])) {
-            return redirect('/login');
+            return to_route('login');
         }
 
-        return redirect('/dashboard')->with('success', 'Delivery status updated successfully.');
+        return to_route('dashboard')->with('success', 'Delivery status updated successfully.');
     }
 }

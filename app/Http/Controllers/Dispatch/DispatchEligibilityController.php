@@ -8,7 +8,7 @@ use App\Services\AppSettings;
 use App\Services\DeviceInfo;
 use App\Services\IdempotencyKey;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
 
 class DispatchEligibilityController extends Controller
 {
@@ -19,27 +19,37 @@ class DispatchEligibilityController extends Controller
     ) {
     }
 
-    public function scanPage(): View
+    public function scanPage(): \Inertia\Response
     {
-        return view('dispatch.scan');
+        return Inertia::render('dispatch/scan');
     }
 
-    public function show(Request $request): View
+    /** GET /dispatches/eligibility?dispatch_code=XXX — from dispatch list */
+    public function show(Request $request): mixed
     {
-        return view('dispatch.eligibility', [
-            'dispatch_code' => $request->query('dispatch_code', ''),
-        ]);
+        $dispatchCode = $request->query('dispatch_code', '');
+
+        if (! $dispatchCode) {
+            return to_route('dispatches.scan');
+        }
+
+        return $this->performEligibilityCheck($dispatchCode);
     }
 
+    /** POST /dispatches/eligibility — from scan page */
     public function check(Request $request): mixed
     {
         $request->validate(['dispatch_code' => ['required', 'string']]);
 
-        $dispatchCode = $request->input('dispatch_code');
+        return $this->performEligibilityCheck($request->input('dispatch_code'));
+    }
+
+    private function performEligibilityCheck(string $dispatchCode): mixed
+    {
         $eligibilityKey = IdempotencyKey::generate();
 
         $result = $this->api->post('check-dispatch-eligibility', [
-            'dispatch_code' => $dispatchCode,
+            'dispatch_code'     => $dispatchCode,
             'client_request_id' => $eligibilityKey,
         ]);
 
@@ -48,52 +58,58 @@ class DispatchEligibilityController extends Controller
         }
 
         if (isset($result['unauthorized'])) {
-            return redirect('/login');
+            return to_route('login');
         }
 
-        // API may wrap payload under 'data'; read from both locations
-        $data = $result['data'] ?? $result;
+        $data     = $result['data'] ?? $result;
         $eligible = $data['eligible'] ?? ($result['eligible'] ?? ($result['success'] ?? false));
-        $reason = $data['message'] ?? ($result['message'] ?? null);
+        $reason   = $data['message'] ?? ($result['message'] ?? null);
 
-        if (!$eligible) {
-            return view('dispatch.eligibility', [
+        if (! $eligible) {
+            return Inertia::render('dispatch/eligibility', [
+                'eligibility'  => ['eligible' => false, 'reason' => $reason],
                 'dispatch_code' => $dispatchCode,
-                'not_eligible' => true,
-                'reason' => $reason,
             ]);
         }
 
         // Auto-accept path
         if ($this->settings->getAutoAcceptDispatch()) {
-            $acceptKey = IdempotencyKey::generate();
+            $acceptKey    = IdempotencyKey::generate();
             $acceptResult = $this->api->post('accept-dispatch', [
-                'dispatch_code' => $dispatchCode,
+                'dispatch_code'     => $dispatchCode,
                 'client_request_id' => $acceptKey,
-                'device_info' => $this->device->toArray(),
+                'device_info'       => $this->device->toArray(),
             ]);
 
             if (isset($acceptResult['errors']) || ($acceptResult['success'] ?? true) === false) {
-                return view('dispatch.eligibility', [
+                return Inertia::render('dispatch/eligibility', [
+                    'eligibility'  => [
+                        'eligible' => false,
+                        'reason'   => $acceptResult['message'] ?? 'Could not accept dispatch.',
+                    ],
                     'dispatch_code' => $dispatchCode,
-                    'not_eligible' => true,
-                    'reason' => $acceptResult['message'] ?? 'Could not accept dispatch.',
                 ]);
             }
 
-            return redirect('/dashboard')->with('success', 'Dispatch accepted successfully!');
+            return to_route('dashboard')->with('success', 'Dispatch accepted successfully!');
         }
 
-        // Manual accept path — show eligibility result with deliveries list + accept button
+        // Manual accept path
         $deliveries = $data['deliveries'] ?? ($result['deliveries'] ?? []);
 
-        return view('dispatch.eligibility', [
-            'dispatch_code'    => $dispatchCode,
-            'deliveries_count' => $data['deliveries_count'] ?? ($result['deliveries_count'] ?? count($deliveries)),
-            'batch_volume'     => $data['batch_volume'] ?? ($result['batch_volume'] ?? null),
-            'tat'              => $data['tat'] ?? ($result['tat'] ?? null),
-            'courier_name'     => $data['courier_name'] ?? ($result['courier_name'] ?? null),
-            'deliveries'       => $deliveries,
+        return Inertia::render('dispatch/eligibility', [
+            'eligibility' => [
+                'eligible' => true,
+                'dispatch' => [
+                    'dispatch_code'   => $dispatchCode,
+                    'deliveries_count' => $data['deliveries_count'] ?? ($result['deliveries_count'] ?? count($deliveries)),
+                    'batch_volume'    => $data['batch_volume'] ?? ($result['batch_volume'] ?? null),
+                    'tat'             => $data['tat'] ?? ($result['tat'] ?? null),
+                    'status'          => 'dispatched',
+                    'created_at'      => $data['created_at'] ?? ($result['created_at'] ?? now()->toISOString()),
+                ],
+            ],
+            'dispatch_code' => $dispatchCode,
         ]);
     }
 }

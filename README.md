@@ -9,14 +9,14 @@ For the full implementation checklist and business rules, see [documentation/TOD
 
 ## Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Laravel 12 + PHP 8.4 |
-| Mobile runtime | NativePHP v3 (Android / iOS) |
-| Frontend | Blade + vanilla JS (no React/Vue) |
-| Database (local) | SQLite |
-| Cache / Session | File-based (`CACHE_STORE=file`) |
-| Testing | PHPUnit 11.5 |
+| Layer            | Technology                        |
+| ---------------- | --------------------------------- |
+| Framework        | Laravel 12 + PHP 8.4              |
+| Mobile runtime   | NativePHP v3 (Android / iOS)      |
+| Frontend         | Blade + vanilla JS (no React/Vue) |
+| Database (local) | SQLite                            |
+| Cache / Session  | File-based (`CACHE_STORE=file`)   |
+| Testing          | PHPUnit 11.5                      |
 
 ---
 
@@ -35,8 +35,10 @@ php artisan native:jump android --skip-build
 php artisan native:tail
 
 # Build a release APK / IPA
-php artisan native:build android
-php artisan native:build ios
+php artisan native:build
+
+# or
+php artisan native:run --build=release
 ```
 
 > **Note:** After any PHP change, run a full `native:jump android` (without `--skip-build`) so the device picks up the new bundle.
@@ -58,7 +60,7 @@ All 5 `LoginTest` cases must pass before any PR.
 ```dotenv
 CACHE_STORE=file        # Required — database cache crashes before migration runs
 LOG_STACK=single        # Required for native:tail to work
-APP_DEBUG=true          # Dev mode — enables dispatch scan UI + debug stats
+APP_DEBUG=true          # Dev mode — enables debug stats
 ```
 
 ---

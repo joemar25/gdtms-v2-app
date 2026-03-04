@@ -8,7 +8,8 @@ use App\Services\AuthStorage;
 use App\Services\DeviceInfo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class LoginController extends Controller
 {
@@ -18,9 +19,12 @@ class LoginController extends Controller
         private readonly DeviceInfo $device,
     ) {}
 
-    public function show(): View
+    public function show(): mixed
     {
-        return view('auth.login');
+        if ($this->auth->isAuthenticated()) {
+            return to_route('dashboard');
+        }
+        return Inertia::render('login');
     }
 
     public function login(Request $request): mixed
@@ -29,46 +33,51 @@ class LoginController extends Controller
 
         $request->validate([
             'phone_number' => ['required', 'string'],
-            'password'     => ['required', 'string'],
+            'password' => ['required', 'string'],
         ]);
 
         $deviceInfo = $this->device->toArray();
         Log::info('[Login] Device info', $deviceInfo);
 
         $result = $this->api->post('login', [
-            'phone_number'      => $request->input('phone_number'),
-            'password'          => $request->input('password'),
-            'device_name'       => config('mobile.device_name'),
+            'phone_number' => $request->input('phone_number'),
+            'password' => $request->input('password'),
+            'device_name' => config('mobile.device_name'),
             'device_identifier' => $deviceInfo['device_id'],
-            'device_type'       => $deviceInfo['os'],
-            'app_version'       => $deviceInfo['app_version'],
+            'device_type' => $deviceInfo['os'],
+            'app_version' => $deviceInfo['app_version'],
         ]);
 
         Log::info('[Login] API result keys', ['keys' => array_keys($result)]);
 
         if (isset($result['rate_limited'])) {
             Log::warning('[Login] Rate limited');
+
             return back()->withErrors(['phone_number' => $result['message']])->withInput();
         }
 
         if (isset($result['errors'])) {
             Log::warning('[Login] Validation errors', ['errors' => $result['errors']]);
+
             return back()->withErrors($result['errors'])->withInput();
         }
 
         if (isset($result['network_error']) || isset($result['server_error'])) {
             Log::error('[Login] Network/server error', ['message' => $result['message']]);
+
             return back()->withErrors(['phone_number' => $result['message']])->withInput();
         }
 
         if (isset($result['unauthorized'])) {
             Log::warning('[Login] Unauthorized (wrong credentials)');
             session()->forget('message');
+
             return back()->withErrors(['phone_number' => 'Invalid phone number or password.'])->withInput();
         }
 
         if (! isset($result['data']['token'])) {
             Log::error('[Login] No token in response', ['result_data_keys' => array_keys($result['data'] ?? [])]);
+
             return back()->withErrors(['phone_number' => 'Invalid phone number or password.'])->withInput();
         }
 
@@ -90,6 +99,6 @@ class LoginController extends Controller
         Log::info('[Login] isAuthenticated check before redirect', ['result' => $this->auth->isAuthenticated()]);
         Log::info('[Login] Redirecting to /dashboard');
 
-        return redirect('/dashboard');
+        return to_route('dashboard');
     }
 }

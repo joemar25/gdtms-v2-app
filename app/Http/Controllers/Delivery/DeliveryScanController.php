@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Delivery;
 use App\Http\Controllers\Controller;
 use App\Services\ApiClient;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Handles barcode-based delivery lookup from the delivery list FAB scan action.
@@ -17,9 +18,9 @@ class DeliveryScanController extends Controller
     public function __construct(private readonly ApiClient $api) {}
 
     /** Show the delivery scan/search UI. */
-    public function page(): View
+    public function page(): Response
     {
-        return view('delivery.scan');
+        return Inertia::render('deliveries/scan');
     }
 
     /** Look up an accepted delivery by barcode and redirect to its update screen. */
@@ -36,7 +37,7 @@ class DeliveryScanController extends Controller
         $result = $this->api->get("deliveries/{$barcode}");
 
         if (isset($result['unauthorized'])) {
-            return redirect('/login');
+            return to_route('login');
         }
 
         if (isset($result['network_error']) || isset($result['server_error'])) {
@@ -49,6 +50,6 @@ class DeliveryScanController extends Controller
             return redirect()->route('deliveries.scan.page')->with('error', "No delivery found for barcode: {$barcode}");
         }
 
-        return redirect()->route('deliveries.update', ['barcode' => $delivery['barcode_value'], 'from' => 'scan']);
+        return redirect()->route('deliveries.show', ['barcode' => $delivery['barcode_value']]);
     }
 }

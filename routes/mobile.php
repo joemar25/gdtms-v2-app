@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Delivery\CompletedDeliveryController;
 use App\Http\Controllers\Delivery\DeliveryDetailController;
+use App\Http\Controllers\Delivery\DeliveryListController;
 use App\Http\Controllers\Delivery\DeliveryScanController;
 use App\Http\Controllers\Delivery\DeliveryUpdateController;
 use App\Http\Controllers\Dispatch\DispatchAcceptController;
@@ -40,13 +41,13 @@ Route::middleware(AuthMiddleware::class)->group(function () {
     Route::post('/dispatches/accept', [DispatchAcceptController::class, 'accept'])->name('dispatches.accept');
     Route::post('/dispatches/reject', [DispatchAcceptController::class, 'reject'])->name('dispatches.reject');
 
-    // Deliveries — list lives on dashboard; detail/update/scan remain
+    // Deliveries
+    Route::get('/deliveries', [DeliveryListController::class, 'index'])->name('deliveries');
     Route::get('/deliveries/scan', [DeliveryScanController::class, 'lookup'])->name('deliveries.scan');
     Route::get('/deliveries/scan-page', [DeliveryScanController::class, 'page'])->name('deliveries.scan.page');
     Route::get('/deliveries/completed', [CompletedDeliveryController::class, 'index'])->name('deliveries.completed');
     Route::get('/deliveries/{barcode}', [DeliveryDetailController::class, 'show'])->name('deliveries.show')->where('barcode', '[A-Za-z0-9\-\.]+');
-    Route::get('/deliveries/{barcode}/update', [DeliveryUpdateController::class, 'show'])->name('deliveries.update')->where('barcode', '[A-Za-z0-9\-\.]+');
-    Route::post('/deliveries/{barcode}/update', [DeliveryUpdateController::class, 'update'])->where('barcode', '[A-Za-z0-9\-\.]+');
+    Route::patch('/deliveries/{barcode}/update', [DeliveryUpdateController::class, 'update'])->name('deliveries.update')->where('barcode', '[A-Za-z0-9\-\.]+');
 
     // Wallet
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet');

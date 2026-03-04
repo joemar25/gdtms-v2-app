@@ -5,24 +5,25 @@ namespace App\Http\Controllers\Delivery;
 use App\Http\Controllers\Controller;
 use App\Services\ApiClient;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DeliveryListController extends Controller
 {
     public function __construct(private readonly ApiClient $api) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $page   = (int) $request->query('page', 1);
         $result = $this->api->get('deliveries', [
-            'status'   => 'accepted',   // home screen shows only accepted deliveries
+            'status'   => 'delivered',
             'per_page' => config('mobile.per_page'),
             'page'     => $page,
         ]);
 
         $hasError = isset($result['network_error']) || isset($result['server_error']) || isset($result['unauthorized']);
 
-        return view('delivery.index', [
+        return Inertia::render('deliveries', [
             'deliveries' => $hasError ? [] : ($result['data'] ?? []),
             'meta'       => $hasError ? null : ($result['pagination'] ?? null),
             'page'       => $page,

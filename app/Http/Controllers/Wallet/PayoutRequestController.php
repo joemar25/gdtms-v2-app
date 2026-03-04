@@ -5,22 +5,23 @@ namespace App\Http\Controllers\Wallet;
 use App\Http\Controllers\Controller;
 use App\Services\ApiClient;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PayoutRequestController extends Controller
 {
     public function __construct(private readonly ApiClient $api) {}
 
-    public function show(): View
+    public function show(): Response
     {
-        return view('wallet.request');
+        return Inertia::render('wallet/request');
     }
 
     public function create(Request $request): mixed
     {
         $request->validate([
-            'from_date' => ['required', 'date', 'before:to_date'],
-            'to_date'   => ['required', 'date', 'after:from_date'],
+            'from_date' => ['nullable', 'date'],
+            'to_date'   => ['required', 'date'],
         ]);
 
         $result = $this->api->post('payment-request', [
@@ -37,15 +38,15 @@ class PayoutRequestController extends Controller
         }
 
         if (isset($result['unauthorized'])) {
-            return redirect('/login');
+            return to_route('login');
         }
 
         $newId = $result['data']['id'] ?? $result['id'] ?? null;
 
         if ($newId) {
-            return redirect("/wallet/{$newId}")->with('success', 'Payout request submitted.');
+            return to_route('wallet.detail', ['id' => $newId])->with('success', 'Payout request submitted.');
         }
 
-        return redirect('/wallet')->with('success', 'Payout request submitted.');
+        return to_route('wallet')->with('success', 'Payout request submitted.');
     }
 }
