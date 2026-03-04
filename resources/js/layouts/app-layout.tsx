@@ -144,7 +144,7 @@ export default function AppLayout({ children, title, showBack = false, backUrl, 
             {/* ── Scrollable content ──────────────────────────────────────── */}
             <main
                 className="flex-1 overflow-y-auto overscroll-none"
-                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 110px)' }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}

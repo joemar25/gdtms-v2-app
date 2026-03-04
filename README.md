@@ -39,9 +39,20 @@ php artisan native:build
 
 # or
 php artisan native:run --build=release
+
+# Build and run your app on a device or simulator.
+php artisan native:run {os?} {udid?}
+
+# sample:
+php artisan native:run android --watch
 ```
 
 > **Note:** After any PHP change, run a full `native:jump android` (without `--skip-build`) so the device picks up the new bundle.
+
+```md
+# check devices available for testing 
+adb devices
+```
 
 ---
 
