@@ -1,6 +1,6 @@
 import { Toaster } from '@/components/ui/sonner';
 import type { SharedData } from '@/types/shared';
-import { Link, router, usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { Bell, CreditCard, Home, User } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -33,6 +33,13 @@ export default function AppLayout({ children, title, showBack = false, backUrl, 
     const touchStartY = useRef(0);
     const [pullDist, setPullDist] = useState(0);
 
+    // ── Tab hover / animated indicator ───────────────────────────────
+    const [hoveredTab, setHoveredTab] = useState<string | null>(null);
+    const navRef = useRef<HTMLDivElement | null>(null);
+    const tabRefs = useRef<Record<string, HTMLElement | null>>({});
+    const [indicator, setIndicator] = useState<{ left: number; width: number; visible: boolean }>({ left: 0, width: 0, visible: false });
+    const [animDuration, setAnimDuration] = useState<number>(200);
+
     useEffect(() => {
         if (flash?.success) toast.success(flash.success);
         if (flash?.error) toast.error(flash.error);
@@ -60,6 +67,36 @@ export default function AppLayout({ children, title, showBack = false, backUrl, 
             clearTimeout(progressTimer.current);
         };
     }, []);
+
+    // Respect reduced motion settings and update animation duration
+    useEffect(() => {
+        try {
+            if (window && 'matchMedia' in window && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                setAnimDuration(0);
+            }
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    // Position indicator on mount and whenever URL changes or window resizes
+    useEffect(() => {
+        const placeActive = () => {
+            if (!navRef.current) return;
+            const active = TABS.find((t) => url.startsWith(t.match) || (t.match === '/dashboard' && url === '/'))?.routeName;
+            if (!active) return;
+            const el = tabRefs.current[active];
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const navRect = navRef.current.getBoundingClientRect();
+            const left = rect.left - navRect.left + rect.width / 2;
+            setIndicator({ left, width: rect.width * 0.92, visible: true });
+        };
+
+        placeActive();
+        window.addEventListener('resize', placeActive);
+        return () => window.removeEventListener('resize', placeActive);
+    }, [url]);
 
     const handleBack = () => {
         if (onBack) {
@@ -157,32 +194,140 @@ export default function AppLayout({ children, title, showBack = false, backUrl, 
                 className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-4"
                 style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
             >
-                <nav className="pointer-events-auto flex w-full items-center rounded-2xl border px-2 py-2 shadow-lg backdrop-blur-2xl">
+                <nav ref={navRef} className="pointer-events-auto relative flex w-full items-center rounded-2xl border px-2 py-2 shadow-lg backdrop-blur-2xl" aria-label="Primary">
+                    {/* iPhone-friendly increased height and padding, minimal look */}
+                    {/* moving indicator */}
+                    {indicator.visible && (
+                        <span
+                            className="absolute rounded-full bg-primary transition-all ease-out"
+                            style={{
+                                left: `${indicator.left}px`,
+                                width: `${indicator.width}px`,
+                                bottom: '8px',
+                                height: '3px',
+                                transform: 'translateX(-50%)',
+                                transitionDuration: `${animDuration}ms`,
+                                willChange: 'left, width, transform',
+                            }}
+                        />
+                    )}
                     {TABS.map(({ label, icon: Icon, routeName, match }) => {
                         const isActive = url.startsWith(match) || (match === '/dashboard' && url === '/');
+                        const isHovered = hoveredTab === routeName;
 
                         const wrapperClass =
-                            'group relative flex flex-1 flex-col items-center justify-center rounded-xl py-2 gap-1 transition-transform duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
-                        const highlightClass = `absolute inset-0 rounded-xl transition-all duration-200 ease-out ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`;
-                        const iconClass = `relative z-10 h-5 w-5 transition-all duration-200 ease-out ${isActive ? 'scale-110 -translate-y-0.5' : 'group-hover:opacity-90'}`;
-                        const labelClass = `relative z-10 text-xs font-medium leading-none tracking-wide transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'}`;
+                            'group relative flex flex-1 flex-col items-center justify-center rounded-xl py-2 gap-0.5 transition-transform duration-200 ease-out active:scale-95 active:translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 min-h-[48px]';
+
+                        // Background pill: keep hover subtle; remove heavy active background (indicator handles active)
+                        const bgClass = `absolute inset-0 rounded-xl transition-all duration-200 ease-out ${isHovered
+                            ? 'opacity-100 scale-100 bg-muted/70'
+                            : 'opacity-0 scale-90'
+                            }`;
+
+                        // Glow halo behind icon: very subtle when active
+                        const glowClass = `absolute -inset-1 rounded-full blur-md transition-all duration-300 ${isActive ? 'opacity-10 bg-primary scale-100' : 'opacity-0 scale-50'
+                            }`;
+
+                        const iconClass = `relative z-10 h-5 w-5 transition-transform duration-200 ease-out ${isActive
+                            ? 'scale-110 -translate-y-0.5 text-primary'
+                            : isHovered
+                                ? 'scale-105 -translate-y-0.5'
+                                : 'scale-100'
+                            } group-hover:translate-y-0 group-active:scale-95`;
+
+                        const labelClass = `relative z-10 text-[12px] font-medium leading-none tracking-wide transition-opacity duration-180 ${isActive
+                            ? 'opacity-100 text-primary'
+                            : isHovered
+                                ? 'opacity-100'
+                                : 'opacity-60'
+                            }`;
+
+                        const hoverHandlers = {
+                            onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+                                const el = e.currentTarget as HTMLElement;
+                                tabRefs.current[routeName] = el;
+                                if (!navRef.current) return;
+                                const rect = el.getBoundingClientRect();
+                                const navRect = navRef.current.getBoundingClientRect();
+                                const left = rect.left - navRect.left + rect.width / 2;
+                                setIndicator({ left, width: rect.width * 0.4, visible: true });
+                                setHoveredTab(routeName);
+                            },
+                            onMouseLeave: () => {
+                                setHoveredTab(null);
+                                // revert to active after hover
+                                requestAnimationFrame(() => {
+                                    const active = TABS.find((t) => url.startsWith(t.match) || (t.match === '/dashboard' && url === '/'))?.routeName;
+                                    if (!active) return;
+                                    const el = tabRefs.current[active];
+                                    if (!el || !navRef.current) return;
+                                    const rect = el.getBoundingClientRect();
+                                    const navRect = navRef.current.getBoundingClientRect();
+                                    const left = rect.left - navRect.left + rect.width / 2;
+                                    setIndicator({ left, width: rect.width * 0.4, visible: true });
+                                });
+                            },
+                            onTouchStart: (e: React.TouchEvent<HTMLElement>) => {
+                                const el = e.currentTarget as HTMLElement;
+                                tabRefs.current[routeName] = el;
+                                if (!navRef.current) return;
+                                const rect = el.getBoundingClientRect();
+                                const navRect = navRef.current.getBoundingClientRect();
+                                const left = rect.left - navRect.left + rect.width / 2;
+                                setIndicator({ left, width: rect.width * 0.4, visible: true });
+                                setHoveredTab(routeName);
+                            },
+                        };
+
+                        const handleClickNav = (e: React.MouseEvent<HTMLElement>) => {
+                            e.preventDefault();
+                            const el = e.currentTarget as HTMLElement;
+                            if (el && navRef.current) {
+                                const rect = el.getBoundingClientRect();
+                                const navRect = navRef.current.getBoundingClientRect();
+                                const left = rect.left - navRect.left + rect.width / 2;
+                                setIndicator({ left, width: rect.width * 0.4, visible: true });
+                            }
+                            setTimeout(() => router.visit(route(routeName)), animDuration);
+                        };
 
                         if (isActive) {
                             return (
-                                <div key={routeName} aria-current="page" aria-disabled="true" tabIndex={-1} className={wrapperClass}>
-                                    <span className={highlightClass} />
-                                    <Icon className={iconClass} strokeWidth={2.4} />
+                                <div
+                                    key={routeName}
+                                    aria-current="page"
+                                    aria-disabled="true"
+                                    tabIndex={-1}
+                                    className={wrapperClass}
+                                    {...hoverHandlers}
+                                    onClick={handleClickNav}
+                                >
+                                    <span className={bgClass} />
+                                    <span className="relative z-10 flex items-center justify-center" ref={(el) => { tabRefs.current[routeName] = el; }}>
+                                        <span className={glowClass} />
+                                        <Icon className={iconClass} strokeWidth={2.4} />
+                                    </span>
                                     <span className={labelClass}>{label}</span>
                                 </div>
                             );
                         }
 
                         return (
-                            <Link key={routeName} href={route(routeName)} className={wrapperClass}>
-                                <span className={highlightClass} />
-                                <Icon className={iconClass} strokeWidth={1.8} />
+                            <a
+                                key={routeName}
+                                href={route(routeName)}
+                                className={wrapperClass}
+                                {...hoverHandlers}
+                                onClick={handleClickNav}
+                                ref={(el) => { tabRefs.current[routeName] = el; }}
+                            >
+                                <span className={bgClass} />
+                                <span className="relative z-10 flex items-center justify-center">
+                                    <span className={glowClass} />
+                                    <Icon className={iconClass} strokeWidth={1.8} />
+                                </span>
                                 <span className={labelClass}>{label}</span>
-                            </Link>
+                            </a>
                         );
                     })}
                 </nav>

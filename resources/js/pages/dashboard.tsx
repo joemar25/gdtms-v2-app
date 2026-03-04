@@ -197,7 +197,7 @@ export default function Dashboard({
                     </span>
                     <span className="flex flex-col gap-0.5">
                         <span className="text-foreground text-[15px] font-semibold">Scan delivery</span>
-                        <span className="text-muted-foreground text-xs">Scan a parcel barcode to update status</span>
+                        <span className="text-muted-foreground text-xs">Scan a POD to update status</span>
                     </span>
                 </Link>
             </div>
