@@ -234,18 +234,13 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   }
 
   Future<void> _launchMaps(String? address) async {
-    final query = Uri.encodeComponent(address?.trim() ?? '');
-    if (query.isEmpty) return;
-    final uri = Uri.parse('geo:0,0?q=$query');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      // Fall back to Google Maps web
-      await launchUrl(
-        Uri.parse('https://maps.google.com/?q=$query'),
-        mode: LaunchMode.externalApplication,
-      );
-    }
+    final destination = address?.trim() ?? '';
+    if (destination.isEmpty) return;
+    final url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(destination)}';
+    await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   String _str(String key) => _delivery[key]?.toString().trim() ?? '';
@@ -260,26 +255,30 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.barcode,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-            ),
-            if (!_loading)
-              Row(
+        title: !_loading
+            ? Row(
                 children: [
+                  Text(
+                    widget.barcode,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '-',
+                    style: TextStyle(fontSize: 15, color: Colors.grey.shade500),
+                  ),
+                  const SizedBox(width: 8),
                   StatusBadge(status: status.isEmpty ? 'pending' : status),
-                  if (_str('mail_type').isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    _Chip(_str('mail_type')),
-                  ],
+                  const SizedBox(width: 8),
+                  Text('|', style: TextStyle(fontSize: 15, color: Colors.grey.shade500)),
+                  const SizedBox(width: 8),
+                  _Chip('two-wheeler'),
                 ],
+              )
+            : Text(
+                widget.barcode,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
-          ],
-        ),
       ),
       bottomNavigationBar:
           (status == 'pending' || status == 'rts' || status == 'osa')
@@ -307,15 +306,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
-                // ─ Status ───────────────────────────────────────────────
-                Row(
-                  children: [
-                    StatusBadge(status: status.isEmpty ? 'pending' : status),
-                    if (_str('mail_type').isNotEmpty) ...[const SizedBox(width: 6), _Chip(_str('mail_type'))],
-                  ],
-                ),
-                const SizedBox(height: 12),
-
                 // ─ Recipient ────────────────────────────────────────────
                 _DetailCard(
                   children: [
@@ -349,11 +339,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       icon: Icons.local_shipping_outlined,
                       title: 'Delivery Details',
                     ),
-                    if (_str('barcode_value').isNotEmpty)
-                      _DetailRow(
-                        label: 'Barcode',
-                        value: _str('barcode_value'),
-                      ),
                     // dispatch_code intentionally hidden from delivery views (ENH-005)
                     if (_str('product').isNotEmpty)
                       _DetailRow(label: 'Product', value: _str('product')),
