@@ -124,9 +124,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const PayoutRequestScreen(),
       ),
       GoRoute(
-        path: '/wallet/:id',
+        path: '/wallet/:reference',
         builder: (_, state) => PayoutDetailScreen(
-          id: int.tryParse(state.pathParameters['id']!) ?? 0,
+          reference: state.pathParameters['reference'] ?? '',
         ),
       ),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),

@@ -8,9 +8,9 @@ import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class PayoutDetailScreen extends ConsumerStatefulWidget {
-  const PayoutDetailScreen({super.key, required this.id});
+  const PayoutDetailScreen({super.key, required this.reference});
 
-  final int id;
+  final String reference;
 
   @override
   ConsumerState<PayoutDetailScreen> createState() => _PayoutDetailScreenState();
@@ -19,6 +19,7 @@ class PayoutDetailScreen extends ConsumerStatefulWidget {
 class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
   bool _loading = true;
   Map<String, dynamic> _data = {};
+  String? _notFound;
 
   @override
   void initState() {
@@ -30,13 +31,17 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     final result = await ref
         .read(apiClientProvider)
         .get<Map<String, dynamic>>(
-          '/payment-requests/${widget.id}',
+          '/wallet/${widget.reference}',
           parser: parseApiMap,
         );
 
     if (!mounted) return;
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       _data = mapFromKey(data, 'data');
+    } else if (result is ApiServerError<Map<String, dynamic>>) {
+      _notFound = result.message.isNotEmpty
+          ? result.message
+          : 'Payment request not found.';
     }
     setState(() => _loading = false);
   }
@@ -44,12 +49,14 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final reference =
-        '${_data['reference'] ?? _data['payment_reference'] ?? 'Payout #${widget.id}'}';
+        '${_data['reference'] ?? _data['payment_reference'] ?? widget.reference}';
     final status = '${_data['status'] ?? ''}';
     final amount = double.tryParse('${_data['amount'] ?? 0}') ?? 0.0;
     final from = formatDate('${_data['from_date'] ?? ''}');
     final to = formatDate('${_data['to_date'] ?? ''}');
     final requestedAt = formatDate('${_data['requested_at'] ?? ''}');
+    final approvedAt = formatDate('${_data['approved_at'] ?? ''}');
+    final paidAt = formatDate('${_data['paid_at'] ?? ''}');
     final totalItems = _data['total_items'];
     final breakdown = asStringDynamicMap(_data['breakdown']);
 
@@ -62,6 +69,22 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
+          : _notFound != null
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.search_off_rounded,
+                          size: 48, color: Colors.grey.shade400),
+                      const SizedBox(height: 12),
+                      Text(
+                        _notFound!,
+                        style: TextStyle(
+                            color: Colors.grey.shade500, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                )
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
@@ -121,6 +144,16 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                           icon: Icons.access_time_outlined,
                           label: 'Requested',
                           value: requestedAt),
+                    if (approvedAt.isNotEmpty)
+                      _DetailRow(
+                          icon: Icons.check_circle_outline,
+                          label: 'Approved',
+                          value: approvedAt),
+                    if (paidAt.isNotEmpty)
+                      _DetailRow(
+                          icon: Icons.payments_outlined,
+                          label: 'Paid',
+                          value: paidAt),
                     _DetailRow(
                         icon: Icons.date_range_outlined,
                         label: 'Period',
@@ -140,11 +173,14 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                     title: 'Breakdown',
                     children: breakdown.entries
                         .map(
-                          (e) => _DetailRow(
-                            icon: Icons.circle,
-                            label: _formatKey(e.key),
-                            value: '${e.value}',
-                          ),
+                          (e) {
+                            final val = double.tryParse('${e.value}') ?? 0.0;
+                            return _DetailRow(
+                              icon: Icons.circle,
+                              label: _formatKey(e.key),
+                              value: '₱ ${val.toStringAsFixed(2)}',
+                            );
+                          },
                         )
                         .toList(),
                   ),

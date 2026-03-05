@@ -122,12 +122,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   const SizedBox(height: 20),
 
                   // ── Latest request ─────────────────────────────────────
-                  if (latest.isNotEmpty) ...[
+                  if (latest.isNotEmpty && latest['reference'] != null) ...[
                     _SectionLabel('Latest Request'),
                     const SizedBox(height: 8),
                     _LatestRequestCard(
                       data: latest,
-                      onTap: () => context.push('/wallet/${latest['id']}'),
+                      // Only use reference for navigation, not id
+                      onTap: () => context.push('/wallet/${latest['reference']}'),
                     ),
                     const SizedBox(height: 20),
                   ],

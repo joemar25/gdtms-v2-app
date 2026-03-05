@@ -182,6 +182,14 @@ class _DispatchEligibilityScreenState
           'DISPATCH',
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            tooltip: 'Scan Dispatch',
+            onPressed: () =>
+                context.push('/scan', extra: {'mode': 'dispatch'}),
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -432,14 +440,24 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
   String? _error;
 
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-focus the first digit when dialog is shown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNodes[0].requestFocus();
+    });
+  }
+
   @override
   void dispose() {
-      for (final c in _controllers) {
-        c.dispose();
-      }
-      for (final f in _focusNodes) {
-        f.dispose();
-      }
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    for (final f in _focusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
