@@ -3,15 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 
-import '../../core/api/api_client.dart';
-import '../../core/api/api_result.dart';
-import '../../core/auth/auth_provider.dart';
-import '../../core/auth/auth_storage.dart';
-import '../../core/config.dart';
-import '../../core/constants.dart';
-import '../../core/device/device_info.dart';
-import '../../shared/helpers/api_payload_helper.dart';
-import '../../shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/auth_storage.dart';
+import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/device/device_info.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -25,6 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final Map<String, String> _errors = {};
   bool _loading = false;
+  bool _obscurePassword = true;
   int _rateLimitRemaining = 0;
   Timer? _rateLimitTimer;
 
@@ -150,60 +152,174 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: Stack(
+        fit: StackFit.expand,
         children: [
+          // ─ Background ─────────────────────────────────────────────
+          ColoredBox(
+            color: isDark ? const Color(0xFF121212) : const Color(0xFFF0F4F0),
+          ),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const FlutterLogo(size: 88),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Courier Field App',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium,
+                      // ─ Header card ──────────────────────────────────
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              ColorStyles.grabGreen,
+                              ColorStyles.grabGreen.withValues(
+                                red: 0.1,
+                                green: 0.55,
+                                blue: 0.2,
+                                alpha: 1.0,
+                              ),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Image.asset(
+                                'assets/icons/kita_mar4.png',
+                                width: 40,
+                                height: 40,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              appName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Sign in to your account',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.75),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText: 'Phone Number',
-                          errorText: _errors['phone_number'],
+
+                      // ─ Fields card ──────────────────────────────────
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.25 : 0.06,
+                              ),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          errorText: _errors['password'],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => context.push('/reset-password'),
-                          child: const Text('Forgot password?'),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      FilledButton(
-                        onPressed: _loading || _rateLimitRemaining > 0
-                            ? null
-                            : _submit,
-                        child: Text(
-                          _rateLimitRemaining > 0
-                              ? 'Login ($_rateLimitRemaining)'
-                              : 'Login',
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              decoration: InputDecoration(
+                                labelText: 'Phone Number',
+                                prefixIcon: const Icon(Icons.phone_outlined),
+                                errorText: _errors['phone_number'],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextField(
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                errorText: _errors['password'],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                suffixIcon: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  transitionBuilder: (child, anim) =>
+                                      ScaleTransition(scale: anim, child: child),
+                                  child: IconButton(
+                                    key: ValueKey(_obscurePassword),
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                    ),
+                                    onPressed: () => setState(
+                                      () => _obscurePassword = !_obscurePassword,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () =>
+                                    context.push('/reset-password'),
+                                child: const Text('Forgot password?'),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: ColorStyles.grabGreen,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(double.infinity, 52),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _loading || _rateLimitRemaining > 0
+                                  ? null
+                                  : _submit,
+                              child: Text(
+                                _rateLimitRemaining > 0
+                                    ? 'Wait ($_rateLimitRemaining s)'
+                                    : 'Sign In',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

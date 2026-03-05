@@ -6,6 +6,7 @@ import 'app.dart';
 import 'core/auth/auth_provider.dart';
 import 'core/auth/auth_storage.dart';
 import 'core/settings/app_settings.dart';
+import 'core/settings/compact_mode_provider.dart';
 import 'shared/router/app_router.dart';
 
 Future<void> main() async {
@@ -16,39 +17,42 @@ Future<void> main() async {
   final appSettings = AppSettings();
 
   bool isAuth = false;
-  bool darkMode = false;
+  ThemeMode themeMode = ThemeMode.light;
+  bool compactMode = false;
   Map<String, dynamic>? courier;
 
   try {
     isAuth = await authStorage.isAuthenticated().timeout(
       const Duration(seconds: 3),
     );
-    darkMode = await appSettings.getDarkMode().timeout(
+    themeMode = await appSettings.getThemeMode().timeout(
+      const Duration(seconds: 3),
+    );
+    compactMode = await appSettings.getCompactMode().timeout(
       const Duration(seconds: 3),
     );
     courier = await authStorage.getCourier().timeout(
       const Duration(seconds: 3),
     );
   } catch (_) {
-    // Fall back to login if startup hydration fails or stalls.
     isAuth = false;
-    darkMode = false;
+    themeMode = ThemeMode.light;
+    compactMode = false;
     courier = null;
   }
 
   runApp(
     ProviderScope(
       overrides: [
-        initialLocationProvider.overrideWithValue(
-          isAuth ? '/dashboard' : '/login',
-        ),
+        initialLocationProvider.overrideWithValue('/splash'),
+        compactModeProvider.overrideWith((_) => compactMode),
         authProvider.overrideWith(
           (ref) => AuthNotifier(
             authStorage,
             appSettings,
             initialState: AuthState(
               isAuthenticated: isAuth,
-              themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
+              themeMode: themeMode,
               courier: courier,
             ),
           ),

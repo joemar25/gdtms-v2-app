@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../settings/app_settings.dart';
-import 'auth_storage.dart';
+import 'package:fsi_courier_app/core/settings/app_settings.dart';
+import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 
 class AuthState {
   const AuthState({
@@ -48,11 +48,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> initialize() async {
     final isAuth = await _authStorage.isAuthenticated();
     final courier = await _authStorage.getCourier();
-    final darkMode = await _settings.getDarkMode();
+    final themeMode = await _settings.getThemeMode();
     state = state.copyWith(
       isAuthenticated: isAuth,
       courier: courier,
-      themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
+      themeMode: themeMode,
     );
   }
 
@@ -66,8 +66,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isAuthenticated: false, courier: null);
   }
 
-  Future<void> setDarkMode(bool enabled) async {
-    await _settings.setDarkMode(enabled);
-    state = state.copyWith(themeMode: enabled ? ThemeMode.dark : ThemeMode.light);
+  Future<void> setThemeMode(ThemeMode mode) async {
+    await _settings.setThemeMode(mode);
+    state = state.copyWith(themeMode: mode);
   }
+
+  Future<void> setDarkMode(bool enabled) =>
+      setThemeMode(enabled ? ThemeMode.dark : ThemeMode.light);
 }

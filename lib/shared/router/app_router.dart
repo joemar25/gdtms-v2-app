@@ -2,23 +2,23 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/auth/auth_provider.dart';
-import '../../features/auth/login_screen.dart';
-import '../../features/auth/reset_password_screen.dart';
-import '../../features/dashboard/dashboard_screen.dart';
-import '../../features/delivery/delivery_detail_screen.dart';
-import '../../features/delivery/delivery_list_screen.dart';
-import '../../features/delivery/delivery_scan_screen.dart';
-import '../../features/delivery/delivery_update_screen.dart';
-import '../../features/dispatch/dispatch_eligibility_screen.dart';
-import '../../features/dispatch/dispatch_list_screen.dart';
-import '../../features/dispatch/dispatch_scan_screen.dart';
-import '../../features/profile/profile_screen.dart';
-import '../../features/wallet/payout_detail_screen.dart';
-import '../../features/wallet/payout_request_screen.dart';
-import '../../features/wallet/wallet_screen.dart';
-import '../helpers/api_payload_helper.dart';
-import 'router_keys.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/features/auth/login_screen.dart';
+import 'package:fsi_courier_app/features/auth/reset_password_screen.dart';
+import 'package:fsi_courier_app/splash_screen.dart';
+import 'package:fsi_courier_app/features/dashboard/dashboard_screen.dart';
+import 'package:fsi_courier_app/features/delivery/delivery_detail_screen.dart';
+import 'package:fsi_courier_app/features/delivery/delivery_list_screen.dart';
+import 'package:fsi_courier_app/features/delivery/delivery_update_screen.dart';
+import 'package:fsi_courier_app/features/dispatch/dispatch_eligibility_screen.dart';
+import 'package:fsi_courier_app/features/dispatch/dispatch_list_screen.dart';
+import 'package:fsi_courier_app/features/profile/profile_screen.dart';
+import 'package:fsi_courier_app/features/scan/scan_screen.dart';
+import 'package:fsi_courier_app/features/wallet/payout_detail_screen.dart';
+import 'package:fsi_courier_app/features/wallet/payout_request_screen.dart';
+import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/router/router_keys.dart';
 
 final initialLocationProvider = Provider<String>((ref) => '/login');
 
@@ -39,7 +39,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth = ref.read(authProvider);
       final path = state.uri.path;
-      final isAuthRoute = path == '/login' || path == '/reset-password';
+      final isAuthRoute =
+          path == '/login' ||
+          path == '/reset-password' ||
+          path == '/splash';
 
       if (!auth.isAuthenticated && !isAuthRoute) {
         return '/login';
@@ -53,19 +56,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
         path: '/reset-password',
         builder: (_, __) => const ResetPasswordScreen(),
       ),
       GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+
+      // ── Unified scan (replaces /dispatches/scan and /deliveries/scan) ──
+      GoRoute(
+        path: '/scan',
+        builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final mode = extra['mode'] == 'dispatch'
+              ? ScanMode.dispatch
+              : ScanMode.pod;
+          return ScanScreen(mode: mode);
+        },
+      ),
+
       GoRoute(
         path: '/dispatches',
         builder: (_, __) => const DispatchListScreen(),
-      ),
-      GoRoute(
-        path: '/dispatches/scan',
-        builder: (_, __) => const DispatchScanScreen(),
       ),
       GoRoute(
         path: '/dispatches/eligibility',
@@ -91,10 +104,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/deliveries',
         builder: (_, __) => const DeliveryListScreen(),
-      ),
-      GoRoute(
-        path: '/deliveries/scan',
-        builder: (_, __) => const DeliveryScanScreen(),
       ),
       GoRoute(
         path: '/deliveries/:barcode',

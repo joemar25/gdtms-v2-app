@@ -19,11 +19,14 @@ class FsiCourierApp extends ConsumerWidget {
       scaffoldMessengerKey: appScaffoldMessengerKey,
       themeMode: auth.themeMode,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFEA4335)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00B14F)),
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFEA4335), brightness: Brightness.dark),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF00B14F),
+          brightness: Brightness.dark,
+        ),
         useMaterial3: true,
       ),
       routerConfig: router,

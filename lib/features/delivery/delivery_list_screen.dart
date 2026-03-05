@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/api/api_client.dart';
-import '../../core/api/api_result.dart';
-import '../../core/constants.dart';
-import '../../shared/helpers/api_payload_helper.dart';
-import '../../shared/helpers/delivery_identifier.dart';
-import '../../shared/widgets/delivery_card.dart';
-import '../../shared/widgets/empty_state.dart';
+import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
+import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 
 class DeliveryListScreen extends ConsumerStatefulWidget {
   const DeliveryListScreen({super.key});
@@ -63,10 +65,11 @@ class _DeliveryListScreenState extends ConsumerState<DeliveryListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = ref.watch(compactModeProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Deliveries')),
+      appBar: const AppHeaderBar(title: 'Deliveries'),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/deliveries/scan'),
+        onPressed: () => context.push('/scan', extra: {'mode': 'pod'}),
         child: const Icon(Icons.qr_code_scanner),
       ),
       body: RefreshIndicator(
@@ -89,6 +92,7 @@ class _DeliveryListScreenState extends ConsumerState<DeliveryListScreen> {
                     final identifier = resolveDeliveryIdentifier(d);
                     return DeliveryCard(
                       delivery: d,
+                      compact: isCompact,
                       onTap: identifier.isEmpty
                           ? () {}
                           : () => context.push('/deliveries/$identifier'),

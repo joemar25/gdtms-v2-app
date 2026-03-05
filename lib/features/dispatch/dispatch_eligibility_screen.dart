@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/api/api_client.dart';
-import '../../core/api/api_result.dart';
-import '../../core/device/device_info.dart';
-import '../../shared/helpers/api_payload_helper.dart';
-import '../../shared/helpers/snackbar_helper.dart';
-import '../../shared/widgets/loading_overlay.dart';
-import '../../shared/widgets/success_overlay.dart';
+import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/device/device_info.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
+import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 
 class DispatchEligibilityScreen extends ConsumerStatefulWidget {
   const DispatchEligibilityScreen({

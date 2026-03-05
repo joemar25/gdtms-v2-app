@@ -1,19 +1,25 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../shared/helpers/snackbar_helper.dart';
-import '../../shared/router/router_keys.dart';
-import '../auth/auth_storage.dart';
-import '../config.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/router/router_keys.dart';
+import 'package:fsi_courier_app/core/auth/auth_storage.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'api_result.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient(authStorage: ref.read(authStorageProvider));
+  return ApiClient(
+    authStorage: ref.read(authStorageProvider),
+    onUnauthorized: () => ref.read(authProvider.notifier).clearAuth(),
+  );
 });
 
 class ApiClient {
-  ApiClient({required AuthStorage authStorage}) : _authStorage = authStorage {
+  ApiClient({required AuthStorage authStorage, this.onUnauthorized})
+      : _authStorage = authStorage {
     _dio = Dio(
       BaseOptions(
         baseUrl: apiBaseUrl,
@@ -38,6 +44,7 @@ class ApiClient {
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
             await _authStorage.clearAll();
+            onUnauthorized?.call();
             final navContext = rootNavigatorKey.currentContext;
             if (navContext != null) {
               // ignore: use_build_context_synchronously
@@ -56,6 +63,7 @@ class ApiClient {
   }
 
   final AuthStorage _authStorage;
+  final VoidCallback? onUnauthorized;
   late final Dio _dio;
 
   Dio get dio => _dio;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../router/router_keys.dart';
+import 'package:fsi_courier_app/shared/router/router_keys.dart';
 
 enum SnackbarType { success, error, info }
 

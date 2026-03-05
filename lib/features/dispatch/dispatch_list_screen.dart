@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/api/api_client.dart';
-import '../../core/api/api_result.dart';
-import '../../core/constants.dart';
-import '../../shared/helpers/api_payload_helper.dart';
-import '../../shared/widgets/empty_state.dart';
+import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/settings/app_settings.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 
 class DispatchListScreen extends ConsumerStatefulWidget {
   const DispatchListScreen({super.key});
@@ -45,9 +47,10 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Dispatches')),
+      appBar: const AppHeaderBar(title: 'Dispatches'),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/dispatches/scan'),
+        onPressed: () =>
+            context.push('/scan', extra: {'mode': 'dispatch'}),
         child: const Icon(Icons.qr_code_scanner),
       ),
       body: _loading
@@ -75,9 +78,20 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                             trailing: Text(
                               item['created_at']?.toString() ?? '',
                             ),
-                            onTap: () => context.push(
-                              '/dispatches/eligibility?dispatch_code=$code',
-                            ),
+                            onTap: () async {
+                              final autoAccept = await ref
+                                  .read(appSettingsProvider)
+                                  .getAutoAcceptDispatch();
+                              if (!context.mounted) return;
+                              context.push('/dispatches/eligibility', extra: {
+                                'dispatch_code': code,
+                                'eligibility_response': {
+                                  ...item,
+                                  'eligible': true,
+                                },
+                                'auto_accept': autoAccept,
+                              });
+                            },
                           ),
                         );
                       },

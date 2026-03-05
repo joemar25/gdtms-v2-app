@@ -7,14 +7,14 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/api/api_client.dart';
-import '../../core/api/api_result.dart';
-import '../../core/constants.dart';
-import '../../core/models/photo_entry.dart';
-import '../../shared/helpers/api_payload_helper.dart';
-import '../../shared/helpers/snackbar_helper.dart';
-import '../../shared/widgets/loading_overlay.dart';
-import '../../shared/widgets/success_overlay.dart';
+import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/models/photo_entry.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
+import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 
 class DeliveryUpdateScreen extends ConsumerStatefulWidget {
   const DeliveryUpdateScreen({super.key, required this.barcode});

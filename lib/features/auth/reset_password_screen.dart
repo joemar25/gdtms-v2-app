@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/api/api_client.dart';
-import '../../core/api/api_result.dart';
-import '../../shared/helpers/api_payload_helper.dart';
-import '../../shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
