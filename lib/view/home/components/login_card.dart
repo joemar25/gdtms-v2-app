@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/view/Dashboard/dashboard_page.dart';
 import '../../../components/styled_text_box.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,7 +22,7 @@ class _LoginCardState extends State<LoginCard> {
     setState(() => isLoading = true);
 
     final url = Uri.parse(
-      'https://staging-gdtms-v2.skyward.com.ph/api/mbl/login',
+      '$apiBaseUrl/login',
     );
 
     try {

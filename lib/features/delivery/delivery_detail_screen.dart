@@ -10,6 +10,187 @@ import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/status_badge.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
+/// Shows a bottom action sheet listing available communication apps for a phone number.
+Future<void> showContactAppSheet(BuildContext context, String phone) async {
+  final cleaned = phone.trim();
+  if (cleaned.isEmpty) return;
+
+  // Detect which comm apps are available on this device
+  final apps = <_CommApp>[];
+
+  final appCandidates = [
+    _CommApp(
+      label: 'Call',
+      icon: Icons.call_rounded,
+      color: Colors.green,
+      uri: Uri(scheme: 'tel', path: cleaned),
+    ),
+    _CommApp(
+      label: 'SMS',
+      icon: Icons.sms_rounded,
+      color: Colors.blueGrey,
+      uri: Uri(scheme: 'sms', path: cleaned),
+    ),
+    _CommApp(
+      label: 'WhatsApp',
+      icon: Icons.chat_rounded,
+      color: const Color(0xFF25D366),
+      uri: Uri.parse('whatsapp://send?phone=${cleaned.replaceAll('+', '')}'),
+    ),
+    _CommApp(
+      label: 'Viber',
+      icon: Icons.video_call_rounded,
+      color: const Color(0xFF7360F2),
+      uri: Uri.parse('viber://chat?number=${cleaned.replaceAll('+', '')}'),
+    ),
+    _CommApp(
+      label: 'Telegram',
+      icon: Icons.send_rounded,
+      color: const Color(0xFF229ED9),
+      uri: Uri.parse('tg://resolve?phone=$cleaned'),
+    ),
+  ];
+
+  for (final app in appCandidates) {
+    if (await canLaunchUrl(app.uri)) {
+      apps.add(app);
+    }
+  }
+
+  // Always show at least the tel: fallback
+  if (apps.isEmpty) {
+    final telUri = Uri(scheme: 'tel', path: cleaned);
+    apps.add(
+      _CommApp(
+        label: 'Call',
+        icon: Icons.call_rounded,
+        color: Colors.green,
+        uri: telUri,
+      ),
+    );
+  }
+
+  if (!context.mounted) return;
+
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => _ContactAppSheet(phone: cleaned, apps: apps),
+  );
+}
+
+class _CommApp {
+  const _CommApp({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.uri,
+  });
+  final String label;
+  final IconData icon;
+  final Color color;
+  final Uri uri;
+}
+
+class _ContactAppSheet extends StatelessWidget {
+  const _ContactAppSheet({required this.phone, required this.apps});
+  final String phone;
+  final List<_CommApp> apps;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Text(
+            'CONTACT',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.grey.shade500,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            phone,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: apps
+                .map(
+                  (app) => _AppTile(
+                    app: app,
+                    onTap: () {
+                      Navigator.pop(context);
+                      launchUrl(app.uri, mode: LaunchMode.externalApplication);
+                    },
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AppTile extends StatelessWidget {
+  const _AppTile({required this.app, required this.onTap});
+  final _CommApp app;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: app.color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(app.icon, color: app.color, size: 26),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            app.label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class DeliveryDetailScreen extends ConsumerStatefulWidget {
   const DeliveryDetailScreen({super.key, required this.barcode});
 
@@ -47,11 +228,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     setState(() => _loading = false);
   }
 
-  Future<void> _launchCall(String? phone) async {
-    final cleaned = phone?.trim() ?? '';
-    if (cleaned.isEmpty) return;
-    final uri = Uri(scheme: 'tel', path: cleaned);
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  Future<void> _onPhoneTap(String? phone) async {
+    if (!mounted) return;
+    await showContactAppSheet(context, phone ?? '');
   }
 
   Future<void> _launchMaps(String? address) async {
@@ -81,34 +260,61 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(
-          widget.barcode,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-        ),
-        actions: [
-          if (status == 'pending' || status == 'rts' || status == 'osa')
-            TextButton(
-              onPressed: () =>
-                  context.push('/deliveries/${widget.barcode}/update'),
-              child: const Text('Update'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.barcode,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
-        ],
+            if (!_loading)
+              Row(
+                children: [
+                  StatusBadge(status: status.isEmpty ? 'pending' : status),
+                  if (_str('mail_type').isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    _Chip(_str('mail_type')),
+                  ],
+                ],
+              ),
+          ],
+        ),
       ),
+      bottomNavigationBar:
+          (status == 'pending' || status == 'rts' || status == 'osa')
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('UPDATE STATUS'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: ColorStyles.grabGreen,
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: () =>
+                      context.push('/deliveries/${widget.barcode}/update'),
+                ),
+              ),
+            )
+          : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
-                // ─ Status badge ─────────────────────────────────────────
+                // ─ Status ───────────────────────────────────────────────
                 Row(
                   children: [
                     StatusBadge(status: status.isEmpty ? 'pending' : status),
-                    const SizedBox(width: 8),
-                    if (_str('mail_type').isNotEmpty)
-                      _Chip(_str('mail_type')),
+                    if (_str('mail_type').isNotEmpty) ...[const SizedBox(width: 6), _Chip(_str('mail_type'))],
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
                 // ─ Recipient ────────────────────────────────────────────
                 _DetailCard(
@@ -117,25 +323,21 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       icon: Icons.person_outline,
                       title: 'Recipient',
                     ),
-                    _DetailRow(
-                      label: 'Name',
-                      value: _str('name'),
-                      bold: true,
-                    ),
+                    _DetailRow(label: 'Name', value: _str('name'), bold: true),
                     _TappableRow(
-                      icon: Icons.map_outlined,
                       label: 'Address',
                       value: _str('address'),
                       onTap: () => _launchMaps(_str('address')),
+                      trailingIcon: Icons.map_outlined,
                     ),
                     _TappableRow(
-                      icon: Icons.phone_outlined,
                       label: 'Contact',
                       value: _str('contact'),
-                      onTap: () => _launchCall(_str('contact')),
+                      onTap: () => _onPhoneTap(_str('contact')),
+                      trailingIcon: Icons.call_outlined,
                     ),
-                    // Authorized reps ─────────────────────────────────
-                    for (int i = 1; i <= 3; i++) ..._buildRepRow(i),
+                    // Authorized rep ──────────────────────────────────
+                    ..._buildAuthorizedRep(),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -148,9 +350,11 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       title: 'Delivery Details',
                     ),
                     if (_str('barcode_value').isNotEmpty)
-                      _DetailRow(label: 'Barcode', value: _str('barcode_value')),
-                    if (_str('dispatch_code').isNotEmpty)
-                      _DetailRow(label: 'Dispatch', value: _str('dispatch_code')),
+                      _DetailRow(
+                        label: 'Barcode',
+                        value: _str('barcode_value'),
+                      ),
+                    // dispatch_code intentionally hidden from delivery views (ENH-005)
                     if (_str('product').isNotEmpty)
                       _DetailRow(label: 'Product', value: _str('product')),
                     if (_str('special_instruction').isNotEmpty)
@@ -166,10 +370,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         value: formatDate(_str('transmittal_date')),
                       ),
                     if (_str('tat').isNotEmpty)
-                      _DetailRow(
-                        label: 'TAT',
-                        value: formatDate(_str('tat')),
-                      ),
+                      _DetailRow(label: 'TAT', value: formatDate(_str('tat'))),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -187,19 +388,18 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     );
   }
 
-  List<Widget> _buildRepRow(int index) {
-    final name = _str('authorized_rep_$index');
-    final phone = _str('contact_rep_$index');
+  List<Widget> _buildAuthorizedRep() {
+    final name = _str('authorized_rep');
+    final phone = _str('contact_rep');
     if (name.isEmpty && phone.isEmpty) return [];
     return [
       _TappableRow(
-        icon: Icons.person_pin_outlined,
-        label: 'Auth. Rep $index',
+        label: 'Auth. Rep',
         value: name.isNotEmpty
             ? '$name${phone.isNotEmpty ? ' · $phone' : ''}'
             : phone,
-        onTap: phone.isNotEmpty ? () => _launchCall(phone) : null,
-        showCallIcon: phone.isNotEmpty,
+        onTap: phone.isNotEmpty ? () => _onPhoneTap(phone) : null,
+        trailingIcon: phone.isNotEmpty ? Icons.call_outlined : null,
       ),
     ];
   }
@@ -225,7 +425,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               return ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: url.isNotEmpty
-                    ? Image.network(url, width: 100, height: 100, fit: BoxFit.cover)
+                    ? Image.network(
+                        url,
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                      )
                     : const SizedBox(width: 100, height: 100),
               );
             },
@@ -254,11 +459,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           itemBuilder: (context, i) {
             final item = items[i];
             final isLast = i == items.length - 1;
-            return _TimelineItem(
-              item: item,
-              isFirst: i == 0,
-              isLast: isLast,
-            );
+            return _TimelineItem(item: item, isFirst: i == 0, isLast: isLast);
           },
         ),
       ],
@@ -289,7 +490,10 @@ class _DetailCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
       ),
     );
   }
@@ -323,7 +527,11 @@ class _DetailHeader extends StatelessWidget {
 // ─── Plain detail row ────────────────────────────────────────────────────────
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value, this.bold = false});
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.bold = false,
+  });
   final String label;
   final String value;
   final bool bold;
@@ -340,10 +548,7 @@ class _DetailRow extends StatelessWidget {
             width: 100,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
           ),
           Expanded(
@@ -365,18 +570,16 @@ class _DetailRow extends StatelessWidget {
 
 class _TappableRow extends StatelessWidget {
   const _TappableRow({
-    required this.icon,
     required this.label,
     required this.value,
     this.onTap,
-    this.showCallIcon = false,
+    this.trailingIcon,
   });
 
-  final IconData icon;
   final String label;
   final String value;
   final VoidCallback? onTap;
-  final bool showCallIcon;
+  final IconData? trailingIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -406,10 +609,14 @@ class _TappableRow extends StatelessWidget {
                 ),
               ),
             ),
-            if (showCallIcon)
-              Icon(Icons.call_outlined, size: 16, color: ColorStyles.grabGreen)
+            if (trailingIcon != null)
+              Icon(trailingIcon, size: 16, color: ColorStyles.grabGreen)
             else if (onTap != null)
-              Icon(Icons.open_in_new_rounded, size: 14, color: Colors.grey.shade400),
+              Icon(
+                Icons.open_in_new_rounded,
+                size: 14,
+                color: Colors.grey.shade400,
+              ),
           ],
         ),
       ),
@@ -568,4 +775,3 @@ class _TimelineItem extends StatelessWidget {
     );
   }
 }
-

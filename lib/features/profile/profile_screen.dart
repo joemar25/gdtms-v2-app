@@ -12,6 +12,7 @@ import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
@@ -49,31 +50,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _showSettingsUpdated() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.check_circle_outline_rounded,
-                size: 17,
-                color: Colors.white,
-              ),
-              SizedBox(width: 8),
-              Text('Settings updated'),
-            ],
-          ),
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: ColorStyles.grabGreen,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-        ),
-      );
+    showSuccessNotification(context, 'Settings updated');
   }
 
   Future<void> _loadDeviceSpecs() async {

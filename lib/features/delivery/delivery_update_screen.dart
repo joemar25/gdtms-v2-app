@@ -15,6 +15,27 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
+import 'package:fsi_courier_app/styles/color_styles.dart';
+
+// ─── Status metadata ────────────────────────────────────────────────────────
+const _kStatusMeta = {
+  'delivered': (
+    label: 'DELIVERED',
+    icon: Icons.check_circle_rounded,
+    color: Color(0xFF00B14F),
+  ),
+  'failed_attempt': (
+    label: 'FAILED ATTEMPT',
+    icon: Icons.cancel_rounded,
+    color: Colors.deepOrange,
+  ),
+  'rts': (
+    label: 'RTS',
+    icon: Icons.keyboard_return_rounded,
+    color: Colors.purple,
+  ),
+  'osa': (label: 'OSA', icon: Icons.inbox_rounded, color: Colors.amber),
+};
 
 class DeliveryUpdateScreen extends ConsumerStatefulWidget {
   const DeliveryUpdateScreen({super.key, required this.barcode});
@@ -101,7 +122,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
     }
 
-    if (_status == 'rts' || _status == 'osa') {
+    if (_status == 'rts' || _status == 'osa' || _status == 'failed_attempt') {
       if (_reason == null || _reason!.isEmpty) {
         _errors['reason'] = 'Reason is required.';
       }
@@ -125,7 +146,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             'recipient': _status == 'delivered' ? _recipient.text.trim() : null,
             'relationship': _status == 'delivered' ? _relationship : null,
             'placement_type': _status == 'delivered' ? _placement : null,
-            'reason': (_status == 'rts' || _status == 'osa') ? _reason : null,
+            'reason':
+                (_status == 'rts' ||
+                    _status == 'osa' ||
+                    _status == 'failed_attempt')
+                ? _reason
+                : null,
             'delivery_images': _photos.map((e) => e.toApiJson()).toList(),
           },
           parser: parseApiMap,
@@ -154,46 +180,160 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool allowGallery = _status == 'rts' || _status == 'osa';
+    final bool needsReason =
+        _status == 'rts' || _status == 'osa' || _status == 'failed_attempt';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: Text('Update ${widget.barcode}')),
+      backgroundColor: isDark
+          ? ColorStyles.grabCardDark
+          : ColorStyles.grabCardLight,
+      appBar: AppBar(
+        backgroundColor: isDark ? ColorStyles.grabCardDark : Colors.white,
+        elevation: 0,
+        titleSpacing: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'UPDATE STATUS',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.0,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+            Text(
+              widget.barcode,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.white54 : Colors.grey.shade500,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: FilledButton.icon(
+            icon: const Icon(Icons.check_circle_outline_rounded),
+            label: const Text(
+              'SUBMIT UPDATE',
+              style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorStyles.grabGreen,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            onPressed: _loading ? null : _submit,
+          ),
+        ),
+      ),
       body: Stack(
         children: [
           ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
-              DropdownButtonFormField<String>(
-                initialValue: _status,
-                decoration: InputDecoration(
-                  labelText: 'Status',
-                  errorText: _errors['delivery_status'],
-                ),
-                items: kUpdateStatuses
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) => setState(() => _status = v ?? _status),
+              // ── STATUS SELECTION ────────────────────────────────────────
+              const _SectionHeader(label: 'SELECT STATUS'),
+              const SizedBox(height: 10),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 2.4,
+                children: kUpdateStatuses.map((s) {
+                  final meta = _kStatusMeta[s]!;
+                  final selected = _status == s;
+                  return GestureDetector(
+                    onTap: () => setState(() {
+                      _status = s;
+                      _reason = null;
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? meta.color
+                            : meta.color.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: meta.color.withValues(
+                            alpha: selected ? 1 : 0.35,
+                          ),
+                          width: selected ? 2 : 1.2,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            meta.icon,
+                            color: selected ? Colors.white : meta.color,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              meta.label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: selected ? Colors.white : meta.color,
+                                letterSpacing: 0.4,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _note,
-                maxLength: kMaxNoteLength,
-                decoration: InputDecoration(
-                  labelText: 'Note',
-                  errorText: _errors['note'],
+              if (_errors['delivery_status'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    _errors['delivery_status']!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
                 ),
-              ),
+
+              // ── RECIPIENT INFO (delivered only) ────────────────────────
               if (_status == 'delivered') ...[
-                TextField(
+                const SizedBox(height: 20),
+                const _SectionHeader(label: 'RECIPIENT INFO'),
+                const SizedBox(height: 8),
+                TextFormField(
                   controller: _recipient,
                   maxLength: kMaxRecipientLength,
-                  decoration: InputDecoration(
-                    labelText: 'Recipient',
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: _fieldDecoration(
+                    context,
+                    labelText: 'RECIPIENT NAME',
                     errorText: _errors['recipient'],
                   ),
                 ),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   initialValue: _relationship,
-                  decoration: const InputDecoration(
-                    labelText: 'Relationship (optional)',
+                  decoration: _fieldDecoration(
+                    context,
+                    labelText: 'RELATIONSHIP (OPTIONAL)',
                   ),
                   items: kRelationshipOptions
                       .map(
@@ -205,10 +345,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       .toList(),
                   onChanged: (v) => setState(() => _relationship = v),
                 ),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   initialValue: _placement,
-                  decoration: const InputDecoration(
-                    labelText: 'Placement Type (optional)',
+                  decoration: _fieldDecoration(
+                    context,
+                    labelText: 'PLACEMENT TYPE (OPTIONAL)',
                   ),
                   items: kPlacementOptions
                       .map(
@@ -221,11 +363,17 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   onChanged: (v) => setState(() => _placement = v),
                 ),
               ],
-              if (_status == 'rts' || _status == 'osa')
+
+              // ── REASON (rts / osa / failed_attempt) ───────────────────
+              if (needsReason) ...[
+                const SizedBox(height: 20),
+                const _SectionHeader(label: 'REASON FOR NON-DELIVERY'),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   initialValue: _reason,
-                  decoration: InputDecoration(
-                    labelText: 'Reason',
+                  decoration: _fieldDecoration(
+                    context,
+                    labelText: 'SELECT REASON',
                     errorText: _errors['reason'],
                   ),
                   items: kReasons
@@ -233,23 +381,39 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       .toList(),
                   onChanged: (v) => setState(() => _reason = v),
                 ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
+              ],
+
+              // ── PHOTOS ─────────────────────────────────────────────────
+              const SizedBox(height: 20),
+              const _SectionHeader(label: 'PROOF OF DELIVERY PHOTOS'),
+              const SizedBox(height: 8),
+              Row(
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: _photos.length >= kMaxDeliveryImages
-                        ? null
-                        : () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.photo_camera),
-                    label: const Text('Camera'),
+                  Expanded(
+                    child: _PhotoSourceButton(
+                      icon: Icons.photo_camera_rounded,
+                      label: 'CAMERA',
+                      color: ColorStyles.grabGreen,
+                      enabled: _photos.length < kMaxDeliveryImages,
+                      onTap: () => _pickImage(ImageSource.camera),
+                    ),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: _photos.length >= kMaxDeliveryImages
-                        ? null
-                        : () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Gallery'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _PhotoSourceButton(
+                      icon: Icons.photo_library_rounded,
+                      label: 'GALLERY',
+                      color: Colors.blueGrey,
+                      // Gallery ONLY available for RTS and OSA (ENH-007)
+                      enabled:
+                          allowGallery && _photos.length < kMaxDeliveryImages,
+                      onTap: allowGallery
+                          ? () => _pickImage(ImageSource.gallery)
+                          : null,
+                      disabledReason: allowGallery
+                          ? null
+                          : 'GALLERY ONLY FOR RTS/OSA',
+                    ),
                   ),
                 ],
               ),
@@ -257,47 +421,70 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    'You have reached the $kMaxDeliveryImages-image limit.',
+                    'MAXIMUM $kMaxDeliveryImages IMAGES REACHED.',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: Colors.orange.shade700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               if (_errors['delivery_images'] != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     _errors['delivery_images']!,
-                    style: const TextStyle(color: Colors.red),
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
                   ),
                 ),
-              const SizedBox(height: 8),
-              GridView.builder(
-                itemCount: _photos.length,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 1.3,
-                ),
-                itemBuilder: (_, i) {
-                  final photo = _photos[i];
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
+              if (_photos.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                GridView.builder(
+                  itemCount: _photos.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 1.3,
+                  ),
+                  itemBuilder: (_, i) {
+                    final photo = _photos[i];
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? ColorStyles.grabCardElevatedDark
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.grey.shade200,
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(10),
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.image),
+                          Icon(
+                            Icons.image_rounded,
+                            size: 28,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 4),
                           DropdownButton<String>(
                             value: photo.type,
                             isExpanded: true,
+                            underline: const SizedBox.shrink(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
                             items: kImageTypes
                                 .map(
                                   (e) => DropdownMenuItem<String>(
                                     value: e,
-                                    child: Text(e),
+                                    child: Text(e.toUpperCase()),
                                   ),
                                 )
                                 .toList(),
@@ -315,19 +502,46 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                           TextButton(
                             onPressed: () =>
                                 setState(() => _photos.removeAt(i)),
-                            child: const Text('Remove'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 24),
+                            ),
+                            child: const Text(
+                              'REMOVE',
+                              style: TextStyle(fontSize: 11),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
+              ],
+
+              // ── REMARKS ────────────────────────────────────────────────
+              const SizedBox(height: 20),
+              const _SectionHeader(label: 'REMARKS'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _note,
+                maxLength: kMaxNoteLength,
+                maxLines: 3,
+                textCapitalization: TextCapitalization.characters,
+                decoration: _fieldDecoration(
+                  context,
+                  hintText: 'ADD A REMARK (OPTIONAL)',
+                  errorText: _errors['note'],
+                ),
               ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _loading ? null : _submit,
-                child: const Text('Submit Update'),
-              ),
+
+              // ── SYSTEM FIELDS (PENDING API) ────────────────────────────
+              const SizedBox(height: 20),
+              const _SectionHeader(label: 'SYSTEM FIELDS'),
+              const SizedBox(height: 8),
+              const _PendingApiField(label: 'GEO LOCATION'),
+
+              const SizedBox(height: 80),
             ],
           ),
           if (_loading) const LoadingOverlay(),
@@ -344,6 +558,189 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               },
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Theme-aware field decoration ───────────────────────────────────────────
+InputDecoration _fieldDecoration(
+  BuildContext context, {
+  String? labelText,
+  String? hintText,
+  String? errorText,
+}) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final fill = isDark ? ColorStyles.grabCardElevatedDark : Colors.white;
+  final borderColor = isDark ? Colors.white12 : Colors.grey.shade300;
+  return InputDecoration(
+    labelText: labelText,
+    hintText: hintText,
+    errorText: errorText,
+    filled: true,
+    fillColor: fill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderColor),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderColor),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: ColorStyles.grabGreen, width: 1.5),
+    ),
+  );
+}
+
+// ─── Section header ──────────────────────────────────────────────────────────
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.2,
+        color: Colors.grey.shade600,
+      ),
+    );
+  }
+}
+
+// ─── Pending API field placeholder ───────────────────────────────────────────
+class _PendingApiField extends StatelessWidget {
+  const _PendingApiField({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? ColorStyles.grabCardElevatedDark : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.grey.shade600;
+    final borderColor = isDark ? Colors.white10 : Colors.grey.shade300;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.location_on_outlined, size: 18, color: textColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Read-only • Not saved',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isDark ? Colors.white54 : Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: ColorStyles.grabOrange.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              '⏳ API PENDING',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: ColorStyles.grabOrange,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Photo source button ──────────────────────────────────────────────────────
+class _PhotoSourceButton extends StatelessWidget {
+  const _PhotoSourceButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.enabled,
+    required this.onTap,
+    this.disabledReason,
+  });
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool enabled;
+  final VoidCallback? onTap;
+  final String? disabledReason;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          color: enabled ? color.withValues(alpha: 0.08) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: enabled
+                ? color.withValues(alpha: 0.4)
+                : Colors.grey.shade300,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: enabled ? color : Colors.grey.shade400, size: 22),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: enabled ? color : Colors.grey.shade400,
+                letterSpacing: 0.5,
+              ),
+            ),
+            if (disabledReason != null && !enabled)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  disabledReason!,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    color: Colors.deepOrange,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

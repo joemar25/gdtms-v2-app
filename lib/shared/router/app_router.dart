@@ -17,10 +17,12 @@ import 'package:fsi_courier_app/features/scan/scan_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_detail_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_request_screen.dart';
 import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
+import 'package:fsi_courier_app/features/rts/rts_list_screen.dart';
+import 'package:fsi_courier_app/features/osa/osa_list_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 
-final initialLocationProvider = Provider<String>((ref) => '/login');
+final initialLocationProvider = Provider<String>((ref) => '/splash');
 
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(Ref ref) {
@@ -69,10 +71,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/scan',
         builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
-          final mode = extra['mode'] == 'dispatch'
-              ? ScanMode.dispatch
-              : ScanMode.pod;
-          return ScanScreen(mode: mode);
+          final isDispatch = extra['mode'] == 'dispatch';
+          final mode = isDispatch ? ScanMode.dispatch : ScanMode.pod;
+          return ScanScreen(
+            mode: mode,
+            allowLandscape: isDispatch,
+          );
         },
       ),
 
@@ -101,10 +105,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      GoRoute(
-        path: '/deliveries',
-        builder: (_, __) => const DeliveryListScreen(),
-      ),
+      GoRoute(path: '/deliveries', builder: (_, __) => const DeliveryListScreen()),
       GoRoute(
         path: '/deliveries/:barcode',
         builder: (_, state) =>
@@ -115,6 +116,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, state) =>
             DeliveryUpdateScreen(barcode: state.pathParameters['barcode']!),
       ),
+      GoRoute(path: '/rts', builder: (_, __) => const RtsListScreen()),
+      GoRoute(path: '/osa', builder: (_, __) => const OsaListScreen()),
       GoRoute(path: '/wallet', builder: (_, __) => const WalletScreen()),
       GoRoute(
         path: '/wallet/request',

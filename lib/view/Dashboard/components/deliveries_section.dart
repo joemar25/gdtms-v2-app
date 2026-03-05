@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:fsi_courier_app/core/config.dart';
 
 import '../model/delivery_model.dart';
 import '../components/delivery_card.dart';
@@ -48,7 +49,7 @@ class _DeliveriesSectionState extends State<DeliveriesSection> {
       // Fetch all deliveries from API
       final token = prefs.getString('auth_token') ?? '';
       final url = Uri.parse(
-        'https://staging-gdtms-v2.skyward.com.ph/api/mbl/deliveries?active=true&per_page=1000',
+        '$apiBaseUrl/deliveries?active=true&per_page=1000',
       );
 
       try {

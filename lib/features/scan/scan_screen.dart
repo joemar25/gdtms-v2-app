@@ -17,9 +17,14 @@ import 'package:fsi_courier_app/styles/color_styles.dart';
 enum ScanMode { dispatch, pod }
 
 class ScanScreen extends ConsumerStatefulWidget {
-  const ScanScreen({super.key, required this.mode});
+  const ScanScreen({
+    super.key,
+    required this.mode,
+    this.allowLandscape = false,
+  });
 
   final ScanMode mode;
+  final bool allowLandscape;
 
   @override
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
@@ -49,11 +54,18 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   @override
   void initState() {
     super.initState();
-    // Lock orientation to landscape for scan screen
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    // Lock orientation to landscape only if allowed
+    if (widget.allowLandscape) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      // Otherwise lock to portrait (fullscreen mode)
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+    }
     _scannerController = MobileScannerController(
       formats: [
         BarcodeFormat.qrCode,

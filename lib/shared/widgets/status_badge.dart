@@ -11,6 +11,7 @@ class StatusBadge extends StatelessWidget {
     final color = switch (normalized) {
       'pending' => Colors.orange,
       'delivered' => Colors.green,
+      'failed_attempt' => Colors.deepOrange,
       'rts' => Colors.red,
       'osa' => Colors.amber,
       'dispatched' => Colors.blue,

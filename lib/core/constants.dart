@@ -10,11 +10,12 @@ const int kMaxRecipientLength = 255;
 const int kMaxRelationshipLength = 100;
 const int kMaxPlacementTypeLength = 100;
 
-const List<String> kUpdateStatuses = ['delivered', 'rts', 'osa'];
+const List<String> kUpdateStatuses = ['delivered', 'failed_attempt', 'rts', 'osa'];
 
 const List<String> kAllDeliveryStatuses = [
   'pending',
   'delivered',
+  'failed_attempt',
   'rts',
   'osa',
   'roll-back',

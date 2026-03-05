@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/view/Delivered_failed_page/delivered_failed.dart';
 import 'package:fsi_courier_app/view/Delivered_page/delivered_page.dart';
 import 'package:fsi_courier_app/view/Delivered_rts_page/delivered_rts.dart';
@@ -34,7 +35,7 @@ class _DeliveryDetailsPageState extends State<DeliveryDetailsPage> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://YOUR_API_BASE_URL/api/deliveries'),
+        Uri.parse('$apiBaseUrl/deliveries'),
         headers: {'Content-Type': 'application/json'},
       );
 

@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/shared/widgets/notification_widget.dart';
 
 /// A drop-in replacement for [AppBar] that always includes a notification
-/// bell icon in the trailing position. Pass [actions] for additional leading
-/// action buttons (they appear before the bell).
+/// bell icon in the trailing position.
+/// - [actions]: appear **before** the notification bell.
+/// - [trailingActions]: appear **after** the notification bell.
 class AppHeaderBar extends StatelessWidget implements PreferredSizeWidget {
   const AppHeaderBar({
     super.key,
     required this.title,
     this.leading,
     this.actions,
+    this.trailingActions,
     this.bottom,
     this.backgroundColor,
   });
@@ -18,6 +20,7 @@ class AppHeaderBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final Widget? leading;
   final List<Widget>? actions;
+  final List<Widget>? trailingActions;
   final PreferredSizeWidget? bottom;
   final Color? backgroundColor;
 
@@ -39,6 +42,7 @@ class AppHeaderBar extends StatelessWidget implements PreferredSizeWidget {
           tooltip: 'Notifications',
           onPressed: () => NotificationWidget.showSheet(context),
         ),
+        ...(trailingActions ?? []),
         const SizedBox(width: 4),
       ],
     );

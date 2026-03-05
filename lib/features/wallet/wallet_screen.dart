@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
@@ -45,6 +46,33 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final earnings = _data['total_earnings'] ?? 0;
     final pending = _data['tentative_pending_payout'] ?? 0;
 
+    // 1-week rolling window label (data cap — reflects what payout request covers)
+    final today = DateTime.now();
+    final weekStart = today.subtract(const Duration(days: 6));
+    final weekLabel =
+        '${DateFormat('MMM d').format(weekStart)} – ${DateFormat('MMM d').format(today)}';
+
+    // Check if latest request is pending/active (hide request button)
+    final latestStatus = latest['status']?.toString().toLowerCase() ?? '';
+    final latestDate = latest['created_at']?.toString() ?? '';
+    final isLatestPending =
+        latestStatus == 'pending' ||
+        latestStatus == 'processing' ||
+        latestStatus == 'approved';
+    bool requestedToday = false;
+    if (latestDate.isNotEmpty) {
+      try {
+        final requestDate = DateTime.parse(latestDate);
+        requestedToday =
+            requestDate.year == today.year &&
+            requestDate.month == today.month &&
+            requestDate.day == today.day;
+      } catch (_) {}
+    }
+
+    // Only show "Request Payout" if no pending request and not requested today
+    final canRequestPayout = !isLatestPending && !requestedToday;
+
     return Scaffold(
       appBar: const AppHeaderBar(title: 'Wallet'),
       bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/wallet'),
@@ -55,6 +83,40 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
+                  // ── Active 1-week window label ─────────────────────────
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: ColorStyles.grabGreen.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 14,
+                          color: ColorStyles.grabGreen,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'ACTIVE PERIOD: $weekLabel',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: ColorStyles.grabGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   // ── Earnings card ──────────────────────────────────────
                   _EarningsCard(earnings: earnings, pending: pending),
                   const SizedBox(height: 20),
@@ -65,24 +127,59 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     const SizedBox(height: 8),
                     _LatestRequestCard(
                       data: latest,
-                      onTap: () =>
-                          context.push('/wallet/${latest['id']}'),
+                      onTap: () => context.push('/wallet/${latest['id']}'),
                     ),
                     const SizedBox(height: 20),
                   ],
 
                   // ── Action ─────────────────────────────────────────────
-                  FilledButton.icon(
-                    onPressed: () => context.push('/wallet/request'),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Request Payout'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(
+                  if (canRequestPayout)
+                    FilledButton.icon(
+                      onPressed: () => context.push('/wallet/request'),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Request Payout'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.amber.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: Colors.amber.shade700,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              isLatestPending
+                                  ? 'You have a pending payout request'
+                                  : 'One request per day. Try again tomorrow',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.amber.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -122,8 +219,11 @@ class _EarningsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet_rounded,
-                  color: Colors.white70, size: 18),
+              const Icon(
+                Icons.account_balance_wallet_rounded,
+                color: Colors.white70,
+                size: 18,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Total Earnings',
@@ -143,16 +243,18 @@ class _EarningsCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                const Icon(Icons.schedule_rounded,
-                    color: Colors.white70, size: 16),
+                const Icon(
+                  Icons.schedule_rounded,
+                  color: Colors.white70,
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   'Pending payout',
@@ -192,7 +294,8 @@ class _LatestRequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = '${data['status'] ?? ''}';
-    final reference = '${data['reference'] ?? data['payment_reference'] ?? '—'}';
+    final reference =
+        '${data['reference'] ?? data['payment_reference'] ?? '—'}';
     final amount = double.tryParse('${data['amount'] ?? 0}') ?? 0.0;
     final from = formatDate('${data['from_date'] ?? ''}');
     final to = formatDate('${data['to_date'] ?? ''}');
@@ -220,9 +323,9 @@ class _LatestRequestCard extends StatelessWidget {
                     child: Text(
                       reference,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                   _StatusBadge(status),
@@ -251,15 +354,15 @@ class _LatestRequestCard extends StatelessWidget {
                   Text(
                     'Amount',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade500,
-                        ),
+                      color: Colors.grey.shade500,
+                    ),
                   ),
                   Text(
                     '₱ ${amount.toStringAsFixed(2)}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: ColorStyles.grabGreen,
-                        ),
+                      fontWeight: FontWeight.w700,
+                      color: ColorStyles.grabGreen,
+                    ),
                   ),
                 ],
               ),
@@ -290,12 +393,10 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        status.isEmpty ? '—' : '${status[0].toUpperCase()}${status.substring(1)}',
-        style: TextStyle(
-          color: fg,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
+        status.isEmpty
+            ? '—'
+            : '${status[0].toUpperCase()}${status.substring(1)}',
+        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -331,10 +432,10 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Colors.grey.shade500,
-            letterSpacing: 0.6,
-            fontWeight: FontWeight.w600,
-          ),
+        color: Colors.grey.shade500,
+        letterSpacing: 0.6,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }

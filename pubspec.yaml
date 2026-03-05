@@ -65,11 +65,11 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/kita_mar.png"
+  image_path: "assets/logo.png"
 
 flutter_native_splash:
   color: "#EC4455"
-  image: assets/icons/kita_mar.png
+  image: assets/logo.png
 
   android: true
   ios: true
@@ -80,5 +80,5 @@ flutter_native_splash:
 
   android_12:
     color: "#EC4455"
-    image: assets/icons/kita_mar4.png
+    image: assets/logo.png
     android_gravity: center

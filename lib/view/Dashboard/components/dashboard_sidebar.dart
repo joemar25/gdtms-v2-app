@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/main.dart';
 import 'package:fsi_courier_app/view/Profile/profile_page.dart';
 import 'package:fsi_courier_app/view/notifications_page/notifications_page.dart';
@@ -35,8 +36,8 @@ class DashboardSidebar extends StatelessWidget {
                 child: IntrinsicHeight(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      vertical: 24,
-                      horizontal: 16,
+                      vertical: 12, // compact vertical
+                      horizontal: 8, // compact horizontal
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,41 +46,36 @@ class DashboardSidebar extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Image.asset('assets/logo.png', height: 40),
-                            const SizedBox(height: 4),
+                            Image.asset('assets/logo.png', height: 28), // smaller logo
+                            const SizedBox(height: 2),
                             const Text(
                               "Courier App",
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 11, // smaller font
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 18), // less gap
 
                         // 🧭 Navigation Menu
                         _buildNavItem(
                           context,
                           icon: Icons.notifications_none,
                           title: "Notifications",
+                          iconSize: 20, // smaller icon
+                          fontSize: 13, // smaller font
+                          verticalPadding: 8, // less padding
                           onTap: () async {
-                            // ✅ Close the sidebar drawer first
                             Navigator.pop(context);
-
-                            // ⏳ Wait a tiny bit to let the drawer closing animation finish
-                            await Future.delayed(
-                              const Duration(milliseconds: 200),
-                            );
-
-                            // 🚀 Navigate to ProfilePage
+                            await Future.delayed(const Duration(milliseconds: 200));
                             if (context.mounted) {
                               Navigator.push(
                                 context,
                                 PageRouteBuilder(
-                                  pageBuilder: (context, _, __) =>
-                                      const NotificationsPage(),
+                                  pageBuilder: (context, _, __) => const NotificationsPage(),
                                   transitionDuration: Duration.zero,
                                   reverseTransitionDuration: Duration.zero,
                                 ),
@@ -91,22 +87,17 @@ class DashboardSidebar extends StatelessWidget {
                           context,
                           icon: Icons.person_outline,
                           title: "Profile",
+                          iconSize: 20,
+                          fontSize: 13,
+                          verticalPadding: 8,
                           onTap: () async {
-                            // ✅ Close the sidebar drawer first
                             Navigator.pop(context);
-
-                            // ⏳ Wait a tiny bit to let the drawer closing animation finish
-                            await Future.delayed(
-                              const Duration(milliseconds: 200),
-                            );
-
-                            // 🚀 Navigate to ProfilePage
+                            await Future.delayed(const Duration(milliseconds: 200));
                             if (context.mounted) {
                               Navigator.push(
                                 context,
                                 PageRouteBuilder(
-                                  pageBuilder: (context, _, __) =>
-                                      const ProfilePage(),
+                                  pageBuilder: (context, _, __) => const ProfilePage(),
                                   transitionDuration: Duration.zero,
                                   reverseTransitionDuration: Duration.zero,
                                 ),
@@ -118,22 +109,18 @@ class DashboardSidebar extends StatelessWidget {
                           context,
                           icon: Icons.qr_code_scanner,
                           title: "Scan Package",
+                          iconSize: 24, // keep scan prominent
+                          fontSize: 14, // keep scan prominent
+                          verticalPadding: 12, // keep scan prominent
+                          highlight: true, // custom param for visual emphasis
                           onTap: () async {
-                            // ✅ Close the sidebar drawer first
                             Navigator.pop(context);
-
-                            // ⏳ Wait a tiny bit to let the drawer closing animation finish
-                            await Future.delayed(
-                              const Duration(milliseconds: 200),
-                            );
-
-                            // 🚀 Navigate to ProfilePage
+                            await Future.delayed(const Duration(milliseconds: 200));
                             if (context.mounted) {
                               Navigator.push(
                                 context,
                                 PageRouteBuilder(
-                                  pageBuilder: (context, _, __) =>
-                                      const ScanPackageBarcodePage(),
+                                  pageBuilder: (context, _, __) => const ScanPackageBarcodePage(),
                                   transitionDuration: Duration.zero,
                                   reverseTransitionDuration: Duration.zero,
                                 ),
@@ -141,51 +128,8 @@ class DashboardSidebar extends StatelessWidget {
                             }
                           },
                         ),
-
-                        // _buildNavItem(
-                        //   context,
-                        //   icon: Icons.inventory_2_outlined,
-                        //   title: "Deliveries",
-                        //   onTap: () {
-                        //     Navigator.pop(context);
-                        //     // TODO: Navigate to Deliveries
-                        //   },
-                        // ),
                         const Spacer(),
-
-                        // // 🚨 Emergency Button
-                        // SizedBox(
-                        //   width: double.infinity,
-                        //   child: ElevatedButton.icon(
-                        //     onPressed: () {
-                        //       // TODO: Emergency call or action
-                        //     },
-                        //     icon: const Icon(
-                        //       Icons.add_call,
-                        //       color: Colors.white,
-                        //       size: 18,
-                        //     ),
-                        //     label: const Text(
-                        //       "EMERGENCY",
-                        //       style: TextStyle(
-                        //         fontWeight: FontWeight.w600,
-                        //         letterSpacing: 0.5,
-                        //       ),
-                        //     ),
-                        //     style: ElevatedButton.styleFrom(
-                        //       backgroundColor: const Color(0xFFFF3D57),
-                        //       foregroundColor: Colors.white,
-                        //       padding: const EdgeInsets.symmetric(
-                        //         horizontal: 16,
-                        //         vertical: 14,
-                        //       ),
-                        //       shape: RoundedRectangleBorder(
-                        //         borderRadius: BorderRadius.circular(8),
-                        //       ),
-                        //     ),
-                        //   ),
-                        // ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 6), // less gap before logout
 
                         // 🔒 Logout Button
                         SizedBox(
@@ -247,7 +191,7 @@ class DashboardSidebar extends StatelessWidget {
                                       prefs.getString("auth_token") ?? "";
 
                                   final url = Uri.parse(
-                                    'https://staging-gdtms-v2.skyward.com.ph/api/mbl/logout',
+                                    '$apiBaseUrl/logout',
                                   );
 
                                   final response = await http.post(
@@ -328,19 +272,27 @@ class DashboardSidebar extends StatelessWidget {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    double iconSize = 24,
+    double fontSize = 15,
+    double verticalPadding = 12,
+    bool highlight = false,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: verticalPadding),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: Colors.black87),
-            const SizedBox(width: 10),
+            Icon(icon, size: iconSize, color: Colors.black87),
+            const SizedBox(width: 8),
             Text(
               title,
-              style: const TextStyle(fontSize: 15, color: Colors.black87),
+              style: TextStyle(
+                fontSize: fontSize,
+                color: Colors.black87,
+                fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
           ],
         ),

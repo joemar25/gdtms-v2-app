@@ -6,16 +6,10 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
-import 'package:fsi_courier_app/core/constants.dart';
-import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
-import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
-import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
-import 'package:fsi_courier_app/shared/widgets/scan_mode_sheet.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -27,10 +21,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _loading = true;
-  int _page = 1;
-  int _lastPage = 1;
   Map<String, dynamic> _summary = {};
-  final List<Map<String, dynamic>> _items = [];
 
   @override
   void initState() {
@@ -56,39 +47,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final api = ref.read(apiClientProvider);
 
-    final summaryFuture = api.get<Map<String, dynamic>>(
+    final summaryResult = await api.get<Map<String, dynamic>>(
       '/dashboard-summary',
       parser: parseApiMap,
     );
 
-    final deliveriesFuture = api.get<Map<String, dynamic>>(
-      '/deliveries',
-      queryParameters: {
-        'status': 'pending',
-        'per_page': kDashboardPerPage,
-        'page': 1,
-      },
-      parser: parseApiMap,
-    );
-
-    final responses = await Future.wait([summaryFuture, deliveriesFuture]);
-    final summary = responses[0];
-    final deliveries = responses[1];
-
     if (!mounted) return;
 
-    if (summary case ApiSuccess<Map<String, dynamic>>(:final data)) {
+    if (summaryResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
       _summary = mapFromKey(data, 'data');
-    }
-
-    if (deliveries case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      _items
-        ..clear()
-        ..addAll(listOfMapsFromKey(data, 'data'));
-      final pagination = mapFromKey(data, 'pagination');
-      _page = pagination['current_page'] as int? ?? 1;
-      _lastPage = pagination['last_page'] as int? ?? 1;
-    } else if (deliveries is ApiNetworkError<Map<String, dynamic>>) {
+    } else if (summaryResult is ApiNetworkError<Map<String, dynamic>>) {
       await ref.read(authStorageProvider).clearAll();
       await ref.read(authProvider.notifier).initialize();
       if (mounted) {
@@ -104,34 +72,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
-  Future<void> _loadMore() async {
-    if (_page >= _lastPage || _loading) return;
-    setState(() => _loading = true);
-    final nextPage = _page + 1;
-
-    final api = ref.read(apiClientProvider);
-    final result = await api.get<Map<String, dynamic>>(
-      '/deliveries',
-      queryParameters: {
-        'status': 'pending',
-        'per_page': kDashboardPerPage,
-        'page': nextPage,
-      },
-      parser: parseApiMap,
-    );
-
-    if (!mounted) return;
-
-    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      _items.addAll(listOfMapsFromKey(data, 'data'));
-      final pagination = mapFromKey(data, 'pagination');
-      _page = pagination['current_page'] as int? ?? nextPage;
-      _lastPage = pagination['last_page'] as int? ?? _lastPage;
-    }
-
-    setState(() => _loading = false);
-  }
-
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -140,31 +80,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final courierCode = auth.courier?['courier_code']?.toString() ?? '-';
     final greeting = _getGreeting();
 
-    final pendingCount = _summary['pending_count'] ?? 0;
+    final pendingDispatchCount = _summary['pending_dispatches_count'] ?? 0;
     final deliveriesCount = _summary['active_deliveries_count'] ?? 0;
-    final dispatchesCount = _summary['pending_dispatches_count'] ?? 0;
-    final isCompact = ref.watch(compactModeProvider);
+    final rtsCount = _summary['rts_count'] ?? 0;
+    final osaCount = _summary['osa_count'] ?? 0;
 
     return Scaffold(
-      // mar-note: no need to put anything in the title
       appBar: AppHeaderBar(title: ''),
-      bottomNavigationBar: const FloatingBottomNavBar(
-        currentPath: '/dashboard',
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: ColorStyles.grabGreen,
-        foregroundColor: Colors.white,
-        onPressed: () => showScanModeSheet(context),
-        child: const Icon(Icons.qr_code_scanner_rounded),
-      ),
-      body: _loading && _items.isEmpty
+      bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/dashboard'),
+      body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadInitial,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 children: [
-                  // ── Greeting ────────────────────────────────────────────
+                  // ── Greeting ─────────────────────────────────────────────
                   Text(
                     '$greeting, $firstName!',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -179,72 +110,91 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // ── Stat Cards ──────────────────────────────────────────
+                  // ── 4 Summary Boxes ───────────────────────────────────────
                   Row(
                     children: [
                       Expanded(
                         child: _StatCard(
-                          label: 'Pending',
-                          count: '$pendingCount',
-                          icon: Icons.local_shipping_outlined,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _StatCard(
-                          label: 'Deliveries',
-                          count: '$deliveriesCount',
-                          icon: Icons.check_circle_outline_rounded,
-                          color: ColorStyles.grabGreen,
-                          onTap: () => context.push('/deliveries'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _StatCard(
-                          label: 'Dispatches',
-                          count: '$dispatchesCount',
+                          label: 'DISPATCH',
+                          count: '$pendingDispatchCount',
                           icon: Icons.qr_code_rounded,
                           color: ColorStyles.grabOrange,
-                          onTap: () => context.push('/dispatches'),
+                          onTap: pendingDispatchCount == 0 ? null : () => context.push('/dispatches'),
+                          details: 'Waiting for acceptance.',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'DELIVERIES',
+                          count: '$deliveriesCount',
+                          icon: Icons.local_shipping_outlined,
+                          color: ColorStyles.grabGreen,
+                          onTap: deliveriesCount == 0 ? null : () => context.push('/deliveries'),
+                          details: 'Assigned to you.',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          label: 'RTS',
+                          count: '$rtsCount',
+                          icon: Icons.assignment_return_outlined,
+                          color: Colors.red,
+                          onTap: rtsCount == 0 ? null : () => context.push('/rts'),
+                          badge: rtsCount > 0 ? '$rtsCount' : null,
+                          subdued: true,
+                          details: 'Return to sender items.',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'OSA',
+                          count: '$osaCount',
+                          icon: Icons.lock_outline_rounded,
+                          color: Colors.grey,
+                          onTap: osaCount == 0 ? null : () => context.push('/osa'),
+                          subdued: true,
+                          readOnly: true,
+                          details: 'Out of service area.',
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  // ── Delivery Feed ────────────────────────────────────────
-                  Text(
-                    'Pending Deliveries',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  if (_items.isEmpty)
-                    const SizedBox(
-                      height: 280,
-                      child: EmptyState(message: 'No pending deliveries.'),
-                    ),
-                  ..._items.map((d) {
-                    final identifier = resolveDeliveryIdentifier(d);
-                    return DeliveryCard(
-                      delivery: d,
-                      compact: isCompact,
-                      onTap: identifier.isEmpty
-                          ? () {}
-                          : () => context.push('/deliveries/$identifier'),
-                    );
-                  }),
-                  if (_page < _lastPage)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: OutlinedButton(
-                        onPressed: _loadMore,
-                        child: const Text('Load More'),
+                  // ── Scan Action Buttons ────────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ScanButton(
+                          label: 'SCAN DISPATCH',
+                          icon: Icons.qr_code_scanner_rounded,
+                          color: ColorStyles.grabOrange,
+                          onTap: () =>
+                              context.push('/scan', extra: {'mode': 'dispatch'}),
+                          details: 'Scan a dispatch barcode to check eligibility.',
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ScanButton(
+                          label: 'SCAN POD',
+                          icon: Icons.qr_code_scanner_rounded,
+                          color: ColorStyles.grabGreen,
+                          onTap: () =>
+                              context.push('/scan', extra: {'mode': 'pod'}),
+                          details: 'Scan a delivery barcode to find and update POD.',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -261,6 +211,10 @@ class _StatCard extends StatelessWidget {
     required this.icon,
     required this.color,
     this.onTap,
+    this.badge,
+    this.subdued = false,
+    this.readOnly = false,
+    this.details,
   });
 
   final String label;
@@ -268,45 +222,163 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback? onTap;
+  final String? badge;
+  final bool subdued;
+  final bool readOnly;
+  final String? details;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final effectiveColor = subdued ? color.withValues(alpha: 0.6) : color;
+    final isDisabled = onTap == null;
 
     return GestureDetector(
       onTap: onTap,
+      child: Opacity(
+        opacity: isDisabled ? 0.5 : 1.0,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: readOnly
+                ? Border.all(color: Colors.grey.withValues(alpha: 0.2), width: 1)
+                : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: effectiveColor, size: 18),
+                  if (readOnly) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.lock_outline,
+                      color: Colors.grey.shade400,
+                      size: 13,
+                    ),
+                  ],
+                  const Spacer(),
+                  if (badge != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: effectiveColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        badge!,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: effectiveColor,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                count,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: effectiveColor,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: subdued ? Colors.grey.shade400 : Colors.grey.shade500,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              if (details != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  details!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Scan Button ──────────────────────────────────────────────────────────────
+
+class _ScanButton extends StatelessWidget {
+  const _ScanButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.details,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final String? details;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.30), width: 1.5),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 8),
-            Text(
-              count,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 2),
+            Icon(icon, color: color, size: 26),
+            const SizedBox(height: 6),
             Text(
               label,
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+                letterSpacing: 0.5,
+              ),
             ),
+            if (details != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                details!,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ],
         ),
       ),

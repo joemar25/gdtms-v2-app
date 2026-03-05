@@ -46,9 +46,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final AppSettings _settings;
 
   Future<void> initialize() async {
-    final isAuth = await _authStorage.isAuthenticated();
-    final courier = await _authStorage.getCourier();
-    final themeMode = await _settings.getThemeMode();
+    // Start all reads concurrently to avoid sequential I/O blocking.
+    final isAuthFuture = _authStorage.isAuthenticated();
+    final courierFuture = _authStorage.getCourier();
+    final themeModeFuture = _settings.getThemeMode();
+
+    final isAuth = await isAuthFuture;
+    final courier = await courierFuture;
+    final themeMode = await themeModeFuture;
+
     state = state.copyWith(
       isAuthenticated: isAuth,
       courier: courier,

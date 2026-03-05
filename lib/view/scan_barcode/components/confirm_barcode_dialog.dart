@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import '../../Dashboard/model/delivery_model.dart';
 import '../../Delivery_Details/delivery_details_page.dart';
 
@@ -35,7 +36,7 @@ class ConfirmBarcodeDialog extends StatelessWidget {
 
       // 🔹 Fetch all deliveries
       final response = await http.get(
-        Uri.parse('https://staging-gdtms-v2.skyward.com.ph/api/mbl/deliveries'),
+        Uri.parse('$apiBaseUrl/deliveries'),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',

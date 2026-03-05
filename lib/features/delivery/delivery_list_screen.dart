@@ -44,7 +44,7 @@ class _DeliveryListScreenState extends ConsumerState<DeliveryListScreen> {
         .get<Map<String, dynamic>>(
           '/deliveries',
           queryParameters: {
-            'status': 'delivered',
+            'status': 'pending',
             'per_page': kDeliveriesPerPage,
             'page': _page,
           },
@@ -67,10 +67,16 @@ class _DeliveryListScreenState extends ConsumerState<DeliveryListScreen> {
   Widget build(BuildContext context) {
     final isCompact = ref.watch(compactModeProvider);
     return Scaffold(
-      appBar: const AppHeaderBar(title: 'Deliveries'),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/scan', extra: {'mode': 'pod'}),
-        child: const Icon(Icons.qr_code_scanner),
+      appBar: AppHeaderBar(
+        title: 'DELIVERIES',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            tooltip: 'Scan POD',
+            onPressed: () =>
+                context.push('/scan', extra: {'mode': 'pod'}),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => _load(reset: true),
@@ -81,7 +87,9 @@ class _DeliveryListScreenState extends ConsumerState<DeliveryListScreen> {
                 children: const [
                   SizedBox(
                     height: 400,
-                    child: EmptyState(message: 'No completed deliveries.'),
+                    child: EmptyState(
+                      message: 'No active deliveries.',
+                    ),
                   ),
                 ],
               )

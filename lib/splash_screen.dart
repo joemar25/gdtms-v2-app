@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/settings/app_settings.dart';
+import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -30,12 +32,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
     _controller.forward();
+    _initAndNavigate();
+  }
 
-    Future.delayed(const Duration(milliseconds: 2400), () {
-      if (!mounted) return;
-      final auth = ref.read(authProvider);
-      context.go(auth.isAuthenticated ? '/dashboard' : '/login');
-    });
+  Future<void> _initAndNavigate() async {
+    // Run initialization and the minimum splash delay concurrently.
+    await Future.wait([
+      _initialize(),
+      Future.delayed(const Duration(milliseconds: 2400)),
+    ]);
+    if (!mounted) return;
+    final auth = ref.read(authProvider);
+    context.go(auth.isAuthenticated ? '/dashboard' : '/login');
+  }
+
+  Future<void> _initialize() async {
+    try {
+      await ref.read(authProvider.notifier).initialize();
+      final compactMode = await ref.read(appSettingsProvider).getCompactMode();
+      if (mounted) ref.read(compactModeProvider.notifier).state = compactMode;
+    } catch (_) {
+      // Keep defaults on error — app proceeds to login.
+    }
   }
 
   @override
@@ -100,7 +118,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: Image.asset(
-                            'assets/icons/kita_mar.png',
+                            'assets/logo.png',
                             fit: BoxFit.cover,
                           ),
                         ),
