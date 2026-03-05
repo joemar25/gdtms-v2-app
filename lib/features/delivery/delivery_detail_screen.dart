@@ -255,29 +255,61 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        elevation: 0,
         title: !_loading
             ? Row(
                 children: [
                   Text(
                     widget.barcode,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '-',
-                    style: TextStyle(fontSize: 15, color: Colors.grey.shade500),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      status.isEmpty ? 'Pending' : status[0].toUpperCase() + status.substring(1),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: status == 'delivered'
+                            ? ColorStyles.grabGreen
+                            : Colors.grey.shade700,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  StatusBadge(status: status.isEmpty ? 'pending' : status),
-                  const SizedBox(width: 8),
-                  Text('|', style: TextStyle(fontSize: 15, color: Colors.grey.shade500)),
-                  const SizedBox(width: 8),
-                  _Chip('two-wheeler'),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.blueGrey.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _str('mail_type'),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blueGrey,
+                      ),
+                    ),
+                  ),
                 ],
               )
             : Text(
                 widget.barcode,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
               ),
       ),
       bottomNavigationBar:
@@ -290,7 +322,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   label: const Text('UPDATE STATUS'),
                   style: FilledButton.styleFrom(
                     backgroundColor: ColorStyles.grabGreen,
-                    minimumSize: const Size.fromHeight(52),
+                    minimumSize: const Size.fromHeight(32),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
