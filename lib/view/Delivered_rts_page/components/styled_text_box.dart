@@ -1,0 +1,120 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+class StyledTextBox extends StatefulWidget {
+  final String label; // placeholder text
+  final String? activeLabel; // text shown when focused or has input
+  final bool obscureText;
+  final TextInputType keyboardType;
+  final Color? labelColor;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextEditingController? controller; // ✅ optional controller
+  final int? minLines; // ✅ for taller textboxes
+  final int? maxLines; // ✅ for taller textboxes
+
+  const StyledTextBox({
+    super.key,
+    required this.label,
+    this.activeLabel,
+    this.obscureText = false,
+    this.keyboardType = TextInputType.text,
+    this.labelColor,
+    this.inputFormatters,
+    this.controller,
+    this.minLines,
+    this.maxLines,
+  });
+
+  @override
+  State<StyledTextBox> createState() => _StyledTextBoxState();
+}
+
+class _StyledTextBoxState extends State<StyledTextBox> {
+  late final TextEditingController _internalController;
+  late final FocusNode _focusNode;
+  late bool _isObscured;
+
+  TextEditingController get _controller =>
+      widget.controller ?? _internalController;
+
+  bool get _isActive => _focusNode.hasFocus || _controller.text.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _internalController = TextEditingController();
+    _focusNode = FocusNode();
+    _isObscured = widget.obscureText;
+
+    _controller.addListener(() => setState(() {}));
+    _focusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    // Only dispose the internal one; never dispose external controllers.
+    if (widget.controller == null) {
+      _internalController.dispose();
+    }
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+        ],
+      ),
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        obscureText: _isObscured,
+        keyboardType: widget.keyboardType,
+        inputFormatters: widget.inputFormatters,
+        minLines: widget.minLines,
+        maxLines:
+            widget.maxLines ??
+            (widget.keyboardType == TextInputType.multiline ? null : 1),
+        decoration: InputDecoration(
+          labelText: _isActive
+              ? widget.activeLabel ?? widget.label
+              : widget.label,
+          labelStyle: TextStyle(
+            color: widget.labelColor ?? const Color(0xFFA6A7AE),
+          ),
+          floatingLabelBehavior: FloatingLabelBehavior.auto,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: widget.obscureText
+              ? IconButton(
+                  icon: Icon(
+                    _isObscured ? Icons.visibility : Icons.visibility_off,
+                    color: const Color(0xFF2E7D32),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isObscured = !_isObscured;
+                    });
+                  },
+                )
+              : null,
+        ),
+        style: const TextStyle(fontSize: 16),
+      ),
+    );
+  }
+}

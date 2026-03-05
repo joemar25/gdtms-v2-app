@@ -1,93 +1,152 @@
-# GDTMS Courier Mobile
+# FSI Courier App
 
-NativePHP v3 mobile app for FSI couriers, built on Laravel 12 + PHP 8.4.
-Consumes the GDTMS v2 web app's dedicated mobile REST API (`/api/mbl`).
+Courier mobile application for dispatch, delivery updates (POD), wallet, and profile management.
 
-For the full implementation checklist and business rules, see [documentation/TODO.md](documentation/TODO.md).
+## Overview
 
----
+- Platform: Flutter (Android and iOS)
+- Backend API: from `lib/core/config.dart` via `--dart-define=API_BASE_URL`
+- Auth: Bearer token (stored in secure storage)
+- Routing: `go_router` with auth guard
+- State: `flutter_riverpod`
+- Scanner: `mobile_scanner`
 
-## Stack
+## Architecture
 
-| Layer            | Technology                        |
-| ---------------- | --------------------------------- |
-| Framework        | Laravel 12 + PHP 8.4              |
-| Mobile runtime   | NativePHP v3 (Android / iOS)      |
-| Frontend         | Blade + vanilla JS (no React/Vue) |
-| Database (local) | SQLite                            |
-| Cache / Session  | File-based (`CACHE_STORE=file`)   |
-| Testing          | PHPUnit 11.5                      |
+Project follows a feature-first structure with shared core infrastructure:
 
----
+- `lib/core`: config, constants, auth, API client, settings, device, models
+- `lib/features`: auth, dashboard, dispatch, delivery, wallet, profile
+- `lib/shared`: reusable widgets, helpers, router
 
-## Development Workflow
+Main app flow:
 
-> Requires NativePHP v3 "Jump" mode. Your dev machine and Android device must be on the **same Wi-Fi network**.
+1. `main.dart` boots app and sets initial route based on auth state.
+2. `app.dart` hosts `MaterialApp.router` and theme mode binding.
+3. `shared/router/app_router.dart` handles route table and route protection.
+
+## Key Features
+
+- Login and reset password
+- Dashboard summary and paginated lists
+- Dispatch scan, eligibility check, accept flow
+- Delivery scan, details, and status update with photo attachments
+- Wallet overview and payout request/detail
+- Profile with settings toggles and logout
+
+## Dependencies
+
+Primary runtime dependencies:
+
+- `dio`
+- `flutter_secure_storage`
+- `shared_preferences`
+- `go_router`
+- `flutter_riverpod`
+- `device_info_plus`
+- `permission_handler`
+- `mobile_scanner`
+- `image_picker`
+- `cached_network_image`
+- `uuid`
+- `intl`
+- `lottie`
+- `flutter_local_notifications` (reserved for future use)
+
+## Getting Started
+
+### 1. Install dependencies
 
 ```bash
-# Build bundle + start jump server (full rebuild)
-php artisan native:jump android
-
-# Reuse existing bundle (no rebuild — faster iteration)
-php artisan native:jump android --skip-build
-
-# Stream device logs via ADB
-php artisan native:tail
-
-# Build a release APK / IPA
-php artisan native:build
-
-# or
-php artisan native:run --build=release
-
-# Build and run your app on a device or simulator.
-php artisan native:run {os?} {udid?}
-
-# sample:
-php artisan native:run android --watch
+flutter pub get
 ```
 
-> **Note:** After any PHP change, run a full `native:jump android` (without `--skip-build`) so the device picks up the new bundle.
-
-```md
-# check devices available for testing 
-adb devices
-```
-
----
-
-## Running Tests
+### 2. Static checks
 
 ```bash
-php artisan test tests/Feature/Auth/LoginTest.php
+flutter analyze
 ```
 
-All 5 `LoginTest` cases must pass before any PR.
+### 3. Run on Android emulator
 
----
-
-## Key `.env` Requirements
-
-```dotenv
-CACHE_STORE=file        # Required — database cache crashes before migration runs
-LOG_STACK=single        # Required for native:tail to work
-APP_DEBUG=true          # Dev mode — enables debug stats
+```bash
+flutter run -d emulator-5554
 ```
 
----
+## API Base URL Configuration
 
-## Business Rules (Quick Reference)
+This project uses `--dart-define` for environment switching.
 
-- **Dashboard home** shows only `pending` deliveries that have a `received_by_courier` history entry.
-- **Delivered / RTS / OSA** items are hidden from the home screen.
-- **Dispatch scan UI** (accept incoming dispatch) is hidden in production; visible only when `APP_DEBUG=true`.
-- **Auto-accept dispatch** — controlled by the in-app settings toggle. When on, eligibility check immediately accepts and redirects to dashboard.
-- All dev-only UI elements use the `.dev-badge` / `$isDebug` guard pattern.
+- Base URL handling is defined in `lib/core/config.dart`.
+- Use your team-approved environment value at build/run time.
 
----
+Examples:
 
-## Project Notes
+```bash
+flutter run --dart-define=API_BASE_URL=<your-approved-api-base-url>
+flutter build apk --dart-define=API_BASE_URL=<your-approved-api-base-url>
+```
 
-- PHP runs **locally on the device** (embedded PHP runtime via NativePHP). The jump server only distributes the PHP bundle — it is **not** a proxy for page requests.
-- `nativephp_call()` exists on device → `onDevice()` returns `true` → SecureStorage is used.
-- Host `laravel.log` is always empty during Jump mode (expected — logs are on device storage).
+## Useful Commands
+
+```bash
+flutter analyze
+flutter run -d emulator-5554 -v
+adb -s emulator-5554 logcat -d | tail -n 300
+```
+
+## Android Notes
+
+### Desugaring requirement
+
+`flutter_local_notifications` requires core library desugaring. This is already configured in:
+
+- `android/app/build.gradle.kts`
+
+If needed, verify these exist:
+
+- `isCoreLibraryDesugaringEnabled = true`
+- `coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")`
+
+### VM service attach issue on emulator
+
+If `flutter run` fails with:
+
+- `Error connecting to the service protocol`
+- `Connection closed before full header was received`
+- repeated `Width is zero` logs
+
+```bash
+flutter run --no-enable-impeller
+```
+
+Use this sequence:
+
+```bash
+adb -s emulator-5554 shell input keyevent KEYCODE_WAKEUP
+adb -s emulator-5554 shell wm dismiss-keyguard
+adb -s emulator-5554 shell input keyevent 82
+flutter run -d emulator-5554
+```
+
+If still unstable:
+
+```bash
+adb kill-server
+adb start-server
+adb -s emulator-5554 emu kill
+flutter emulators --launch <your_emulator_id>
+flutter run -d emulator-5554
+```
+
+## Credentials
+
+Use credentials provided privately by your team leads or secure vault. Do not commit account credentials in repository files.
+
+## Reference Documentation
+
+- `.documentation/FLUTTER_MIGRATION.md`
+- `.documentation/TODO.md`
+- `.documentation/FRONTEND_STRUCTURE.md`
+
+<!-- REDACTED_TEST_NUMBER -->

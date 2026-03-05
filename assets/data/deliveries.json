@@ -1,0 +1,174 @@
+[
+    {
+        "id": 5,
+        "delivery_batch_id": 1,
+        "dispatch_code": "E-GEOFM0054382220251010135112",
+        "partial_code": "GEOFM005431748720251010133436",
+        "mail_type": "EXPRESS",
+        "tat": "2025-10-16T15:59:59.999999Z",
+        "transmittal_date": "2025-10-11T05:34:36.000000Z",
+        "delivery_status": "pending",
+        "delivery_trans_history": [
+            {
+                "action": "dispatched",
+                "timestamp": "2025-10-10T05:51:28.401449Z",
+                "status": "dispatched",
+                "note": "Batch dispatched to courier via DOP",
+                "user_id": 1,
+                "courier_id": null
+            },
+            {
+                "action": "received_by_courier",
+                "timestamp": "2025-10-10T07:24:27.778385Z",
+                "status": "received",
+                "note": "Dispatch accepted by courier via mobile app",
+                "user_id": 1,
+                "courier_id": 543
+            }
+        ],
+        "name": "JOAN DE CLARO LINGON",
+        "address": "1257-D CRISOSTOMO ST. BARANGAY 514 MANILA CITY METRO MANILA METRO MANILA 1008",
+        "contact": "+639292857666",
+        "authorized_rep_1": "JONELYN LINGON",
+        "contact_rep_1": "+639958710391",
+        "authorized_rep_2": "",
+        "contact_rep_2": "",
+        "authorized_rep_3": null,
+        "contact_rep_3": null,
+        "special_instruction": "NEAR DR. ALEJANDRO ALBERT ELEMENTARY SCHOOL",
+        "sequence_number": "S132251JO5",
+        "barcode_value": "B562943PA4",
+        "product": "P145 E3 566411 CARD",
+        "remarks": "",
+        "media": []
+    },
+    {
+        "id": 6,
+        "delivery_batch_id": 1,
+        "dispatch_code": "E-GEOFM0054382320251010142233",
+        "partial_code": "GEOFM005431758720251011133437",
+        "mail_type": "EXPRESS",
+        "tat": "2025-10-18T12:00:00.000000Z",
+        "transmittal_date": "2025-10-12T08:15:20.000000Z",
+        "delivery_status": "pending",
+        "delivery_trans_history": [
+            {
+                "action": "dispatched",
+                "timestamp": "2025-10-11T06:00:00.000000Z",
+                "status": "dispatched",
+                "note": "Batch dispatched to courier via DOP",
+                "user_id": 2,
+                "courier_id": null
+            },
+            {
+                "action": "received_by_courier",
+                "timestamp": "2025-10-11T09:30:00.000000Z",
+                "status": "received",
+                "note": "Dispatch accepted by courier via mobile app",
+                "user_id": 2,
+                "courier_id": 544
+            }
+        ],
+        "name": "MARC ANTONIO REYES",
+        "address": "4218 SAMPALOC ST. BRGY. 101 QUEZON CITY METRO MANILA 1101",
+        "contact": "+639171234567",
+        "authorized_rep_1": "KATRINA REYES",
+        "contact_rep_1": "+639188765432",
+        "authorized_rep_2": "",
+        "contact_rep_2": "",
+        "authorized_rep_3": null,
+        "contact_rep_3": null,
+        "special_instruction": "LEAVE AT GUARD HOUSE",
+        "sequence_number": "S132252MA6",
+        "barcode_value": "B132252MA6",
+        "product": "P146 E4 566412 CARD",
+        "remarks": "",
+        "media": []
+    },
+    {
+        "id": 7,
+        "delivery_batch_id": 2,
+        "dispatch_code": "E-GEOFM0054382420251010153344",
+        "partial_code": "GEOFM005431768720251012144438",
+        "mail_type": "EXPRESS",
+        "tat": "2025-10-17T18:30:00.000000Z",
+        "transmittal_date": "2025-10-13T10:45:15.000000Z",
+        "delivery_status": "pending",
+        "delivery_trans_history": [
+            {
+                "action": "dispatched",
+                "timestamp": "2025-10-12T07:00:00.000000Z",
+                "status": "dispatched",
+                "note": "Batch dispatched to courier via DOP",
+                "user_id": 3,
+                "courier_id": null
+            },
+            {
+                "action": "received_by_courier",
+                "timestamp": "2025-10-12T09:45:00.000000Z",
+                "status": "received",
+                "note": "Dispatch accepted by courier via mobile app",
+                "user_id": 3,
+                "courier_id": 545
+            },
+            {
+                "action": "delivered",
+                "timestamp": "2025-10-13T15:20:00.000000Z",
+                "status": "delivered",
+                "note": "Package handed to recipient",
+                "user_id": 3,
+                "courier_id": 545
+            }
+        ],
+        "name": "LIZA MARIE SANTIAGO",
+        "address": "88 MAHARLIKA ST. BRGY. 45 PASIG CITY METRO MANILA 1600",
+        "contact": "+639199876543",
+        "authorized_rep_1": "",
+        "contact_rep_1": "",
+        "authorized_rep_2": "",
+        "contact_rep_2": "",
+        "authorized_rep_3": null,
+        "contact_rep_3": null,
+        "special_instruction": "RING BELL BEFORE ENTERING",
+        "sequence_number": "S132253LM7",
+        "barcode_value": "B132253LM7",
+        "product": "P147 E5 566413 CARD",
+        "remarks": "Handle with care",
+        "media": []
+    },
+    {
+        "id": 8,
+        "delivery_batch_id": 2,
+        "dispatch_code": "E-GEOFM0054382520251010164455",
+        "partial_code": "GEOFM005431778720251013155439",
+        "mail_type": "STANDARD",
+        "tat": "2025-10-19T10:00:00.000000Z",
+        "transmittal_date": "2025-10-14T11:20:45.000000Z",
+        "delivery_status": "pending",
+        "delivery_trans_history": [
+            {
+                "action": "dispatched",
+                "timestamp": "2025-10-13T08:30:00.000000Z",
+                "status": "dispatched",
+                "note": "Batch dispatched to courier via DOP",
+                "user_id": 4,
+                "courier_id": null
+            }
+        ],
+        "name": "RICARDO PEREZ",
+        "address": "302 ANTIPOLO ST. BRGY. SAN JUAN MAKATI CITY METRO MANILA 1200",
+        "contact": "+639188123456",
+        "authorized_rep_1": "MARIA PEREZ",
+        "contact_rep_1": "+639177654321",
+        "authorized_rep_2": "",
+        "contact_rep_2": "",
+        "authorized_rep_3": null,
+        "contact_rep_3": null,
+        "special_instruction": "FRONT DESK OF BUILDING",
+        "sequence_number": "S132254RP8",
+        "barcode_value": "B132254RP8",
+        "product": "P148 E6 566414 CARD",
+        "remarks": "",
+        "media": []
+    }
+]
