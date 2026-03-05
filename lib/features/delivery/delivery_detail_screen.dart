@@ -7,7 +7,6 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
-import 'package:fsi_courier_app/shared/widgets/status_badge.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 /// Shows a bottom action sheet listing available communication apps for a phone number.
@@ -635,33 +634,6 @@ class _TappableRow extends StatelessWidget {
                 color: Colors.grey.shade400,
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Status chip ─────────────────────────────────────────────────────────────
-
-class _Chip extends StatelessWidget {
-  const _Chip(this.label);
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.25)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: Colors.grey.shade600,
         ),
       ),
     );
