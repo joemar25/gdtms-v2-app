@@ -40,7 +40,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   bool _hasPermission = false;
   bool _processing = false;
   String? _inlineError;
-  bool _manualSheetOpen = false;
 
   bool get _isDispatch => widget.mode == ScanMode.dispatch;
 
@@ -49,7 +48,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   String get _hintText =>
       _isDispatch ? 'E.G. E-GEOFXXXXX1234' : 'Enter delivery barcode';
 
-  String get _submitLabel => _isDispatch ? 'Check Eligibility' : 'Find Delivery';
+  String get _submitLabel =>
+      _isDispatch ? 'Check Eligibility' : 'Find Delivery';
 
   @override
   void initState() {
@@ -62,9 +62,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       ]);
     } else {
       // Otherwise lock to portrait (fullscreen mode)
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-      ]);
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     }
     _scannerController = MobileScannerController(
       formats: [
@@ -92,9 +90,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   @override
   void dispose() {
     // Restore portrait orientation when leaving scan screen
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _manualController.dispose();
     _scannerController.dispose();
     _lineController.dispose();
@@ -145,12 +141,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           .read(appSettingsProvider)
           .getAutoAcceptDispatch();
       if (!mounted) return;
-      context.push('/dispatches/eligibility', extra: {
-        'dispatch_code': code,
-        'eligibility_response': data,
-        'auto_accept': autoAccept,
-        'eligible': data['eligible'] == true,
-      });
+      context.push(
+        '/dispatches/eligibility',
+        extra: {
+          'dispatch_code': code,
+          'eligibility_response': data,
+          'auto_accept': autoAccept,
+          'eligible': data['eligible'] == true,
+        },
+      );
     } else {
       setState(
         () => _inlineError = 'Unable to check eligibility. Please try again.',
@@ -162,6 +161,32 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       );
       await _scannerController.start();
     }
+  }
+
+  void _openManualSheet() async {
+    await _scannerController.stop();
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: _ManualInputArea(
+          controller: _manualController,
+          hintText: _hintText,
+          submitLabel: _submitLabel,
+          error: _inlineError,
+          onSubmit: () {
+            Navigator.of(context).pop();
+            _handleCode(_manualController.text);
+          },
+        ),
+      ),
+    );
+    if (mounted && _hasPermission) await _scannerController.start();
   }
 
   Future<void> _handlePod(String code) async {
@@ -211,10 +236,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             MobileScanner(
               controller: _scannerController,
               onDetect: (capture) {
-                if (!_manualSheetOpen) {
-                  final code = capture.barcodes.firstOrNull?.rawValue;
-                  if (code != null && code.isNotEmpty) _handleCode(code);
-                }
+                final code = capture.barcodes.firstOrNull?.rawValue;
+                if (code != null && code.isNotEmpty) _handleCode(code);
               },
             ),
 
@@ -228,7 +251,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             ),
 
             // ── Animated scan line (inside viewfinder) ────────────────
-            if (_hasPermission && !_manualSheetOpen)
+            if (_hasPermission)
               AnimatedBuilder(
                 animation: _lineAnim,
                 builder: (_, __) => Positioned(
@@ -242,8 +265,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                       borderRadius: BorderRadius.circular(2),
                       boxShadow: [
                         BoxShadow(
-                          color:
-                              ColorStyles.grabGreen.withValues(alpha: 0.5),
+                          color: ColorStyles.grabGreen.withValues(alpha: 0.5),
                           blurRadius: 8,
                         ),
                       ],
@@ -290,10 +312,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                         SizedBox(height: 8),
                         Text(
                           'Tap to grant camera access',
-                          style: TextStyle(
-                            color: Colors.white60,
-                            fontSize: 13,
-                          ),
+                          style: TextStyle(color: Colors.white60, fontSize: 13),
                         ),
                       ],
                     ),
@@ -301,76 +320,90 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 ),
               ),
 
-            // ── Draggable manual input sheet ─────────────────────────
-            DraggableScrollableSheet(
-              initialChildSize: 0.12,
-              minChildSize: 0.12,
-              maxChildSize: 0.45,
-              snap: true,
-              builder: (context, scrollController) {
-                return NotificationListener<DraggableScrollableNotification>(
-                  onNotification: (notification) {
-                    final open = notification.extent > 0.18;
-                    if (open != _manualSheetOpen) {
-                      setState(() => _manualSheetOpen = open);
-                      if (open) {
-                        _scannerController.stop();
-                      } else {
-                        if (_hasPermission) _scannerController.start();
-                      }
-                    }
-                    return false;
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.85),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
-                    ),
-                    child: ListView(
-                      controller: scrollController,
-                      padding: EdgeInsets.zero,
-                      children: [
-                        const SizedBox(height: 14),
-                        Center(
-                          child: Container(
-                            width: 36,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.white24,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: Text(
-                            _manualSheetOpen
-                                ? 'Manual barcode entry'
-                                : 'Slide up to enter manually',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                        if (_manualSheetOpen)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: _ManualInputArea(
-                              controller: _manualController,
-                              hintText: _hintText,
-                              submitLabel: _submitLabel,
-                              error: _inlineError,
-                              onSubmit: () => _handleCode(_manualController.text),
-                            ),
-                          ),
+            // ── Fixed bottom action bar ───────────────────────────
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.9),
+                        Colors.transparent,
                       ],
                     ),
                   ),
-                );
-              },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_inlineError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.red.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: Colors.redAccent,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    _inlineError!,
+                                    style: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.keyboard_alt_outlined, size: 18),
+                        label: const Text(
+                          'ENTER MANUALLY',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.4),
+                          ),
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: _openManualSheet,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
 
             if (_processing) const LoadingOverlay(),
@@ -403,11 +436,9 @@ class _ScanScrimPainter extends CustomPainter {
     final vfRight = size.width - viewfinderMargin;
 
     canvas.drawRect(Rect.fromLTRB(0, 0, size.width, vfTop), paint);
-    canvas.drawRect(
-        Rect.fromLTRB(0, vfBottom, size.width, size.height), paint);
+    canvas.drawRect(Rect.fromLTRB(0, vfBottom, size.width, size.height), paint);
     canvas.drawRect(Rect.fromLTRB(0, vfTop, vfLeft, vfBottom), paint);
-    canvas.drawRect(
-        Rect.fromLTRB(vfRight, vfTop, size.width, vfBottom), paint);
+    canvas.drawRect(Rect.fromLTRB(vfRight, vfTop, size.width, vfBottom), paint);
   }
 
   @override
@@ -494,75 +525,112 @@ class _ManualInputArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.15))),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'or enter manually',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.35),
-                    fontSize: 12,
-                  ),
-                ),
+          // Handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
               ),
-              Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.15))),
-            ],
+            ),
           ),
           const SizedBox(height: 16),
+          const Text(
+            'MANUAL BARCODE ENTRY',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
           if (error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                error!,
-                style: TextStyle(color: Colors.red.shade300, fontSize: 13),
-                textAlign: TextAlign.center,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  error!,
+                  style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                ),
               ),
             ),
           TextField(
             controller: controller,
             style: const TextStyle(color: Colors.white),
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
               filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.10),
+              fillColor: Colors.white.withValues(alpha: 0.08),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: ColorStyles.grabGreen,
+                  width: 1.5,
+                ),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
             ),
+            onSubmitted: (_) => onSubmit(),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: ColorStyles.grabGreen,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: onSubmit,
-              child: Text(
-                submitLabel,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+          FilledButton.icon(
+            icon: const Icon(Icons.search_rounded, size: 18),
+            label: Text(
+              submitLabel.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
               ),
             ),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorStyles.grabGreen,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: onSubmit,
           ),
         ],
       ),

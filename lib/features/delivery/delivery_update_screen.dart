@@ -24,11 +24,6 @@ const _kStatusMeta = {
     icon: Icons.check_circle_rounded,
     color: Color(0xFF00B14F),
   ),
-  'failed_attempt': (
-    label: 'FAILED ATTEMPT',
-    icon: Icons.cancel_rounded,
-    color: Colors.deepOrange,
-  ),
   'rts': (
     label: 'RTS',
     icon: Icons.keyboard_return_rounded,
@@ -122,7 +117,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
     }
 
-    if (_status == 'rts' || _status == 'osa' || _status == 'failed_attempt') {
+    if (_status == 'rts' || _status == 'osa') {
       if (_reason == null || _reason!.isEmpty) {
         _errors['reason'] = 'Reason is required.';
       }
@@ -146,12 +141,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             'recipient': _status == 'delivered' ? _recipient.text.trim() : null,
             'relationship': _status == 'delivered' ? _relationship : null,
             'placement_type': _status == 'delivered' ? _placement : null,
-            'reason':
-                (_status == 'rts' ||
-                    _status == 'osa' ||
-                    _status == 'failed_attempt')
-                ? _reason
-                : null,
+            'reason': (_status == 'rts' || _status == 'osa') ? _reason : null,
             'delivery_images': _photos.map((e) => e.toApiJson()).toList(),
           },
           parser: parseApiMap,
@@ -181,8 +171,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   @override
   Widget build(BuildContext context) {
     final bool allowGallery = _status == 'rts' || _status == 'osa';
-    final bool needsReason =
-        _status == 'rts' || _status == 'osa' || _status == 'failed_attempt';
+    final bool needsReason = _status == 'rts' || _status == 'osa';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -245,60 +234,67 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               // ── STATUS SELECTION ────────────────────────────────────────
               const _SectionHeader(label: 'SELECT STATUS'),
               const SizedBox(height: 10),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 2.4,
+              Row(
                 children: kUpdateStatuses.map((s) {
                   final meta = _kStatusMeta[s]!;
                   final selected = _status == s;
-                  return GestureDetector(
-                    onTap: () => setState(() {
-                      _status = s;
-                      _reason = null;
-                    }),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? meta.color
-                            : meta.color.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: meta.color.withValues(
-                            alpha: selected ? 1 : 0.35,
-                          ),
-                          width: selected ? 2 : 1.2,
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            meta.icon,
-                            color: selected ? Colors.white : meta.color,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              meta.label,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: selected ? Colors.white : meta.color,
-                                letterSpacing: 0.4,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: GestureDetector(
+                        onTap: () => setState(() {
+                          _status = s;
+                          _reason = null;
+                        }),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? meta.color
+                                : meta.color.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: selected
+                                  ? meta.color
+                                  : meta.color.withValues(alpha: 0.35),
+                              width: selected ? 2 : 1.2,
                             ),
+                            boxShadow: selected
+                                ? [
+                                    BoxShadow(
+                                      color: meta.color.withValues(alpha: 0.18),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : [],
                           ),
-                        ],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 0,
+                            vertical: 12,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                meta.icon,
+                                color: selected ? Colors.white : meta.color,
+                                size: 22,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                meta.label,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11,
+                                  color: selected ? Colors.white : meta.color,
+                                  letterSpacing: 0.5,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -404,15 +400,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       icon: Icons.photo_library_rounded,
                       label: 'GALLERY',
                       color: Colors.blueGrey,
-                      // Gallery ONLY available for RTS and OSA (ENH-007)
                       enabled:
                           allowGallery && _photos.length < kMaxDeliveryImages,
                       onTap: allowGallery
                           ? () => _pickImage(ImageSource.gallery)
                           : null,
-                      disabledReason: allowGallery
-                          ? null
-                          : 'GALLERY ONLY FOR RTS/OSA',
+                      disabledReason:
+                          allowGallery ? null : 'GALLERY ONLY FOR RTS/OSA',
                     ),
                   ),
                 ],
@@ -439,17 +433,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 ),
               if (_photos.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                GridView.builder(
-                  itemCount: _photos.length,
+                GridView.count(
+                  crossAxisCount: 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.3,
-                  ),
-                  itemBuilder: (_, i) {
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.3,
+                  children: List.generate(_photos.length, (i) {
                     final photo = _photos[i];
                     return Container(
                       decoration: BoxDecoration(
@@ -515,7 +506,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         ],
                       ),
                     );
-                  },
+                  }),
                 ),
               ],
 
@@ -704,12 +695,14 @@ class _PhotoSourceButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
-          color: enabled ? color.withValues(alpha: 0.08) : Colors.grey.shade100,
+          color: enabled
+              ? color.withValues(alpha: 0.08)
+              : ColorStyles.grabCardElevatedDark, // Use consistent disabled bg
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: enabled
                 ? color.withValues(alpha: 0.4)
-                : Colors.grey.shade300,
+                : ColorStyles.grabCardDark, // Use consistent disabled border
           ),
         ),
         child: Column(
