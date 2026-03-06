@@ -31,6 +31,10 @@ const List<String> kImageTypes = [
   'other',
 ];
 
+/// Pre-defined photo types for delivered POD capture.
+/// Exactly two slots: one for the package (POD) and one for the courier selfie.
+const List<String> kPodDeliveredTypes = ['pod', 'selfie'];
+
 const List<String> kReasons = [
   'Refused',
   'Incorrect Address',

@@ -222,9 +222,13 @@ class ApiClient {
     required T Function(dynamic) parser,
   }) async {
     try {
+      debugPrint('[API] PATCH ${_dio.options.baseUrl}$path');
+      debugPrint('[API] payload: $data');
       final response = await _dio.patch<dynamic>(path, data: data);
+      debugPrint('[API] response ${response.statusCode}: ${response.data}');
       return _mapResponse<T>(response, parser);
     } catch (e) {
+      debugPrint('[API] PATCH error: $e');
       return _mapError<T>(e);
     }
   }

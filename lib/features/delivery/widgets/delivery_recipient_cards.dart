@@ -17,7 +17,8 @@ class DeliveryRecipientCards extends StatelessWidget {
   final String authorizedRep;
 
   /// Called with `(name, relationship?)`.  Relationship is `null` when the
-  /// authorized-rep card is tapped — callers should leave the field unchanged.
+  /// authorized-rep card is tapped — callers should reset the relationship
+  /// field to blank (null) so the user must choose a relationship manually.
   final void Function(String name, String? relationship) onSelectRecipient;
 
   @override

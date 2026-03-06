@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
@@ -65,6 +66,7 @@ class _DeliveryListScreenState extends ConsumerState<DeliveryListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(deliveryRefreshProvider, (_, __) => _load(reset: true));
     final isCompact = ref.watch(compactModeProvider);
     return Scaffold(
       appBar: AppHeaderBar(

@@ -7,18 +7,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:signature/signature.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/models/photo_entry.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/features/delivery/signature_capture_screen.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_geo_location_field.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_recipient_cards.dart';
-import 'package:fsi_courier_app/features/delivery/widgets/delivery_signature_field.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
@@ -56,17 +57,27 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   final _note = TextEditingController();
   final _recipient = TextEditingController();
   final _errors = <String, String>{};
-  final _photos = <PhotoEntry>[];
   final _uuid = const Uuid();
 
   final _picker = ImagePicker();
 
   String _status = 'delivered';
   String? _relationship;
-  String _placement = 'received'; // Default to 'received'
+  bool _recipientIsOwner = false;
+  String _placement = 'received';
   String? _reason;
   bool _loading = false;
   bool _success = false;
+
+  // Delivered-specific: two fixed photo slots (POD + SELFIE)
+  PhotoEntry? _podPhoto;
+  PhotoEntry? _selfiePhoto;
+
+  // Non-delivered photos (rts / osa) — camera + gallery, free type
+  final _photos = <PhotoEntry>[];
+
+  // Signature bytes (PNG) for delivered status
+  Uint8List? _signatureBytes;
 
   // Geo location
   double? _latitude;
@@ -74,19 +85,23 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   double? _geoAccuracy;
   bool _gettingLocation = false;
 
-  // Recipient signature
-  late final SignatureController _signatureController;
-
   @override
   void initState() {
     super.initState();
-    _signatureController = SignatureController(
-      penStrokeWidth: 2.5,
-      penColor: Colors.black87,
-      exportBackgroundColor: Colors.white,
-    );
+    _recipient.addListener(_onRecipientTextChanged);
     _loadDelivery();
-    _captureLocation(); // auto-start on screen open; button is only fallback
+    _captureLocation();
+  }
+
+  /// When the courier manually edits the recipient field, un-lock the
+  /// owner-selection and reset the relationship to blank.
+  void _onRecipientTextChanged() {
+    if (_recipientIsOwner) {
+      setState(() {
+        _recipientIsOwner = false;
+        _relationship = null;
+      });
+    }
   }
 
   Future<void> _loadDelivery() async {
@@ -109,15 +124,15 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   @override
   void dispose() {
     _note.dispose();
+    _recipient.removeListener(_onRecipientTextChanged);
     _recipient.dispose();
-    _signatureController.dispose();
     super.dispose();
   }
 
+  // ── Geo location ──────────────────────────────────────────────────────────
   Future<void> _captureLocation() async {
     setState(() => _gettingLocation = true);
     try {
-      // Check if GPS is turned on
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
@@ -130,7 +145,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         return;
       }
 
-      // Use permission_handler to request (same pattern as camera)
       var status = await Permission.location.status;
       if (status.isDenied) {
         status = await Permission.location.request();
@@ -190,6 +204,39 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     }
   }
 
+  // ── Pick photo for a pre-defined delivered slot (camera only) ─────────────
+  Future<void> _pickPhotoForSlot(String slotType) async {
+    final picked = await _picker.pickImage(source: ImageSource.camera);
+    if (picked == null) return;
+
+    final bytes = await FlutterImageCompress.compressWithFile(
+      picked.path,
+      minWidth: 800,
+      quality: 80,
+      format: CompressFormat.jpeg,
+    );
+    if (bytes == null) return;
+
+    // Map display slot name to the API-accepted image type.
+    // API accepts: package, recipient, location, damage, other.
+    final apiType = slotType == 'pod' ? 'package' : 'recipient';
+    final entry = PhotoEntry(
+      id: _uuid.v4(),
+      file: base64Encode(bytes),
+      type: apiType,
+    );
+    setState(() {
+      if (slotType == 'pod') {
+        _podPhoto = entry;
+        _errors.remove('pod_photo');
+      } else {
+        _selfiePhoto = entry;
+        _errors.remove('selfie_photo');
+      }
+    });
+  }
+
+  // ── Pick photo for rts/osa (camera + gallery) ────────────────────────────
   Future<void> _pickImage(ImageSource source) async {
     if (_photos.length >= kMaxDeliveryImages) {
       showAppSnackbar(
@@ -208,7 +255,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       quality: 80,
       format: CompressFormat.jpeg,
     );
-
     if (bytes == null) return;
 
     setState(() {
@@ -222,6 +268,27 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     });
   }
 
+  // ── Open landscape signature capture screen ───────────────────────────────
+  Future<void> _openSignatureCapture() async {
+    final bytes = await Navigator.push<Uint8List?>(
+      context,
+      MaterialPageRoute(builder: (_) => const SignatureCaptureScreen()),
+    );
+    if (bytes != null && mounted) {
+      setState(() {
+        _signatureBytes = bytes;
+        _errors.remove('recipient_signature');
+      });
+    }
+  }
+
+  // ── Philippine Standard Time helpers ─────────────────────────────────────
+  static DateTime _pstNow() =>
+      DateTime.now().toUtc().add(const Duration(hours: 8));
+
+  static String _todayPST() => DateFormat('MMMM d, yyyy').format(_pstNow());
+
+  // ── Validation ────────────────────────────────────────────────────────────
   bool _validate() {
     _errors.clear();
 
@@ -243,10 +310,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (_placement.isEmpty) {
         _errors['placement'] = 'Placement type is required.';
       }
-      if (_photos.isEmpty) {
-        _errors['delivery_images'] = 'At least one delivery image is required.';
+      if (_podPhoto == null) {
+        _errors['pod_photo'] = 'POD photo is required.';
       }
-      if (!_signatureController.isNotEmpty) {
+      if (_selfiePhoto == null) {
+        _errors['selfie_photo'] = 'Selfie photo is required.';
+      }
+      if (_signatureBytes == null) {
         _errors['recipient_signature'] = 'Recipient signature is required.';
       }
     }
@@ -261,36 +331,58 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     return _errors.isEmpty;
   }
 
+  // ── Submit ────────────────────────────────────────────────────────────────
   Future<void> _submit() async {
     if (!_validate()) return;
 
     setState(() => _loading = true);
 
-    Uint8List? sigBytes;
-    if (_status == 'delivered' && _signatureController.isNotEmpty) {
-      sigBytes = await _signatureController.toPngBytes();
+    // NOTE: For production, save images/signature to cloud first to get URL link
+    // and put the URL in the payload for the correct type and for signature.
+    // For now, this is for development/testing and uses placeholder filenames.
+    final List<Map<String, dynamic>> deliveryImages = _status == 'delivered'
+        ? [
+            if (_podPhoto != null) {'file': 'testing.png', 'type': 'pod'},
+            if (_selfiePhoto != null) {'file': 'testing.png', 'type': 'selfie'},
+          ]
+        : _photos
+              .map((image) => {...image.toApiJson(), 'file': 'testing.png'})
+              .toList();
+
+    // Build payload — only include fields relevant to the current status.
+    // Omit null-only fields to avoid server-side "required" validation triggers.
+    final payload = <String, dynamic>{
+      'delivery_status': _status,
+      if (_note.text.trim().isNotEmpty) 'note': _note.text.trim(),
+    };
+
+    if (_status == 'delivered') {
+      payload['recipient'] = _recipient.text.trim();
+      payload['relationship'] = _relationship;
+      payload['placement_type'] = _placement;
+      payload['delivery_images'] = deliveryImages;
+      if (_signatureBytes != null) {
+        payload['recipient_signature'] = 'signatureblob.png';
+      }
+    } else {
+      // rts / osa
+      payload['reason'] = _reason;
+      if (deliveryImages.isNotEmpty) {
+        payload['delivery_images'] = deliveryImages;
+      }
+    }
+
+    if (_latitude != null && _longitude != null) {
+      payload['latitude'] = _latitude;
+      payload['longitude'] = _longitude;
+      if (_geoAccuracy != null) payload['geo_accuracy'] = _geoAccuracy;
     }
 
     final result = await ref
         .read(apiClientProvider)
         .patch<Map<String, dynamic>>(
           '/deliveries/${widget.barcode}',
-          data: {
-            'delivery_status': _status,
-            'note': _note.text,
-            'recipient': _status == 'delivered' ? _recipient.text.trim() : null,
-            'relationship': _status == 'delivered' ? _relationship : null,
-            'placement_type': _status == 'delivered' ? _placement : null,
-            'reason': (_status == 'rts' || _status == 'osa') ? _reason : null,
-            'delivery_images': _photos.map((e) => e.toApiJson()).toList(),
-            if (_status == 'delivered' && sigBytes != null)
-              'recipient_signature': base64Encode(sigBytes),
-            if (_latitude != null && _longitude != null) ...{
-              'latitude': _latitude,
-              'longitude': _longitude,
-              if (_geoAccuracy != null) 'geo_accuracy': _geoAccuracy,
-            },
-          },
+          data: payload,
           parser: parseApiMap,
         );
 
@@ -298,10 +390,27 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     switch (result) {
       case ApiSuccess<Map<String, dynamic>>():
+        // Signal all delivery-watching screens to refresh
+        ref.read(deliveryRefreshProvider.notifier).state++;
         setState(() => _success = true);
-      case ApiValidationError<Map<String, dynamic>>(:final errors):
+        return; // success overlay takes over; skip _loading = false below
+      case ApiValidationError<Map<String, dynamic>>(
+        :final errors,
+        :final message,
+      ):
         errors.forEach((key, value) => _errors[key] = value.first);
         setState(() {});
+        // Always show the server message so nothing is silently lost.
+        final validationMsg = message?.isNotEmpty == true
+            ? message!
+            : 'Please correct the errors and try again.';
+        showAppSnackbar(context, validationMsg, type: SnackbarType.error);
+      case ApiConflict<Map<String, dynamic>>(:final message):
+        showAppSnackbar(context, message, type: SnackbarType.error);
+      case ApiNetworkError<Map<String, dynamic>>(:final message):
+        showAppSnackbar(context, message, type: SnackbarType.error);
+      case ApiRateLimited<Map<String, dynamic>>(:final message):
+        showAppSnackbar(context, message, type: SnackbarType.error);
       case ApiServerError<Map<String, dynamic>>(:final message):
         showAppSnackbar(context, message, type: SnackbarType.error);
       default:
@@ -318,21 +427,26 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   void _clearDeliveredFields() {
     _recipient.clear();
     _relationship = null;
+    _recipientIsOwner = false;
     _placement = 'received';
+    _podPhoto = null;
+    _selfiePhoto = null;
+    _signatureBytes = null;
     _photos.clear();
-    _signatureController.clear();
     _errors.clear();
   }
 
   Future<void> _onStatusTap(String newStatus) async {
     if (newStatus == _status) return;
 
-    // Confirm before discarding delivered details
-    if (_status == 'delivered' &&
-        (_recipient.text.isNotEmpty ||
-            _relationship != null ||
-            _photos.isNotEmpty ||
-            _signatureController.isNotEmpty)) {
+    final bool hasDeliveredData =
+        _recipient.text.isNotEmpty ||
+        _relationship != null ||
+        _podPhoto != null ||
+        _selfiePhoto != null ||
+        _signatureBytes != null;
+
+    if (_status == 'delivered' && hasDeliveredData) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -369,9 +483,254 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     });
   }
 
+  // ─── Build helpers ────────────────────────────────────────────────────────
+
+  /// Clickable box for POD / SELFIE photo slots.
+  Widget _buildPhotoSlot({
+    required String slotType,
+    required String label,
+    required PhotoEntry? photo,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+  }) {
+    final hasPhoto = photo != null;
+    final errorKey = slotType == 'pod' ? 'pod_photo' : 'selfie_photo';
+    final hasError = _errors[errorKey] != null;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _pickPhotoForSlot(slotType),
+        child: Container(
+          height: 148,
+          decoration: BoxDecoration(
+            color: hasPhoto
+                ? Colors.transparent
+                : (isDark ? ColorStyles.grabCardElevatedDark : Colors.white),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: hasError
+                  ? Colors.red
+                  : hasPhoto
+                  ? (isDark ? Colors.white10 : Colors.grey.shade200)
+                  : color.withValues(alpha: 0.45),
+              width: hasError ? 1.5 : 1.2,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: hasPhoto
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.memory(
+                      base64Decode(photo.file),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: isDark ? Colors.white10 : Colors.grey.shade100,
+                        child: Icon(
+                          Icons.broken_image_rounded,
+                          size: 28,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        color: Colors.black54,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              label,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => setState(() {
+                                if (slotType == 'pod') {
+                                  _podPhoto = null;
+                                } else {
+                                  _selfiePhoto = null;
+                                }
+                              }),
+                              child: const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 14,
+                                color: Colors.redAccent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 30, color: color),
+                    const SizedBox(height: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: color,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'TAP TO CAPTURE',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Colors.grey.shade500,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  /// Clickable box for the recipient signature — same visual style as photo slots.
+  Widget _buildSignatureSlot(bool isDark) {
+    final hasSignature = _signatureBytes != null;
+    final hasError = _errors['recipient_signature'] != null;
+
+    return GestureDetector(
+      onTap: _openSignatureCapture,
+      child: Container(
+        height: 130,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: hasError
+                ? Colors.red
+                : hasSignature
+                ? (isDark ? Colors.white10 : Colors.grey.shade200)
+                : ColorStyles.grabGreen.withValues(alpha: 0.45),
+            width: hasError ? 1.5 : 1.2,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: hasSignature
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Image.memory(_signatureBytes!, fit: BoxFit.contain),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      color: Colors.black54,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'SIGNATURE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _openSignatureCapture,
+                                child: const Text(
+                                  'RE-SIGN',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () =>
+                                    setState(() => _signatureBytes = null),
+                                child: const Text(
+                                  'CLEAR',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.draw_rounded,
+                    size: 30,
+                    color: ColorStyles.grabGreen.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'SIGNATURE',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: ColorStyles.grabGreen.withValues(alpha: 0.8),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'TAP TO SIGN',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey.shade500,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final bool allowGallery = _status != 'delivered';
     final bool needsReason = _status == 'rts' || _status == 'osa';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -434,7 +793,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   children: [
-                    // ── STATUS SELECTION ────────────────────────────────────────
+                    // ── STATUS SELECTION ──────────────────────────────────────
                     const DeliverySectionHeader(label: 'SELECT STATUS'),
                     const SizedBox(height: 10),
                     Row(
@@ -520,39 +879,76 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         ),
                       ),
 
-                    // ── RECIPIENT INFO (delivered only) ────────────────────────
+                    // ── RECIPIENT INFO (delivered only) ───────────────────────
                     if (_status == 'delivered') ...[
                       const SizedBox(height: 20),
                       const DeliverySectionHeader(label: 'RECIPIENT INFO'),
                       const SizedBox(height: 8),
-                      // Clickable recipient + authorized rep cards
                       DeliveryRecipientCards(
                         recipientName: _delivery['name']?.toString() ?? '',
                         authorizedRep:
                             _delivery['authorized_rep']?.toString() ?? '',
-                        onSelectRecipient: (name, relationship) => setState(() {
+                        onSelectRecipient: (name, relationship) {
+                          // Detach listener so programmatic setText does not
+                          // falsely trigger the owner-clearing logic.
+                          _recipient.removeListener(_onRecipientTextChanged);
                           _recipient.text = name;
-                          if (relationship != null)
+                          _recipient.addListener(_onRecipientTextChanged);
+                          setState(() {
+                            // null relationship = auth rep → reset to blank
                             _relationship = relationship;
-                        }),
+                            _recipientIsOwner = relationship == 'self';
+                            _errors.remove('recipient');
+                            _errors.remove('relationship');
+                          });
+                        },
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _recipient,
-                        maxLength: kMaxRecipientLength,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: deliveryFieldDecoration(
-                          context,
-                          labelText: 'RECIPIENT NAME',
-                          errorText: _errors['recipient'],
+
+                      // Recipient name field with clear (✕) suffix icon
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _recipient,
+                        builder: (context, value, _) => TextFormField(
+                          controller: _recipient,
+                          maxLength: kMaxRecipientLength,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration:
+                              deliveryFieldDecoration(
+                                context,
+                                labelText: 'RECIPIENT NAME',
+                                errorText: _errors['recipient'],
+                              ).copyWith(
+                                suffixIcon: value.text.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(
+                                          Icons.clear_rounded,
+                                          size: 18,
+                                        ),
+                                        color: Colors.grey.shade500,
+                                        onPressed: () {
+                                          _recipient.clear();
+                                          setState(() {
+                                            _recipientIsOwner = false;
+                                            _relationship = null;
+                                          });
+                                        },
+                                      )
+                                    : null,
+                              ),
                         ),
                       ),
                       const SizedBox(height: 8),
+
+                      // Relationship dropdown: disabled (locked) when owner
+                      // is selected; key forces rebuild when value changes.
                       DropdownButtonFormField<String>(
+                        key: ValueKey(_relationship),
                         initialValue: _relationship,
                         decoration: deliveryFieldDecoration(
                           context,
-                          labelText: 'RELATIONSHIP',
+                          labelText: _recipientIsOwner
+                              ? 'RELATIONSHIP (LOCKED — OWNER)'
+                              : 'RELATIONSHIP',
                           errorText: _errors['relationship'],
                         ),
                         items: kRelationshipOptions
@@ -563,9 +959,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               ),
                             )
                             .toList(),
-                        onChanged: (v) => setState(() => _relationship = v),
+                        onChanged: _recipientIsOwner
+                            ? null
+                            : (v) => setState(() => _relationship = v),
                       ),
                       const SizedBox(height: 8),
+
                       DropdownButtonFormField<String>(
                         initialValue: _placement,
                         decoration: deliveryFieldDecoration(
@@ -586,7 +985,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       ),
                     ],
 
-                    // ── REASON (rts / osa / failed_attempt) ───────────────────
+                    // ── REASON (rts / osa) ───────────────────────────────────
                     if (needsReason) ...[
                       const SizedBox(height: 20),
                       const DeliverySectionHeader(
@@ -609,25 +1008,93 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       ),
                     ],
 
-                    // ── PHOTOS ─────────────────────────────────────────────────
-                    const SizedBox(height: 20),
-                    const DeliverySectionHeader(
-                      label: 'PROOF OF DELIVERY PHOTOS',
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DeliveryPhotoSourceButton(
-                            icon: Icons.photo_camera_rounded,
-                            label: 'CAMERA',
+                    // ── PROOF OF DELIVERY: two fixed slots + signature ────────
+                    if (_status == 'delivered') ...[
+                      const SizedBox(height: 20),
+                      const DeliverySectionHeader(
+                        label: 'PROOF OF DELIVERY PHOTOS',
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _buildPhotoSlot(
+                            slotType: 'pod',
+                            label: 'POD',
+                            photo: _podPhoto,
+                            icon: Icons.inventory_2_rounded,
                             color: ColorStyles.grabGreen,
-                            enabled: _photos.length < kMaxDeliveryImages,
-                            onTap: () => _pickImage(ImageSource.camera),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(width: 10),
+                          _buildPhotoSlot(
+                            slotType: 'selfie',
+                            label: 'SELFIE',
+                            photo: _selfiePhoto,
+                            icon: Icons.face_rounded,
+                            color: Colors.blueGrey,
+                            isDark: isDark,
+                          ),
+                        ],
+                      ),
+                      if (_errors['pod_photo'] != null ||
+                          _errors['selfie_photo'] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_errors['pod_photo'] != null)
+                                Text(
+                                  _errors['pod_photo']!,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              if (_errors['selfie_photo'] != null)
+                                Text(
+                                  _errors['selfie_photo']!,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        // Gallery available for non-delivered statuses (rts/osa)
-                        if (allowGallery) ...[
+
+                      // Signature — same click-box design as photo slots
+                      const SizedBox(height: 10),
+                      _buildSignatureSlot(isDark),
+                      if (_errors['recipient_signature'] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            _errors['recipient_signature']!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+
+                    // ── PHOTOS: camera + gallery (rts / osa) ─────────────────
+                    if (_status != 'delivered') ...[
+                      const SizedBox(height: 20),
+                      const DeliverySectionHeader(label: 'PHOTOS'),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DeliveryPhotoSourceButton(
+                              icon: Icons.photo_camera_rounded,
+                              label: 'CAMERA',
+                              color: ColorStyles.grabGreen,
+                              enabled: _photos.length < kMaxDeliveryImages,
+                              onTap: () => _pickImage(ImageSource.camera),
+                            ),
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: DeliveryPhotoSourceButton(
@@ -639,202 +1106,240 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             ),
                           ),
                         ],
-                      ],
-                    ),
-                    if (_photos.length >= kMaxDeliveryImages)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'MAXIMUM $kMaxDeliveryImages IMAGES REACHED.',
-                          style: TextStyle(
-                            color: Colors.orange.shade700,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ),
-                    if (_errors['delivery_images'] != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          _errors['delivery_images']!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    if (_photos.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Column(
-                        children: List.generate(_photos.length, (i) {
-                          final photo = _photos[i];
-                          final imageBytes = base64Decode(photo.file);
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? ColorStyles.grabCardElevatedDark
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.white10
-                                    : Colors.grey.shade200,
-                              ),
+                      if (_photos.length >= kMaxDeliveryImages)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'MAXIMUM $kMaxDeliveryImages IMAGES REACHED.',
+                            style: TextStyle(
+                              color: Colors.orange.shade700,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Actual image thumbnail
-                                SizedBox(
-                                  width: 100,
-                                  height: 100,
-                                  child: Image.memory(
-                                    imageBytes,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      color: isDark
-                                          ? Colors.white10
-                                          : Colors.grey.shade100,
-                                      child: Icon(
-                                        Icons.broken_image_rounded,
-                                        size: 28,
-                                        color: Colors.grey.shade400,
+                          ),
+                        ),
+                      if (_photos.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Column(
+                          children: List.generate(_photos.length, (i) {
+                            final photo = _photos[i];
+                            final imageBytes = base64Decode(photo.file);
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? ColorStyles.grabCardElevatedDark
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isDark
+                                      ? Colors.white10
+                                      : Colors.grey.shade200,
+                                ),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 100,
+                                    height: 100,
+                                    child: Image.memory(
+                                      imageBytes,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: isDark
+                                            ? Colors.white10
+                                            : Colors.grey.shade100,
+                                        child: Icon(
+                                          Icons.broken_image_rounded,
+                                          size: 28,
+                                          color: Colors.grey.shade400,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                // Right: label + type dropdown + remove
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      12,
-                                      10,
-                                      10,
-                                      10,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'PHOTO ${i + 1}',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 0.5,
-                                            color: Colors.grey.shade500,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: isDark
-                                                ? ColorStyles.grabCardDark
-                                                : Colors.grey.shade50,
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            border: Border.all(
-                                              color: isDark
-                                                  ? Colors.white12
-                                                  : Colors.grey.shade300,
-                                            ),
-                                          ),
-                                          child: DropdownButton<String>(
-                                            value: photo.type,
-                                            isExpanded: true,
-                                            underline: const SizedBox.shrink(),
-                                            isDense: true,
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        12,
+                                        10,
+                                        10,
+                                        10,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'PHOTO ${i + 1}',
                                             style: TextStyle(
-                                              fontSize: 11,
+                                              fontSize: 10,
                                               fontWeight: FontWeight.w700,
-                                              color: isDark
-                                                  ? Colors.white
-                                                  : Colors.black87,
+                                              letterSpacing: 0.5,
+                                              color: Colors.grey.shade500,
                                             ),
-                                            items: kImageTypes
-                                                .map(
-                                                  (e) =>
-                                                      DropdownMenuItem<String>(
-                                                        value: e,
-                                                        child: Text(
-                                                          e.toUpperCase(),
-                                                        ),
-                                                      ),
-                                                )
-                                                .toList(),
-                                            onChanged: (v) {
-                                              if (v == null) return;
-                                              setState(() {
-                                                _photos[i] = PhotoEntry(
-                                                  id: photo.id,
-                                                  file: photo.file,
-                                                  type: v,
-                                                );
-                                              });
-                                            },
                                           ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        GestureDetector(
-                                          onTap: () => setState(
-                                            () => _photos.removeAt(i),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.delete_outline_rounded,
-                                                size: 14,
-                                                color: Colors.red.shade400,
+                                          const SizedBox(height: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? ColorStyles.grabCardDark
+                                                  : Colors.grey.shade50,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: isDark
+                                                    ? Colors.white12
+                                                    : Colors.grey.shade300,
                                               ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                'REMOVE',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
+                                            ),
+                                            child: DropdownButton<String>(
+                                              value: photo.type,
+                                              isExpanded: true,
+                                              underline:
+                                                  const SizedBox.shrink(),
+                                              isDense: true,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : Colors.black87,
+                                              ),
+                                              items: kImageTypes
+                                                  .map(
+                                                    (e) =>
+                                                        DropdownMenuItem<
+                                                          String
+                                                        >(
+                                                          value: e,
+                                                          child: Text(
+                                                            e.toUpperCase(),
+                                                          ),
+                                                        ),
+                                                  )
+                                                  .toList(),
+                                              onChanged: (v) {
+                                                if (v == null) return;
+                                                setState(() {
+                                                  _photos[i] = PhotoEntry(
+                                                    id: photo.id,
+                                                    file: photo.file,
+                                                    type: v,
+                                                  );
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          GestureDetector(
+                                            onTap: () => setState(
+                                              () => _photos.removeAt(i),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.delete_outline_rounded,
+                                                  size: 14,
                                                   color: Colors.red.shade400,
                                                 ),
-                                              ),
-                                            ],
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'REMOVE',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Colors.red.shade400,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                      ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
                     ],
 
-                    // ── REMARKS ────────────────────────────────────────────────
+                    // ── REMARKS ───────────────────────────────────────────────
                     const SizedBox(height: 20),
                     const DeliverySectionHeader(label: 'REMARKS'),
                     const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _note,
-                      maxLength: kMaxNoteLength,
-                      maxLines: 3,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: deliveryFieldDecoration(
-                        context,
-                        hintText: 'REMARKS (OPTIONAL)',
-                        errorText: _errors['note'],
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _note,
+                      builder: (context, value, _) => TextFormField(
+                        controller: _note,
+                        maxLength: kMaxNoteLength,
+                        maxLines: 3,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration:
+                            deliveryFieldDecoration(
+                              context,
+                              hintText: 'REMARKS (OPTIONAL)',
+                              errorText: _errors['note'],
+                            ).copyWith(
+                              suffixIcon: value.text.isNotEmpty
+                                  ? Align(
+                                      alignment: Alignment.topRight,
+                                      heightFactor: 1.0,
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.clear_rounded,
+                                          size: 18,
+                                        ),
+                                        color: Colors.grey.shade500,
+                                        onPressed: () => _note.clear(),
+                                      ),
+                                    )
+                                  : null,
+                            ),
                       ),
                     ),
 
-                    // ── GEO LOCATION ────────────────────────────────────────────
+                    // ── TRANSACTION DATE (today in PST, read-only) ───────────
+                    const SizedBox(height: 20),
+                    const DeliverySectionHeader(label: 'TRANSACTION DATE'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      initialValue: _todayPST(),
+                      enabled: false,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: isDark ? Colors.white70 : Colors.black87,
+                      ),
+                      decoration:
+                          deliveryFieldDecoration(
+                            context,
+                            labelText: 'DATE (PHILIPPINE STANDARD TIME)',
+                          ).copyWith(
+                            prefixIcon: Icon(
+                              Icons.calendar_today_rounded,
+                              size: 18,
+                              color: Colors.grey.shade500,
+                            ),
+                            suffixIcon: Icon(
+                              Icons.lock_outline_rounded,
+                              size: 16,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                    ),
+
+                    // ── GEO LOCATION ──────────────────────────────────────────
                     const SizedBox(height: 20),
                     const DeliverySectionHeader(label: 'GEO LOCATION'),
                     const SizedBox(height: 8),
@@ -845,21 +1350,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       isLoading: _gettingLocation,
                       onCapture: _captureLocation,
                     ),
-
-                    // ── SIGNATURE (delivered only) ───────────────────────────
-                    if (_status == 'delivered') ...[
-                      const SizedBox(height: 20),
-                      const DeliverySectionHeader(label: 'RECIPIENT SIGNATURE'),
-                      const SizedBox(height: 8),
-                      DeliverySignatureField(
-                        controller: _signatureController,
-                        errorText: _errors['recipient_signature'],
-                        onClear: () => setState(() {
-                          _signatureController.clear();
-                          _errors.remove('recipient_signature');
-                        }),
-                      ),
-                    ],
 
                     const SizedBox(height: 80),
                   ],

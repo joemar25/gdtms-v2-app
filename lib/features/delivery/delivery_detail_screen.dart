@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -15,22 +16,24 @@ Future<void> showContactAppSheet(BuildContext context, String phone) async {
   final cleaned = phone.trim();
   if (cleaned.isEmpty) return;
 
-  // Detect which comm apps are available on this device
-  final apps = <_CommApp>[];
-
-  final appCandidates = [
-    _CommApp(
-      label: 'Call',
-      icon: Icons.call_rounded,
-      color: Colors.green,
-      uri: Uri(scheme: 'tel', path: cleaned),
-    ),
+  // SMS and Call are always shown first (no canLaunchUrl gating).
+  // Optional apps (WhatsApp, Viber, Telegram) are added only if available.
+  final apps = <_CommApp>[
     _CommApp(
       label: 'SMS',
       icon: Icons.sms_rounded,
       color: Colors.blueGrey,
       uri: Uri(scheme: 'sms', path: cleaned),
     ),
+    _CommApp(
+      label: 'Call',
+      icon: Icons.call_rounded,
+      color: Colors.green,
+      uri: Uri(scheme: 'tel', path: cleaned),
+    ),
+  ];
+
+  final optionalCandidates = [
     _CommApp(
       label: 'WhatsApp',
       icon: Icons.chat_rounded,
@@ -51,23 +54,10 @@ Future<void> showContactAppSheet(BuildContext context, String phone) async {
     ),
   ];
 
-  for (final app in appCandidates) {
+  for (final app in optionalCandidates) {
     if (await canLaunchUrl(app.uri)) {
       apps.add(app);
     }
-  }
-
-  // Always show at least the tel: fallback
-  if (apps.isEmpty) {
-    final telUri = Uri(scheme: 'tel', path: cleaned);
-    apps.add(
-      _CommApp(
-        label: 'Call',
-        icon: Icons.call_rounded,
-        color: Colors.green,
-        uri: telUri,
-      ),
-    );
   }
 
   if (!context.mounted) return;
@@ -245,6 +235,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(deliveryRefreshProvider, (_, __) => _load());
     final status = _str('delivery_status').toLowerCase();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF5F5F7);
@@ -318,8 +309,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 ),
               ),
       ),
-      bottomNavigationBar:
-          (status == 'pending' || status == 'rts' || status == 'osa')
+      // RULE: If status is 'osa', do not ever show update status button here
+      bottomNavigationBar: (status == 'pending' || status == 'rts')
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),

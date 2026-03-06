@@ -76,6 +76,7 @@ class _DeliveryStatusListScreenState
   }
 
   List<Widget> _buildActions(BuildContext context) {
+    // RULE: If status is 'osa', do not ever show update status button or actions here
     return switch (widget.status) {
       'pending' => [
         IconButton(
@@ -91,6 +92,7 @@ class _DeliveryStatusListScreenState
           onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
         ),
       ],
+      'osa' => [],
       _ => [],
     };
   }
@@ -134,10 +136,12 @@ class _DeliveryStatusListScreenState
                   ],
                   ..._items.map((d) {
                     final identifier = resolveDeliveryIdentifier(d);
+                    // RULE: If status is 'osa', all delivery card navigation is disabled
+                    // — no action required, pending admin review
                     return DeliveryCard(
                       delivery: d,
                       compact: isCompact,
-                      onTap: identifier.isEmpty
+                      onTap: (widget.status == 'osa' || identifier.isEmpty)
                           ? () {}
                           : () => context.push('/deliveries/$identifier'),
                     );

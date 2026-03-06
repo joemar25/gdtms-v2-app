@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -54,19 +55,27 @@ class _DispatchEligibilityScreenState
   bool _rejecting = false;
   String? _selectedRejectReason;
 
+  String get _resolvedPartialCode {
+    final responseCode = widget.eligibilityResponse['partial_code']?.toString();
+    if (responseCode != null && responseCode.trim().isNotEmpty) {
+      return responseCode.trim();
+    }
+    return widget.dispatchCode.trim();
+  }
+
   @override
   void dispose() {
     _rejectReasonController.dispose();
     super.dispose();
   }
 
-  String _getActualLast4(String code) {
-    if (code.length < 4) return code;
+  String _getMaskedLast4(String code) {
+    if (code.length <= 4) return code;
     return code.substring(code.length - 4);
   }
 
   Future<bool> _showPinDialog() async {
-    final actual = _getActualLast4(widget.dispatchCode);
+    final actual = _getMaskedLast4(_resolvedPartialCode);
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
@@ -93,7 +102,7 @@ class _DispatchEligibilityScreenState
         .post<Map<String, dynamic>>(
           '/accept-dispatch',
           data: {
-            'partial_code': widget.dispatchCode,
+            'partial_code': _resolvedPartialCode,
             'client_request_id': acceptId,
             'device_info': await device.toMap(),
           },
@@ -108,6 +117,7 @@ class _DispatchEligibilityScreenState
             result.message.toLowerCase().contains('already accepted'));
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
+      ref.read(deliveryRefreshProvider.notifier).state++;
       setState(() {
         _showSuccess = true;
         _loading = false;
@@ -128,9 +138,16 @@ class _DispatchEligibilityScreenState
 
     setState(() {
       _loading = false;
-      _error = result is ApiServerError<Map<String, dynamic>>
-          ? result.message
-          : 'Unable to accept dispatch.';
+      _error = switch (result) {
+        ApiServerError<Map<String, dynamic>>(:final message) => message,
+        ApiValidationError<Map<String, dynamic>>(:final message) =>
+          (message != null && message.isNotEmpty)
+              ? message
+              : 'Unable to accept dispatch.',
+        ApiNetworkError<Map<String, dynamic>>(:final message) => message,
+        ApiRateLimited<Map<String, dynamic>>(:final message) => message,
+        _ => 'Unable to accept dispatch.',
+      };
     });
   }
 
@@ -174,7 +191,7 @@ class _DispatchEligibilityScreenState
         .post<Map<String, dynamic>>(
           '/reject-dispatch',
           data: {
-            'partial_code': widget.dispatchCode,
+            'partial_code': _resolvedPartialCode,
             'client_request_id': requestId,
             'reason': reason,
             'device_info': await device.toMap(),
@@ -261,8 +278,10 @@ class _DispatchEligibilityScreenState
     final reason =
         widget.eligibilityResponse['message']?.toString() ??
         'You are not eligible for this dispatch.';
-    final maskedCode = widget.dispatchCode.length > 4
-        ? '${widget.dispatchCode.substring(0, widget.dispatchCode.length - 4)}****'
+    final dispatchCode = _resolvedPartialCode;
+    final last4 = _getMaskedLast4(dispatchCode);
+    final maskedCode = dispatchCode.length > last4.length
+      ? '${dispatchCode.substring(0, dispatchCode.length - last4.length)}****'
         : '****';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -378,7 +397,7 @@ class _DispatchEligibilityScreenState
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _selectedRejectReason,
+                        initialValue: _selectedRejectReason,
                         isExpanded: true,
                         decoration: InputDecoration(
                           labelText: 'REJECTION REASON *',
@@ -406,15 +425,14 @@ class _DispatchEligibilityScreenState
                           ),
                         ),
                         hint: const Text('Select reason'),
-                        items: [
-                          ..._predefinedRejectReasons,
-                          _otherRejectReason,
-                        ].map((reason) {
-                          return DropdownMenuItem<String>(
-                            value: reason,
-                            child: Text(reason),
-                          );
-                        }).toList(),
+                        items: [..._predefinedRejectReasons, _otherRejectReason]
+                            .map((reason) {
+                              return DropdownMenuItem<String>(
+                                value: reason,
+                                child: Text(reason),
+                              );
+                            })
+                            .toList(),
                         onChanged: (value) {
                           setState(() {
                             _selectedRejectReason = value;
@@ -693,19 +711,6 @@ class _DispatchEligibilityScreenState
                               fontSize: 12,
                             ),
                           ),
-                          if ((d['job_order']?.toString() ?? '')
-                              .isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              d['job_order']!.toString(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDark
-                                    ? Colors.white54
-                                    : Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
                           const SizedBox(height: 4),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -802,17 +807,24 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
       _focusNodes[index - 1].requestFocus();
     }
     setState(() => _error = null);
+
+    // Check if all fields are filled after any change
+    final entered = _controllers.map((c) => c.text).join();
+    if (entered.length == 4 && _controllers.every((c) => c.text.isNotEmpty)) {
+      // Delay to allow UI to update before confirming
+      Future.delayed(const Duration(milliseconds: 100), _confirm);
+    }
   }
 
   void _confirm() {
     final entered = _controllers.map((c) => c.text).join();
     if (entered.length < 4) {
-      setState(() => _error = 'Please enter all 4 characters.');
+      setState(() => _error = 'Please enter all 4 digits.');
       return;
     }
     if (entered != widget.expectedPin) {
       setState(() {
-        _error = 'Incorrect PIN. Please check the dispatch code.';
+        _error = 'Incorrect last 4 digits.';
         for (final c in _controllers) {
           c.clear();
         }
@@ -869,13 +881,9 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                     controller: _controllers[i],
                     focusNode: _focusNodes[i],
                     textAlign: TextAlign.center,
-                    keyboardType: TextInputType.text,
+                    keyboardType: TextInputType.number,
                     maxLength: 1,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                      _UpperCaseFormatter(),
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(
                       counterText: '',
                       border: OutlineInputBorder(
@@ -934,17 +942,6 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
   }
 }
 
-/// Forces all alphanumeric text to uppercase.
-class _UpperCaseFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return newValue.copyWith(text: newValue.text.toUpperCase());
-  }
-}
-
 // ─── Dispatch Info Card ───────────────────────────────────────────────────────
 
 class _DispatchInfoCard extends StatelessWidget {
@@ -961,7 +958,6 @@ class _DispatchInfoCard extends StatelessWidget {
         ? info['branch'] as Map
         : <String, dynamic>{};
     final branchName = branch['branch_name']?.toString() ?? '-';
-    final branchCode = branch['branch_code']?.toString() ?? '';
     final volume = info['volume']?.toString() ?? '-';
     final tat = info['tat']?.toString() ?? '';
     final transmittalDate = info['transmittal_date']?.toString() ?? '';
@@ -1001,9 +997,7 @@ class _DispatchInfoCard extends StatelessWidget {
               _InfoRow(
                 icon: Icons.store_outlined,
                 label: 'BRANCH',
-                value: branchCode.isNotEmpty
-                    ? '$branchName ($branchCode)'
-                    : branchName,
+                value: branchName,
               ),
               _InfoRow(
                 icon: Icons.inventory_2_outlined,
