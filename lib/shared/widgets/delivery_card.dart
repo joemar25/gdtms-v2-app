@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
-import 'package:fsi_courier_app/shared/widgets/status_badge.dart';
 
 class DeliveryCard extends StatelessWidget {
   const DeliveryCard({
@@ -30,6 +29,7 @@ class DeliveryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final barcode = resolveDeliveryIdentifier(delivery);
     final status = delivery['delivery_status']?.toString() ?? 'pending';
+    final jobOrder = delivery['job_order']?.toString() ?? '';
     final address = delivery['address']?.toString() ?? '';
     final name = (delivery['name'] ??
             delivery['recipient'] ??
@@ -144,7 +144,15 @@ class DeliveryCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        StatusBadge(status: status),
+                        if (jobOrder.isNotEmpty)
+                          Text(
+                            jobOrder,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
                       ],
                     ),
                     if (name.isNotEmpty) ...[

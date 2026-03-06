@@ -528,10 +528,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       // Clickable recipient + authorized rep cards
                       DeliveryRecipientCards(
                         recipientName: _delivery['name']?.toString() ?? '',
-                        authorizedRep: _delivery['authorized_rep']?.toString() ?? '',
+                        authorizedRep:
+                            _delivery['authorized_rep']?.toString() ?? '',
                         onSelectRecipient: (name, relationship) => setState(() {
                           _recipient.text = name;
-                          if (relationship != null) _relationship = relationship;
+                          if (relationship != null)
+                            _relationship = relationship;
                         }),
                       ),
                       const SizedBox(height: 8),
@@ -587,7 +589,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     // ── REASON (rts / osa / failed_attempt) ───────────────────
                     if (needsReason) ...[
                       const SizedBox(height: 20),
-                      const DeliverySectionHeader(label: 'REASON FOR NON-DELIVERY'),
+                      const DeliverySectionHeader(
+                        label: 'REASON FOR NON-DELIVERY',
+                      ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         initialValue: _reason,
@@ -607,7 +611,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                     // ── PHOTOS ─────────────────────────────────────────────────
                     const SizedBox(height: 20),
-                    const DeliverySectionHeader(label: 'PROOF OF DELIVERY PHOTOS'),
+                    const DeliverySectionHeader(
+                      label: 'PROOF OF DELIVERY PHOTOS',
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -704,7 +710,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.fromLTRB(
-                                        12, 10, 10, 10),
+                                      12,
+                                      10,
+                                      10,
+                                      10,
+                                    ),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -728,8 +738,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                             color: isDark
                                                 ? ColorStyles.grabCardDark
                                                 : Colors.grey.shade50,
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                             border: Border.all(
                                               color: isDark
                                                   ? Colors.white12
@@ -739,8 +750,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           child: DropdownButton<String>(
                                             value: photo.type,
                                             isExpanded: true,
-                                            underline:
-                                                const SizedBox.shrink(),
+                                            underline: const SizedBox.shrink(),
                                             isDense: true,
                                             style: TextStyle(
                                               fontSize: 11,
@@ -775,7 +785,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         const SizedBox(height: 8),
                                         GestureDetector(
                                           onTap: () => setState(
-                                              () => _photos.removeAt(i)),
+                                            () => _photos.removeAt(i),
+                                          ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
@@ -870,5 +881,4 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       ),
     );
   }
-
 }

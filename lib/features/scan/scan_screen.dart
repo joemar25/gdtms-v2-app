@@ -130,7 +130,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         .read(apiClientProvider)
         .post<Map<String, dynamic>>(
           '/check-dispatch-eligibility',
-          data: {'dispatch_code': code, 'client_request_id': requestId},
+          data: {'partial_code': code, 'client_request_id': requestId},
           parser: parseApiMap,
         );
 
@@ -141,10 +141,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           .read(appSettingsProvider)
           .getAutoAcceptDispatch();
       if (!mounted) return;
+      final partialCode =
+          data['partial_code']?.toString() ?? code;
       context.push(
         '/dispatches/eligibility',
         extra: {
-          'dispatch_code': code,
+          'dispatch_code': partialCode,
           'eligibility_response': data,
           'auto_accept': autoAccept,
           'eligible': data['eligible'] == true,

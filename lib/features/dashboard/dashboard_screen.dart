@@ -88,7 +88,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Scaffold(
       appBar: AppHeaderBar(title: ''),
-      bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/dashboard'),
+      bottomNavigationBar: const FloatingBottomNavBar(
+        currentPath: '/dashboard',
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -120,7 +122,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           count: '$pendingDispatchCount',
                           icon: Icons.qr_code_rounded,
                           color: ColorStyles.grabOrange,
-                          onTap: pendingDispatchCount == 0 ? null : () => context.push('/dispatches'),
+                          onTap: pendingDispatchCount == 0
+                              ? null
+                              : () => context.push('/dispatches'),
                           details: 'Waiting for acceptance.',
                         ),
                       ),
@@ -131,8 +135,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           count: '$deliveriesCount',
                           icon: Icons.local_shipping_outlined,
                           color: ColorStyles.grabGreen,
-                          onTap: deliveriesCount == 0 ? null : () => context.push('/deliveries'),
-                          details: 'Assigned to you.',
+                          onTap: deliveriesCount == 0
+                              ? null
+                              : () => context.push('/deliveries'),
+                          details: "Today's for deliveries.",
                         ),
                       ),
                     ],
@@ -146,10 +152,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           count: '$rtsCount',
                           icon: Icons.assignment_return_outlined,
                           color: Colors.red,
-                          onTap: rtsCount == 0 ? null : () => context.push('/rts'),
+                          onTap: rtsCount == 0
+                              ? null
+                              : () => context.push('/rts'),
                           badge: rtsCount > 0 ? '$rtsCount' : null,
                           subdued: true,
-                          details: 'Return to sender items.',
+                          details: "Today's return to sender items.",
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -159,10 +167,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           count: '$osaCount',
                           icon: Icons.lock_outline_rounded,
                           color: Colors.grey,
-                          onTap: osaCount == 0 ? null : () => context.push('/osa'),
+                          onTap: osaCount == 0
+                              ? null
+                              : () => context.push('/osa'),
                           subdued: true,
                           readOnly: true,
-                          details: 'Out of service area.',
+                          details: "Today's out of service area.",
                         ),
                       ),
                     ],
@@ -176,7 +186,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     onTap: deliveredCount == 0
                         ? null
                         : () => context.push('/delivered'),
-                    details: 'Successfully completed.',
+                    details: "Today's delivered.",
                   ),
                   const SizedBox(height: 20),
 
@@ -188,9 +198,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           label: 'SCAN DISPATCH',
                           icon: Icons.qr_code_scanner_rounded,
                           color: ColorStyles.grabOrange,
-                          onTap: () =>
-                              context.push('/scan', extra: {'mode': 'dispatch'}),
-                          details: 'Scan a dispatch barcode to check eligibility.',
+                          onTap: () => context.push(
+                            '/scan',
+                            extra: {'mode': 'dispatch'},
+                          ),
+                          details:
+                              'Scan a dispatch barcode to check eligibility.',
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -201,7 +214,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           color: ColorStyles.grabGreen,
                           onTap: () =>
                               context.push('/scan', extra: {'mode': 'pod'}),
-                          details: 'Scan a delivery barcode to find and update POD.',
+                          details:
+                              'Scan a delivery barcode to find and update POD.',
                         ),
                       ),
                     ],
@@ -256,7 +270,10 @@ class _StatCard extends StatelessWidget {
             color: cardBg,
             borderRadius: BorderRadius.circular(16),
             border: readOnly
-                ? Border.all(color: Colors.grey.withValues(alpha: 0.2), width: 1)
+                ? Border.all(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    width: 1,
+                  )
                 : null,
             boxShadow: [
               BoxShadow(
@@ -325,10 +342,7 @@ class _StatCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   details!,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 ),
               ],
             ],
@@ -384,10 +398,7 @@ class _ScanButton extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 details!,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade500,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 textAlign: TextAlign.center,
               ),
             ],

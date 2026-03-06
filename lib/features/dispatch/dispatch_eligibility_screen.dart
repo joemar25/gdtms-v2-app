@@ -8,6 +8,7 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
@@ -32,6 +33,16 @@ class DispatchEligibilityScreen extends ConsumerStatefulWidget {
 
 class _DispatchEligibilityScreenState
     extends ConsumerState<DispatchEligibilityScreen> {
+  static const String _otherRejectReason = 'OTHERS (SPECIFY)';
+  static const List<String> _predefinedRejectReasons = [
+    'RECIPIENT NOT AVAILABLE',
+    'INVALID / INCOMPLETE ADDRESS',
+    'DAMAGED DOCUMENTS',
+    'DUPLICATE DISPATCH',
+    'OUTSIDE ASSIGNED AREA',
+    'SAFETY CONCERN',
+  ];
+
   bool _loading = false;
   bool _showSuccess = false;
   String? _error;
@@ -41,6 +52,7 @@ class _DispatchEligibilityScreenState
   bool _showRejectForm = false;
   String? _rejectError;
   bool _rejecting = false;
+  String? _selectedRejectReason;
 
   @override
   void dispose() {
@@ -81,7 +93,7 @@ class _DispatchEligibilityScreenState
         .post<Map<String, dynamic>>(
           '/accept-dispatch',
           data: {
-            'dispatch_code': widget.dispatchCode,
+            'partial_code': widget.dispatchCode,
             'client_request_id': acceptId,
             'device_info': await device.toMap(),
           },
@@ -123,11 +135,30 @@ class _DispatchEligibilityScreenState
   }
 
   Future<void> _submitReject() async {
-    final reason = _rejectReasonController.text.trim();
+    String reason;
+
+    if (_selectedRejectReason == null) {
+      setState(() => _rejectError = 'Please select a rejection reason.');
+      return;
+    }
+
+    if (_selectedRejectReason == _otherRejectReason) {
+      reason = _rejectReasonController.text.trim();
+      if (reason.isEmpty) {
+        setState(() => _rejectError = 'Please specify your rejection reason.');
+        return;
+      }
+    } else {
+      reason = _selectedRejectReason!;
+    }
+
     if (reason.isEmpty) {
       setState(() => _rejectError = 'Rejection reason is required.');
       return;
     }
+
+    final confirmed = await _showRejectConfirmationDialog(reason);
+    if (!confirmed) return;
 
     setState(() {
       _rejecting = true;
@@ -143,7 +174,7 @@ class _DispatchEligibilityScreenState
         .post<Map<String, dynamic>>(
           '/reject-dispatch',
           data: {
-            'dispatch_code': widget.dispatchCode,
+            'partial_code': widget.dispatchCode,
             'client_request_id': requestId,
             'reason': reason,
             'device_info': await device.toMap(),
@@ -170,10 +201,63 @@ class _DispatchEligibilityScreenState
     }
   }
 
+  Future<bool> _showRejectConfirmationDialog(String reason) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.red),
+                SizedBox(width: 8),
+                Expanded(child: Text('Confirm Rejection')),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'This action cannot be undone. Please confirm before submitting.',
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    reason,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('CANCEL'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('CONFIRM SUBMIT'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final eligible = widget.eligibilityResponse['eligible'] == true;
-    final info = mapFromKey(widget.eligibilityResponse, 'data');
+    // Response is flat (not nested under 'data')
+    final info = widget.eligibilityResponse;
     final reason =
         widget.eligibilityResponse['message']?.toString() ??
         'You are not eligible for this dispatch.';
@@ -181,6 +265,14 @@ class _DispatchEligibilityScreenState
         ? '${widget.dispatchCode.substring(0, widget.dispatchCode.length - 4)}****'
         : '****';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Extract deliveries for use below actions
+    final deliveries = info['deliveries'] is List
+        ? (info['deliveries'] as List)
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList()
+        : <Map<String, dynamic>>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -230,61 +322,189 @@ class _DispatchEligibilityScreenState
                 _SectionHeader(label: 'REJECT DISPATCH'),
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF1E1E2E)
-                        : Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.shade200),
+                    color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? Colors.white12 : Colors.red.shade100,
+                    ),
+                    boxShadow: isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        maskedCode,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.gpp_maybe_outlined,
+                              color: Colors.red,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              maskedCode,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
-                        'Provide a reason for rejecting this dispatch.',
+                        'Select a rejection reason.',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _selectedRejectReason,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: 'REJECTION REASON *',
+                          prefixIcon: const Icon(Icons.list_alt_rounded),
+                          filled: true,
+                          fillColor: isDark
+                              ? const Color(0xFF12121A)
+                              : Colors.grey.withValues(alpha: 0.06),
+                          errorText: _rejectError,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? Colors.white24
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? Colors.white24
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
+                        ),
+                        hint: const Text('Select reason'),
+                        items: [
+                          ..._predefinedRejectReasons,
+                          _otherRejectReason,
+                        ].map((reason) {
+                          return DropdownMenuItem<String>(
+                            value: reason,
+                            child: Text(reason),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedRejectReason = value;
+                            _rejectError = null;
+                            if (value != _otherRejectReason) {
+                              _rejectReasonController.clear();
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                if (_selectedRejectReason == _otherRejectReason) ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _rejectReasonController,
+                    maxLength: 100,
+                    maxLines: 3,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      labelText: 'SPECIFY REASON *',
+                      hintText: 'STATE YOUR REASON HERE...',
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.only(bottom: 40),
+                        child: Icon(Icons.edit_note_rounded),
+                      ),
+                      filled: true,
+                      fillColor: isDark
+                          ? const Color(0xFF12121A)
+                          : Colors.grey.withValues(alpha: 0.06),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        ),
+                      ),
+                      alignLabelWithHint: true,
+                    ),
+                    onChanged: (_) {
+                      if (_rejectError != null) {
+                        setState(() => _rejectError = null);
+                      }
+                    },
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.shield_outlined,
+                        color: Colors.orange,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'You will be asked to confirm once more before submitting rejection.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.orange.shade800,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _rejectReasonController,
-                  maxLength: 100,
-                  maxLines: 4,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: InputDecoration(
-                    labelText: 'REJECTION REASON',
-                    hintText: 'STATE YOUR REASON HERE...',
-                    errorText: _rejectError,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignLabelWithHint: true,
-                  ),
-                  onChanged: (_) {
-                    if (_rejectError != null) {
-                      setState(() => _rejectError = null);
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                        ),
                         onPressed: _rejecting
                             ? null
                             : () => setState(() => _showRejectForm = false),
@@ -296,6 +516,10 @@ class _DispatchEligibilityScreenState
                       child: FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.red.shade600,
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         onPressed: _rejecting ? null : _submitReject,
                         child: _rejecting
@@ -411,6 +635,105 @@ class _DispatchEligibilityScreenState
                   ),
                   onPressed: () => setState(() => _showRejectForm = true),
                 ),
+
+                // ── Deliveries list below actions ───────────────────────
+                if (deliveries.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    'DELIVERIES (${deliveries.length})',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey.shade500,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...deliveries.map(
+                    (d) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.grey.shade200,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  d['barcode_value']?.toString() ?? '-',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                d['job_order']?.toString() ?? '-',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            d['name']?.toString() ?? '',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          if ((d['job_order']?.toString() ?? '')
+                              .isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              d['job_order']!.toString(),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? Colors.white54
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.location_on_outlined,
+                                size: 12,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(width: 3),
+                              Expanded(
+                                child: Text(
+                                  d['address']?.toString() ?? '',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark
+                                        ? Colors.white38
+                                        : Colors.grey.shade500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ],
           ),
@@ -634,51 +957,77 @@ class _DispatchInfoCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-        border: const Border(
-          left: BorderSide(color: ColorStyles.grabGreen, width: 4),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            maskedCode,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 18,
-              letterSpacing: 0.5,
+    final branch = info['branch'] is Map
+        ? info['branch'] as Map
+        : <String, dynamic>{};
+    final branchName = branch['branch_name']?.toString() ?? '-';
+    final branchCode = branch['branch_code']?.toString() ?? '';
+    final volume = info['volume']?.toString() ?? '-';
+    final tat = info['tat']?.toString() ?? '';
+    final transmittalDate = info['transmittal_date']?.toString() ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Header card ──────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(16),
+            border: const Border(
+              left: BorderSide(color: ColorStyles.grabGreen, width: 4),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          _InfoRow(
-            icon: Icons.inventory_2_outlined,
-            label: 'MAILPACKS',
-            value: '${info['deliveries_count'] ?? '-'}',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                maskedCode,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _InfoRow(
+                icon: Icons.store_outlined,
+                label: 'BRANCH',
+                value: branchCode.isNotEmpty
+                    ? '$branchName ($branchCode)'
+                    : branchName,
+              ),
+              _InfoRow(
+                icon: Icons.inventory_2_outlined,
+                label: 'ITEMS',
+                value: volume,
+              ),
+              _InfoRow(
+                icon: Icons.event_outlined,
+                label: 'TRANSMITTAL DATE',
+                value: transmittalDate.isNotEmpty
+                    ? formatDate(transmittalDate)
+                    : '-',
+              ),
+              _InfoRow(
+                icon: Icons.schedule_outlined,
+                label: 'TAT',
+                value: tat.isNotEmpty
+                    ? formatDate(tat, includeTime: true)
+                    : '-',
+              ),
+            ],
           ),
-          _InfoRow(
-            icon: Icons.layers_outlined,
-            label: 'BATCH VOLUME',
-            value: '${info['batch_volume'] ?? '-'}',
-          ),
-          _InfoRow(
-            icon: Icons.schedule_outlined,
-            label: 'TAT',
-            value: '${info['tat'] ?? '-'}',
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

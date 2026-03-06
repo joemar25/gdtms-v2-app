@@ -73,46 +73,45 @@ class _OsaListScreenState extends ConsumerState<OsaListScreen> {
         child: _loading && _items.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : _items.isEmpty
-                ? ListView(
-                    children: const [
-                      SizedBox(
-                        height: 400,
-                        child: EmptyState(message: 'No OSA mailpacks.'),
-                      ),
-                    ],
-                  )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    children: [
-                      // ── Read-only notice banner ─────────────────────────
-                      const _OsaNoticeBanner(),
-                      const SizedBox(height: 12),
-                      ..._items.map((d) {
-                        final identifier = resolveDeliveryIdentifier(d);
-                        return DeliveryCard(
-                          delivery: d,
-                          compact: isCompact,
-                          // Navigate to detail (read-only — no UPDATE button
-                          // shown for OSA in the detail screen header).
-                          onTap: identifier.isEmpty
-                              ? () {}
-                              : () =>
-                                  context.push('/deliveries/$identifier'),
-                        );
-                      }),
-                      if (_page < _lastPage)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: OutlinedButton(
-                            onPressed: () {
-                              _page += 1;
-                              _load(reset: false);
-                            },
-                            child: const Text('LOAD MORE'),
-                          ),
-                        ),
-                    ],
+            ? ListView(
+                children: const [
+                  SizedBox(
+                    height: 400,
+                    child: EmptyState(message: 'No OSA mailpacks.'),
                   ),
+                ],
+              )
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                children: [
+                  // ── Read-only notice banner ─────────────────────────
+                  const _OsaNoticeBanner(),
+                  const SizedBox(height: 12),
+                  ..._items.map((d) {
+                    final identifier = resolveDeliveryIdentifier(d);
+                    return DeliveryCard(
+                      delivery: d,
+                      compact: isCompact,
+                      // Navigate to detail (read-only — no UPDATE button
+                      // shown for OSA in the detail screen header).
+                      onTap: identifier.isEmpty
+                          ? () {}
+                          : () => context.push('/deliveries/$identifier'),
+                    );
+                  }),
+                  if (_page < _lastPage)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: OutlinedButton(
+                        onPressed: () {
+                          _page += 1;
+                          _load(reset: false);
+                        },
+                        child: const Text('LOAD MORE'),
+                      ),
+                    ),
+                ],
+              ),
       ),
     );
   }
@@ -136,8 +135,11 @@ class _OsaNoticeBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded,
-              size: 18, color: Colors.amber.shade800),
+          Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: Colors.amber.shade800,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

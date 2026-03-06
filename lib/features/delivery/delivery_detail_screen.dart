@@ -381,6 +381,11 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       icon: Icons.local_shipping_outlined,
                       title: 'Delivery Details',
                     ),
+                    if (_str('job_order').isNotEmpty)
+                      _DetailRow(
+                        label: 'Job Order',
+                        value: formatDate(_str('job_order')),
+                      ),
                     // dispatch_code intentionally hidden from delivery views (ENH-005)
                     if (_str('special_instruction').isNotEmpty)
                       _DetailRow(
