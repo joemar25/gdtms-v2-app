@@ -86,7 +86,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final deliveriesCount = _summary['pending_deliveries'] ?? 0;
     final rtsCount = _summary['rts'] ?? 0;
     final osaCount = _summary['osa'] ?? 0;
-    final deliveredCount = _summary['delivered'] ?? 0;
+    final deliveredCount = _summary['delivered_today'] ?? 0;
 
     return Scaffold(
       appBar: AppHeaderBar(title: ''),
@@ -150,6 +150,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       Expanded(
                         child: _StatCard(
+                          label: 'DELIVERED',
+                          count: '$deliveredCount',
+                          icon: Icons.check_circle_outline_rounded,
+                          color: ColorStyles.grabGreen,
+                          onTap: deliveredCount == 0
+                              ? null
+                              : () => context.push('/delivered'),
+                          details: "Today's delivered.",
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatCard(
                           label: 'RTS',
                           count: '$rtsCount',
                           icon: Icons.assignment_return_outlined,
@@ -162,7 +175,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           details: "Today's return to sender items.",
                         ),
                       ),
-                      const SizedBox(width: 8),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
                       Expanded(
                         child: _StatCard(
                           label: 'OSA',
@@ -173,22 +190,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ? null
                               : () => context.push('/osa'),
                           subdued: true,
-                          readOnly: true,
                           details: "Today's out of service area.",
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      // Expanded(
+                      //   child: _StatCard(
+                      //     label: 'RTS',
+                      //     count: '$rtsCount',
+                      //     icon: Icons.assignment_return_outlined,
+                      //     color: Colors.red,
+                      //     onTap: rtsCount == 0
+                      //         ? null
+                      //         : () => context.push('/rts'),
+                      //     badge: rtsCount > 0 ? '$rtsCount' : null,
+                      //     subdued: true,
+                      //     details: "Today's return to sender items.",
+                      //   ),
+                      // ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  _StatCard(
-                    label: 'DELIVERED',
-                    count: '$deliveredCount',
-                    icon: Icons.check_circle_outline_rounded,
-                    color: ColorStyles.grabGreen,
-                    onTap: deliveredCount == 0
-                        ? null
-                        : () => context.push('/delivered'),
-                    details: "Today's delivered.",
                   ),
                   const SizedBox(height: 20),
 
@@ -241,7 +261,6 @@ class _StatCard extends StatelessWidget {
     this.onTap,
     this.badge,
     this.subdued = false,
-    this.readOnly = false,
     this.details,
   });
 
@@ -252,7 +271,6 @@ class _StatCard extends StatelessWidget {
   final VoidCallback? onTap;
   final String? badge;
   final bool subdued;
-  final bool readOnly;
   final String? details;
 
   @override
@@ -271,12 +289,10 @@ class _StatCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: readOnly
-                ? Border.all(
-                    color: Colors.grey.withValues(alpha: 0.2),
-                    width: 1,
-                  )
-                : null,
+            border: Border.all(
+              color: Colors.grey.withValues(alpha: 0.2),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.06),
@@ -291,14 +307,7 @@ class _StatCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(icon, color: effectiveColor, size: 18),
-                  if (readOnly) ...[
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.lock_outline,
-                      color: Colors.grey.shade400,
-                      size: 13,
-                    ),
-                  ],
+                  const SizedBox(width: 4),
                   const Spacer(),
                   if (badge != null)
                     Container(

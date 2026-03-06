@@ -86,13 +86,12 @@ class _ScanPackageBarcodePageState extends State<ScanPackageBarcodePage>
     if (!isKeyboardOpen && _pauseDetection && !_isDialogOpen)
       _pauseDetection = false;
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (isKeyboardOpen) {
+    return PopScope(
+      canPop: !isKeyboardOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && isKeyboardOpen) {
           FocusScope.of(context).unfocus();
-          return false;
         }
-        return true;
       },
       child: Scaffold(
         appBar: ScanPageHeader(

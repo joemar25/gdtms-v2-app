@@ -552,7 +552,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
+
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -617,7 +617,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       child: Container(
         height: 130,
         decoration: BoxDecoration(
-          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: hasError
@@ -655,7 +654,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+
                               letterSpacing: 0.5,
                             ),
                           ),
