@@ -149,7 +149,25 @@ Use credentials provided privately by your team leads or secure vault. Do not co
 - `.documentation/TODO.md`
 - `.documentation/FRONTEND_STRUCTURE.md`
 
-<!-- 
-REDACTED_TEST_NUMBER 
-flutter clean
+<!--
+REDACTED_TEST_NUMBER
+flutter clean - to
+dart run flutter_native_splash:create - to replace assets with new one
+
+
+- when delivery is clicked it should go to the delivery details, and can be back to that wallet reference it belongs
+
+- again we have a problem in the dashboard part, please use dashboard summary.
+{
+    "success": true,
+    "data": {
+        "courier_id": 543,
+        "pending_dispatches": 1,
+        "pending_deliveries": 7,
+        "rts": 0,
+        "osa": 0,
+        "delivered": 0,
+        "last_updated": "2026-03-06T02:27:56.891332Z"
+    }
+}
 -->

@@ -91,44 +91,106 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(title: const Text('Reset Password')),
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              TextField(
-                controller: _code,
-                decoration: InputDecoration(
-                  labelText: 'Courier Code',
-                  errorText: _errors['courier_code'],
+          ColoredBox(
+            color: isDark ? const Color(0xFF121212) : const Color(0xFFF0F4F0),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF1E1E2E)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(isDark ? 0.25 : 0.06),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              controller: _code,
+                              decoration: InputDecoration(
+                                labelText: 'Courier Code',
+                                prefixIcon: const Icon(Icons.badge_outlined),
+                                errorText: _errors['courier_code'],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextField(
+                              controller: _newPassword,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'New Password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                errorText: _errors['new_password'],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextField(
+                              controller: _confirmPassword,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'Confirm New Password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                errorText: _errors['new_password_confirmation'],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(double.infinity, 52),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _loading ? null : _submit,
+                              child: const Text(
+                                'Submit',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _newPassword,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'New Password',
-                  errorText: _errors['new_password'],
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _confirmPassword,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Confirm New Password',
-                  errorText: _errors['new_password_confirmation'],
-                ),
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: _loading ? null : _submit,
-                child: const Text('Submit'),
-              ),
-            ],
+            ),
           ),
           if (_loading)
             const ColoredBox(

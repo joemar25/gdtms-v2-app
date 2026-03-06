@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
@@ -168,7 +169,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                 const SizedBox(height: 12),
 
                 // ── Breakdown ────────────────────────────────────────────
-                if (breakdown.isNotEmpty)
+                if (breakdown.isNotEmpty) ...[
                   _SectionCard(
                     title: 'Breakdown',
                     children: breakdown.entries
@@ -184,9 +185,55 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                         )
                         .toList(),
                   ),
+                  const SizedBox(height: 12),
+                ],
+
+                // ── Daily breakdown ──────────────────────────────────────
+                ..._buildDailyBreakdown(context),
               ],
             ),
     );
+  }
+
+  List<Widget> _buildDailyBreakdown(BuildContext context) {
+    final raw = _data['daily_breakdown'];
+    if (raw is! List || raw.isEmpty) return [];
+
+    final days = raw.whereType<Map<String, dynamic>>().toList();
+    return [
+      for (final day in days) ...[
+        _SectionCard(
+          title: formatDate('${day['date'] ?? ''}'),
+          children: [
+            Row(
+              children: [
+                Icon(Icons.local_shipping_outlined,
+                    size: 14, color: Colors.grey.shade400),
+                const SizedBox(width: 6),
+                Text(
+                  '${day['count'] ?? 0} deliver${(day['count'] ?? 0) == 1 ? 'y' : 'ies'}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade500,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...() {
+              final deliveries = day['deliveries'];
+              if (deliveries is! List) return <Widget>[];
+              return deliveries
+                  .whereType<Map<String, dynamic>>()
+                  .map<Widget>(
+                    (d) => _DeliveryRow(delivery: d),
+                  )
+                  .toList();
+            }(),
+          ],
+        ),
+        const SizedBox(height: 12),
+      ],
+    ];
   }
 
   String _formatKey(String key) {
@@ -301,5 +348,98 @@ class _StatusBadgeLight extends StatelessWidget {
         style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
+  }
+}
+
+// ─── Daily breakdown delivery row ────────────────────────────────────────────
+
+class _DeliveryRow extends StatelessWidget {
+  const _DeliveryRow({required this.delivery});
+  final Map<String, dynamic> delivery;
+
+  @override
+  Widget build(BuildContext context) {
+    final barcode = delivery['barcode_value']?.toString() ?? '';
+    final name = delivery['name']?.toString() ?? '';
+    final address = delivery['address']?.toString() ?? '';
+    final rate = double.tryParse('${delivery['rate'] ?? 0}') ?? 0.0;
+    final penalty = double.tryParse('${delivery['late_penalty'] ?? 0}') ?? 0.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: barcode.isNotEmpty
+          ? () => context.push('/deliveries/$barcode')
+          : null,
+      child: Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2A2A3D) : const Color(0xFFF7F8FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border(
+          left: BorderSide(color: ColorStyles.grabGreen, width: 3),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  barcode,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (name.isNotEmpty)
+                  Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                if (address.isNotEmpty)
+                  Text(
+                    address,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '₱ ${rate.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: ColorStyles.grabGreen,
+                ),
+              ),
+              if (penalty > 0)
+                Text(
+                  '−₱ ${penalty.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.red,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    ),  // Container
+    );  // GestureDetector
   }
 }

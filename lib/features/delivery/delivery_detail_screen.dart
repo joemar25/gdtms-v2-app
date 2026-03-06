@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -235,11 +236,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   Future<void> _launchMaps(String? address) async {
     final destination = address?.trim() ?? '';
     if (destination.isEmpty) return;
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(destination)}';
-    await launchUrl(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    );
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(destination)}';
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
   String _str(String key) => _delivery[key]?.toString().trim() ?? '';
@@ -268,13 +267,18 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   ),
                   const SizedBox(width: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      status.isEmpty ? 'Pending' : status[0].toUpperCase() + status.substring(1),
+                      status.isEmpty
+                          ? 'Pending'
+                          : status[0].toUpperCase() + status.substring(1),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -286,7 +290,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   ),
                   const SizedBox(width: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.blueGrey.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
@@ -357,10 +364,14 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       onTap: () => _onPhoneTap(_str('contact')),
                       trailingIcon: Icons.call_outlined,
                     ),
-                    // Authorized rep ──────────────────────────────────
-                    ..._buildAuthorizedRep(),
                   ],
                 ),
+
+                const SizedBox(height: 12),
+
+                // ─ Proof of delivery ─────────────────────────────────
+                _buildDeliveredDetails(),
+
                 const SizedBox(height: 12),
 
                 // ─ Delivery details ──────────────────────────────────────
@@ -371,8 +382,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       title: 'Delivery Details',
                     ),
                     // dispatch_code intentionally hidden from delivery views (ENH-005)
-                    if (_str('product').isNotEmpty)
-                      _DetailRow(label: 'Product', value: _str('product')),
                     if (_str('special_instruction').isNotEmpty)
                       _DetailRow(
                         label: 'Instructions',
@@ -389,69 +398,68 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       _DetailRow(label: 'TAT', value: formatDate(_str('tat'))),
                   ],
                 ),
-                const SizedBox(height: 12),
 
-                // ─ Media (when delivered) ─────────────────────────────
-                if (status == 'delivered') ...[
-                  _buildMediaSection(),
+                // ─ History timeline (debug only) ─────────────────────
+                if (kDebugMode) ...[
                   const SizedBox(height: 12),
+                  _buildTimeline(),
                 ],
-
-                // ─ History timeline ──────────────────────────────────
-                _buildTimeline(),
               ],
             ),
     );
   }
 
-  List<Widget> _buildAuthorizedRep() {
-    final name = _str('authorized_rep');
-    final phone = _str('contact_rep');
-    if (name.isEmpty && phone.isEmpty) return [];
-    return [
-      _TappableRow(
-        label: 'Auth. Rep',
-        value: name.isNotEmpty
-            ? '$name${phone.isNotEmpty ? ' · $phone' : ''}'
-            : phone,
-        onTap: phone.isNotEmpty ? () => _onPhoneTap(phone) : null,
-        trailingIcon: phone.isNotEmpty ? Icons.call_outlined : null,
-      ),
-    ];
-  }
-
-  Widget _buildMediaSection() {
+  Widget _buildDeliveredDetails() {
+    final authRep = _str('authorized_rep');
+    final contactRep = _str('contact_rep');
     final media = _delivery['media'];
-    if (media is! List || media.isEmpty) {
+    final hasMedia = media is List && (media).isNotEmpty;
+
+    if (authRep.isEmpty && contactRep.isEmpty && !hasMedia) {
       return const SizedBox.shrink();
     }
 
     return _DetailCard(
       children: [
-        _DetailHeader(icon: Icons.photo_library_outlined, title: 'Media'),
-        SizedBox(
-          height: 100,
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            scrollDirection: Axis.horizontal,
-            itemCount: media.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final url = media[i]?.toString() ?? '';
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: url.isNotEmpty
-                    ? Image.network(
-                        url,
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.cover,
-                      )
-                    : const SizedBox(width: 100, height: 100),
-              );
-            },
-          ),
+        _DetailHeader(
+          icon: Icons.verified_outlined,
+          title: 'Authorized Representative',
         ),
+        if (authRep.isNotEmpty)
+          _DetailRow(label: 'Received By', value: authRep),
+        if (contactRep.isNotEmpty)
+          _TappableRow(
+            label: 'Contact',
+            value: contactRep,
+            onTap: () => _onPhoneTap(contactRep),
+            trailingIcon: Icons.call_outlined,
+          ),
+        if (hasMedia) ...[
+          _DetailHeader(icon: Icons.photo_library_outlined, title: 'Media'),
+          SizedBox(
+            height: 100,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              scrollDirection: Axis.horizontal,
+              itemCount: (media).length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final url = media[i]?.toString() ?? '';
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: url.isNotEmpty
+                      ? Image.network(
+                          url,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        )
+                      : const SizedBox(width: 100, height: 100),
+                );
+              },
+            ),
+          ),
+        ],
       ],
     );
   }

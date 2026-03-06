@@ -28,9 +28,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       duration: const Duration(milliseconds: 900),
     );
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _scaleAnim = Tween<double>(begin: 0.88, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 0.88,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _controller.forward();
     _initAndNavigate();
   }
@@ -117,10 +118,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14),
-                          child: Image.asset(
-                            'assets/logo.png',
-                            fit: BoxFit.cover,
-                          ),
+                          child: Icon(Icons.mail_outline, size: 40),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -183,7 +181,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'First Sight Inc.',
+              'Fastrak Services Inc.',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.35),
                 fontSize: 12,

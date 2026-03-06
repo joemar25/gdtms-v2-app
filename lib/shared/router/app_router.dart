@@ -8,7 +8,7 @@ import 'package:fsi_courier_app/features/auth/reset_password_screen.dart';
 import 'package:fsi_courier_app/splash_screen.dart';
 import 'package:fsi_courier_app/features/dashboard/dashboard_screen.dart';
 import 'package:fsi_courier_app/features/delivery/delivery_detail_screen.dart';
-import 'package:fsi_courier_app/features/delivery/delivery_list_screen.dart';
+import 'package:fsi_courier_app/features/delivery/delivery_status_list_screen.dart';
 import 'package:fsi_courier_app/features/delivery/delivery_update_screen.dart';
 import 'package:fsi_courier_app/features/dispatch/dispatch_eligibility_screen.dart';
 import 'package:fsi_courier_app/features/dispatch/dispatch_list_screen.dart';
@@ -17,8 +17,6 @@ import 'package:fsi_courier_app/features/scan/scan_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_detail_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_request_screen.dart';
 import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
-import 'package:fsi_courier_app/features/rts/rts_list_screen.dart';
-import 'package:fsi_courier_app/features/osa/osa_list_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 
@@ -105,7 +103,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      GoRoute(path: '/deliveries', builder: (_, __) => const DeliveryListScreen()),
+      GoRoute(
+        path: '/deliveries',
+        builder: (_, __) => const DeliveryStatusListScreen(
+          status: 'pending',
+          title: 'DELIVERIES',
+        ),
+      ),
       GoRoute(
         path: '/deliveries/:barcode',
         builder: (_, state) =>
@@ -116,8 +120,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, state) =>
             DeliveryUpdateScreen(barcode: state.pathParameters['barcode']!),
       ),
-      GoRoute(path: '/rts', builder: (_, __) => const RtsListScreen()),
-      GoRoute(path: '/osa', builder: (_, __) => const OsaListScreen()),
+      GoRoute(
+        path: '/delivered',
+        builder: (_, __) => const DeliveryStatusListScreen(
+          status: 'delivered',
+          title: 'DELIVERED',
+        ),
+      ),
+      GoRoute(
+        path: '/rts',
+        builder: (_, __) => const DeliveryStatusListScreen(
+          status: 'rts',
+          title: 'RTS',
+        ),
+      ),
+      GoRoute(
+        path: '/osa',
+        builder: (_, __) => const DeliveryStatusListScreen(
+          status: 'osa',
+          title: 'OSA',
+        ),
+      ),
       GoRoute(path: '/wallet', builder: (_, __) => const WalletScreen()),
       GoRoute(
         path: '/wallet/request',

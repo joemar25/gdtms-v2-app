@@ -134,13 +134,19 @@ class _DispatchEligibilityScreenState
       _rejectError = null;
     });
 
+    const uuid = Uuid();
+    final requestId = uuid.v4();
+    final device = ref.read(deviceInfoProvider);
+
     final result = await ref
         .read(apiClientProvider)
         .post<Map<String, dynamic>>(
           '/reject-dispatch',
           data: {
             'dispatch_code': widget.dispatchCode,
+            'client_request_id': requestId,
             'reason': reason,
+            'device_info': await device.toMap(),
           },
           parser: parseApiMap,
         );
@@ -186,8 +192,7 @@ class _DispatchEligibilityScreenState
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded),
             tooltip: 'Scan Dispatch',
-            onPressed: () =>
-                context.push('/scan', extra: {'mode': 'dispatch'}),
+            onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
           ),
         ],
       ),
@@ -198,7 +203,11 @@ class _DispatchEligibilityScreenState
             children: [
               if (!eligible) ...[
                 const SizedBox(height: 40),
-                Icon(Icons.cancel_rounded, color: Colors.red.shade400, size: 64),
+                Icon(
+                  Icons.cancel_rounded,
+                  color: Colors.red.shade400,
+                  size: 64,
+                ),
                 const SizedBox(height: 12),
                 const Text(
                   'NOT ELIGIBLE',
@@ -435,11 +444,12 @@ class _PinConfirmDialog extends StatefulWidget {
 }
 
 class _PinConfirmDialogState extends State<_PinConfirmDialog> {
-  final List<TextEditingController> _controllers =
-      List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _controllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
   String? _error;
-
 
   @override
   void initState() {
@@ -540,9 +550,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                     maxLength: 1,
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'[a-zA-Z0-9]'),
-                      ),
+                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
                       _UpperCaseFormatter(),
                     ],
                     decoration: InputDecoration(
@@ -676,7 +684,11 @@ class _DispatchInfoCard extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;

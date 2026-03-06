@@ -80,10 +80,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final courierCode = auth.courier?['courier_code']?.toString() ?? '-';
     final greeting = _getGreeting();
 
-    final pendingDispatchCount = _summary['pending_dispatches_count'] ?? 0;
-    final deliveriesCount = _summary['active_deliveries_count'] ?? 0;
-    final rtsCount = _summary['rts_count'] ?? 0;
-    final osaCount = _summary['osa_count'] ?? 0;
+    final pendingDispatchCount = _summary['pending_dispatches'] ?? 0;
+    final deliveriesCount = _summary['pending_deliveries'] ?? 0;
+    final rtsCount = _summary['rts'] ?? 0;
+    final osaCount = _summary['osa'] ?? 0;
+    final deliveredCount = _summary['delivered'] ?? 0;
 
     return Scaffold(
       appBar: AppHeaderBar(title: ''),
@@ -165,6 +166,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  _StatCard(
+                    label: 'DELIVERED',
+                    count: '$deliveredCount',
+                    icon: Icons.check_circle_outline_rounded,
+                    color: ColorStyles.grabGreen,
+                    onTap: deliveredCount == 0
+                        ? null
+                        : () => context.push('/delivered'),
+                    details: 'Successfully completed.',
                   ),
                   const SizedBox(height: 20),
 

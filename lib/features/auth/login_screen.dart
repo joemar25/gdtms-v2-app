@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -29,6 +30,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscurePassword = true;
   int _rateLimitRemaining = 0;
   Timer? _rateLimitTimer;
+
+  static const _kPhone = 'remembered_phone';
+  static const _kPassword = 'remembered_password';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final phone = prefs.getString(_kPhone) ?? '';
+    if (phone.isNotEmpty) _phoneController.text = phone;
+    if (kAppDebugMode) {
+      final password = prefs.getString(_kPassword) ?? '';
+      if (password.isNotEmpty) _passwordController.text = password;
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kPhone, _phoneController.text.trim());
+    if (kAppDebugMode) {
+      await prefs.setString(_kPassword, _passwordController.text);
+    } else {
+      await prefs.remove(_kPassword);
+    }
+  }
 
   @override
   void dispose() {
@@ -120,6 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
         await authStorage.setToken(token);
         await authStorage.setCourier(mergedCourier);
+        await _saveCredentials();
         await ref.read(authProvider.notifier).initialize();
         if (mounted) context.go('/dashboard');
       case ApiValidationError<Map<String, dynamic>>(:final errors):
@@ -199,10 +230,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              child: Image.asset(
-                                'assets/icons/kita_mar4.png',
-                                width: 40,
-                                height: 40,
+                              child: Icon(
+                                Icons.mail_outline,
+                                size: 40,
+                                color: Colors.white,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -231,7 +262,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       // ─ Fields card ──────────────────────────────────
                       Container(
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                          color: isDark
+                              ? const Color(0xFF1E1E2E)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
@@ -273,7 +306,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 suffixIcon: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 200),
                                   transitionBuilder: (child, anim) =>
-                                      ScaleTransition(scale: anim, child: child),
+                                      ScaleTransition(
+                                        scale: anim,
+                                        child: child,
+                                      ),
                                   child: IconButton(
                                     key: ValueKey(_obscurePassword),
                                     icon: Icon(
@@ -282,7 +318,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                           : Icons.visibility_outlined,
                                     ),
                                     onPressed: () => setState(
-                                      () => _obscurePassword = !_obscurePassword,
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
                                     ),
                                   ),
                                 ),
