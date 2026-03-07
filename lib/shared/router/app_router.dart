@@ -16,6 +16,7 @@ import 'package:fsi_courier_app/features/profile/profile_screen.dart';
 import 'package:fsi_courier_app/features/scan/scan_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_detail_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_request_screen.dart';
+import 'package:fsi_courier_app/features/sync/sync_screen.dart';
 import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
@@ -73,7 +74,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final mode = isDispatch ? ScanMode.dispatch : ScanMode.pod;
           return ScanScreen(
             mode: mode,
-            allowLandscape: isDispatch,
           );
         },
       ),
@@ -141,6 +141,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           title: 'OSA',
         ),
       ),
+      GoRoute(path: '/sync', builder: (_, __) => const SyncScreen()),
       GoRoute(path: '/wallet', builder: (_, __) => const WalletScreen()),
       GoRoute(
         path: '/wallet/request',

@@ -118,7 +118,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14),
-                          child: Icon(Icons.mail_outline, size: 40),
+                          child: Image.asset(
+                            'assets/icon.png',
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 14),

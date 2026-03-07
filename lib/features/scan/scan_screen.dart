@@ -20,11 +20,9 @@ class ScanScreen extends ConsumerStatefulWidget {
   const ScanScreen({
     super.key,
     required this.mode,
-    this.allowLandscape = false,
   });
 
   final ScanMode mode;
-  final bool allowLandscape;
 
   @override
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
@@ -54,16 +52,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   @override
   void initState() {
     super.initState();
-    // Lock orientation to landscape only if allowed
-    if (widget.allowLandscape) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-    } else {
-      // Otherwise lock to portrait (fullscreen mode)
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    }
     _scannerController = MobileScannerController(
       formats: [
         BarcodeFormat.qrCode,
@@ -81,15 +69,22 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     _lineAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _lineController, curve: Curves.easeInOut),
     );
-    // Defer permission/camera start until after first frame (ensures camera surface exists)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Unlock all orientations for scanning — barcodes can be long and
+    // landscape gives a wider viewfinder.  Portrait is restored on dispose.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
       if (mounted) _requestPermission();
     });
   }
 
   @override
   void dispose() {
-    // Restore portrait orientation when leaving scan screen
+    // Restore portrait for every other screen in the app.
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _manualController.dispose();
     _scannerController.dispose();

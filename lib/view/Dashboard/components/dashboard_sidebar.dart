@@ -46,7 +46,7 @@ class DashboardSidebar extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Image.asset('assets/logo.png', height: 28), // smaller logo
+                            Image.asset('assets/icon.png', height: 28), // smaller logo
                             const SizedBox(height: 2),
                             const Text(
                               "Courier App",

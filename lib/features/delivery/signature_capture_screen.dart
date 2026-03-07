@@ -42,6 +42,8 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
 
   @override
   void dispose() {
+    // Restore portrait immediately so the next screen's initState
+    // doesn't race against a still-pending landscape lock.
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _controller.dispose();
     super.dispose();

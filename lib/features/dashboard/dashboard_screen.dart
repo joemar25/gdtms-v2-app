@@ -170,7 +170,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           onTap: rtsCount == 0
                               ? null
                               : () => context.push('/rts'),
-                          badge: rtsCount > 0 ? '$rtsCount' : null,
                           subdued: true,
                           details: "Today's return to sender items.",
                         ),
@@ -194,20 +193,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Expanded(
-                      //   child: _StatCard(
-                      //     label: 'RTS',
-                      //     count: '$rtsCount',
-                      //     icon: Icons.assignment_return_outlined,
-                      //     color: Colors.red,
-                      //     onTap: rtsCount == 0
-                      //         ? null
-                      //         : () => context.push('/rts'),
-                      //     badge: rtsCount > 0 ? '$rtsCount' : null,
-                      //     subdued: true,
-                      //     details: "Today's return to sender items.",
-                      //   ),
-                      // ),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'SYNC',
+                          count: '',
+                          icon: Icons.sync_rounded,
+                          color: Colors.blueGrey,
+                          onTap: () => context.push('/sync'),
+                          subdued: true,
+                          details: 'Offline to online sync.',
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -259,7 +255,6 @@ class _StatCard extends StatelessWidget {
     required this.icon,
     required this.color,
     this.onTap,
-    this.badge,
     this.subdued = false,
     this.details,
   });
@@ -269,7 +264,6 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback? onTap;
-  final String? badge;
   final bool subdued;
   final String? details;
 
@@ -309,25 +303,6 @@ class _StatCard extends StatelessWidget {
                   Icon(icon, color: effectiveColor, size: 18),
                   const SizedBox(width: 4),
                   const Spacer(),
-                  if (badge != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: effectiveColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        badge!,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: effectiveColor,
-                        ),
-                      ),
-                    ),
                 ],
               ),
               const SizedBox(height: 8),

@@ -113,7 +113,7 @@ class _LogoSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Image.asset('assets/logo.png', height: 60),
+        Image.asset('assets/icon.png', height: 60),
         const SizedBox(height: 8),
         const Text(
           'Courier App',

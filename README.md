@@ -153,19 +153,4 @@ Use credentials provided privately by your team leads or secure vault. Do not co
 REDACTED_TEST_NUMBER
 flutter clean - to
 dart run flutter_native_splash:create - to replace assets with new one
-
-
-- per day ang deliveries status for the cards in dashboard, but for the dispatch as is - api prob
-- adjust layout osa is below 
-- rts attempt count both in the lists, and in the form as read only
-
-- auto refresh on acceptance or update deliveries
-- sms on the contact number
-- if authorized rep is clicked in the form, the relatinoship should go back to blank
-- if owner / recipeitn is selected - the relationship is self/owner right, it must be lock, but if input if altered, the selection would be blank just like when we select authorized rep
-- eraser in the input field of recipeint if not owner, and remarks
-- transaction date (today) must be added which is today as locked value cannot be updated only get Philippine standard time
-- proof of delivery photos should be pre defined its type , we only want (POD & SELFIE) and below it should be a clickable for singature that when clicked it will have a full screen for signature in landscape for good (the old design and it needs enhancement for good since instead ofclicking one camera, the POD and SELFIE have the blank box for if clicked thenit will open cam for the pre defined selected value)
-- signature must also be like that deisgn above
-
 -->

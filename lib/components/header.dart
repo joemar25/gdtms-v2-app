@@ -5,7 +5,7 @@ import 'dart:async';
 class Header extends StatefulWidget {
   final String logoPath; // allow custom logo if needed
 
-  const Header({super.key, this.logoPath = 'assets/logo.png'});
+  const Header({super.key, this.logoPath = 'assets/icon.png'});
 
   @override
   State<Header> createState() => _HeaderState();
