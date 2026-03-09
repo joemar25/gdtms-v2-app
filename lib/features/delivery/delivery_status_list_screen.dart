@@ -153,10 +153,12 @@ class _DeliveryStatusListScreenState
                   ..._items.map((d) {
                     final identifier = resolveDeliveryIdentifier(d);
                     // RULE: If status is 'osa', navigation is disabled.
+                    final isOsa = widget.status == 'osa';
                     return DeliveryCard(
                       delivery: d,
                       compact: isCompact,
-                      onTap: (widget.status == 'osa' || identifier.isEmpty)
+                      showChevron: !isOsa,
+                      onTap: (isOsa || identifier.isEmpty)
                           ? () {}
                           : () => context.push('/deliveries/$identifier'),
                     );

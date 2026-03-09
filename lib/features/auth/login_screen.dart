@@ -9,6 +9,7 @@ import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -147,6 +148,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final user = mapFromKey(payload, 'user');
         final courier = mapFromKey(payload, 'courier');
         final mergedCourier = <String, dynamic>{...user, ...courier};
+
+        // Session fingerprint check — wipe stale local data if courier or
+        // server changed since the last session (safety net for force-quit).
+        final courierId = mergedCourier['id']?.toString() ?? '';
+        final newFingerprint = '${apiBaseUrl}_$courierId';
+        final prefs = await SharedPreferences.getInstance();
+        final prevFingerprint = prefs.getString('_session_fingerprint') ?? '';
+        if (prevFingerprint.isNotEmpty && prevFingerprint != newFingerprint) {
+          await AppDatabase.clearAllDeliveryData();
+        }
+        await prefs.setString('_session_fingerprint', newFingerprint);
 
         await authStorage.setToken(token);
         await authStorage.setCourier(mergedCourier);

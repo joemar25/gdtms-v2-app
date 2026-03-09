@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -17,49 +19,67 @@ class FloatingBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+
+    // iOS-style glass: semi-transparent bg layered over blur
+    final glassBg = isDark
+        ? const Color(0xFF1C1C1E).withValues(alpha: 0.72)
+        : Colors.white.withValues(alpha: 0.72);
+
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : Colors.white.withValues(alpha: 0.60);
 
     return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.12),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              decoration: BoxDecoration(
+                color: glassBg,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: borderColor, width: 0.8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+                    blurRadius: 32,
+                    spreadRadius: -4,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavItem(
+                      icon: Icons.home_outlined,
+                      activeIcon: Icons.home_rounded,
+                      label: 'Home',
+                      isSelected: _index == 0,
+                      onTap: () => context.go('/dashboard'),
+                    ),
+                    _NavItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      activeIcon: Icons.account_balance_wallet_rounded,
+                      label: 'Wallet',
+                      isSelected: _index == 1,
+                      onTap: () => context.go('/wallet'),
+                    ),
+                    _NavItem(
+                      icon: Icons.person_outline,
+                      activeIcon: Icons.person_rounded,
+                      label: 'Profile',
+                      isSelected: _index == 2,
+                      onTap: () => context.go('/profile'),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
-                label: 'Home',
-                isSelected: _index == 0,
-                onTap: () => context.go('/dashboard'),
-              ),
-              _NavItem(
-                icon: Icons.account_balance_wallet_outlined,
-                activeIcon: Icons.account_balance_wallet_rounded,
-                label: 'Wallet',
-                isSelected: _index == 1,
-                onTap: () => context.go('/wallet'),
-              ),
-              _NavItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person_rounded,
-                label: 'Profile',
-                isSelected: _index == 2,
-                onTap: () => context.go('/profile'),
-              ),
-            ],
           ),
         ),
       ),
@@ -98,9 +118,10 @@ class _NavItemState extends State<_NavItem>
       vsync: this,
       duration: const Duration(milliseconds: 180),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.88).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.88,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
   }
 
   @override
@@ -157,8 +178,9 @@ class _NavItemState extends State<_NavItem>
                 duration: const Duration(milliseconds: 220),
                 style: TextStyle(
                   fontSize: 10,
-                  fontWeight:
-                      widget.isSelected ? FontWeight.w700 : FontWeight.w400,
+                  fontWeight: widget.isSelected
+                      ? FontWeight.w700
+                      : FontWeight.w400,
                   color: color,
                 ),
                 child: Text(widget.label),

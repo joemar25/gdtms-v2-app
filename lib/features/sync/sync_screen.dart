@@ -1,13 +1,24 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 
+import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/models/delivery_update_entry.dart';
+import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
+import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
+import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart'
+    show showSuccessNotification, showAppSnackbar, SnackbarType;
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 
 class SyncScreen extends ConsumerStatefulWidget {
   const SyncScreen({super.key});
@@ -17,43 +28,107 @@ class SyncScreen extends ConsumerStatefulWidget {
 }
 
 class _SyncScreenState extends ConsumerState<SyncScreen> {
+  bool _reloading = false;
+  Map<String, LocalDelivery> _deliveries = {};
+
   @override
   void initState() {
     super.initState();
-    // Populate the list when the screen opens.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(syncManagerProvider.notifier).loadEntries();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(syncManagerProvider.notifier).loadEntries();
+      await _loadDeliveries();
     });
+  }
+
+  Future<void> _loadDeliveries() async {
+    final entries = ref.read(syncManagerProvider).entries;
+    if (entries.isEmpty) return;
+    final map = <String, LocalDelivery>{};
+    for (final entry in entries) {
+      final d = await LocalDeliveryDao.instance.getByBarcode(entry.barcode);
+      if (d != null) map[entry.barcode] = d;
+    }
+    if (mounted) setState(() => _deliveries = map);
+  }
+
+  Future<void> _reloadFromServer() async {
+    final confirmed = await ConfirmationDialog.show(
+      context,
+      title: 'Reload from Server?',
+      subtitle:
+          'This will clear your local delivery list and re-download it from the server. Pending sync updates will not be affected.',
+      confirmLabel: 'Reload',
+      cancelLabel: 'Cancel',
+      isDestructive: false,
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _reloading = true);
+    try {
+      final client = ref.read(apiClientProvider);
+      await DeliveryBootstrapService.instance.clearAndSyncFromApi(client);
+      await _loadDeliveries();
+      if (mounted) {
+        showSuccessNotification(context, 'Deliveries reloaded from server.');
+      }
+    } catch (_) {
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          'Reload failed. Please try again.',
+          type: SnackbarType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _reloading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncManagerProvider);
     final isOnline = ref.watch(isOnlineProvider);
+    final canReload = isOnline && !syncState.isSyncing && !_reloading;
+
+    // Refresh delivery metadata when entries change (e.g. after a sync).
+    ref.listen<SyncState>(syncManagerProvider, (prev, next) {
+      if (prev?.entries.length != next.entries.length) {
+        _loadDeliveries();
+      }
+    });
 
     return Scaffold(
       appBar: AppHeaderBar(
         title: 'Sync',
-        actions: kDebugMode &&
-                syncState.entries.any(
-                  (e) => e.syncStatus == SyncStatus.failed,
-                )
-            ? [
-                TextButton.icon(
-                  onPressed: () =>
-                      ref.read(syncManagerProvider.notifier).clearFailed(),
-                  icon: const Icon(
-                    Icons.delete_forever_rounded,
-                    size: 18,
-                    color: Colors.red,
-                  ),
-                  label: const Text(
-                    'Clear Failed',
-                    style: TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                ),
-              ]
-            : null,
+        actions: [
+          if (isOnline)
+            TextButton.icon(
+              onPressed: canReload ? _reloadFromServer : null,
+              icon: _reloading
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cloud_download_outlined, size: 18),
+              label: const Text('Reload', style: TextStyle(fontSize: 12)),
+            ),
+          if (kDebugMode &&
+              syncState.entries.any((e) => e.syncStatus == SyncStatus.failed))
+            TextButton.icon(
+              onPressed: () =>
+                  ref.read(syncManagerProvider.notifier).clearFailed(),
+              icon: const Icon(
+                Icons.delete_forever_rounded,
+                size: 18,
+                color: Colors.red,
+              ),
+              label: const Text(
+                'Clear Failed',
+                style: TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -61,7 +136,10 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
           Expanded(
             child: syncState.entries.isEmpty
                 ? _EmptyState(isSyncing: syncState.isSyncing)
-                : _EntryList(syncState: syncState),
+                : _EntryList(
+                    syncState: syncState,
+                    deliveries: _deliveries,
+                  ),
           ),
         ],
       ),
@@ -99,7 +177,6 @@ class _SyncHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Connectivity pill
           Row(
             children: [
               Icon(
@@ -165,28 +242,33 @@ class _SyncHeader extends StatelessWidget {
 // ── Entry List ────────────────────────────────────────────────────────────────
 
 class _EntryList extends ConsumerWidget {
-  const _EntryList({required this.syncState});
+  const _EntryList({
+    required this.syncState,
+    required this.deliveries,
+  });
 
   final SyncState syncState;
+  final Map<String, LocalDelivery> deliveries;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entries = syncState.entries;
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(top: 8, bottom: 100),
       itemCount: entries.length,
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final entry = entries[index];
         return _EntryTile(
           entry: entry,
+          delivery: deliveries[entry.barcode],
           isSyncing:
-              syncState.isSyncing &&
-              syncState.currentBarcode == entry.barcode,
+              syncState.isSyncing && syncState.currentBarcode == entry.barcode,
           onRetry: entry.syncStatus == SyncStatus.failed
-              ? () => ref
-                    .read(syncManagerProvider.notifier)
-                    .retrySingle(entry.id!)
+              ? () =>
+                    ref
+                        .read(syncManagerProvider.notifier)
+                        .retrySingle(entry.id!)
               : null,
         );
       },
@@ -194,61 +276,250 @@ class _EntryList extends ConsumerWidget {
   }
 }
 
+// ── Entry Tile ────────────────────────────────────────────────────────────────
+
 class _EntryTile extends StatelessWidget {
   const _EntryTile({
     required this.entry,
     required this.isSyncing,
+    this.delivery,
     this.onRetry,
   });
 
   final DeliveryUpdateEntry entry;
+  final LocalDelivery? delivery;
   final bool isSyncing;
   final VoidCallback? onRetry;
+
+  /// Decodes delivery_status from the queue payload.
+  String get _payloadStatus {
+    try {
+      final map = jsonDecode(entry.payloadJson) as Map<String, dynamic>;
+      return map['delivery_status']?.toString() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// Extracts date fields from the local delivery's rawJson.
+  ({String deliveryDate, String transactionDate, String dispatchDate}) get _dates {
+    if (delivery == null) {
+      return (deliveryDate: '', transactionDate: '', dispatchDate: '');
+    }
+    final raw = delivery!.toDeliveryMap();
+    final transactionAt = raw['transaction_at']?.toString() ?? '';
+    final deliveredDate = raw['delivered_date']?.toString() ?? '';
+    final dispatchedAt = raw['dispatched_at']?.toString() ?? '';
+
+    // If both dates exist and are the same, show only delivery date.
+    final String txDate;
+    final String dlDate;
+    if (transactionAt.isNotEmpty &&
+        deliveredDate.isNotEmpty &&
+        transactionAt == deliveredDate) {
+      dlDate = formatDate(deliveredDate, includeTime: true);
+      txDate = '';
+    } else {
+      dlDate = deliveredDate.isNotEmpty
+          ? formatDate(deliveredDate, includeTime: true)
+          : '';
+      txDate = transactionAt.isNotEmpty
+          ? formatDate(transactionAt, includeTime: true)
+          : '';
+    }
+
+    return (
+      deliveryDate: dlDate,
+      transactionDate: txDate,
+      dispatchDate: dispatchedAt.isNotEmpty
+          ? formatDate(dispatchedAt, includeTime: true)
+          : '',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateStr = DateFormat('MMM d, h:mm a').format(
-      DateTime.fromMillisecondsSinceEpoch(entry.createdAt),
-    );
+    final queuedStr = DateFormat(
+      'MMM d, yyyy · h:mm a',
+    ).format(DateTime.fromMillisecondsSinceEpoch(entry.createdAt));
+    final syncedStr = entry.syncedAt != null
+        ? DateFormat(
+            'MMM d, yyyy · h:mm a',
+          ).format(DateTime.fromMillisecondsSinceEpoch(entry.syncedAt!))
+        : null;
 
-    return ListTile(
-      leading: _StatusChip(
-        status: entry.syncStatus,
-        isSyncing: isSyncing,
-      ),
-      title: Text(
-        entry.barcode,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontFamily: 'monospace',
+    final recipientName = delivery?.recipientName;
+    final mailType = delivery?.mailType;
+    final dispatchCode = delivery?.dispatchCode;
+    final payloadStatus = _payloadStatus;
+    final dates = _dates;
+
+    return InkWell(
+      onTap: () => context.push('/deliveries/${entry.barcode}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Status icon ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: _StatusChip(
+                status: entry.syncStatus,
+                isSyncing: isSyncing,
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // ── Content ──────────────────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Barcode + chevron
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          entry.barcode,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'monospace',
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: Colors.grey,
+                      ),
+                    ],
+                  ),
+
+                  // Recipient name
+                  if (recipientName != null && recipientName.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      recipientName,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 6),
+
+                  // Status badge + mail type + dispatch code
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      if (payloadStatus.isNotEmpty)
+                        _StatusBadge(status: payloadStatus),
+                      if (mailType != null && mailType.isNotEmpty)
+                        _Chip(mailType.toUpperCase()),
+                      if (dispatchCode != null && dispatchCode.isNotEmpty)
+                        _Chip(dispatchCode),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Delivery date
+                  if (dates.deliveryDate.isNotEmpty)
+                    _MetaRow(
+                      icon: Icons.local_shipping_outlined,
+                      label: 'Delivered',
+                      value: dates.deliveryDate,
+                    ),
+
+                  // Transaction date (only if different from delivery date)
+                  if (dates.transactionDate.isNotEmpty)
+                    _MetaRow(
+                      icon: Icons.receipt_outlined,
+                      label: 'Transaction',
+                      value: dates.transactionDate,
+                    ),
+
+                  // Dispatch date (shown for pending items with no delivery date)
+                  if (dates.deliveryDate.isEmpty &&
+                      dates.dispatchDate.isNotEmpty)
+                    _MetaRow(
+                      icon: Icons.call_made_rounded,
+                      label: 'Dispatched',
+                      value: dates.dispatchDate,
+                    ),
+
+                  // Queued time
+                  _MetaRow(
+                    icon: Icons.cloud_upload_outlined,
+                    label: 'Queued',
+                    value: queuedStr,
+                  ),
+
+                  // Synced time
+                  if (syncedStr != null)
+                    _MetaRow(
+                      icon: Icons.check_circle_outline_rounded,
+                      label: 'Synced',
+                      value: syncedStr,
+                      valueColor: Colors.green.shade700,
+                    ),
+
+                  // Error message
+                  if (entry.errorMessage != null) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.error_outline_rounded,
+                          size: 13,
+                          color: theme.colorScheme.error,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            entry.errorMessage!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  // Retry button
+                  if (onRetry != null) ...[
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      height: 28,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: onRetry,
+                        child: const Text('RETRY'),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(dateStr, style: theme.textTheme.bodySmall),
-          if (entry.errorMessage != null)
-            Text(
-              entry.errorMessage!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-        ],
-      ),
-      trailing: onRetry != null
-          ? TextButton(
-              onPressed: onRetry,
-              child: const Text('RETRY'),
-            )
-          : null,
-      isThreeLine: entry.errorMessage != null,
     );
   }
 }
+
+// ── Status Chip ───────────────────────────────────────────────────────────────
 
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status, required this.isSyncing});
@@ -274,6 +545,127 @@ class _StatusChip extends StatelessWidget {
     };
 
     return Icon(icon, color: color, size: 22);
+  }
+}
+
+// ── Delivery Status Badge ─────────────────────────────────────────────────────
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (bg, fg, label) = switch (status.toLowerCase()) {
+      'delivered' => (
+          Colors.green.shade50,
+          Colors.green.shade700,
+          'Delivered',
+        ),
+      'pending' => (
+          Colors.amber.shade50,
+          Colors.amber.shade800,
+          'Pending',
+        ),
+      'rts' => (Colors.orange.shade50, Colors.orange.shade800, 'RTS'),
+      'osa' => (Colors.purple.shade50, Colors.purple.shade700, 'OSA'),
+      _ => (Colors.grey.shade100, Colors.grey.shade700, status.toUpperCase()),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: fg,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Generic Chip ──────────────────────────────────────────────────────────────
+
+class _Chip extends StatelessWidget {
+  const _Chip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey.shade700,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Meta Row ──────────────────────────────────────────────────────────────────
+
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dimColor = theme.colorScheme.onSurfaceVariant;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        children: [
+          Icon(icon, size: 13, color: dimColor),
+          const SizedBox(width: 5),
+          Text(
+            '$label: ',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: dimColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: valueColor ?? dimColor,
+                fontWeight: valueColor != null ? FontWeight.w600 : null,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/database/delivery_update_dao.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
@@ -63,8 +64,9 @@ class SyncState {
       processed: processed ?? this.processed,
       total: total ?? this.total,
       entries: entries ?? this.entries,
-      lastMessage:
-          lastMessage == _sentinel ? this.lastMessage : lastMessage as String?,
+      lastMessage: lastMessage == _sentinel
+          ? this.lastMessage
+          : lastMessage as String?,
     );
   }
 
@@ -95,7 +97,9 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
   Future<void> processQueue() async {
     if (state.isSyncing) return;
 
-    final pending = await DeliveryUpdateDao.instance.getPending();
+    final courier = _ref.read(authProvider).courier ?? {};
+    final courierId = courier['id']?.toString() ?? '';
+    final pending = await DeliveryUpdateDao.instance.getPending(courierId);
     if (pending.isEmpty) {
       await loadEntries();
       return;
@@ -121,8 +125,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
       await DeliveryUpdateDao.instance.markSyncing(entry.id!);
 
       try {
-        final payload =
-            jsonDecode(entry.payloadJson) as Map<String, dynamic>;
+        final payload = jsonDecode(entry.payloadJson) as Map<String, dynamic>;
 
         // ── Upload any pending media (stored offline as base64) ────────────
         final pendingMedia = payload.remove('_pending_media');
@@ -171,13 +174,14 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
 
             if (result is ApiSuccess<Map<String, dynamic>>) {
               final inner = result.data['data'];
-              final url = (inner is Map
-                      ? inner['url'] ??
-                          inner['signed_url'] ??
-                          inner['file'] ??
-                          inner['path']
-                      : result.data['url'] ?? result.data['signed_url'])
-                  ?.toString();
+              final url =
+                  (inner is Map
+                          ? inner['url'] ??
+                                inner['signed_url'] ??
+                                inner['file'] ??
+                                inner['path']
+                          : result.data['url'] ?? result.data['signed_url'])
+                      ?.toString();
               if (url != null && url.isNotEmpty) {
                 if (uploadType == 'recipient_signature') {
                   payload['recipient_signature'] = url;
@@ -249,10 +253,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
           );
         }
       } catch (e) {
-        await DeliveryUpdateDao.instance.markFailed(
-          entry.id!,
-          e.toString(),
-        );
+        await DeliveryUpdateDao.instance.markFailed(entry.id!, e.toString());
         state = state.copyWith(
           processed: state.processed + 1,
           lastMessage: 'Error syncing ${entry.barcode}.',
@@ -320,8 +321,9 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
 
   Future<void> _cleanupAsync() async {
     try {
-      final retentionDays =
-          await _ref.read(appSettingsProvider).getSyncRetentionDays();
+      final retentionDays = await _ref
+          .read(appSettingsProvider)
+          .getSyncRetentionDays();
       final syncMs = retentionDays * Duration.millisecondsPerDay;
       const deliveryMs = kLocalDataRetentionDays * Duration.millisecondsPerDay;
       await Future.wait([

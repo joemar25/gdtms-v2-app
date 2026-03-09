@@ -13,6 +13,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/database/delivery_update_dao.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
@@ -361,6 +362,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     setState(() => _loading = true);
 
+    final courierId =
+        ref.read(authProvider).courier?['id']?.toString() ?? '';
     final isOnline = ref.read(isOnlineProvider);
 
     // Build payload — only include fields relevant to the current status.
@@ -524,6 +527,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           final now = DateTime.now().millisecondsSinceEpoch;
           await DeliveryUpdateDao.instance.insert(
             DeliveryUpdateEntry(
+              courierId: courierId,
               barcode: widget.barcode,
               payloadJson: jsonEncode(payload),
               syncStatus: SyncStatus.synced,
@@ -615,6 +619,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       final now = DateTime.now().millisecondsSinceEpoch;
       await DeliveryUpdateDao.instance.insert(
         DeliveryUpdateEntry(
+          courierId: courierId,
           barcode: widget.barcode,
           payloadJson: jsonEncode(payload),
           syncStatus: SyncStatus.pending,

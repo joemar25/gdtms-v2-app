@@ -8,11 +8,13 @@ class DeliveryCard extends StatelessWidget {
     required this.delivery,
     required this.onTap,
     this.compact = false,
+    this.showChevron = true,
   });
 
   final Map<String, dynamic> delivery;
   final VoidCallback onTap;
   final bool compact;
+  final bool showChevron;
 
   static Color statusColor(String status) {
     return switch (status.toLowerCase()) {
@@ -181,8 +183,10 @@ class DeliveryCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
+              if (showChevron) ...[
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
+              ],
             ],
           ),
         ),

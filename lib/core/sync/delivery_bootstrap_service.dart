@@ -24,6 +24,17 @@ class DeliveryBootstrapService {
     'delivered',
   ];
 
+  /// Clears the local delivery table and re-fetches all deliveries from the
+  /// server. Used for the "Reload from Server" action on the Sync screen.
+  ///
+  /// Unlike [AppDatabase.clearAllDeliveryData], this only clears
+  /// [local_deliveries]; the [delivery_update_queue] is intentionally
+  /// preserved so pending status updates are not lost.
+  Future<void> clearAndSyncFromApi(ApiClient client) async {
+    await LocalDeliveryDao.instance.deleteAll();
+    await syncFromApi(client);
+  }
+
   /// Fetches all deliveries for each status from `GET /deliveries` (paginated)
   /// and upserts them into [LocalDeliveryDao].
   Future<void> syncFromApi(ApiClient client) async {

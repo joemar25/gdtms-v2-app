@@ -86,12 +86,17 @@ class DeliveryUpdateDao {
 
   // ── Read ──────────────────────────────────────────────────────────────────
 
-  /// Returns all entries with [sync_status = 'pending'], ordered FIFO.
-  Future<List<DeliveryUpdateEntry>> getPending() async {
+  /// Returns all entries with [sync_status = 'pending'] that belong to
+  /// [courierId], ordered FIFO.
+  ///
+  /// Rows where [courier_id IS NULL] are also included for backwards
+  /// compatibility with entries created before the v2 schema migration.
+  Future<List<DeliveryUpdateEntry>> getPending(String courierId) async {
     final db = await _db;
     final rows = await db.query(
       'delivery_update_queue',
-      where: "sync_status = 'pending'",
+      where: "sync_status = 'pending' AND (courier_id = ? OR courier_id IS NULL)",
+      whereArgs: [courierId],
       orderBy: 'created_at ASC',
     );
     return rows.map(DeliveryUpdateEntry.fromDb).toList();

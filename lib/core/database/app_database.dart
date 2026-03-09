@@ -26,7 +26,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -52,6 +52,7 @@ class AppDatabase {
     await db.execute('''
       CREATE TABLE delivery_update_queue (
         id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        courier_id      TEXT,
         barcode         TEXT    NOT NULL,
         payload_json    TEXT    NOT NULL,
         sync_status     TEXT    NOT NULL DEFAULT 'pending',
@@ -69,6 +70,22 @@ class AppDatabase {
     int oldVersion,
     int newVersion,
   ) async {
-    // Future schema migrations go here.
+    if (oldVersion < 2) {
+      // v2: add courier_id to delivery_update_queue for per-courier isolation.
+      // Existing rows get NULL, which the DAO treats as belonging to the
+      // current user (safe because logout already cleared foreign-user rows).
+      await db.execute(
+        'ALTER TABLE delivery_update_queue ADD COLUMN courier_id TEXT',
+      );
+    }
+  }
+
+  /// Deletes ALL rows from [local_deliveries] and [delivery_update_queue].
+  /// Called on logout and on session-fingerprint mismatch at login to prevent
+  /// stale data from a previous user/server being visible to the next user.
+  static Future<void> clearAllDeliveryData() async {
+    final db = await getInstance();
+    await db.delete('local_deliveries');
+    await db.delete('delivery_update_queue');
   }
 }

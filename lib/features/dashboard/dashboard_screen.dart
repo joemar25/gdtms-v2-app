@@ -104,6 +104,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final deliveredCount = _summary['delivered_today'] ?? 0;
 
     return Scaffold(
+      extendBody: true,
       appBar: AppHeaderBar(title: ''),
       bottomNavigationBar: const FloatingBottomNavBar(
         currentPath: '/dashboard',

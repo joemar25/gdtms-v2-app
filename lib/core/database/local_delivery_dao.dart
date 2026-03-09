@@ -163,6 +163,14 @@ class LocalDeliveryDao {
     return LocalDelivery.fromDb(rows.first);
   }
 
+  /// Deletes ALL rows from [local_deliveries].
+  /// Used by [DeliveryBootstrapService.clearAndSyncFromApi] to force a fresh
+  /// load from the server (e.g. "Reload from Server" action on Sync screen).
+  Future<void> deleteAll() async {
+    final db = await _db;
+    await db.delete('local_deliveries');
+  }
+
   // ── Cleanup ───────────────────────────────────────────────────────────────
 
   /// Deletes completed delivery records older than [retentionMs] milliseconds.

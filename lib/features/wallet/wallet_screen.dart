@@ -79,6 +79,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final canRequestPayout = !isLatestPending && !requestedToday;
 
     return Scaffold(
+      extendBody: true,
       appBar: const AppHeaderBar(title: 'Wallet'),
       bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/wallet'),
       body: _loading

@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
@@ -84,6 +87,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     await ref
         .read(apiClientProvider)
         .post<Map<String, dynamic>>('/logout', parser: parseApiMap);
+    await AppDatabase.clearAllDeliveryData();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('_session_fingerprint');
     await ref.read(authStorageProvider).clearAll();
     await ref.read(authProvider.notifier).initialize();
     if (mounted) context.go('/splash');
@@ -103,6 +109,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
+      extendBody: true,
       appBar: const AppHeaderBar(title: 'Profile'),
       bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/profile'),
       body: ListView(

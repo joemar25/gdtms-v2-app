@@ -24,8 +24,8 @@ const String packageId = 'com.fsi.courier';
 ///   `npm run dev -- --host=0.0.0.0`, then use your IPv4 address from `ipconfig`.
 /// - Note: This will not work for web builds.
 const String apiBaseUrl = String.fromEnvironment(
-  // 'API_BASE_URL',
-  'API_BASE_URL_PROD',
+  'API_BASE_URL',
+  // 'API_BASE_URL_PROD',
   defaultValue: 'http://YOUR_API_BASE_URL/api/mbl',
 );
 

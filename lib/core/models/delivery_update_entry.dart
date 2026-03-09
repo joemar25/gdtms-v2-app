@@ -9,6 +9,7 @@ enum SyncStatus { pending, syncing, synced, failed }
 class DeliveryUpdateEntry {
   const DeliveryUpdateEntry({
     this.id,
+    this.courierId,
     required this.barcode,
     required this.payloadJson,
     required this.syncStatus,
@@ -20,6 +21,12 @@ class DeliveryUpdateEntry {
   });
 
   final int? id;
+
+  /// The ID of the courier who created this entry.
+  /// Used to prevent a different courier's pending updates from being
+  /// processed when the same device is reused.
+  final String? courierId;
+
   final String barcode;
 
   /// JSON-encoded [Map] of the exact payload to replay on [PATCH /deliveries/{barcode}].
@@ -39,6 +46,7 @@ class DeliveryUpdateEntry {
   factory DeliveryUpdateEntry.fromDb(Map<String, dynamic> row) {
     return DeliveryUpdateEntry(
       id: row['id'] as int?,
+      courierId: row['courier_id'] as String?,
       barcode: row['barcode'] as String,
       payloadJson: row['payload_json'] as String,
       syncStatus: _parseSyncStatus(row['sync_status'] as String?),
@@ -54,6 +62,7 @@ class DeliveryUpdateEntry {
 
   Map<String, dynamic> toDb() => {
     if (id != null) 'id': id,
+    'courier_id': courierId,
     'barcode': barcode,
     'payload_json': payloadJson,
     'sync_status': syncStatus.name,
@@ -75,6 +84,7 @@ class DeliveryUpdateEntry {
   }) {
     return DeliveryUpdateEntry(
       id: id,
+      courierId: courierId,
       barcode: barcode,
       payloadJson: payloadJson,
       syncStatus: syncStatus ?? this.syncStatus,
