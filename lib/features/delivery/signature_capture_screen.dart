@@ -1,11 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:signature/signature.dart';
 
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
-/// Full-screen landscape signature capture screen.
+/// Full-screen signature capture screen (portrait default, auto-rotate enabled).
 ///
 /// Push via [Navigator.push] and await the result:
 /// ```dart
@@ -35,6 +34,8 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
       onDrawEnd: () => setState(() {}),
     );
     SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
@@ -42,8 +43,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
 
   @override
   void dispose() {
-    // Restore portrait immediately so the next screen's initState
-    // doesn't race against a still-pending landscape lock.
+    // Restore portrait-only for the rest of the app.
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _controller.dispose();
     super.dispose();
@@ -108,10 +108,16 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
               ),
               style: FilledButton.styleFrom(
-                backgroundColor:
-                    hasStrokes ? ColorStyles.grabGreen : Colors.grey.shade300,
-                foregroundColor: hasStrokes ? Colors.white : Colors.grey.shade500,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                backgroundColor: hasStrokes
+                    ? ColorStyles.grabGreen
+                    : Colors.grey.shade300,
+                foregroundColor: hasStrokes
+                    ? Colors.white
+                    : Colors.grey.shade500,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 minimumSize: Size.zero,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),

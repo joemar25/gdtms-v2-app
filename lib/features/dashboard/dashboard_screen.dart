@@ -237,7 +237,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             extra: {'mode': 'dispatch'},
                           ),
                           details:
-                              'Scan a dispatch barcode to check eligibility.',
+                              'Scan a dispatch barcode\nto check eligibility.',
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -249,7 +249,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           onTap: () =>
                               context.push('/scan', extra: {'mode': 'pod'}),
                           details:
-                              'Scan a delivery barcode to find and update POD.',
+                              'Scan a delivery barcode to\nfind and update POD.',
                         ),
                       ),
                     ],
