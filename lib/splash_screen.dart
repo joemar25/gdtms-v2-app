@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/database/cleanup_service.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -52,6 +53,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       await ref.read(authProvider.notifier).initialize();
       final compactMode = await ref.read(appSettingsProvider).getCompactMode();
       if (mounted) ref.read(compactModeProvider.notifier).state = compactMode;
+      // Run cleanup at most once per day — safe to fire-and-forget.
+      // ignore: discarded_futures
+      CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
     } catch (_) {
       // Keep defaults on error — app proceeds to login.
     }

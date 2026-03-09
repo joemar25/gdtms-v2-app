@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
@@ -194,6 +196,7 @@ class DeliveryDetailScreen extends ConsumerStatefulWidget {
 class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   bool _loading = true;
   Map<String, dynamic> _delivery = {};
+  bool _isOfflineMode = false;
 
   @override
   void initState() {
@@ -202,19 +205,45 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   }
 
   Future<void> _load() async {
-    final result = await ref
-        .read(apiClientProvider)
-        .get<Map<String, dynamic>>(
-          '/deliveries/${widget.barcode}',
-          parser: parseApiMap,
-        );
+    setState(() {
+      _loading = true;
+      _isOfflineMode = false;
+    });
 
-    if (!mounted) return;
+    final isOnline = ref.read(isOnlineProvider);
 
-    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      _delivery = mapFromKey(data, 'data');
+    if (isOnline) {
+      final result = await ref
+          .read(apiClientProvider)
+          .get<Map<String, dynamic>>(
+            '/deliveries/${widget.barcode}',
+            parser: parseApiMap,
+          );
+
+      if (!mounted) return;
+
+      if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
+        final deliveryData = mapFromKey(data, 'data');
+        _delivery = deliveryData;
+        // Keep local SQLite in sync with the freshest server data.
+        if (deliveryData.isNotEmpty) {
+          await LocalDeliveryDao.instance.updateFromJson(
+            widget.barcode,
+            deliveryData,
+          );
+        }
+        setState(() => _loading = false);
+        return;
+      }
     }
 
+    // Offline — or API call failed — fall back to local storage.
+    final local = await LocalDeliveryDao.instance.getByBarcode(widget.barcode);
+    if (!mounted) return;
+    if (local != null) {
+      _delivery = local.toDeliveryMap();
+      _isOfflineMode = true;
+    }
     setState(() => _loading = false);
   }
 
@@ -332,9 +361,13 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          : Column(
               children: [
+                if (_isOfflineMode) const _OfflineBanner(),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                    children: [
                 // ─ Recipient ────────────────────────────────────────────
                 _DetailCard(
                   children: [
@@ -400,6 +433,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   const SizedBox(height: 12),
                   _buildTimeline(),
                 ],
+              ],
+            ),
+                ),
               ],
             ),
     );
@@ -761,6 +797,35 @@ class _TimelineItem extends StatelessWidget {
                   ],
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Offline mode banner ─────────────────────────────────────────────────────
+
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.orange.shade700,
+      child: const Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, size: 14, color: Colors.white),
+          SizedBox(width: 8),
+          Text(
+            'Offline — showing locally saved data',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
           ),
         ],

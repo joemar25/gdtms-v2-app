@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
@@ -29,6 +30,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   }
 
   Future<void> _load() async {
+    if (!ref.read(isOnlineProvider)) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
     final result = await ref
         .read(apiClientProvider)
         .get<Map<String, dynamic>>('/wallet-summary', parser: parseApiMap);
@@ -42,17 +47,18 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(isOnlineProvider);
     final latest = asStringDynamicMap(_data['latest_request']);
     final earnings = _data['total_earnings'] ?? 0;
     final pending = _data['tentative_pending_payout'] ?? 0;
 
-    // 1-week rolling window label (data cap — reflects what payout request covers)
+    // 1-week rolling window label
     final today = DateTime.now();
     final weekStart = today.subtract(const Duration(days: 6));
     final weekLabel =
         '${DateFormat('MMM d').format(weekStart)} – ${DateFormat('MMM d').format(today)}';
 
-    // Check if latest request is pending/active (hide request button)
+    // Check if latest request is pending/active
     final latestStatus = latest['status']?.toString().toLowerCase() ?? '';
     final latestDate = latest['created_at']?.toString() ?? '';
     final isLatestPending =
@@ -70,7 +76,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       } catch (_) {}
     }
 
-    // Only show "Request Payout" if no pending request and not requested today
     final canRequestPayout = !isLatestPending && !requestedToday;
 
     return Scaffold(
@@ -83,104 +88,149 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
-                  // ── Active 1-week window label ─────────────────────────
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: ColorStyles.grabGreen.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          size: 14,
-                          color: ColorStyles.grabGreen,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'ACTIVE PERIOD: $weekLabel',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                            color: ColorStyles.grabGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ── Earnings card ──────────────────────────────────────
-                  _EarningsCard(earnings: earnings, pending: pending),
-                  const SizedBox(height: 20),
-
-                  // ── Latest request ─────────────────────────────────────
-                  if (latest.isNotEmpty && latest['reference'] != null) ...[
-                    _SectionLabel('Latest Request'),
-                    const SizedBox(height: 8),
-                    _LatestRequestCard(
-                      data: latest,
-                      // Only use reference for navigation, not id
-                      onTap: () => context.push('/wallet/${latest['reference']}'),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // ── Action ─────────────────────────────────────────────
-                  if (canRequestPayout)
-                    FilledButton.icon(
-                      onPressed: () => context.push('/wallet/request'),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Request Payout'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    )
-                  else
+                  // ── Offline banner ─────────────────────────────────────
+                  if (!isOnline) ...[
                     Container(
+                      margin: const EdgeInsets.only(bottom: 14),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                        horizontal: 12,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.amber.withValues(alpha: 0.3),
-                        ),
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.orange.shade300),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            Icons.info_outline_rounded,
-                            color: Colors.amber.shade700,
-                            size: 18,
+                            Icons.wifi_off_rounded,
+                            size: 14,
+                            color: Colors.orange.shade700,
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              isLatestPending
-                                  ? 'You have a pending payout request'
-                                  : 'One request per day. Try again tomorrow',
+                              'You\'re offline — only total earnings are shown.',
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.amber.shade700,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange.shade800,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ],
+
+                  // ── Active 1-week window label (online only) ───────────
+                  if (isOnline) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: ColorStyles.grabGreen.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 14,
+                            color: ColorStyles.grabGreen,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'ACTIVE PERIOD: $weekLabel',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                              color: ColorStyles.grabGreen,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // ── Earnings card (always shown, pending hidden offline) ─
+                  _EarningsCard(
+                    earnings: earnings,
+                    pending: pending,
+                    showPending: isOnline,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── Online-only section ────────────────────────────────
+                  if (isOnline) ...[
+                    // Latest request
+                    if (latest.isNotEmpty && latest['reference'] != null) ...[
+                      _SectionLabel('Latest Request'),
+                      const SizedBox(height: 8),
+                      _LatestRequestCard(
+                        data: latest,
+                        onTap: () =>
+                            context.push('/wallet/${latest['reference']}'),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // Request payout / pending notice
+                    if (canRequestPayout)
+                      FilledButton.icon(
+                        onPressed: () => context.push('/wallet/request'),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Request Payout'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.amber.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.amber.shade700,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                isLatestPending
+                                    ? 'You have a pending payout request'
+                                    : 'One request per day. Try again tomorrow',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.amber.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -191,10 +241,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 // ─── Earnings card ────────────────────────────────────────────────────────────
 
 class _EarningsCard extends StatelessWidget {
-  const _EarningsCard({required this.earnings, required this.pending});
+  const _EarningsCard({
+    required this.earnings,
+    required this.pending,
+    this.showPending = true, // ← new param
+  });
 
   final dynamic earnings;
   final dynamic pending;
+  final bool showPending;
 
   @override
   Widget build(BuildContext context) {
@@ -226,9 +281,9 @@ class _EarningsCard extends StatelessWidget {
                 size: 18,
               ),
               const SizedBox(width: 6),
-              Text(
+              const Text(
                 'Total Earnings',
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
             ],
           ),
@@ -242,37 +297,41 @@ class _EarningsCard extends StatelessWidget {
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.schedule_rounded,
-                  color: Colors.white70,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Pending payout',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-                const Spacer(),
-                Text(
-                  '₱ ${_fmt(pending)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
+
+          // ── Pending payout row — online only ──────────────────────────
+          if (showPending) ...[
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.schedule_rounded,
+                    color: Colors.white70,
+                    size: 16,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Pending payout',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '₱ ${_fmt(pending)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -284,7 +343,7 @@ class _EarningsCard extends StatelessWidget {
   }
 }
 
-// ─── Latest request card ──────────────────────────────────────────────────────
+// ─── rest of widgets unchanged below ─────────────────────────────────────────
 
 class _LatestRequestCard extends StatelessWidget {
   const _LatestRequestCard({required this.data, required this.onTap});

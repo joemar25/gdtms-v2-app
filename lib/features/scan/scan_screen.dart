@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -17,10 +18,7 @@ import 'package:fsi_courier_app/styles/color_styles.dart';
 enum ScanMode { dispatch, pod }
 
 class ScanScreen extends ConsumerStatefulWidget {
-  const ScanScreen({
-    super.key,
-    required this.mode,
-  });
+  const ScanScreen({super.key, required this.mode});
 
   final ScanMode mode;
 
@@ -102,6 +100,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   Future<void> _handleCode(String code) async {
     if (_processing || code.trim().isEmpty) return;
+
+    // Dispatch scanning requires an active internet connection because we
+    // must call the server to check eligibility and accept the dispatch.
+    if (_isDispatch && !ref.read(isOnlineProvider)) {
+      setState(() {
+        _inlineError =
+            'You are offline. Dispatch scanning requires an internet connection.';
+      });
+      return;
+    }
+
     setState(() {
       _processing = true;
       _inlineError = null;
@@ -136,8 +145,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           .read(appSettingsProvider)
           .getAutoAcceptDispatch();
       if (!mounted) return;
-      final partialCode =
-          data['partial_code']?.toString() ?? code;
+      final partialCode = data['partial_code']?.toString() ?? code;
       context.push(
         '/dispatches/eligibility',
         extra: {
@@ -338,7 +346,49 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (_inlineError != null)
+                      // Static hint for dispatch mode so the user always knows
+                  // connectivity is required before they even attempt a scan.
+                  if (_isDispatch)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Consumer(
+                            builder: (_, ref, __) {
+                              final isOnline = ref.watch(isOnlineProvider);
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isOnline
+                                        ? Icons.wifi_rounded
+                                        : Icons.wifi_off_rounded,
+                                    size: 12,
+                                    color: isOnline
+                                        ? Colors.white54
+                                        : Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isOnline
+                                        ? 'Dispatch scanning requires an internet connection.'
+                                        : 'You are offline — dispatch scanning unavailable.',
+                                    style: TextStyle(
+                                      color: isOnline
+                                          ? Colors.white54
+                                          : Colors.orange,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (_inlineError != null)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Container(

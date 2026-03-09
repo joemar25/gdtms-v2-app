@@ -45,16 +45,17 @@ class ApiClient {
           if (error.response?.statusCode == 401) {
             await _authStorage.clearAll();
             onUnauthorized?.call();
+            showAppSnackbar(
+              null,
+              'Session expired. Please log in again.',
+              type: SnackbarType.error,
+            );
+            await Future.delayed(const Duration(seconds: 2));
             final navContext = rootNavigatorKey.currentContext;
             if (navContext != null) {
               // ignore: use_build_context_synchronously
               navContext.go('/login');
             }
-            showAppSnackbar(
-              null,
-              "You've been logged out.",
-              type: SnackbarType.error,
-            );
           }
           handler.next(error);
         },

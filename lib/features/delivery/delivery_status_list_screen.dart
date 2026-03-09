@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
-import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/models/local_delivery.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
-import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
@@ -15,6 +16,10 @@ import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 
 /// A single list screen reused for every delivery status filter
 /// (pending, delivered, rts, osa).
+///
+/// Data is always read from local SQLite — the app is offline-first.
+/// The list refreshes whenever [deliveryRefreshProvider] increments (on
+/// dispatch acceptance or after a successful sync).
 class DeliveryStatusListScreen extends ConsumerStatefulWidget {
   const DeliveryStatusListScreen({
     super.key,
@@ -33,58 +38,48 @@ class DeliveryStatusListScreen extends ConsumerStatefulWidget {
 class _DeliveryStatusListScreenState
     extends ConsumerState<DeliveryStatusListScreen> {
   bool _loading = true;
-  int _page = 1;
-  int _lastPage = 1;
-  final List<Map<String, dynamic>> _items = [];
+  List<Map<String, dynamic>> _items = [];
 
   @override
   void initState() {
     super.initState();
-    _load(reset: true);
+    _load();
   }
 
-  Future<void> _load({required bool reset}) async {
-    if (reset) {
-      _page = 1;
-      _lastPage = 1;
-      _items.clear();
-    }
+  Future<void> _load() async {
     setState(() => _loading = true);
-
-    final result = await ref
-        .read(apiClientProvider)
-        .get<Map<String, dynamic>>(
-          '/deliveries',
-          queryParameters: {
-            'status': widget.status,
-            if (widget.status == 'delivered') ...() {
-              final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-              return {
-                'active': 'true',
-                'from_date': today,
-                'to_date': today,
-              };
-            }(),
-            'per_page': kDeliveriesPerPage,
-            'page': _page,
-          },
-          parser: parseApiMap,
-        );
-
+    final rows = await LocalDeliveryDao.instance.getByStatus(widget.status);
     if (!mounted) return;
+    setState(() {
+      _items = rows.map(_toCardMap).toList();
+      _loading = false;
+    });
+  }
 
-    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      _items.addAll(listOfMapsFromKey(data, 'data'));
-      final pagination = mapFromKey(data, 'pagination');
-      _page = pagination['current_page'] as int? ?? _page;
-      _lastPage = pagination['last_page'] as int? ?? _lastPage;
+  /// Pull-to-refresh: re-seeds SQLite from the API (if online) then reloads.
+  Future<void> _onRefresh() async {
+    final isOnline = ref.read(isOnlineProvider);
+    if (isOnline) {
+      await DeliveryBootstrapService.instance
+          .syncFromApi(ref.read(apiClientProvider));
     }
+    await _load();
+  }
 
-    setState(() => _loading = false);
+  /// Merges the indexed fields with the raw JSON blob so that [DeliveryCard]
+  /// and detail screens get a complete delivery map regardless of which API
+  /// fields were present in the eligibility response.
+  Map<String, dynamic> _toCardMap(LocalDelivery row) {
+    final base = row.toDeliveryMap();
+    // Ensure the primary barcode key is always present for routing.
+    if (!base.containsKey('barcode_value') || base['barcode_value'] == null) {
+      base['barcode_value'] = row.barcode;
+    }
+    return base;
   }
 
   List<Widget> _buildActions(BuildContext context) {
-    // RULE: If status is 'osa', do not ever show update status button or actions here
+    // RULE: If status is 'osa', do not ever show update status button here.
     return switch (widget.status) {
       'pending' => [
         IconButton(
@@ -100,7 +95,6 @@ class _DeliveryStatusListScreenState
           onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
         ),
       ],
-      'osa' => [],
       _ => [],
     };
   }
@@ -115,7 +109,11 @@ class _DeliveryStatusListScreenState
 
   @override
   Widget build(BuildContext context) {
+    // Reload whenever a dispatch is accepted or a sync completes.
+    ref.listen<int>(deliveryRefreshProvider, (_, __) => _load());
+
     final isCompact = ref.watch(compactModeProvider);
+    final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
       appBar: AppHeaderBar(
@@ -123,12 +121,13 @@ class _DeliveryStatusListScreenState
         actions: _buildActions(context),
       ),
       body: RefreshIndicator(
-        onRefresh: () => _load(reset: true),
-        child: _loading && _items.isEmpty
+        onRefresh: _onRefresh,
+        child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _items.isEmpty
             ? ListView(
                 children: [
+                  if (!isOnline) const _LocalDataBanner(),
                   SizedBox(
                     height: 400,
                     child: EmptyState(message: _emptyMessage()),
@@ -138,14 +137,14 @@ class _DeliveryStatusListScreenState
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
+                  if (!isOnline) ...[const _LocalDataBanner(), const SizedBox(height: 4)],
                   if (widget.status == 'osa') ...[
                     const _OsaNoticeBanner(),
                     const SizedBox(height: 12),
                   ],
                   ..._items.map((d) {
                     final identifier = resolveDeliveryIdentifier(d);
-                    // RULE: If status is 'osa', all delivery card navigation is disabled
-                    // — no action required, pending admin review
+                    // RULE: If status is 'osa', navigation is disabled.
                     return DeliveryCard(
                       delivery: d,
                       compact: isCompact,
@@ -154,24 +153,46 @@ class _DeliveryStatusListScreenState
                           : () => context.push('/deliveries/$identifier'),
                     );
                   }),
-                  if (_page < _lastPage)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: OutlinedButton(
-                        onPressed: () {
-                          _page += 1;
-                          _load(reset: false);
-                        },
-                        child: const Text('LOAD MORE'),
-                      ),
-                    ),
                 ],
               ),
       ),
     );
   }
 }
+// ─── Offline local-data notice ─────────────────────────────────────────────
 
+class _LocalDataBanner extends StatelessWidget {
+  const _LocalDataBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(0, 12, 0, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200, width: 1.2),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, size: 15, color: Colors.orange.shade700),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Showing locally saved data',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 // ─── OSA read-only notice ─────────────────────────────────────────────────────
 
 class _OsaNoticeBanner extends StatelessWidget {

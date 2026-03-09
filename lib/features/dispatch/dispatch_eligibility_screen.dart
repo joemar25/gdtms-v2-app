@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -117,6 +118,23 @@ class _DispatchEligibilityScreenState
             result.message.toLowerCase().contains('already accepted'));
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
+      // Store the deliveries from the eligibility response into local SQLite.
+      // The eligibility payload already contains the full deliveries list:
+      // [{barcode_value, job_order, name, address, contact, product,
+      //   special_instruction, delivery_status}, ...]
+      final rawDeliveries = widget.eligibilityResponse['deliveries'];
+      if (rawDeliveries is List) {
+        final deliveries = rawDeliveries
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        if (deliveries.isNotEmpty) {
+          await LocalDeliveryDao.instance.insertAll(
+            deliveries,
+            dispatchCode: _resolvedPartialCode,
+          );
+        }
+      }
       ref.read(deliveryRefreshProvider.notifier).state++;
       setState(() {
         _showSuccess = true;

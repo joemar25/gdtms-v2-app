@@ -149,6 +149,22 @@ Use credentials provided privately by your team leads or secure vault. Do not co
 - `.documentation/TODO.md`
 - `.documentation/FRONTEND_STRUCTURE.md`
 
+## Future Enhancements
+
+### Sync Data Retention
+
+Synced delivery-update queue history is configurable per-courier in
+**Profile → Preferences → Sync history** (1, 3, or 5 days).
+Cleanup runs automatically at most once per calendar day on app launch.
+
+Possible future improvements:
+
+- [ ] Per-batch sync history grouping with labels and timestamps
+- [ ] Export sync history to CSV for operational audit trails
+- [ ] Configurable retention for local delivery records (currently fixed at `kLocalDataRetentionDays`)
+- [ ] Background periodic cleanup using WorkManager (Android) / BGTaskScheduler (iOS)
+- [ ] Push-notification digest of daily sync failures sent to a supervisor endpoint
+
 <!--
 REDACTED_TEST_NUMBER
 flutter clean - to

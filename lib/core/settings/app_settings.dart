@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:fsi_courier_app/core/constants.dart';
+
 const _autoAcceptKey = 'auto_accept_dispatch';
 const _darkModeKey = 'dark_mode';
 const _compactModeKey = 'compact_mode';
 const _followSystemThemeKey = 'follow_system_theme';
 const _themeModeKey = 'theme_mode';
+const _syncRetentionKey = 'sync_retention_days';
 
 final appSettingsProvider = Provider<AppSettings>((ref) => AppSettings());
 
@@ -69,5 +72,17 @@ class AppSettings {
     await prefs.setInt(_themeModeKey, mode.index);
     // Keep old key in sync so old code paths still work
     await prefs.setBool(_darkModeKey, mode == ThemeMode.dark);
+  }
+
+  /// Returns the number of days to retain synced delivery-update queue entries.
+  /// Defaults to [kDefaultSyncRetentionDays] (1 day) if unset.
+  Future<int> getSyncRetentionDays() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_syncRetentionKey) ?? kDefaultSyncRetentionDays;
+  }
+
+  Future<void> setSyncRetentionDays(int days) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_syncRetentionKey, days);
   }
 }

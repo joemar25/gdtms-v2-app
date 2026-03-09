@@ -14,7 +14,11 @@ import 'package:uuid/uuid.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/database/delivery_update_dao.dart';
+import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/models/delivery_update_entry.dart';
 import 'package:fsi_courier_app/core/models/photo_entry.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/features/delivery/signature_capture_screen.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
@@ -105,19 +109,31 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   }
 
   Future<void> _loadDelivery() async {
-    final result = await ref
-        .read(apiClientProvider)
-        .get<Map<String, dynamic>>(
-          '/deliveries/${widget.barcode}',
-          parser: parseApiMap,
-        );
+    // Try API first if online; fall back to local SQLite.
+    final isOnline = ref.read(isOnlineProvider);
+    if (isOnline) {
+      final result = await ref
+          .read(apiClientProvider)
+          .get<Map<String, dynamic>>(
+            '/deliveries/${widget.barcode}',
+            parser: parseApiMap,
+          );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      _delivery = mapFromKey(data, 'data');
+      if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
+        _delivery = mapFromKey(data, 'data');
+        setState(() => _loadingDelivery = false);
+        return;
+      }
     }
 
+    // Offline fallback.
+    final local = await LocalDeliveryDao.instance.getByBarcode(widget.barcode);
+    if (!mounted) return;
+    if (local != null) {
+      _delivery = local.toDeliveryMap();
+    }
     setState(() => _loadingDelivery = false);
   }
 
@@ -378,6 +394,36 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (_geoAccuracy != null) payload['geo_accuracy'] = _geoAccuracy;
     }
 
+    final isOnline = ref.read(isOnlineProvider);
+
+    if (!isOnline) {
+      // ── Offline path: queue for later sync ──────────────────────────────────
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final entry = DeliveryUpdateEntry(
+        barcode: widget.barcode,
+        payloadJson: jsonEncode(payload),
+        syncStatus: SyncStatus.pending,
+        attemptCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await DeliveryUpdateDao.instance.insert(entry);
+      // Optimistic local status update so the list reflects the change.
+      await LocalDeliveryDao.instance.updateStatus(widget.barcode, _status);
+
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ref.read(deliveryRefreshProvider.notifier).state++;
+      showAppSnackbar(
+        context,
+        'Saved offline. Will sync automatically when connected.',
+        type: SnackbarType.info,
+      );
+      context.go('/dashboard');
+      return;
+    }
+
+    // ── Online path: send to API directly ────────────────────────────────────
     final result = await ref
         .read(apiClientProvider)
         .patch<Map<String, dynamic>>(
@@ -389,8 +435,31 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     if (!mounted) return;
 
     switch (result) {
-      case ApiSuccess<Map<String, dynamic>>():
-        // Signal all delivery-watching screens to refresh
+      case ApiSuccess<Map<String, dynamic>>(:final data):
+        // Persist the server response in SQLite so offline reads stay accurate.
+        final deliveryData = data['data'];
+        if (deliveryData is Map<String, dynamic>) {
+          await LocalDeliveryDao.instance.updateFromJson(
+            widget.barcode,
+            deliveryData,
+          );
+        } else {
+          await LocalDeliveryDao.instance.updateStatus(widget.barcode, _status);
+        }
+        // Record a synced entry for history visibility in the Sync screen.
+        final now = DateTime.now().millisecondsSinceEpoch;
+        await DeliveryUpdateDao.instance.insert(
+          DeliveryUpdateEntry(
+            barcode: widget.barcode,
+            payloadJson: jsonEncode(payload),
+            syncStatus: SyncStatus.synced,
+            attemptCount: 1,
+            createdAt: now,
+            updatedAt: now,
+            syncedAt: now,
+          ),
+        );
+        // Signal all delivery-watching screens to refresh.
         ref.read(deliveryRefreshProvider.notifier).state++;
         setState(() => _success = true);
         return; // success overlay takes over; skip _loading = false below
@@ -728,44 +797,97 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  /// Returns true if the user has modified any form field from its initial
+  /// state. Used by the navigation guard to decide whether to show the
+  /// "Discard changes?" prompt.
+  bool get _isDirty =>
+      // changed status tab
+      _status != 'delivered' ||
+      // text fields
+      _recipient.text.isNotEmpty ||
+      _note.text.isNotEmpty ||
+      // dropdowns
+      _relationship != null ||
+      _reason != null ||
+      // photos / signature
+      _podPhoto != null ||
+      _selfiePhoto != null ||
+      _photos.isNotEmpty ||
+      _signatureBytes != null;
+
   @override
   Widget build(BuildContext context) {
     final bool needsReason = _status == 'rts' || _status == 'osa';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark
-          ? ColorStyles.grabCardDark
-          : ColorStyles.grabCardLight,
-      appBar: AppBar(
-        backgroundColor: isDark ? ColorStyles.grabCardDark : Colors.white,
-        elevation: 0,
-        titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'UPDATE STATUS',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.0,
-                color: isDark ? Colors.white : Colors.black,
-              ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        // Allow immediate back-navigation when nothing has changed or after
+        // a successful submit (SuccessOverlay is already showing).
+        if (!_isDirty || _success) {
+          if (mounted) context.pop();
+          return;
+        }
+        final leave = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Discard changes?'),
+            content: const Text(
+              'You have unsaved changes. Leave without submitting?',
             ),
-            Text(
-              widget.barcode,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.white54 : Colors.grey.shade500,
-                fontWeight: FontWeight.w500,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('STAY'),
               ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text(
+                  'DISCARD',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+        // ignore: use_build_context_synchronously
+        if (leave == true && mounted) context.pop();
+      },
+      child: Scaffold(
+        backgroundColor: isDark
+            ? ColorStyles.grabCardDark
+            : ColorStyles.grabCardLight,
+        appBar: AppBar(
+          backgroundColor: isDark ? ColorStyles.grabCardDark : Colors.white,
+          elevation: 0,
+          titleSpacing: 0,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'UPDATE STATUS',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.0,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              Text(
+                widget.barcode,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? Colors.white54 : Colors.grey.shade500,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ), // Column
+        ), // AppBar
+        bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: FilledButton.icon(
@@ -1368,6 +1490,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             ),
         ],
       ),
-    );
+    ), // Scaffold
+    ); // PopScope
   }
 }

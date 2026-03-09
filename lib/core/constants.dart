@@ -92,3 +92,15 @@ const List<Map<String, String>> kPlacementOptions = [
 ];
 
 const String kDeviceTypeLogin = 'flutter';
+
+/// Number of days that successfully synchronised delivery records are kept in
+/// SQLite before the cleanup service removes them.
+/// Adjust this value to balance local storage usage against review window.
+const int kLocalDataRetentionDays = 3;
+
+/// Default number of days to keep synced delivery-update queue entries.
+/// Couriers can change this in Profile → Preferences → Sync history.
+const int kDefaultSyncRetentionDays = 1;
+
+/// Maximum days a courier can configure for sync-queue history retention.
+const int kMaxSyncRetentionDays = 5;

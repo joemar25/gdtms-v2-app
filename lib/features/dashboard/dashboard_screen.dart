@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
-import 'package:fsi_courier_app/core/auth/auth_storage.dart';
+import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -46,31 +46,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!mounted) return;
     setState(() => _loading = true);
 
-    final api = ref.read(apiClientProvider);
+    final isOnline = ref.read(isOnlineProvider);
 
-    final summaryResult = await api.get<Map<String, dynamic>>(
-      '/dashboard-summary',
-      parser: parseApiMap,
-    );
+    if (isOnline) {
+      final api = ref.read(apiClientProvider);
+      final summaryResult = await api.get<Map<String, dynamic>>(
+        '/dashboard-summary',
+        parser: parseApiMap,
+      );
+
+      if (!mounted) return;
+
+      if (summaryResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
+        _summary = mapFromKey(data, 'data');
+        setState(() => _loading = false);
+        return;
+      }
+      // On any API failure fall through to the SQLite count fallback below.
+    }
 
     if (!mounted) return;
 
-    if (summaryResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      _summary = mapFromKey(data, 'data');
-    } else if (summaryResult is ApiNetworkError<Map<String, dynamic>>) {
-      await ref.read(authStorageProvider).clearAll();
-      await ref.read(authProvider.notifier).initialize();
-      if (mounted) {
-        context.go('/login');
-        showAppSnackbar(
-          context,
-          'Could not reach the server. Please check your connection and log in again.',
-          type: SnackbarType.error,
-        );
-      }
-    }
+    // Offline fallback: derive counts from local SQLite so the dashboard
+    // remains informative without a network connection.
+    final dao = LocalDeliveryDao.instance;
+    final pending = await dao.countByStatus('pending');
+    final delivered = await dao.countByStatus('delivered');
+    final rts = await dao.countByStatus('rts');
+    final osa = await dao.countByStatus('osa');
 
-    if (mounted) setState(() => _loading = false);
+    if (!mounted) return;
+
+    _summary = {
+      'pending_dispatches': 0, // cannot be derived locally
+      'pending_deliveries': pending,
+      'delivered_today': delivered,
+      'rts': rts,
+      'osa': osa,
+    };
+
+    setState(() => _loading = false);
   }
 
   @override

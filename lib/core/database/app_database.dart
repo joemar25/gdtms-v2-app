@@ -1,0 +1,74 @@
+import 'package:path/path.dart' as p;
+import 'package:sqflite/sqflite.dart';
+
+/// Singleton SQLite database instance for the FSI Courier app.
+///
+/// SQLite is used as a **temporary operational data store** only.
+/// The backend server remains the authoritative system.
+///
+/// Tables:
+/// - [local_deliveries]     — deliveries stored after dispatch acceptance.
+/// - [delivery_update_queue] — offline update queue pending sync to server.
+class AppDatabase {
+  AppDatabase._();
+
+  static Database? _instance;
+
+  /// Returns the open database, initializing it on first call.
+  static Future<Database> getInstance() async {
+    if (_instance != null && _instance!.isOpen) return _instance!;
+    _instance = await _open();
+    return _instance!;
+  }
+
+  static Future<Database> _open() async {
+    final dir = await getDatabasesPath();
+    final path = p.join(dir, 'fsi_courier.db');
+    return openDatabase(
+      path,
+      version: 1,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+  }
+
+  static Future<void> _onCreate(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE local_deliveries (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        barcode         TEXT    UNIQUE NOT NULL,
+        tracking_number TEXT,
+        recipient_name  TEXT,
+        delivery_address TEXT,
+        delivery_status  TEXT    NOT NULL DEFAULT 'pending',
+        mail_type        TEXT,
+        dispatch_code    TEXT,
+        raw_json         TEXT    NOT NULL,
+        created_at       INTEGER NOT NULL,
+        updated_at       INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE delivery_update_queue (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        barcode         TEXT    NOT NULL,
+        payload_json    TEXT    NOT NULL,
+        sync_status     TEXT    NOT NULL DEFAULT 'pending',
+        error_message   TEXT,
+        attempt_count   INTEGER NOT NULL DEFAULT 0,
+        created_at      INTEGER NOT NULL,
+        updated_at      INTEGER NOT NULL,
+        synced_at       INTEGER
+      )
+    ''');
+  }
+
+  static Future<void> _onUpgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    // Future schema migrations go here.
+  }
+}

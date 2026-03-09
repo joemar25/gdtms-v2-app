@@ -9,6 +9,8 @@ import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -27,6 +29,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _autoAccept = false;
+  int _syncRetentionDays = kDefaultSyncRetentionDays;
 
   // Device specs (loaded async)
   String _deviceModel = '…';
@@ -45,7 +48,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _loadSettings() async {
     final autoAccept =
         await ref.read(appSettingsProvider).getAutoAcceptDispatch();
-    if (mounted) setState(() => _autoAccept = autoAccept);
+    final retentionDays =
+        await ref.read(appSettingsProvider).getSyncRetentionDays();
+    if (mounted) {
+      setState(() {
+        _autoAccept = autoAccept;
+        _syncRetentionDays = retentionDays;
+      });
+    }
   }
 
   void _showSettingsUpdated() {
@@ -90,6 +100,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final authState = ref.watch(authProvider);
     final courier = authState.courier ?? {};
     final isCompact = ref.watch(compactModeProvider);
+    final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
       appBar: const AppHeaderBar(title: 'Profile'),
@@ -97,6 +108,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
+          if (!isOnline) const _OfflineBanner(),
+          if (!isOnline) const SizedBox(height: 16),
           // ── Courier Info ──────────────────────────────────────────────────
           _SectionHeader('Account'),
           _InfoCard(
@@ -183,7 +196,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   horizontal: 16,
                   vertical: 4,
                 ),
-                onChanged: (v) async {
+                onChanged: isOnline
+                    ? (v) async {
                   if (v) {
                     final ok = await ConfirmationDialog.show(
                       context,
@@ -201,7 +215,82 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       .setAutoAcceptDispatch(v);
                   setState(() => _autoAccept = v);
                   _showSettingsUpdated();
-                },
+                }
+                    : null,
+              ),
+              const Divider(height: 1, indent: 16),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.teal.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.history_rounded,
+                            color: Colors.teal,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sync history',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                'How long synced updates are kept before auto-removal.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  height: 1.4,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<int>(
+                        showSelectedIcon: false,
+                        segments: const [
+                          ButtonSegment(value: 1, label: Text('1 day')),
+                          ButtonSegment(value: 3, label: Text('3 days')),
+                          ButtonSegment(value: 5, label: Text('5 days')),
+                        ],
+                        selected: {_syncRetentionDays},
+                        style: ButtonStyle(
+                          textStyle: WidgetStateProperty.all(
+                            const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        onSelectionChanged: (val) async {
+                          await ref
+                              .read(appSettingsProvider)
+                              .setSyncRetentionDays(val.first);
+                          setState(() => _syncRetentionDays = val.first);
+                          _showSettingsUpdated();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -477,6 +566,59 @@ class _InfoTile extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Offline Banner ───────────────────────────────────────────────────────────────
+
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.orange.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "You're offline",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.orange,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Local preferences (theme, compact mode, auto-accept) still work. '
+                  'Dispatch scanning and data sync require an internet connection.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange.shade800,
+                    height: 1.4,
                   ),
                 ),
               ],
