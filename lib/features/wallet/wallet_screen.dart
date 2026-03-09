@@ -359,6 +359,7 @@ class _LatestRequestCard extends StatelessWidget {
     final amount = double.tryParse('${data['amount'] ?? 0}') ?? 0.0;
     final from = formatDate('${data['from_date'] ?? ''}');
     final to = formatDate('${data['to_date'] ?? ''}');
+    final dateLabel = (from == to) ? from : '$from – $to';
     final totalItems = data['total_items'];
 
     return Card(
@@ -396,7 +397,7 @@ class _LatestRequestCard extends StatelessWidget {
                 children: [
                   _InfoChip(
                     icon: Icons.calendar_today_outlined,
-                    label: '$from – $to',
+                    label: dateLabel,
                   ),
                   if (totalItems != null) ...[
                     const SizedBox(width: 10),
