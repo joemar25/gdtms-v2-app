@@ -26,7 +26,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -46,7 +46,8 @@ class AppDatabase {
         raw_json         TEXT    NOT NULL,
         created_at       INTEGER NOT NULL,
         updated_at       INTEGER NOT NULL,
-        paid_at          INTEGER
+        paid_at          INTEGER,
+        delivered_at     INTEGER
       )
     ''');
 
@@ -88,6 +89,39 @@ class AppDatabase {
       await db.execute(
         'ALTER TABLE local_deliveries ADD COLUMN paid_at INTEGER',
       );
+    }
+    if (oldVersion < 4) {
+      // v4: add delivered_at to local_deliveries.
+      // Set when a delivery transitions to the 'delivered' status so the
+      // dashboard offline count and the delivered list use the same
+      // today-only filter, matching the server's delivered_today figure.
+      await db.execute(
+        'ALTER TABLE local_deliveries ADD COLUMN delivered_at INTEGER',
+      );
+      // Backfill existing delivered records using updated_at as a proxy.
+      await db.execute(
+        "UPDATE local_deliveries SET delivered_at = updated_at "
+        "WHERE delivery_status = 'delivered' AND delivered_at IS NULL",
+      );
+    }
+    if (oldVersion < 5) {
+      // v5: guard migration — devices that had a fresh v4 install before the
+      // _onCreate fix landed are at version 4 but lack the delivered_at column.
+      // PRAGMA table_info lets us check safely; ALTER TABLE ADD COLUMN only
+      // runs when the column is missing.
+      final cols = await db.rawQuery(
+        'PRAGMA table_info(local_deliveries)',
+      );
+      final hasDeliveredAt = cols.any((c) => c['name'] == 'delivered_at');
+      if (!hasDeliveredAt) {
+        await db.execute(
+          'ALTER TABLE local_deliveries ADD COLUMN delivered_at INTEGER',
+        );
+        await db.execute(
+          "UPDATE local_deliveries SET delivered_at = updated_at "
+          "WHERE delivery_status = 'delivered'",
+        );
+      }
     }
   }
 

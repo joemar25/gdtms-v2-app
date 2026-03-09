@@ -28,6 +28,7 @@ import 'package:fsi_courier_app/features/delivery/widgets/delivery_recipient_car
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
+import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -231,8 +232,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     final bytes = await FlutterImageCompress.compressWithFile(
       picked.path,
-      minWidth: 800,
-      quality: 80,
+      minWidth: 600,
+      quality: 70,
       format: CompressFormat.jpeg,
     );
     if (bytes == null) return;
@@ -631,14 +632,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       await LocalDeliveryDao.instance.updateStatus(widget.barcode, _status);
 
       if (!mounted) return;
-      setState(() => _loading = false);
       ref.read(deliveryRefreshProvider.notifier).state++;
-      showAppSnackbar(
-        context,
-        'Saved offline. Will sync automatically when connected.',
-        type: SnackbarType.info,
-      );
-      context.go('/dashboard');
+      setState(() {
+        _loading = false;
+        _success = true;
+      });
       return;
     }
 
@@ -972,6 +970,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   Widget build(BuildContext context) {
     final bool needsReason = _status == 'rts' || _status == 'osa';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isOnline = ref.read(isOnlineProvider);
 
     return PopScope(
       canPop: false,
@@ -1070,6 +1069,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 : ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                     children: [
+                      // ── Offline Banner ────────────────────────────────────────
+                      if (!isOnline)
+                        const OfflineBanner(
+                          isMinimal: true,
+                          customMessage: 'Update queued—will submit when online',
+                          margin: EdgeInsets.only(bottom: 16),
+                        ),
                       // ── STATUS SELECTION ──────────────────────────────────────
                       const DeliverySectionHeader(label: 'SELECT STATUS'),
                       const SizedBox(height: 10),

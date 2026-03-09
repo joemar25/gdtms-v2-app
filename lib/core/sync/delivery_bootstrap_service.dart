@@ -79,7 +79,8 @@ class DeliveryBootstrapService {
         }
 
         // Parse pagination meta to know if there are more pages.
-        final meta = data['meta'];
+        // API v2.0 uses 'pagination' key; fall back to 'meta' for compatibility.
+        final meta = data['pagination'] ?? data['meta'];
         if (meta is Map<String, dynamic>) {
           lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
         } else {

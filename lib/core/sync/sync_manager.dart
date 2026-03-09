@@ -210,6 +210,25 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
             ];
             payload['delivery_images'] = merged;
           }
+
+          // Guard: if media was queued but nothing uploaded at all (not even a
+          // signature), abort the PATCH rather than creating a delivery record
+          // with no proof photos — the entry stays failed so it can be retried.
+          final hasSignature = payload.containsKey('recipient_signature');
+          if (pendingMedia.isNotEmpty &&
+              uploadedImages.isEmpty &&
+              !hasSignature) {
+            await DeliveryUpdateDao.instance.markFailed(
+              entry.id!,
+              'Media upload failed — no proof photos could be uploaded. Will retry on next sync.',
+            );
+            state = state.copyWith(
+              processed: state.processed + 1,
+              lastMessage:
+                  'Media upload failed for ${entry.barcode}. Will retry.',
+            );
+            continue;
+          }
         }
 
         final result = await _ref

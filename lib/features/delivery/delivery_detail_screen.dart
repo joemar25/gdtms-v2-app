@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -296,7 +295,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.08),
+                      color: Colors.grey.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -317,7 +316,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.blueGrey.withOpacity(0.08),
+                      color: Colors.blueGrey.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -367,7 +366,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               children: [
                 if (_isOfflineMode) const _OfflineBanner(),
                 Expanded(
-                  child: ListView(
+                  child: RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                     children: [
                       // ─ Recipient ────────────────────────────────────────────
@@ -385,14 +386,22 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                           _TappableRow(
                             label: 'Address',
                             value: _str('address'),
-                            onTap: () => _launchMaps(_str('address')),
-                            trailingIcon: Icons.map_outlined,
+                            onTap: status == 'delivered'
+                                ? null
+                                : () => _launchMaps(_str('address')),
+                            trailingIcon: status == 'delivered'
+                                ? null
+                                : Icons.map_outlined,
                           ),
                           _TappableRow(
                             label: 'Contact',
                             value: _str('contact'),
-                            onTap: () => _onPhoneTap(_str('contact')),
-                            trailingIcon: Icons.call_outlined,
+                            onTap: status == 'delivered'
+                                ? null
+                                : () => _onPhoneTap(_str('contact')),
+                            trailingIcon: status == 'delivered'
+                                ? null
+                                : Icons.call_outlined,
                           ),
                         ],
                       ),
@@ -443,12 +452,11 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         ],
                       ),
 
-                      // ─ History timeline (debug only) ─────────────────────
-                      if (kDebugMode) ...[
-                        const SizedBox(height: 12),
-                        _buildTimeline(),
-                      ],
+                      // ─ History timeline ──────────────────────────────────
+                      const SizedBox(height: 12),
+                      _buildTimeline(),
                     ],
+                  ),
                   ),
                 ),
               ],
@@ -492,7 +500,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -845,7 +853,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.15),
+                            color: Colors.orange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(

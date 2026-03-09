@@ -38,6 +38,7 @@ class DeliveryCard extends StatelessWidget {
             '')
         .toString();
     final color = statusColor(status);
+    final isPaid = delivery['_paid_at'] != null;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
 
@@ -97,6 +98,17 @@ class DeliveryCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                 ),
+                if (isPaid) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    'PAID',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.green.shade600,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -177,6 +189,29 @@ class DeliveryCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                    if (isPaid) ...[
+                      const SizedBox(height: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Text(
+                          'PAID',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.green.shade700,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ],

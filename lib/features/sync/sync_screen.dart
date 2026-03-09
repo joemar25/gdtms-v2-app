@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -99,7 +98,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
 
     return Scaffold(
       appBar: AppHeaderBar(
-        title: 'Sync',
+        title: 'History',
         actions: [
           if (isOnline)
             TextButton.icon(
@@ -113,21 +112,6 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                   : const Icon(Icons.cloud_download_outlined, size: 18),
               label: const Text('Reload', style: TextStyle(fontSize: 12)),
             ),
-          if (kDebugMode &&
-              syncState.entries.any((e) => e.syncStatus == SyncStatus.failed))
-            TextButton.icon(
-              onPressed: () =>
-                  ref.read(syncManagerProvider.notifier).clearFailed(),
-              icon: const Icon(
-                Icons.delete_forever_rounded,
-                size: 18,
-                color: Colors.red,
-              ),
-              label: const Text(
-                'Clear Failed',
-                style: TextStyle(color: Colors.red, fontSize: 12),
-              ),
-            ),
         ],
       ),
       body: Column(
@@ -136,10 +120,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
           Expanded(
             child: syncState.entries.isEmpty
                 ? _EmptyState(isSyncing: syncState.isSyncing)
-                : _EntryList(
-                    syncState: syncState,
-                    deliveries: _deliveries,
-                  ),
+                : _EntryList(syncState: syncState, deliveries: _deliveries),
           ),
         ],
       ),
@@ -242,10 +223,7 @@ class _SyncHeader extends StatelessWidget {
 // ── Entry List ────────────────────────────────────────────────────────────────
 
 class _EntryList extends ConsumerWidget {
-  const _EntryList({
-    required this.syncState,
-    required this.deliveries,
-  });
+  const _EntryList({required this.syncState, required this.deliveries});
 
   final SyncState syncState;
   final Map<String, LocalDelivery> deliveries;
@@ -265,10 +243,9 @@ class _EntryList extends ConsumerWidget {
           isSyncing:
               syncState.isSyncing && syncState.currentBarcode == entry.barcode,
           onRetry: entry.syncStatus == SyncStatus.failed
-              ? () =>
-                    ref
-                        .read(syncManagerProvider.notifier)
-                        .retrySingle(entry.id!)
+              ? () => ref
+                    .read(syncManagerProvider.notifier)
+                    .retrySingle(entry.id!)
               : null,
         );
       },
@@ -302,7 +279,8 @@ class _EntryTile extends StatelessWidget {
   }
 
   /// Extracts date fields from the local delivery's rawJson.
-  ({String deliveryDate, String transactionDate, String dispatchDate}) get _dates {
+  ({String deliveryDate, String transactionDate, String dispatchDate})
+  get _dates {
     if (delivery == null) {
       return (deliveryDate: '', transactionDate: '', dispatchDate: '');
     }
@@ -422,6 +400,8 @@ class _EntryTile extends StatelessWidget {
                         _Chip(mailType.toUpperCase()),
                       if (dispatchCode != null && dispatchCode.isNotEmpty)
                         _Chip(dispatchCode),
+                      if (delivery?.paidAt != null)
+                        const _ArchivedChip(),
                     ],
                   ),
 
@@ -558,16 +538,8 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg, label) = switch (status.toLowerCase()) {
-      'delivered' => (
-          Colors.green.shade50,
-          Colors.green.shade700,
-          'Delivered',
-        ),
-      'pending' => (
-          Colors.amber.shade50,
-          Colors.amber.shade800,
-          'Pending',
-        ),
+      'delivered' => (Colors.green.shade50, Colors.green.shade700, 'Delivered'),
+      'pending' => (Colors.amber.shade50, Colors.amber.shade800, 'Pending'),
       'rts' => (Colors.orange.shade50, Colors.orange.shade800, 'RTS'),
       'osa' => (Colors.purple.shade50, Colors.purple.shade700, 'OSA'),
       _ => (Colors.grey.shade100, Colors.grey.shade700, status.toUpperCase()),
@@ -614,6 +586,32 @@ class _Chip extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w600,
           color: Colors.grey.shade700,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Archived Chip ───────────────────────────────────────────────────────────────────────────────
+class _ArchivedChip extends StatelessWidget {
+  const _ArchivedChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.purple.shade200),
+      ),
+      child: Text(
+        'ARCHIVED',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: Colors.purple.shade700,
+          letterSpacing: 0.3,
         ),
       ),
     );

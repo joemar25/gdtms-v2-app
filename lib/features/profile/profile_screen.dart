@@ -21,6 +21,7 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -40,6 +41,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _deviceId = '…';
   String _sdkVersion = '…';
   bool _specsLoaded = false;
+  double _freeStorageGb = -1.0;
 
   @override
   void initState() {
@@ -48,11 +50,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _loadDeviceSpecs();
   }
 
+  Future<void> _refresh() async {
+    await Future.wait([_loadSettings(), _loadDeviceSpecs()]);
+  }
+
   Future<void> _loadSettings() async {
-    final autoAccept =
-        await ref.read(appSettingsProvider).getAutoAcceptDispatch();
-    final retentionDays =
-        await ref.read(appSettingsProvider).getSyncRetentionDays();
+    final autoAccept = await ref
+        .read(appSettingsProvider)
+        .getAutoAcceptDispatch();
+    final retentionDays = await ref
+        .read(appSettingsProvider)
+        .getSyncRetentionDays();
     if (mounted) {
       setState(() {
         _autoAccept = autoAccept;
@@ -68,16 +76,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _loadDeviceSpecs() async {
     final device = ref.read(deviceInfoProvider);
-    final model = await device.deviceModel;
-    final osVer = await device.osVersion;
-    final id = await device.deviceId;
-    final sdk = await device.sdkVersion;
+    final results = await Future.wait([
+      device.deviceModel,
+      device.osVersion,
+      device.deviceId,
+      device.sdkVersion,
+      device.getFreeStorageGb(),
+    ]);
     if (mounted) {
       setState(() {
-        _deviceModel = model;
-        _osVersion = osVer;
-        _deviceId = id;
-        _sdkVersion = sdk;
+        _deviceModel = results[0] as String;
+        _osVersion = results[1] as String;
+        _deviceId = results[2] as String;
+        _sdkVersion = results[3] as String;
+        _freeStorageGb = results[4] as double;
         _specsLoaded = true;
       });
     }
@@ -112,10 +124,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       extendBody: true,
       appBar: const AppHeaderBar(title: 'Profile'),
       bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/profile'),
-      body: ListView(
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
-          if (!isOnline) const _OfflineBanner(),
+          if (!isOnline) const OfflineBanner(),
           if (!isOnline) const SizedBox(height: 16),
           // ── Courier Info ──────────────────────────────────────────────────
           _SectionHeader('Account'),
@@ -205,24 +219,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 onChanged: isOnline
                     ? (v) async {
-                  if (v) {
-                    final ok = await ConfirmationDialog.show(
-                      context,
-                      title: 'Enable Auto-Accept?',
-                      subtitle:
-                          'Dispatches will be automatically accepted after scanning without manual confirmation. Only enable this if you are ready to receive all incoming dispatches.',
-                      confirmLabel: 'Enable',
-                      cancelLabel: 'Cancel',
-                      isDestructive: false,
-                    );
-                    if (ok != true || !mounted) return;
-                  }
-                  await ref
-                      .read(appSettingsProvider)
-                      .setAutoAcceptDispatch(v);
-                  setState(() => _autoAccept = v);
-                  _showSettingsUpdated();
-                }
+                        if (v) {
+                          final ok = await ConfirmationDialog.show(
+                            context,
+                            title: 'Enable Auto-Accept?',
+                            subtitle:
+                                'Dispatches will be automatically accepted after scanning without manual confirmation. Only enable this if you are ready to receive all incoming dispatches.',
+                            confirmLabel: 'Enable',
+                            cancelLabel: 'Cancel',
+                            isDestructive: false,
+                          );
+                          if (ok != true || !mounted) return;
+                        }
+                        await ref
+                            .read(appSettingsProvider)
+                            .setAutoAcceptDispatch(v);
+                        setState(() => _autoAccept = v);
+                        _showSettingsUpdated();
+                      }
                     : null,
               ),
               const Divider(height: 1, indent: 16),
@@ -431,6 +445,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
           // ── Device Specifications ────────────────────────────────────────
           _SectionHeader('Device Specifications'),
+          if (_specsLoaded && _freeStorageGb >= 0 && _freeStorageGb < 2.0)
+            _StorageBanner(freeStorageGb: _freeStorageGb),
+          if (_specsLoaded && _freeStorageGb >= 0 && _freeStorageGb < 2.0)
+            const SizedBox(height: 8),
           _InfoCard(
             children: [
               _InfoTile(
@@ -470,10 +488,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 label: 'SDK Version',
                 value: _specsLoaded ? _sdkVersion : '…',
               ),
+              const Divider(height: 1, indent: 56),
+              _InfoTile(
+                icon: Icons.sd_storage_outlined,
+                label: 'Available Storage',
+                value: _specsLoaded
+                    ? (_freeStorageGb >= 0
+                          ? '${_freeStorageGb.toStringAsFixed(1)} GB free'
+                          : 'Unavailable')
+                    : '…',
+                valueColor: _specsLoaded && _freeStorageGb >= 0
+                    ? (_freeStorageGb < 0.5
+                          ? Colors.red
+                          : _freeStorageGb < 2.0
+                          ? Colors.orange
+                          : null)
+                    : null,
+              ),
             ],
           ),
           const SizedBox(height: 32),
         ],
+      ),
       ),
     );
   }
@@ -540,11 +576,13 @@ class _InfoTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.valueColor,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
@@ -570,9 +608,10 @@ class _InfoTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
+                    color: valueColor,
                   ),
                 ),
               ],
@@ -584,51 +623,47 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
-// ─── Offline Banner ───────────────────────────────────────────────────────────────
+// ─── Storage Warning Banner ───────────────────────────────────────────────────
 
-class _OfflineBanner extends StatelessWidget {
-  const _OfflineBanner();
+class _StorageBanner extends StatelessWidget {
+  const _StorageBanner({required this.freeStorageGb});
+
+  final double freeStorageGb;
 
   @override
   Widget build(BuildContext context) {
+    final isCritical = freeStorageGb < 0.5;
+    final color = isCritical ? Colors.red : Colors.orange;
+    final freeMb = (freeStorageGb * 1024).round();
+    final valueLabel = isCritical
+        ? '$freeMb MB'
+        : '${freeStorageGb.toStringAsFixed(1)} GB';
+    final message = isCritical
+        ? 'Critical storage: $valueLabel remaining. Free up space to avoid sync failures.'
+        : 'Low storage: $valueLabel remaining. Consider freeing up space.';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.orange.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 20),
+          Icon(Icons.warning_amber_rounded, color: color, size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "You're offline",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.orange,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Local preferences (theme, compact mode, auto-accept) still work. '
-                  'Dispatch scanning and data sync require an internet connection.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.orange.shade800,
-                    height: 1.4,
-                  ),
-                ),
-              ],
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
             ),
           ),
         ],

@@ -1,15 +1,20 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class WalletScreen extends ConsumerStatefulWidget {
@@ -22,6 +27,9 @@ class WalletScreen extends ConsumerStatefulWidget {
 class _WalletScreenState extends ConsumerState<WalletScreen> {
   bool _loading = true;
   Map<String, dynamic> _data = {};
+  double _eligible = 0.0;
+
+  static const _earningsCacheKey = 'wallet_summary_cache';
 
   @override
   void initState() {
@@ -30,18 +38,62 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
+    setState(() => _loading = true);
+
+    // Load the full cached wallet snapshot first (offline-first fallback).
+    final prefs = await SharedPreferences.getInstance();
+    final cachedJson = prefs.getString(_earningsCacheKey);
+    Map<String, dynamic> cachedData = {};
+    double cachedEligible = 0.0;
+    if (cachedJson != null && cachedJson.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cachedJson) as Map<String, dynamic>;
+        cachedData = Map<String, dynamic>.from(decoded['summary'] as Map? ?? {});
+        cachedEligible = (decoded['eligible'] as num?)?.toDouble() ?? 0.0;
+      } catch (_) {}
+    }
+
     if (!ref.read(isOnlineProvider)) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        _data = cachedData;
+        _eligible = cachedEligible;
+        setState(() => _loading = false);
+      }
       return;
     }
-    final result = await ref
-        .read(apiClientProvider)
-        .get<Map<String, dynamic>>('/wallet-summary', parser: parseApiMap);
+
+    // Online: fetch summary and payment preview in parallel.
+    final api = ref.read(apiClientProvider);
+    final results = await Future.wait([
+      api.get<Map<String, dynamic>>('/wallet-summary', parser: parseApiMap),
+      api.get<Map<String, dynamic>>('/payment-request', parser: parseApiMap),
+    ]);
+
+    // Parse results and persist the full snapshot before the mounted check
+    // so the cache is always written even if the user navigated away.
+    Map<String, dynamic> newData = cachedData;
+    double newEligible = cachedEligible;
+
+    if (results[0] case ApiSuccess<Map<String, dynamic>>(:final data)) {
+      newData = mapFromKey(data, 'data');
+    }
+
+    if (results[1] case ApiSuccess<Map<String, dynamic>>(:final data)) {
+      final preview = mapFromKey(data, 'data');
+      newEligible = double.tryParse('${preview['estimated_net_payable'] ?? 0}') ?? 0.0;
+    }
+
+    // Persist the full snapshot as JSON — same pattern as courier data.
+    await prefs.setString(
+      _earningsCacheKey,
+      jsonEncode({'summary': newData, 'eligible': newEligible}),
+    );
 
     if (!mounted) return;
-    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      _data = mapFromKey(data, 'data');
-    }
+
+    _data = newData;
+    _eligible = newEligible;
     setState(() => _loading = false);
   }
 
@@ -78,6 +130,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
     final canRequestPayout = !isLatestPending && !requestedToday;
 
+    ref.listen<int>(walletRefreshProvider, (_, __) => _load());
+
     return Scaffold(
       extendBody: true,
       appBar: const AppHeaderBar(title: 'Wallet'),
@@ -90,40 +144,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
                   // ── Offline banner ─────────────────────────────────────
-                  if (!isOnline) ...[
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 14),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.orange.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.wifi_off_rounded,
-                            size: 14,
-                            color: Colors.orange.shade700,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'You\'re offline — only total earnings are shown.',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.orange.shade800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  if (!isOnline)
+                    const OfflineBanner(
+                      isMinimal: true,
+                      customMessage: 'You\'re offline — only total earnings are shown.',
+                      margin: EdgeInsets.only(bottom: 14),
                     ),
-                  ],
 
                   // ── Active 1-week window label (online only) ───────────
                   if (isOnline) ...[
@@ -165,6 +191,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   _EarningsCard(
                     earnings: earnings,
                     pending: pending,
+                    eligible: _eligible,
                     showPending: isOnline,
                   ),
                   const SizedBox(height: 20),
@@ -245,15 +272,18 @@ class _EarningsCard extends StatelessWidget {
   const _EarningsCard({
     required this.earnings,
     required this.pending,
-    this.showPending = true, // ← new param
+    this.eligible = 0.0,
+    this.showPending = true,
   });
 
   final dynamic earnings;
   final dynamic pending;
+  final double eligible;
   final bool showPending;
 
   @override
   Widget build(BuildContext context) {
+    final pendingAmt = double.tryParse('$pending') ?? 0.0;
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -299,39 +329,23 @@ class _EarningsCard extends StatelessWidget {
             ),
           ),
 
-          // ── Pending payout row — online only ──────────────────────────
-          if (showPending) ...[
+          // ── Pending payout rows — online only ─────────────────────────
+          if (showPending && (pendingAmt > 0 || eligible > 0)) ...[
             const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
+            if (pendingAmt > 0)
+              _payoutRow(
+                icon: Icons.schedule_rounded,
+                label: 'Pending payout',
+                amount: _fmt(pendingAmt),
               ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.schedule_rounded,
-                    color: Colors.white70,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Pending payout',
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '₱ ${_fmt(pending)}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
+            if (pendingAmt > 0 && eligible > 0)
+              const SizedBox(height: 8),
+            if (eligible > 0)
+              _payoutRow(
+                icon: Icons.arrow_circle_up_rounded,
+                label: 'Upcoming payout',
+                amount: _fmt(eligible),
               ),
-            ),
           ],
         ],
       ),
@@ -341,6 +355,36 @@ class _EarningsCard extends StatelessWidget {
   String _fmt(dynamic val) {
     final n = double.tryParse('$val') ?? 0.0;
     return n.toStringAsFixed(2);
+  }
+
+  Widget _payoutRow({
+    required IconData icon,
+    required String label,
+    required String amount,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white70, size: 16),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          const Spacer(),
+          Text(
+            '₱ $amount',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

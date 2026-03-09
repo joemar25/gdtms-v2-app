@@ -13,6 +13,7 @@ import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
+import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 
 /// A single list screen reused for every delivery status filter
 /// (pending, delivered, rts, osa).
@@ -48,7 +49,9 @@ class _DeliveryStatusListScreenState
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final rows = await LocalDeliveryDao.instance.getByStatus(widget.status);
+    final rows = widget.status == 'delivered'
+        ? await LocalDeliveryDao.instance.getVisibleDelivered()
+        : await LocalDeliveryDao.instance.getByStatus(widget.status);
     if (!mounted) return;
     setState(() {
       _items = rows.map(_toCardMap).toList();
@@ -76,6 +79,8 @@ class _DeliveryStatusListScreenState
     if (!base.containsKey('barcode_value') || base['barcode_value'] == null) {
       base['barcode_value'] = row.barcode;
     }
+    // Pass payout timestamp so DeliveryCard can show a PAID badge.
+    if (row.paidAt != null) base['_paid_at'] = row.paidAt;
     return base;
   }
 
@@ -128,7 +133,7 @@ class _DeliveryStatusListScreenState
             : _items.isEmpty
             ? ListView(
                 children: [
-                  if (!isOnline) const _LocalDataBanner(),
+                  if (!isOnline) const OfflineBanner(isMinimal: true),
                   SizedBox(
                     height: 400,
                     child: EmptyState(message: _emptyMessage()),
@@ -139,7 +144,7 @@ class _DeliveryStatusListScreenState
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
                   if (!isOnline) ...[
-                    const _LocalDataBanner(),
+                    const OfflineBanner(isMinimal: true),
                     const SizedBox(height: 4),
                   ],
                   if (widget.status == 'osa') ...[
@@ -165,40 +170,6 @@ class _DeliveryStatusListScreenState
                   }),
                 ],
               ),
-      ),
-    );
-  }
-}
-// ─── Offline local-data notice ─────────────────────────────────────────────
-
-class _LocalDataBanner extends StatelessWidget {
-  const _LocalDataBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(0, 12, 0, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200, width: 1.2),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.wifi_off_rounded, size: 15, color: Colors.orange.shade700),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Showing locally saved data',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.orange.shade800,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,11 +1,14 @@
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/config.dart';
 
-final deviceInfoProvider = Provider<DeviceInfoService>((ref) => DeviceInfoService());
+final deviceInfoProvider = Provider<DeviceInfoService>(
+  (ref) => DeviceInfoService(),
+);
 
 class DeviceInfoService {
   String get os => Platform.isAndroid ? 'android' : 'ios';
@@ -51,10 +54,21 @@ class DeviceInfoService {
     return 'Dart $dartVer \u00b7 iOS ${info.systemVersion}';
   }
 
+  /// Returns free device storage in GB, or -1.0 if unavailable.
+  Future<double> getFreeStorageGb() async {
+    try {
+      const channel = MethodChannel('fsi_courier/storage');
+      final result = await channel.invokeMethod<double>('getFreeDiskSpaceGb');
+      return result ?? -1.0;
+    } catch (_) {
+      return -1.0;
+    }
+  }
+
   Future<Map<String, dynamic>> toMap() async => {
-        'os': os,
-        'app_version': appVersion,
-        'device_model': await deviceModel,
-        'device_id': await deviceId,
-      };
+    'os': os,
+    'app_version': appVersion,
+    'device_model': await deviceModel,
+    'device_id': await deviceId,
+  };
 }

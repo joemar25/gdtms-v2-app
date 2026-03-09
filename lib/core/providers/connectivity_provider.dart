@@ -8,11 +8,12 @@ final connectivityStreamProvider = StreamProvider<List<ConnectivityResult>>(
 );
 
 /// A simple bool that is `true` when any non-none connectivity exists.
-/// Stays `true` while the stream is loading (optimistic default).
+/// Defaults to `false` while the stream is loading to support offline cold
+/// start — the stream updates to `true` within ~200ms if actually online.
 final isOnlineProvider = Provider<bool>((ref) {
   return ref.watch(connectivityStreamProvider).when(
     data: (results) => results.any((r) => r != ConnectivityResult.none),
-    loading: () => true,
-    error: (_, __) => true,
+    loading: () => false,
+    error: (_, __) => false,
   );
 });

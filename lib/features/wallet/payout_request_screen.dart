@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -157,6 +158,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     if (!mounted) return;
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
+      // Signal wallet to reload before navigating back.
+      ref.read(walletRefreshProvider.notifier).state++;
       showAppSnackbar(
         context,
         'Payout request submitted.',
@@ -168,6 +171,18 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           ? result.errors.values.first.first
           : null;
       setState(() => _error = firstError ?? result.message ?? 'Invalid input.');
+    } else if (result is ApiConflict<Map<String, dynamic>>) {
+      setState(
+        () => _error = result.message.isNotEmpty
+            ? result.message
+            : 'You have already submitted a payout request today.',
+      );
+    } else if (result is ApiServerError<Map<String, dynamic>>) {
+      setState(
+        () => _error = result.message.isNotEmpty
+            ? result.message
+            : 'Failed to submit payout request.',
+      );
     } else {
       showAppSnackbar(
         context,

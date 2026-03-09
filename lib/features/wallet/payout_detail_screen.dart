@@ -30,8 +30,18 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
   }
 
   void _markLocalDeliveriesAsPaid(Map<String, dynamic> data) {
-    final raw = data['daily_breakdown'];
-    if (raw is! List) return;
+    // API v2.0: daily_breakdown is { data: [...], meta: {} }
+    // API v1.x: daily_breakdown is a flat List
+    final rawBreakdown = data['daily_breakdown'];
+    final List<dynamic> raw;
+    if (rawBreakdown is List) {
+      raw = rawBreakdown;
+    } else if (rawBreakdown is Map<String, dynamic>) {
+      final inner = rawBreakdown['data'];
+      raw = inner is List ? inner : const [];
+    } else {
+      return;
+    }
     final barcodes = <String>[];
     for (final day in raw.whereType<Map<String, dynamic>>()) {
       final deliveries = day['deliveries'];
@@ -114,7 +124,9 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                 ],
               ),
             )
-          : ListView(
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
                 // ── Amount hero ──────────────────────────────────────────
@@ -248,13 +260,23 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                 // ── Daily breakdown ──────────────────────────────────────
                 ..._buildDailyBreakdown(context),
               ],
-            ),
-    );
+            ),            ),    );
   }
 
   List<Widget> _buildDailyBreakdown(BuildContext context) {
-    final raw = _data['daily_breakdown'];
-    if (raw is! List || raw.isEmpty) return [];
+    // API v2.0: daily_breakdown is { data: [...], meta: {} }
+    // API v1.x: daily_breakdown is a flat List
+    final rawBreakdown = _data['daily_breakdown'];
+    final List<dynamic> raw;
+    if (rawBreakdown is List) {
+      raw = rawBreakdown;
+    } else if (rawBreakdown is Map<String, dynamic>) {
+      final inner = rawBreakdown['data'];
+      raw = inner is List ? inner : const [];
+    } else {
+      return [];
+    }
+    if (raw.isEmpty) return [];
 
     final days = raw.whereType<Map<String, dynamic>>().toList();
     return [
@@ -345,22 +367,30 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(steps.length, (index) {
-          final step = steps[index];
-          final title = step['title'] as String;
-          final date = step['date'] as String;
-          final isDone = step['done'] as bool;
-          final isLast = index == steps.length - 1;
-          final isNextDone = !isLast && (steps[index + 1]['done'] as bool);
+      child: Column(
+        children: [
+          // Row 1: circles + connector lines, centered vertically
+          Row(
+            children: List.generate(steps.length, (index) {
+              final isDone = steps[index]['done'] as bool;
+              final isFirst = index == 0;
+              final isLast = index == steps.length - 1;
+              final isNextDone = !isLast && (steps[index + 1]['done'] as bool);
 
-          return Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              return Expanded(
+                child: Row(
                   children: [
+                    // Leading connector line (all steps except first)
+                    if (!isFirst)
+                      Expanded(
+                        child: Container(
+                          height: 2,
+                          color: isDone
+                              ? ColorStyles.grabGreen
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                    // Step circle (centered)
                     Container(
                       width: 20,
                       height: 20,
@@ -378,6 +408,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                             )
                           : null,
                     ),
+                    // Trailing connector line (all steps except last)
                     if (!isLast)
                       Expanded(
                         child: Container(
@@ -389,26 +420,48 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isDone ? textColor : Colors.grey.shade500,
-                  ),
+              );
+            }),
+          ),
+          const SizedBox(height: 8),
+          // Row 2: labels centered under each circle
+          Row(
+            children: List.generate(steps.length, (index) {
+              final step = steps[index];
+              final title = step['title'] as String;
+              final date = step['date'] as String;
+              final isDone = step['done'] as bool;
+
+              return Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDone ? textColor : Colors.grey.shade500,
+                      ),
+                    ),
+                    if (date.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        date,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                if (date.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    date,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                  ),
-                ],
-              ],
-            ),
-          );
-        }),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }

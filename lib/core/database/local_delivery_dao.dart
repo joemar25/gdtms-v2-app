@@ -44,11 +44,13 @@ class LocalDeliveryDao {
   /// Used for optimistic local updates when a rider submits offline.
   Future<void> updateStatus(String barcode, String status) async {
     final db = await _db;
+    final now = DateTime.now().millisecondsSinceEpoch;
     await db.update(
       'local_deliveries',
       {
         'delivery_status': status,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
+        'updated_at': now,
+        if (status == 'delivered') 'delivered_at': now,
       },
       where: 'barcode = ?',
       whereArgs: [barcode],
@@ -62,22 +64,58 @@ class LocalDeliveryDao {
     Map<String, dynamic> json,
   ) async {
     final db = await _db;
+    final status = json['delivery_status']?.toString() ?? 'pending';
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // Parse is_paid from the fresh API response (v2.0 field).
+    // Sentinel 1 = historically paid; only set when not already a real timestamp.
+    final isPaid = json['is_paid'] as bool? ?? false;
+
     await db.update(
       'local_deliveries',
       {
-        'delivery_status':
-            json['delivery_status']?.toString() ?? 'pending',
+        'delivery_status': status,
         'recipient_name':
             json['name']?.toString() ?? json['recipient_name']?.toString(),
         'delivery_address':
             json['address']?.toString() ??
             json['delivery_address']?.toString(),
         'raw_json': jsonEncode(json),
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
+        'updated_at': now,
       },
       where: 'barcode = ?',
       whereArgs: [barcode],
     );
+
+    // Update paid_at sentinel when API reports is_paid=true but local record
+    // has no real payout timestamp yet.
+    if (isPaid) {
+      await db.rawUpdate(
+        'UPDATE local_deliveries SET paid_at = COALESCE(NULLIF(paid_at, 0), 1) WHERE barcode = ? AND (paid_at IS NULL OR paid_at <= 1)',
+        [barcode],
+      );
+    }
+
+    // Preserve the original delivered_at — prefer the server's delivered_date,
+    // fall back to transaction_at, then now. COALESCE keeps the earlier value
+    // on subsequent syncs so the timestamp is never overwritten.
+    if (status == 'delivered') {
+      final dateStr =
+          json['delivered_date']?.toString() ??
+          json['transaction_at']?.toString();
+      int deliveredAt = now;
+      if (dateStr != null && dateStr.isNotEmpty) {
+        try {
+          deliveredAt = DateTime.parse(dateStr).millisecondsSinceEpoch;
+        } catch (_) {
+          deliveredAt = now;
+        }
+      }
+      await db.rawUpdate(
+        'UPDATE local_deliveries SET delivered_at = COALESCE(delivered_at, ?) WHERE barcode = ?',
+        [deliveredAt, barcode],
+      );
+    }
   }
 
   /// Inserts (or replaces) delivery items from the `GET /deliveries` API response.
@@ -114,7 +152,20 @@ class LocalDeliveryDao {
       if (delivery.barcode.isEmpty) continue;
       // Never overwrite a locally terminal record via bootstrap — the sync
       // queue (not the bootstrap) is responsible for reconciling those.
-      if (terminalBarcodes.contains(delivery.barcode)) continue;
+      // Exception: always correct delivered_at from the server's delivered_date
+      // so the today-filter works accurately (v4 migration may have stamped
+      // delivered_at = bootstrap-time for old items).
+      if (terminalBarcodes.contains(delivery.barcode)) {
+        if (delivery.deliveredAt != null) {
+          batch.update(
+            'local_deliveries',
+            {'delivered_at': delivery.deliveredAt},
+            where: "barcode = ? AND delivery_status = 'delivered'",
+            whereArgs: [delivery.barcode],
+          );
+        }
+        continue;
+      }
       batch.insert(
         'local_deliveries',
         delivery.toDb(),
@@ -163,6 +214,50 @@ class LocalDeliveryDao {
     return LocalDelivery.fromDb(rows.first);
   }
 
+  /// Returns delivered items whose [delivered_at] falls within today
+  /// (i.e. transaction_date / delivered_date from the server is today).
+  ///
+  /// Strictly bounded to [todayStart, tomorrowStart) so only deliveries
+  /// with an actual delivery date of today are shown.
+  Future<List<LocalDelivery>> getVisibleDelivered() async {
+    final db = await _db;
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final rows = await db.query(
+      'local_deliveries',
+      where:
+          "delivery_status = 'delivered' "
+          'AND delivered_at >= ? AND delivered_at < ?',
+      whereArgs: [todayStart, tomorrowStart],
+      orderBy: 'delivered_at DESC, created_at DESC',
+    );
+    return rows.map(LocalDelivery.fromDb).toList();
+  }
+
+  /// Returns the count of delivered items whose [delivered_at] is today.
+  /// Used by the dashboard offline fallback to match the server's
+  /// today-only [delivered_today] figure.
+  Future<int> countVisibleDelivered() async {
+    final db = await _db;
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final rows = await db.query(
+      'local_deliveries',
+      columns: ['id'],
+      where:
+          "delivery_status = 'delivered' "
+          'AND delivered_at >= ? AND delivered_at < ?',
+      whereArgs: [todayStart, tomorrowStart],
+    );
+    return rows.length;
+  }
+
   /// Deletes ALL rows from [local_deliveries].
   /// Used by [DeliveryBootstrapService.clearAndSyncFromApi] to force a fresh
   /// load from the server (e.g. "Reload from Server" action on Sync screen).
@@ -187,7 +282,7 @@ class LocalDeliveryDao {
       batch.update(
         'local_deliveries',
         {'paid_at': now},
-        where: 'barcode = ? AND paid_at IS NULL',
+        where: 'barcode = ? AND (paid_at IS NULL OR paid_at <= 1)',
         whereArgs: [barcode],
       );
     }

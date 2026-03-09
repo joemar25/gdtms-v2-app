@@ -16,7 +16,7 @@ Courier mobile application for dispatch, delivery updates (POD), wallet, and pro
 Project follows a feature-first structure with shared core infrastructure:
 
 - `lib/core`: config, constants, auth, API client, settings, device, models
-- `lib/features`: auth, dashboard, dispatch, delivery, wallet, profile
+- `lib/features`: auth, dashboard, dispatch, delivery, wallet, profile, notifications
 - `lib/shared`: reusable widgets, helpers, router
 
 Main app flow:
@@ -24,6 +24,10 @@ Main app flow:
 1. `main.dart` boots app and sets initial route based on auth state.
 2. `app.dart` hosts `MaterialApp.router` and theme mode binding.
 3. `shared/router/app_router.dart` handles route table and route protection.
+
+## Documentation
+
+- [Delivery Retention Rules & API v2.0](docs/mobile-delivery-retention.md)
 
 ## Key Features
 
@@ -100,22 +104,24 @@ build/run time via `--dart-define` or `--dart-define-from-file`.
 
 ### Available keys
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `API_BASE_URL` | `http://YOUR_API_BASE_URL/api/mbl` | Backend API base URL |
-| `USE_S3_UPLOAD` | `false` | `true` to upload media directly to S3 instead of via the API |
-| `AWS_ACCESS_KEY_ID` | _(empty)_ | AWS IAM key ID — required when `USE_S3_UPLOAD=true` |
-| `AWS_SECRET_ACCESS_KEY` | _(empty)_ | AWS IAM secret — required when `USE_S3_UPLOAD=true` |
-| `AWS_REGION` | `ap-southeast-1` | S3 bucket region |
-| `AWS_BUCKET` | `REDACTED_BUCKET_NAME` | S3 bucket name |
+| Key                     | Default                           | Description                                                  |
+| ----------------------- | --------------------------------- | ------------------------------------------------------------ |
+| `API_BASE_URL`          | `http://YOUR_API_BASE_URL/api/mbl` | Backend API base URL                                         |
+| `USE_S3_UPLOAD`         | `false`                           | `true` to upload media directly to S3 instead of via the API |
+| `AWS_ACCESS_KEY_ID`     | _(empty)_                         | AWS IAM key ID — required when `USE_S3_UPLOAD=true`          |
+| `AWS_SECRET_ACCESS_KEY` | _(empty)_                         | AWS IAM secret — required when `USE_S3_UPLOAD=true`          |
+| `AWS_REGION`            | `ap-southeast-1`                  | S3 bucket region                                             |
+| `AWS_BUCKET`            | `REDACTED_BUCKET_NAME`        | S3 bucket name                                               |
 
 ### Media upload modes
 
 **API mode** (`USE_S3_UPLOAD=false`, default)
+
 - App POSTs `{ file_data, mime_type, type }` JSON to `/deliveries/{barcode}/media`.
 - Server handles S3 storage and returns the object URL.
 
 **S3 direct mode** (`USE_S3_UPLOAD=true`)
+
 - App signs and PUTs the image directly to S3 using AWS Signature V4.
 - S3 key structure: `deliveries/{barcode}/images/{type}_{timestamp}.{ext}`
 - No PHP upload buffering; the URL is returned immediately and included in the PATCH.

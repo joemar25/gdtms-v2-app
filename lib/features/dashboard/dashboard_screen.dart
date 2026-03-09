@@ -52,6 +52,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       final api = ref.read(apiClientProvider);
       final summaryResult = await api.get<Map<String, dynamic>>(
         '/dashboard-summary',
+        queryParameters: {'paid': 'all'},
         parser: parseApiMap,
       );
 
@@ -71,7 +72,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // remains informative without a network connection.
     final dao = LocalDeliveryDao.instance;
     final pending = await dao.countByStatus('pending');
-    final delivered = await dao.countByStatus('delivered');
+    final delivered = await dao.countVisibleDelivered();
     final rts = await dao.countByStatus('rts');
     final osa = await dao.countByStatus('osa');
 
@@ -211,13 +212,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: _StatCard(
-                          label: 'SYNC',
+                          label: 'Sync',
                           count: '',
-                          icon: Icons.sync_rounded,
+                          icon: Icons.history_rounded,
                           color: Colors.blueGrey,
-                          onTap: () => context.push('/sync'),
+                          onTap: () => context.push('/history'),
                           subdued: true,
-                        details: 'Offline to online sync.',
+                          details: 'Delivery update history.',
                         ),
                       ),
                     ],

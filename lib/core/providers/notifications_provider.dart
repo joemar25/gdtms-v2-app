@@ -1,0 +1,246 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+
+// ─── Model ────────────────────────────────────────────────────────────────────
+
+class AppNotification {
+  const AppNotification({
+    required this.id,
+    required this.type,
+    required this.message,
+    this.transactionReference,
+    this.deliveryReferences = const [],
+    this.amount,
+    required this.date,
+    required this.read,
+    this.readAt,
+  });
+
+  final String id;
+  final String type;
+  final String message;
+  final String? transactionReference;
+  final List<String> deliveryReferences;
+  final double? amount;
+  final String date;
+  final bool read;
+  final String? readAt;
+
+  factory AppNotification.fromJson(Map<String, dynamic> json) {
+    final refs = json['delivery_references'];
+    return AppNotification(
+      id: json['id']?.toString() ?? '',
+      type: json['type']?.toString() ?? '',
+      message: json['message']?.toString() ?? '',
+      transactionReference: json['transaction_reference']?.toString(),
+      deliveryReferences: refs is List
+          ? refs.map((e) => e.toString()).toList()
+          : const [],
+      amount: json['amount'] != null
+          ? double.tryParse('${json['amount']}')
+          : null,
+      date: json['date']?.toString() ?? '',
+      read: json['read'] as bool? ?? false,
+      readAt: json['read_at']?.toString(),
+    );
+  }
+
+  AppNotification copyWith({bool? read, String? readAt}) {
+    return AppNotification(
+      id: id,
+      type: type,
+      message: message,
+      transactionReference: transactionReference,
+      deliveryReferences: deliveryReferences,
+      amount: amount,
+      date: date,
+      read: read ?? this.read,
+      readAt: readAt ?? this.readAt,
+    );
+  }
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+
+class NotificationsState {
+  const NotificationsState({
+    this.entries = const [],
+    this.unreadCount = 0,
+    this.loading = false,
+    this.loadingMore = false,
+    this.currentPage = 0,
+    this.lastPage = 1,
+  });
+
+  final List<AppNotification> entries;
+  final int unreadCount;
+  final bool loading;
+  final bool loadingMore;
+  final int currentPage;
+  final int lastPage;
+
+  bool get hasMore => currentPage < lastPage;
+
+  NotificationsState copyWith({
+    List<AppNotification>? entries,
+    int? unreadCount,
+    bool? loading,
+    bool? loadingMore,
+    int? currentPage,
+    int? lastPage,
+  }) {
+    return NotificationsState(
+      entries: entries ?? this.entries,
+      unreadCount: unreadCount ?? this.unreadCount,
+      loading: loading ?? this.loading,
+      loadingMore: loadingMore ?? this.loadingMore,
+      currentPage: currentPage ?? this.currentPage,
+      lastPage: lastPage ?? this.lastPage,
+    );
+  }
+}
+
+// ─── Notifier ─────────────────────────────────────────────────────────────────
+
+class NotificationsNotifier extends StateNotifier<NotificationsState> {
+  NotificationsNotifier(this._ref) : super(const NotificationsState());
+
+  final Ref _ref;
+
+  ApiClient get _api => _ref.read(apiClientProvider);
+
+  /// Loads page 1 and replaces the current list.
+  Future<void> load() async {
+    state = state.copyWith(loading: true);
+
+    final result = await _api.get<Map<String, dynamic>>(
+      '/notifications',
+      queryParameters: {'page': 1, 'per_page': 20},
+      parser: parseApiMap,
+    );
+
+    if (!mounted) return;
+
+    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
+      final rawList = data['data'];
+      final entries = rawList is List
+          ? rawList
+              .whereType<Map<String, dynamic>>()
+              .map(AppNotification.fromJson)
+              .toList()
+          : <AppNotification>[];
+      final meta = asStringDynamicMap(data['meta']);
+      final lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
+      final unreadCount =
+          (data['unread_count'] as num?)?.toInt() ?? state.unreadCount;
+
+      state = state.copyWith(
+        entries: entries,
+        unreadCount: unreadCount,
+        loading: false,
+        currentPage: 1,
+        lastPage: lastPage,
+      );
+    } else {
+      state = state.copyWith(loading: false);
+    }
+  }
+
+  /// Appends the next page to the existing list.
+  Future<void> loadMore() async {
+    if (!state.hasMore || state.loadingMore) return;
+    state = state.copyWith(loadingMore: true);
+
+    final nextPage = state.currentPage + 1;
+    final result = await _api.get<Map<String, dynamic>>(
+      '/notifications',
+      queryParameters: {'page': nextPage, 'per_page': 20},
+      parser: parseApiMap,
+    );
+
+    if (!mounted) return;
+
+    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
+      final rawList = data['data'];
+      final more = rawList is List
+          ? rawList
+              .whereType<Map<String, dynamic>>()
+              .map(AppNotification.fromJson)
+              .toList()
+          : <AppNotification>[];
+      final meta = asStringDynamicMap(data['meta']);
+      final lastPage = (meta['last_page'] as num?)?.toInt() ?? state.lastPage;
+
+      state = state.copyWith(
+        entries: [...state.entries, ...more],
+        loadingMore: false,
+        currentPage: nextPage,
+        lastPage: lastPage,
+      );
+    } else {
+      state = state.copyWith(loadingMore: false);
+    }
+  }
+
+  /// Fetches only the unread count — lightweight call for badge display.
+  Future<void> loadUnreadCount() async {
+    final result = await _api.get<Map<String, dynamic>>(
+      '/notifications/unread-count',
+      parser: parseApiMap,
+    );
+    if (!mounted) return;
+    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
+      final count = (data['count'] as num?)?.toInt() ?? state.unreadCount;
+      state = state.copyWith(unreadCount: count);
+    }
+  }
+
+  /// Marks a single notification as read locally and persists to the server.
+  Future<void> markAsRead(String id) async {
+    // Optimistic local update.
+    final updated = state.entries.map((n) {
+      return n.id == id ? n.copyWith(read: true, readAt: DateTime.now().toIso8601String()) : n;
+    }).toList();
+    final wasUnread = state.entries.any((n) => n.id == id && !n.read);
+    state = state.copyWith(
+      entries: updated,
+      unreadCount: wasUnread
+          ? (state.unreadCount - 1).clamp(0, double.maxFinite.toInt())
+          : state.unreadCount,
+    );
+
+    await _api.post<Map<String, dynamic>>(
+      '/notifications/$id/mark-as-read',
+      parser: parseApiMap,
+    );
+  }
+
+  /// Marks all notifications as read locally and persists to the server.
+  Future<void> markAllAsRead() async {
+    final updated = state.entries
+        .map((n) => n.copyWith(read: true, readAt: DateTime.now().toIso8601String()))
+        .toList();
+    state = state.copyWith(entries: updated, unreadCount: 0);
+
+    await _api.post<Map<String, dynamic>>(
+      '/notifications/mark-all-as-read',
+      parser: parseApiMap,
+    );
+  }
+}
+
+// ─── Providers ────────────────────────────────────────────────────────────────
+
+final notificationsProvider =
+    StateNotifierProvider<NotificationsNotifier, NotificationsState>(
+      (ref) => NotificationsNotifier(ref),
+    );
+
+/// Derived provider — exposes only the unread count for badge display.
+/// Components that only need the badge watch this instead of the full state.
+final notificationsUnreadCountProvider = Provider<int>(
+  (ref) => ref.watch(notificationsProvider).unreadCount,
+);

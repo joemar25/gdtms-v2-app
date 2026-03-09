@@ -17,6 +17,8 @@ class LocalDelivery {
     required this.rawJson,
     required this.createdAt,
     required this.updatedAt,
+    this.paidAt,
+    this.deliveredAt,
   });
 
   final int? id;
@@ -32,6 +34,10 @@ class LocalDelivery {
   final String rawJson;
   final int createdAt;
   final int updatedAt;
+  /// Millisecond timestamp when this delivery was part of a paid payout.
+  final int? paidAt;
+  /// Millisecond timestamp when this delivery transitioned to [delivered] status.
+  final int? deliveredAt;
 
   // ── Factories ─────────────────────────────────────────────────────────────
 
@@ -87,17 +93,39 @@ class LocalDelivery {
         _str(json, 'tracking_number') ??
         '';
 
+    final status = _str(json, 'delivery_status') ?? 'pending';
+
+    // Derive deliveredAt from server-provided date fields when available.
+    int? deliveredAt;
+    if (status == 'delivered') {
+      final dateStr =
+          _str(json, 'delivered_date') ?? _str(json, 'transaction_at');
+      if (dateStr != null) {
+        try {
+          deliveredAt = DateTime.parse(dateStr).millisecondsSinceEpoch;
+        } catch (_) {
+          deliveredAt = now;
+        }
+      } else {
+        deliveredAt = now;
+      }
+    }
+
     return LocalDelivery(
       barcode: barcode,
       trackingNumber: _str(json, 'tracking_number') ?? _str(json, 'job_order'),
       recipientName: _str(json, 'recipient_name') ?? _str(json, 'name'),
       deliveryAddress: _str(json, 'delivery_address') ?? _str(json, 'address'),
-      deliveryStatus: _str(json, 'delivery_status') ?? 'pending',
+      deliveryStatus: status,
       mailType: _str(json, 'mail_type') ?? _str(json, 'product'),
       dispatchCode: dispatchCode,
       rawJson: jsonEncode(json),
       createdAt: now,
       updatedAt: now,
+      // Sentinel 1ms = "paid historically" — shows PAID badge, excluded from
+      // the today-visible delivered list until next-day cleanup applies.
+      paidAt: (json['is_paid'] as bool? ?? false) ? 1 : null,
+      deliveredAt: deliveredAt,
     );
   }
 
@@ -115,6 +143,8 @@ class LocalDelivery {
       rawJson: row['raw_json'] as String,
       createdAt: row['created_at'] as int,
       updatedAt: row['updated_at'] as int,
+      paidAt: row['paid_at'] as int?,
+      deliveredAt: row['delivered_at'] as int?,
     );
   }
 
@@ -132,6 +162,8 @@ class LocalDelivery {
     'raw_json': rawJson,
     'created_at': createdAt,
     'updated_at': updatedAt,
+    if (paidAt != null) 'paid_at': paidAt,
+    if (deliveredAt != null) 'delivered_at': deliveredAt,
   };
 
   /// Decodes [rawJson] back into the delivery map consumed by UI widgets
@@ -152,6 +184,8 @@ class LocalDelivery {
     String? deliveryStatus,
     String? rawJson,
     int? updatedAt,
+    int? paidAt,
+    int? deliveredAt,
   }) {
     return LocalDelivery(
       id: id,
@@ -165,6 +199,8 @@ class LocalDelivery {
       rawJson: rawJson ?? this.rawJson,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      paidAt: paidAt ?? this.paidAt,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
     );
   }
 

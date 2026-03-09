@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import 'package:fsi_courier_app/shared/widgets/notification_widget.dart';
+import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
 
 /// A drop-in replacement for [AppBar] that always includes a notification
-/// bell icon in the trailing position.
+/// bell icon in the trailing position with an unread-count badge.
 /// - [actions]: appear **before** the notification bell.
 /// - [trailingActions]: appear **after** the notification bell.
-class AppHeaderBar extends StatelessWidget implements PreferredSizeWidget {
+class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   const AppHeaderBar({
     super.key,
     required this.title,
@@ -29,7 +31,9 @@ class AppHeaderBar extends StatelessWidget implements PreferredSizeWidget {
       Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(notificationsUnreadCountProvider);
+
     return AppBar(
       title: Text(title),
       leading: leading,
@@ -37,10 +41,14 @@ class AppHeaderBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: backgroundColor,
       actions: [
         ...(actions ?? []),
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined),
-          tooltip: 'Notifications',
-          onPressed: () => NotificationWidget.showSheet(context),
+        Badge(
+          isLabelVisible: unreadCount > 0,
+          label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+          child: IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
+            onPressed: () => context.push('/notifications'),
+          ),
         ),
         ...(trailingActions ?? []),
         const SizedBox(width: 4),

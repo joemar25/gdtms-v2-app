@@ -117,7 +117,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(isDark ? 0.25 : 0.06),
+                              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
                               blurRadius: 16,
                               offset: const Offset(0, 4),
                             ),
