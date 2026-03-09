@@ -173,17 +173,59 @@ class LocalDeliveryDao {
 
   // ── Cleanup ───────────────────────────────────────────────────────────────
 
+  /// Marks the given [barcodes] as paid by setting [paid_at] to now.
+  ///
+  /// Called when a payout request transitions to the "paid" status so that
+  /// the cleanup service can apply the shorter [kPaidDeliveryRetentionDays]
+  /// window to these records instead of the standard [kLocalDataRetentionDays].
+  Future<void> markAsPaid(List<String> barcodes) async {
+    if (barcodes.isEmpty) return;
+    final db = await _db;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final batch = db.batch();
+    for (final barcode in barcodes) {
+      batch.update(
+        'local_deliveries',
+        {'paid_at': now},
+        where: 'barcode = ? AND paid_at IS NULL',
+        whereArgs: [barcode],
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
   /// Deletes completed delivery records older than [retentionMs] milliseconds.
   /// Only `delivered`, `rts`, and `osa` records are eligible.
   /// `pending` records are never deleted.
-  Future<void> deleteOldSynced(int retentionMs) async {
+  ///
+  /// Privacy rule — paid deliveries use a shorter window ([paidRetentionMs]):
+  /// once a delivery belongs to a paid payout ([paid_at] IS NOT NULL) it is
+  /// kept for only [kPaidDeliveryRetentionDays] day before deletion, regardless
+  /// of the standard [retentionMs].
+  Future<void> deleteOldSynced(int retentionMs, {required int paidRetentionMs}) async {
     final db = await _db;
-    final cutoff = DateTime.now().millisecondsSinceEpoch - retentionMs;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final cutoff = now - retentionMs;
+    final paidCutoff = now - paidRetentionMs;
+
+    // Delete standard (unpaid) completed records past standard retention.
     await db.delete(
       'local_deliveries',
       where:
-          "delivery_status IN ('delivered', 'rts', 'osa') AND updated_at < ?",
+          "delivery_status IN ('delivered', 'rts', 'osa') "
+          "AND paid_at IS NULL "
+          "AND updated_at < ?",
       whereArgs: [cutoff],
+    );
+
+    // Delete paid records past the shorter paid retention window.
+    await db.delete(
+      'local_deliveries',
+      where:
+          "delivery_status IN ('delivered', 'rts', 'osa') "
+          "AND paid_at IS NOT NULL "
+          "AND paid_at < ?",
+      whereArgs: [paidCutoff],
     );
   }
 }

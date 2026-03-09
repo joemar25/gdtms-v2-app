@@ -326,9 +326,14 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
           .getSyncRetentionDays();
       final syncMs = retentionDays * Duration.millisecondsPerDay;
       const deliveryMs = kLocalDataRetentionDays * Duration.millisecondsPerDay;
+      const paidDeliveryMs =
+          kPaidDeliveryRetentionDays * Duration.millisecondsPerDay;
       await Future.wait([
         DeliveryUpdateDao.instance.deleteOldSynced(syncMs),
-        LocalDeliveryDao.instance.deleteOldSynced(deliveryMs),
+        LocalDeliveryDao.instance.deleteOldSynced(
+          deliveryMs,
+          paidRetentionMs: paidDeliveryMs,
+        ),
       ]);
     } catch (_) {
       // Cleanup failures are non-critical — silently ignored.

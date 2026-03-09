@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -28,6 +29,24 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     _load();
   }
 
+  void _markLocalDeliveriesAsPaid(Map<String, dynamic> data) {
+    final raw = data['daily_breakdown'];
+    if (raw is! List) return;
+    final barcodes = <String>[];
+    for (final day in raw.whereType<Map<String, dynamic>>()) {
+      final deliveries = day['deliveries'];
+      if (deliveries is! List) continue;
+      for (final d in deliveries.whereType<Map<String, dynamic>>()) {
+        final barcode =
+            (d['barcode_value'] ?? d['barcode'])?.toString() ?? '';
+        if (barcode.isNotEmpty) barcodes.add(barcode);
+      }
+    }
+    if (barcodes.isNotEmpty) {
+      LocalDeliveryDao.instance.markAsPaid(barcodes);
+    }
+  }
+
   Future<void> _load() async {
     final result = await ref
         .read(apiClientProvider)
@@ -39,6 +58,12 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     if (!mounted) return;
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       _data = mapFromKey(data, 'data');
+      // Privacy rule: if payout is paid, mark all associated delivered records
+      // with paid_at so the cleanup service applies the shorter 1-day retention
+      // (kPaidDeliveryRetentionDays) instead of the standard window.
+      if ((_data['status'] as String?)?.toLowerCase() == 'paid') {
+        _markLocalDeliveriesAsPaid(_data);
+      }
     } else if (result is ApiServerError<Map<String, dynamic>>) {
       _notFound = result.message.isNotEmpty
           ? result.message

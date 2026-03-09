@@ -98,6 +98,17 @@ const String kDeviceTypeLogin = 'flutter';
 /// Adjust this value to balance local storage usage against review window.
 const int kLocalDataRetentionDays = 3;
 
+/// Number of days a **paid** delivery record is retained in SQLite after its
+/// payout is marked as paid, before the cleanup service permanently deletes it.
+///
+/// Privacy rule: once a courier's payout is paid, the associated delivered
+/// records no longer need a long review window. They are purged after 1 day
+/// to minimise the personal data stored on the device.
+///
+/// This value intentionally overrides [kLocalDataRetentionDays] for records
+/// where [local_deliveries.paid_at] is non-null.
+const int kPaidDeliveryRetentionDays = 1;
+
 /// Default number of days to keep synced delivery-update queue entries.
 /// Couriers can change this in Profile → Preferences → Sync history.
 const int kDefaultSyncRetentionDays = 1;

@@ -37,7 +37,8 @@ class CleanupService {
   ///
   /// [syncRetentionDays] controls sync-queue history (defaults to
   /// [kDefaultSyncRetentionDays]). Local delivery records always use
-  /// [kLocalDataRetentionDays].
+  /// [kLocalDataRetentionDays], except for records that have been paid —
+  /// those use the shorter [kPaidDeliveryRetentionDays] window for privacy.
   ///
   /// It is safe to call this at any time; pending data is never touched.
   Future<void> run({int? syncRetentionDays}) async {
@@ -45,9 +46,14 @@ class CleanupService {
         (syncRetentionDays ?? kDefaultSyncRetentionDays) *
         Duration.millisecondsPerDay;
     final deliveryMs = kLocalDataRetentionDays * Duration.millisecondsPerDay;
+    const paidDeliveryMs =
+        kPaidDeliveryRetentionDays * Duration.millisecondsPerDay;
     await Future.wait([
       DeliveryUpdateDao.instance.deleteOldSynced(syncMs),
-      LocalDeliveryDao.instance.deleteOldSynced(deliveryMs),
+      LocalDeliveryDao.instance.deleteOldSynced(
+        deliveryMs,
+        paidRetentionMs: paidDeliveryMs,
+      ),
     ]);
   }
 }

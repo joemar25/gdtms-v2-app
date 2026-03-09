@@ -26,7 +26,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -45,7 +45,8 @@ class AppDatabase {
         dispatch_code    TEXT,
         raw_json         TEXT    NOT NULL,
         created_at       INTEGER NOT NULL,
-        updated_at       INTEGER NOT NULL
+        updated_at       INTEGER NOT NULL,
+        paid_at          INTEGER
       )
     ''');
 
@@ -76,6 +77,16 @@ class AppDatabase {
       // current user (safe because logout already cleared foreign-user rows).
       await db.execute(
         'ALTER TABLE delivery_update_queue ADD COLUMN courier_id TEXT',
+      );
+    }
+    if (oldVersion < 3) {
+      // v3: add paid_at to local_deliveries.
+      // Once a delivery is part of a paid payout, paid_at is set to the
+      // timestamp when the payout was marked paid. The cleanup service uses
+      // this to enforce a 1-day retention (kPaidDeliveryRetentionDays) for
+      // paid records — shorter than the standard retention — for privacy.
+      await db.execute(
+        'ALTER TABLE local_deliveries ADD COLUMN paid_at INTEGER',
       );
     }
   }
