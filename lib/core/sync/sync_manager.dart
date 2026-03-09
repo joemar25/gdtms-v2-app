@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -122,6 +123,90 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
       try {
         final payload =
             jsonDecode(entry.payloadJson) as Map<String, dynamic>;
+
+        // ── Upload any pending media (stored offline as base64) ────────────
+        final pendingMedia = payload.remove('_pending_media');
+        if (pendingMedia is List && pendingMedia.isNotEmpty) {
+          state = state.copyWith(
+            lastMessage:
+                'Uploading media for ${entry.barcode} (${pendingMedia.length} file${pendingMedia.length == 1 ? '' : 's'})…',
+          );
+          final uploadedImages = <Map<String, dynamic>>[];
+          final api = _ref.read(apiClientProvider);
+          final uploadPath = '/deliveries/${entry.barcode}/media';
+
+          for (final item in pendingMedia) {
+            if (item is! Map) continue;
+            // upload_type: sent to the /media endpoint (pod/selfie/recipient_signature/other)
+            // delivery_images_type: used in PATCH delivery_images[].type (package/recipient/…)
+            final uploadType =
+                item['upload_type']?.toString() ??
+                item['type']?.toString() ??
+                'other';
+            final deliveryImagesType = item['delivery_images_type']?.toString();
+            final filename = item['filename']?.toString() ?? 'file.jpg';
+            final b64 = item['b64']?.toString() ?? '';
+            if (b64.isEmpty) continue;
+
+            Uint8List bytes;
+            try {
+              bytes = base64Decode(b64);
+            } catch (_) {
+              continue;
+            }
+
+            final result = await api.uploadMedia<Map<String, dynamic>>(
+              uploadPath,
+              bytes: bytes,
+              filename: filename,
+              type: uploadType,
+              parser: (d) {
+                if (d is Map<String, dynamic>) return d;
+                if (d is Map) {
+                  return d.map((k, v) => MapEntry(k.toString(), v));
+                }
+                return <String, dynamic>{};
+              },
+            );
+
+            if (result is ApiSuccess<Map<String, dynamic>>) {
+              final inner = result.data['data'];
+              final url = (inner is Map
+                      ? inner['url'] ??
+                          inner['signed_url'] ??
+                          inner['file'] ??
+                          inner['path']
+                      : result.data['url'] ?? result.data['signed_url'])
+                  ?.toString();
+              if (url != null && url.isNotEmpty) {
+                if (uploadType == 'recipient_signature') {
+                  payload['recipient_signature'] = url;
+                } else {
+                  // Use the delivery_images_type for the PATCH payload;
+                  // fall back to uploadType only as last resort.
+                  uploadedImages.add({
+                    'file': url,
+                    'type': deliveryImagesType ?? uploadType,
+                    'captured_at': DateTime.now().toUtc().toIso8601String(),
+                  });
+                }
+              }
+            }
+            // If upload fails for an individual file we continue; the patch
+            // will still proceed with whatever could be uploaded.
+          }
+
+          if (uploadedImages.isNotEmpty) {
+            // Merge with any already-resolved delivery_images in the payload.
+            final existing = payload['delivery_images'];
+            final merged = <Map<String, dynamic>>[
+              if (existing is List)
+                ...existing.whereType<Map<String, dynamic>>(),
+              ...uploadedImages,
+            ];
+            payload['delivery_images'] = merged;
+          }
+        }
 
         final result = await _ref
             .read(apiClientProvider)

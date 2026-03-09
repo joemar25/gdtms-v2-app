@@ -456,7 +456,7 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         status.isEmpty
             ? '—'
-            : '${status[0].toUpperCase()}${status.substring(1)}',
+            : status.replaceAll('_', ' ').toUpperCase(),
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );

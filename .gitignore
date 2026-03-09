@@ -64,6 +64,9 @@ build/
 *.iml
 .vscode/
 
+# Local environment / dart-define values — never commit real credentials
+dart_defines.json
+
 # Platform-specific generated files
 android/.gradle/
 android/local.properties

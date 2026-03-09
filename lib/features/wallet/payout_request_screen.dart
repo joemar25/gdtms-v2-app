@@ -31,18 +31,13 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   String? _error;
 
   /// Derived: from = selectedDay - 6 (7-day window)
-  DateTime get _fromDate =>
-      _selectedDay.subtract(const Duration(days: 6));
+  DateTime get _fromDate => _selectedDay.subtract(const Duration(days: 6));
 
   /// The last 7 days in ascending order (oldest → today).
   List<DateTime> get _rollingWeek => List.generate(
-        7,
-        (i) => DateTime(
-          _today.year,
-          _today.month,
-          _today.day - (6 - i),
-        ),
-      );
+    7,
+    (i) => DateTime(_today.year, _today.month, _today.day - (6 - i)),
+  );
 
   @override
   void initState() {
@@ -60,7 +55,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       final summary = mapFromKey(data, 'data');
-      final rawRate = summary['rate_per_delivery'] ??
+      final rawRate =
+          summary['rate_per_delivery'] ??
           summary['rate'] ??
           summary['delivery_rate'];
       if (rawRate != null) {
@@ -84,10 +80,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         .read(apiClientProvider)
         .post<Map<String, dynamic>>(
           '/payment-request',
-          data: {
-            'from_date': _fmt(_fromDate),
-            'to_date': _fmt(_selectedDay),
-          },
+          data: {'from_date': _fmt(_fromDate), 'to_date': _fmt(_selectedDay)},
           parser: parseApiMap,
         );
 
@@ -104,8 +97,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       final firstError = result.errors.values.isNotEmpty
           ? result.errors.values.first.first
           : null;
-      setState(
-          () => _error = firstError ?? result.message ?? 'Invalid input.');
+      setState(() => _error = firstError ?? result.message ?? 'Invalid input.');
     } else {
       showAppSnackbar(
         context,
@@ -137,24 +129,21 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.wifi_off_rounded,
-                  size: 52, color: Colors.orange.shade400),
+              Icon(
+                Icons.wifi_off_rounded,
+                size: 52,
+                color: Colors.orange.shade400,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'You\'re Offline',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               Text(
                 'Payout requests require an internet\nconnection. Please reconnect and try again.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -179,8 +168,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             icon: const Icon(Icons.send_rounded),
             label: const Text(
               'SUBMIT REQUEST',
-              style:
-                  TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
+              style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: ColorStyles.grabGreen,
@@ -197,10 +185,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           // ── Rate per delivery (only shown here per spec) ─────────────
-          _RateCard(
-            loading: _loadingRate,
-            rate: _ratePerDelivery,
-          ),
+          _RateCard(loading: _loadingRate, rate: _ratePerDelivery),
           const SizedBox(height: 20),
 
           // ── 7-day calendar strip ──────────────────────────────────────
@@ -215,8 +200,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
           // ── Active date range label ────────────────────────────────────
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: ColorStyles.grabGreen.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
@@ -226,8 +210,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.date_range_rounded,
-                    size: 18, color: ColorStyles.grabGreen),
+                Icon(
+                  Icons.date_range_rounded,
+                  size: 18,
+                  color: ColorStyles.grabGreen,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -255,7 +242,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: ColorStyles.grabGreen.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -285,9 +274,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               child: Text(
                 _error!,
                 style: TextStyle(
-                    color: Colors.red.shade700,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500),
+                  color: Colors.red.shade700,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -299,14 +289,14 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   }
 
   Widget _sectionHeader(String label) => Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.2,
-          color: Colors.grey.shade600,
-        ),
-      );
+    label,
+    style: TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 1.2,
+      color: Colors.grey.shade600,
+    ),
+  );
 }
 
 // ─── Rate Card ────────────────────────────────────────────────────────────────
@@ -341,8 +331,11 @@ class _RateCard extends StatelessWidget {
               color: ColorStyles.grabGreen.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.payments_rounded,
-                color: ColorStyles.grabGreen, size: 22),
+            child: Icon(
+              Icons.payments_rounded,
+              color: ColorStyles.grabGreen,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -366,30 +359,32 @@ class _RateCard extends StatelessWidget {
                         child: LinearProgressIndicator(),
                       )
                     : rate != null
-                        ? Text(
-                            '₱ ${rate!.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: ColorStyles.grabGreen,
-                            ),
-                          )
-                        : Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade100,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              '⚠ API PENDING',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.deepOrange,
-                              ),
-                            ),
+                    ? Text(
+                        '₱ ${rate!.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: ColorStyles.grabGreen,
+                        ),
+                      )
+                    : Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          '⚠ API PENDING',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.deepOrange,
                           ),
+                        ),
+                      ),
               ],
             ),
           ),
@@ -429,12 +424,9 @@ class _CalendarStrip extends StatelessWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               margin: const EdgeInsets.symmetric(horizontal: 2),
-              padding:
-                  const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: selected
-                    ? ColorStyles.grabGreen
-                    : Colors.white,
+                color: selected ? ColorStyles.grabGreen : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: selected
@@ -450,9 +442,7 @@ class _CalendarStrip extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
-                      color: selected
-                          ? Colors.white70
-                          : Colors.grey.shade500,
+                      color: selected ? Colors.white70 : Colors.grey.shade500,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -461,8 +451,7 @@ class _CalendarStrip extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color:
-                          selected ? Colors.white : Colors.black87,
+                      color: selected ? Colors.white : Colors.black87,
                     ),
                   ),
                 ],
@@ -474,4 +463,3 @@ class _CalendarStrip extends StatelessWidget {
     );
   }
 }
-

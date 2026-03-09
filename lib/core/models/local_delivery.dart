@@ -89,12 +89,9 @@ class LocalDelivery {
 
     return LocalDelivery(
       barcode: barcode,
-      trackingNumber:
-          _str(json, 'tracking_number') ?? _str(json, 'job_order'),
-      recipientName:
-          _str(json, 'recipient_name') ?? _str(json, 'name'),
-      deliveryAddress:
-          _str(json, 'delivery_address') ?? _str(json, 'address'),
+      trackingNumber: _str(json, 'tracking_number') ?? _str(json, 'job_order'),
+      recipientName: _str(json, 'recipient_name') ?? _str(json, 'name'),
+      deliveryAddress: _str(json, 'delivery_address') ?? _str(json, 'address'),
       deliveryStatus: _str(json, 'delivery_status') ?? 'pending',
       mailType: _str(json, 'mail_type') ?? _str(json, 'product'),
       dispatchCode: dispatchCode,

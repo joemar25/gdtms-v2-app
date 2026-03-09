@@ -7,7 +7,6 @@ import 'package:lottie/lottie.dart';
 import 'package:fsi_courier_app/core/models/delivery_update_entry.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
-import 'package:fsi_courier_app/core/sync/sync_manager.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 
 class SyncScreen extends ConsumerStatefulWidget {

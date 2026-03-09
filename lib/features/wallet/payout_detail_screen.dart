@@ -111,7 +111,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   ),
 
                   padding: const EdgeInsets.all(20),
-                  
+
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -206,7 +206,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                     }).toList(),
                   ),
                 ],
-
 
                 // ── Status History ───────────────────────────────────────
                 _SectionCard(
@@ -429,48 +428,6 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 15, color: Colors.grey.shade400),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade500),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value.isEmpty ? '—' : value,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _StatusBadgeLight extends StatelessWidget {
   const _StatusBadgeLight(this.status);
   final String status;
@@ -495,7 +452,7 @@ class _StatusBadgeLight extends StatelessWidget {
       child: Text(
         status.isEmpty
             ? '—'
-            : '${status[0].toUpperCase()}${status.substring(1)}',
+            : status.replaceAll('_', ' ').toUpperCase(),
         style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );

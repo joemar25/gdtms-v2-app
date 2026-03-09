@@ -11,6 +11,7 @@ import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -147,7 +148,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                         final volume = item['volume']?.toString() ?? '-';
                         final tat = item['tat']?.toString() ?? '';
                         final status =
-                          item['status']?.toString().toUpperCase() ??
+                          item['status']?.toString().toDisplayStatus() ??
                           'PENDING';
                         final isChecking = _checkingIndex == i;
 

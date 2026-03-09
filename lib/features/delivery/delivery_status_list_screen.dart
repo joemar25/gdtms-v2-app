@@ -60,8 +60,9 @@ class _DeliveryStatusListScreenState
   Future<void> _onRefresh() async {
     final isOnline = ref.read(isOnlineProvider);
     if (isOnline) {
-      await DeliveryBootstrapService.instance
-          .syncFromApi(ref.read(apiClientProvider));
+      await DeliveryBootstrapService.instance.syncFromApi(
+        ref.read(apiClientProvider),
+      );
     }
     await _load();
   }
@@ -101,7 +102,7 @@ class _DeliveryStatusListScreenState
 
   String _emptyMessage() => switch (widget.status) {
     'pending' => 'No active deliveries.',
-    'delivered' => 'No delivered items.',
+    'delivered' => 'No delivered items today.',
     'rts' => 'No RTS mailpacks.',
     'osa' => 'No OSA mailpacks.',
     _ => 'No items found.',
@@ -137,9 +138,16 @@ class _DeliveryStatusListScreenState
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
-                  if (!isOnline) ...[const _LocalDataBanner(), const SizedBox(height: 4)],
+                  if (!isOnline) ...[
+                    const _LocalDataBanner(),
+                    const SizedBox(height: 4),
+                  ],
                   if (widget.status == 'osa') ...[
                     const _OsaNoticeBanner(),
+                    const SizedBox(height: 12),
+                  ],
+                  if (widget.status == 'delivered') ...[
+                    const _DeliveredTodayNoticeBanner(),
                     const SizedBox(height: 12),
                   ],
                   ..._items.map((d) {
@@ -224,6 +232,46 @@ class _OsaNoticeBanner extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: Colors.amber.shade900,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+// ─── Delivered today notice ───────────────────────────────────────────────────
+
+class _DeliveredTodayNoticeBanner extends StatelessWidget {
+  const _DeliveredTodayNoticeBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade300, width: 1.2),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.check_circle_outline_rounded,
+            size: 18,
+            color: Colors.green.shade800,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Showing your delivered items',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Colors.green.shade900,
                 letterSpacing: 0.3,
               ),
             ),

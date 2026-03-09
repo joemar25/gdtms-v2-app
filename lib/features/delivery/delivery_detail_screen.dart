@@ -11,6 +11,7 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 /// Shows a bottom action sheet listing available communication apps for a phone number.
@@ -224,6 +225,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
       if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
         final deliveryData = mapFromKey(data, 'data');
+        debugPrint('[DETAIL] GET delivery keys: ${deliveryData.keys.toList()}');
+        debugPrint('[DETAIL] GET media: ${deliveryData['media']}');
+        debugPrint('[DETAIL] GET status: ${deliveryData['delivery_status']}');
         _delivery = deliveryData;
         // Keep local SQLite in sync with the freshest server data.
         if (deliveryData.isNotEmpty) {
@@ -296,9 +300,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      status.isEmpty
-                          ? 'Pending'
-                          : status[0].toUpperCase() + status.substring(1),
+                      status.isEmpty ? 'PENDING' : status.toDisplayStatus(),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -368,97 +370,249 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                     children: [
-                // ─ Recipient ────────────────────────────────────────────
-                _DetailCard(
-                  children: [
-                    _DetailHeader(
-                      icon: Icons.person_outline,
-                      title: 'Recipient',
-                    ),
-                    _DetailRow(label: 'Name', value: _str('name'), bold: true),
-                    _TappableRow(
-                      label: 'Address',
-                      value: _str('address'),
-                      onTap: () => _launchMaps(_str('address')),
-                      trailingIcon: Icons.map_outlined,
-                    ),
-                    _TappableRow(
-                      label: 'Contact',
-                      value: _str('contact'),
-                      onTap: () => _onPhoneTap(_str('contact')),
-                      trailingIcon: Icons.call_outlined,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // ─ Proof of delivery ─────────────────────────────────
-                _buildDeliveredDetails(),
-
-                const SizedBox(height: 12),
-
-                // ─ Delivery details ──────────────────────────────────────
-                _DetailCard(
-                  children: [
-                    _DetailHeader(
-                      icon: Icons.local_shipping_outlined,
-                      title: 'Delivery Details',
-                    ),
-                    if (_str('job_order').isNotEmpty)
-                      _DetailRow(
-                        label: 'Job Order',
-                        value: formatDate(_str('job_order')),
+                      // ─ Recipient ────────────────────────────────────────────
+                      _DetailCard(
+                        children: [
+                          _DetailHeader(
+                            icon: Icons.person_outline,
+                            title: 'Recipient',
+                          ),
+                          _DetailRow(
+                            label: 'Name',
+                            value: _str('name'),
+                            bold: true,
+                          ),
+                          _TappableRow(
+                            label: 'Address',
+                            value: _str('address'),
+                            onTap: () => _launchMaps(_str('address')),
+                            trailingIcon: Icons.map_outlined,
+                          ),
+                          _TappableRow(
+                            label: 'Contact',
+                            value: _str('contact'),
+                            onTap: () => _onPhoneTap(_str('contact')),
+                            trailingIcon: Icons.call_outlined,
+                          ),
+                        ],
                       ),
-                    // dispatch_code intentionally hidden from delivery views (ENH-005)
-                    if (_str('special_instruction').isNotEmpty)
-                      _DetailRow(
-                        label: 'Instructions',
-                        value: _str('special_instruction'),
-                      ),
-                    if (_str('remarks').isNotEmpty)
-                      _DetailRow(label: 'Remarks', value: _str('remarks')),
-                    if (_str('transmittal_date').isNotEmpty)
-                      _DetailRow(
-                        label: 'Transmittal',
-                        value: formatDate(_str('transmittal_date')),
-                      ),
-                    if (_str('tat').isNotEmpty)
-                      _DetailRow(label: 'TAT', value: formatDate(_str('tat'))),
-                  ],
-                ),
 
-                // ─ History timeline (debug only) ─────────────────────
-                if (kDebugMode) ...[
-                  const SizedBox(height: 12),
-                  _buildTimeline(),
-                ],
-              ],
-            ),
+                      const SizedBox(height: 12),
+
+                      // ─ Proof of delivery ─────────────────────────────────
+                      _buildDeliveredDetails(),
+
+                      // ─ RTS / OSA attempts ────────────────────────────────
+                      _buildRtsAttempts(),
+
+                      const SizedBox(height: 12),
+
+                      // ─ Delivery details ──────────────────────────────────────
+                      _DetailCard(
+                        children: [
+                          _DetailHeader(
+                            icon: Icons.local_shipping_outlined,
+                            title: 'Delivery Details',
+                          ),
+                          if (_str('job_order').isNotEmpty)
+                            _DetailRow(
+                              label: 'Job Order',
+                              value: formatDate(_str('job_order')),
+                            ),
+                          // dispatch_code intentionally hidden from delivery views (ENH-005)
+                          if (_str('special_instruction').isNotEmpty)
+                            _DetailRow(
+                              label: 'Instructions',
+                              value: _str('special_instruction'),
+                            ),
+                          if (_str('remarks').isNotEmpty)
+                            _DetailRow(
+                              label: 'Remarks',
+                              value: _str('remarks'),
+                            ),
+                          if (_str('transmittal_date').isNotEmpty)
+                            _DetailRow(
+                              label: 'Transmittal',
+                              value: formatDate(_str('transmittal_date')),
+                            ),
+                          if (_str('tat').isNotEmpty)
+                            _DetailRow(
+                              label: 'TAT',
+                              value: formatDate(_str('tat')),
+                            ),
+                        ],
+                      ),
+
+                      // ─ History timeline (debug only) ─────────────────────
+                      if (kDebugMode) ...[
+                        const SizedBox(height: 12),
+                        _buildTimeline(),
+                      ],
+                    ],
+                  ),
                 ),
               ],
             ),
     );
   }
 
+  void _showFullscreenImage(String url, {String? mediaType}) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Text(
+                      mediaType ?? 'Image',
+                      style: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Top overlay for media type and Online only
+            Positioned(
+              top: 24,
+              left: 24,
+              child: SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (mediaType != null && mediaType.isNotEmpty) ...[
+                        Text(
+                          mediaType,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      const Text(
+                        'Online only',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: SafeArea(
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDeliveredDetails() {
     final authRep = _str('authorized_rep');
     final contactRep = _str('contact_rep');
+    final recipient = _str('recipient');
+    var relationship = _str('relationship');
+    final placementType = _str('placement_type');
+    final note = _str('note');
+    final transactionAt = _str('transaction_at');
+    final deliveredDate = _str('delivered_date');
+    final signature = _str('signature');
     final media = _delivery['media'];
     final hasMedia = media is List && (media).isNotEmpty;
+    final hasSignature = signature.isNotEmpty;
+    final isOffline = _isOfflineMode;
 
-    if (authRep.isEmpty && contactRep.isEmpty && !hasMedia) {
-      return const SizedBox.shrink();
+    // Relationship transformation
+    if (relationship.isNotEmpty) {
+      // If self, transform to Owner
+      if (relationship.toLowerCase() == 'self') {
+        relationship = 'Owner';
+      } else {
+        // Capitalize first letter
+        relationship =
+            relationship[0].toUpperCase() + relationship.substring(1);
+      }
+      // Append placement type if available
+      if (placementType.isNotEmpty) {
+        relationship = '$relationship ($placementType)';
+      }
     }
+
+    // Transaction/Delivered date logic
+    String transactionDateToShow = '';
+    String deliveredDateToShow = '';
+    if (transactionAt.isNotEmpty &&
+        deliveredDate.isNotEmpty &&
+        transactionAt == deliveredDate) {
+      deliveredDateToShow = formatDate(deliveredDate, includeTime: true);
+      transactionDateToShow = '';
+    } else {
+      transactionDateToShow = transactionAt.isNotEmpty
+          ? formatDate(transactionAt, includeTime: true)
+          : '';
+      deliveredDateToShow = deliveredDate.isNotEmpty
+          ? formatDate(deliveredDate, includeTime: true)
+          : '';
+    }
+
+    final hasAny =
+        authRep.isNotEmpty ||
+        contactRep.isNotEmpty ||
+        recipient.isNotEmpty ||
+        relationship.isNotEmpty ||
+        placementType.isNotEmpty ||
+        note.isNotEmpty ||
+        transactionDateToShow.isNotEmpty ||
+        deliveredDateToShow.isNotEmpty ||
+        hasMedia ||
+        hasSignature;
+
+    if (!hasAny) return const SizedBox.shrink();
 
     return _DetailCard(
       children: [
         _DetailHeader(
           icon: Icons.verified_outlined,
-          title: 'Authorized Representative',
+          title: 'Proof of Delivery',
         ),
+        if (recipient.isNotEmpty)
+          _DetailRow(label: 'Received By', value: recipient, bold: true),
         if (authRep.isNotEmpty)
-          _DetailRow(label: 'Received By', value: authRep),
+          _DetailRow(label: 'Authorized Rep', value: authRep),
+        if (relationship.isNotEmpty)
+          _DetailRow(label: 'Relationship', value: relationship),
         if (contactRep.isNotEmpty)
           _TappableRow(
             label: 'Contact',
@@ -466,34 +620,336 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
             onTap: () => _onPhoneTap(contactRep),
             trailingIcon: Icons.call_outlined,
           ),
+        if (placementType.isNotEmpty && relationship.isEmpty)
+          _DetailRow(label: 'Placement', value: placementType),
+        if (note.isNotEmpty) _DetailRow(label: 'Note', value: note),
+        if (transactionDateToShow.isNotEmpty)
+          _DetailRow(label: 'Transaction', value: transactionDateToShow),
+        if (deliveredDateToShow.isNotEmpty)
+          _DetailRow(label: 'Delivered', value: deliveredDateToShow),
         if (hasMedia) ...[
-          _DetailHeader(icon: Icons.photo_library_outlined, title: 'Media'),
+          _DetailHeader(icon: Icons.photo_library_outlined, title: 'Photos'),
           SizedBox(
-            height: 100,
+            height: 108,
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               scrollDirection: Axis.horizontal,
               itemCount: (media).length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
-                final url = media[i]?.toString() ?? '';
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: url.isNotEmpty
-                      ? Image.network(
-                          url,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                        )
-                      : const SizedBox(width: 100, height: 100),
+                final item = media[i];
+                final String url;
+                final String label;
+                if (item is Map) {
+                  final signedUrl = item['signed_url']?.toString() ?? '';
+                  final rawUrl = item['url']?.toString() ?? '';
+                  url = signedUrl.isNotEmpty ? signedUrl : rawUrl;
+                  label = item['type']?.toString().toUpperCase() ?? 'Photo';
+                } else {
+                  url = item?.toString() ?? '';
+                  label = 'Photo';
+                }
+                if (url.isEmpty) return const SizedBox(width: 100, height: 100);
+                return GestureDetector(
+                  onTap: isOffline
+                      ? null
+                      : () => _showFullscreenImage(url, mediaType: label),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: isOffline
+                        ? Container(
+                            width: 100,
+                            height: 100,
+                            color: Colors.grey.shade200,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.wifi_off_rounded,
+                                  color: Colors.grey.shade400,
+                                  size: 22,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Image.network(
+                            url,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 100,
+                              height: 100,
+                              color: Colors.grey.shade200,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.cloud_off_rounded,
+                                    color: Colors.grey.shade400,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
+                                    child: Text(
+                                      'Online only',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                  ),
                 );
               },
             ),
           ),
         ],
+        if (hasSignature) ...[
+          _DetailHeader(icon: Icons.draw_outlined, title: 'Signature'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: GestureDetector(
+              onTap: isOffline ? null : () => _showFullscreenImage(signature),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: isOffline
+                    ? Container(
+                        height: 100,
+                        color: Colors.grey.shade200,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.wifi_off_rounded,
+                                color: Colors.grey.shade400,
+                                size: 22,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Signature',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : Image.network(
+                        signature,
+                        height: 100,
+                        fit: BoxFit.contain,
+                        alignment: Alignment.centerLeft,
+                        errorBuilder: (_, __, ___) => GestureDetector(
+                          onTap: () => _showFullscreenImage(signature),
+                          child: Container(
+                            height: 100,
+                            color: Colors.grey.shade200,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.image_outlined,
+                                    color: Colors.grey.shade400,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Signature',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
+  }
+
+  Widget _buildRtsAttempts() {
+    final attempts = _delivery['rts_attempts'];
+    if (attempts is! List || attempts.isEmpty) return const SizedBox.shrink();
+
+    final typedAttempts = attempts.whereType<Map>().toList();
+    if (typedAttempts.isEmpty) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isOffline = _isOfflineMode;
+
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        _DetailCard(
+          children: [
+            _DetailHeader(
+              icon: Icons.keyboard_return_rounded,
+              title: 'Return Attempts (${typedAttempts.length})',
+            ),
+            ...typedAttempts.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final attempt = Map<String, dynamic>.from(entry.value);
+              final attemptNum = (attempt['attempt_number'] as num?)?.toInt() ?? (idx + 1);
+              final label = _ordinal(attemptNum);
+              final reason = attempt['reason']?.toString() ?? '';
+              final attemptedAt = attempt['attempted_at']?.toString() ?? '';
+              final images = attempt['images'];
+              final hasImages = images is List && images.isNotEmpty;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (idx > 0)
+                    Divider(height: 1, thickness: 0.5, color: isDark ? Colors.white12 : Colors.black12),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            label,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.orange,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        if (attemptedAt.isNotEmpty) ...[                          
+                          const SizedBox(width: 8),
+                          Text(
+                            formatDate(attemptedAt, includeTime: true),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.white54 : Colors.black45,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (reason.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+                      child: Text(
+                        reason,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  if (hasImages) ...[                    
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 0, 8),
+                      child: SizedBox(
+                        height: 90,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: (images as List).length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 6),
+                          itemBuilder: (context, i) {
+                            final img = images[i];
+                            final String url;
+                            if (img is Map) {
+                              final signed = img['signed_url']?.toString() ?? '';
+                              final raw = img['url']?.toString() ?? img['file']?.toString() ?? '';
+                              url = signed.isNotEmpty ? signed : raw;
+                            } else {
+                              url = img?.toString() ?? '';
+                            }
+                            if (url.isEmpty) return const SizedBox(width: 90, height: 90);
+                            return GestureDetector(
+                              onTap: isOffline ? null : () => _showFullscreenImage(url, mediaType: 'SELFIE'),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: isOffline
+                                    ? Container(
+                                        width: 90,
+                                        height: 90,
+                                        color: Colors.grey.shade200,
+                                        child: Icon(Icons.wifi_off_rounded, color: Colors.grey.shade400),
+                                      )
+                                    : Image.network(
+                                        url,
+                                        width: 90,
+                                        height: 90,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          width: 90,
+                                          height: 90,
+                                          color: Colors.grey.shade200,
+                                          child: Icon(Icons.broken_image_outlined, color: Colors.grey.shade400),
+                                        ),
+                                      ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            }),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Returns '1st', '2nd', '3rd', '4th', '11th', '21st', etc.
+  static String _ordinal(int n) {
+    if (n >= 11 && n <= 13) return '${n}th Attempt';
+    switch (n % 10) {
+      case 1: return '${n}st Attempt';
+      case 2: return '${n}nd Attempt';
+      case 3: return '${n}rd Attempt';
+      default: return '${n}th Attempt';
+    }
   }
 
   Widget _buildTimeline() {
@@ -758,7 +1214,7 @@ class _TimelineItem extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          action.replaceAll('_', ' ').toUpperCase(),
+                          action.toDisplayStatus(),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -777,7 +1233,7 @@ class _TimelineItem extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            status,
+                            status.toDisplayStatus(),
                             style: TextStyle(
                               fontSize: 10,
                               color: Colors.grey.shade500,

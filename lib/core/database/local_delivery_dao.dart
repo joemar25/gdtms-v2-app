@@ -83,11 +83,28 @@ class LocalDeliveryDao {
   /// Inserts (or replaces) delivery items from the `GET /deliveries` API response.
   /// Uses [LocalDelivery.fromApiItem] which tolerates both eligibility-response
   /// field names and delivery-API field names.
+  ///
+  /// Records that are already in a terminal state locally (`delivered`, `rts`,
+  /// `osa`) are never overwritten by this bootstrap operation. This prevents
+  /// the background API sync from downgrading a locally-delivered item back to
+  /// `pending` (which would cause it to vanish from the delivered list).
   Future<void> insertAllFromApiItems(
     List<Map<String, dynamic>> items, {
     String dispatchCode = '',
   }) async {
     final db = await _db;
+
+    // Collect barcodes that already have a terminal status locally so we can
+    // skip them and preserve their status and updatedAt timestamp.
+    final existingRows = await db.query(
+      'local_deliveries',
+      columns: ['barcode', 'delivery_status'],
+      where: "delivery_status IN ('delivered', 'rts', 'osa')",
+    );
+    final terminalBarcodes = <String>{
+      for (final row in existingRows) row['barcode'] as String,
+    };
+
     final batch = db.batch();
     for (final json in items) {
       final delivery = LocalDelivery.fromApiItem(
@@ -95,6 +112,9 @@ class LocalDeliveryDao {
         dispatchCode: dispatchCode,
       );
       if (delivery.barcode.isEmpty) continue;
+      // Never overwrite a locally terminal record via bootstrap — the sync
+      // queue (not the bootstrap) is responsible for reconciling those.
+      if (terminalBarcodes.contains(delivery.barcode)) continue;
       batch.insert(
         'local_deliveries',
         delivery.toDb(),
@@ -109,11 +129,13 @@ class LocalDeliveryDao {
   /// Returns the count of deliveries matching [status].
   Future<int> countByStatus(String status) async {
     final db = await _db;
-    final result = await db.rawQuery(
-      'SELECT COUNT(*) AS cnt FROM local_deliveries WHERE delivery_status = ?',
-      [status],
+    final rows = await db.query(
+      'local_deliveries',
+      columns: ['id'],
+      where: 'delivery_status = ?',
+      whereArgs: [status],
     );
-    return result.first['cnt'] as int? ?? 0;
+    return rows.length;
   }
 
   /// Returns all deliveries with the given [status], ordered by [created_at].

@@ -18,8 +18,10 @@ class StatusBadge extends StatelessWidget {
       _ => Colors.grey,
     };
 
+    final displayStatus = status.replaceAll('_', ' ').toUpperCase();
+
     return Chip(
-      label: Text(normalized),
+      label: Text(displayStatus),
       backgroundColor: color.withValues(alpha: 0.15),
       labelStyle: TextStyle(color: color.shade700, fontWeight: FontWeight.w600),
       side: BorderSide(color: color.withValues(alpha: 0.3)),

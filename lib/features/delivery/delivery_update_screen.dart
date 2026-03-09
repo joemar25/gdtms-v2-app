@@ -220,9 +220,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     }
   }
 
-  // ── Pick photo for a pre-defined delivered slot (camera only) ─────────────
-  Future<void> _pickPhotoForSlot(String slotType) async {
-    final picked = await _picker.pickImage(source: ImageSource.camera);
+  // ── Pick photo for a pre-defined slot ──────────────────────────────────────
+  Future<void> _pickPhotoForSlot(
+    String slotType, {
+    ImageSource source = ImageSource.camera,
+  }) async {
+    final picked = await _picker.pickImage(source: source);
     if (picked == null) return;
 
     final bytes = await FlutterImageCompress.compressWithFile(
@@ -233,9 +236,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     );
     if (bytes == null) return;
 
-    // Map display slot name to the API-accepted image type.
-    // API accepts: package, recipient, location, damage, other.
-    final apiType = slotType == 'pod' ? 'package' : 'recipient';
+    // Map display slot name to the API-accepted delivery_images type.
+    // API accepts: pod, selfie, recipient_signature, other.
+    final apiType = slotType == 'pod' ? 'pod' : 'selfie';
     final entry = PhotoEntry(
       id: _uuid.v4(),
       file: base64Encode(bytes),
@@ -252,36 +255,44 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     });
   }
 
-  // ── Pick photo for rts/osa (camera + gallery) ────────────────────────────
-  Future<void> _pickImage(ImageSource source) async {
-    if (_photos.length >= kMaxDeliveryImages) {
-      showAppSnackbar(
-        context,
-        'Maximum of $kMaxDeliveryImages images allowed.',
-        type: SnackbarType.info,
-      );
-      return;
-    }
-    final picked = await _picker.pickImage(source: source);
-    if (picked == null) return;
-
-    final bytes = await FlutterImageCompress.compressWithFile(
-      picked.path,
-      minWidth: 800,
-      quality: 80,
-      format: CompressFormat.jpeg,
-    );
-    if (bytes == null) return;
-
-    setState(() {
-      _photos.add(
-        PhotoEntry(
-          id: _uuid.v4(),
-          file: base64Encode(bytes),
-          type: kImageTypes.first,
+  // ── Selfie picker for rts/osa — shows Camera / Gallery sheet ───────────────
+  Future<void> _pickSelfieForRtsOsa() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded),
+              title: const Text('Camera'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
-      );
-    });
+      ),
+    );
+    if (source == null) return;
+    await _pickPhotoForSlot('selfie', source: source);
   }
 
   // ── Open landscape signature capture screen ───────────────────────────────
@@ -332,9 +343,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (_selfiePhoto == null) {
         _errors['selfie_photo'] = 'Selfie photo is required.';
       }
-      if (_signatureBytes == null) {
-        _errors['recipient_signature'] = 'Recipient signature is required.';
-      }
     }
 
     if (_status == 'rts' || _status == 'osa') {
@@ -353,40 +361,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     setState(() => _loading = true);
 
-    // NOTE: For production, save images/signature to cloud first to get URL link
-    // and put the URL in the payload for the correct type and for signature.
-    // For now, this is for development/testing and uses placeholder filenames.
-    final List<Map<String, dynamic>> deliveryImages = _status == 'delivered'
-        ? [
-            if (_podPhoto != null) {'file': 'testing.png', 'type': 'pod'},
-            if (_selfiePhoto != null) {'file': 'testing.png', 'type': 'selfie'},
-          ]
-        : _photos
-              .map((image) => {...image.toApiJson(), 'file': 'testing.png'})
-              .toList();
+    final isOnline = ref.read(isOnlineProvider);
 
     // Build payload — only include fields relevant to the current status.
-    // Omit null-only fields to avoid server-side "required" validation triggers.
     final payload = <String, dynamic>{
       'delivery_status': _status,
       if (_note.text.trim().isNotEmpty) 'note': _note.text.trim(),
     };
-
-    if (_status == 'delivered') {
-      payload['recipient'] = _recipient.text.trim();
-      payload['relationship'] = _relationship;
-      payload['placement_type'] = _placement;
-      payload['delivery_images'] = deliveryImages;
-      if (_signatureBytes != null) {
-        payload['recipient_signature'] = 'signatureblob.png';
-      }
-    } else {
-      // rts / osa
-      payload['reason'] = _reason;
-      if (deliveryImages.isNotEmpty) {
-        payload['delivery_images'] = deliveryImages;
-      }
-    }
 
     if (_latitude != null && _longitude != null) {
       payload['latitude'] = _latitude;
@@ -394,21 +375,254 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (_geoAccuracy != null) payload['geo_accuracy'] = _geoAccuracy;
     }
 
-    final isOnline = ref.read(isOnlineProvider);
+    if (isOnline) {
+      // ── Online path: upload media first, then patch ─────────────────────
+      final uploadedImages = <Map<String, dynamic>>[];
+      final api = ref.read(apiClientProvider);
+      final uploadPath = '/deliveries/${widget.barcode}/media';
 
-    if (!isOnline) {
-      // ── Offline path: queue for later sync ──────────────────────────────────
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final entry = DeliveryUpdateEntry(
-        barcode: widget.barcode,
-        payloadJson: jsonEncode(payload),
-        syncStatus: SyncStatus.pending,
-        attemptCount: 0,
-        createdAt: now,
-        updatedAt: now,
+      Future<String?> uploadBytes(
+        Uint8List bytes,
+        String type,
+        String filename,
+      ) async {
+        final r = await api.uploadMedia<Map<String, dynamic>>(
+          uploadPath,
+          bytes: bytes,
+          filename: filename,
+          type: type,
+          parser: (d) {
+            if (d is Map<String, dynamic>) return d;
+            if (d is Map) return d.map((k, v) => MapEntry(k.toString(), v));
+            return <String, dynamic>{};
+          },
+        );
+        if (!mounted) return null;
+        if (r case ApiSuccess<Map<String, dynamic>>(:final data)) {
+          final inner = data['data'];
+          // The upload endpoint may return the URL in several field names.
+          // Try the nested data object first, then fall back to top-level keys.
+          final url =
+              (inner is Map
+                      ? inner['url'] ??
+                            inner['signed_url'] ??
+                            inner['file'] ??
+                            inner['path']
+                      : data['url'] ?? data['signed_url'])
+                  ?.toString();
+          debugPrint('[UPLOAD] uploadBytes success: url=$url raw_data=$data');
+          return url;
+        }
+        // Log the failure so we can see the actual API error
+        switch (r) {
+          case ApiValidationError<Map<String, dynamic>>(:final message, :final errors):
+            debugPrint('[UPLOAD] uploadBytes validation error: $message | errors: $errors');
+          case ApiServerError<Map<String, dynamic>>(:final message):
+            debugPrint('[UPLOAD] uploadBytes server error: $message');
+          case ApiNetworkError<Map<String, dynamic>>(:final message):
+            debugPrint('[UPLOAD] uploadBytes network error: $message');
+          case ApiConflict<Map<String, dynamic>>(:final message):
+            debugPrint('[UPLOAD] uploadBytes conflict: $message');
+          case ApiUnauthorized<Map<String, dynamic>>():
+            debugPrint('[UPLOAD] uploadBytes unauthorized (401)');
+          default:
+            debugPrint('[UPLOAD] uploadBytes failed (unknown): $r');
+        }
+        return null;
+      }
+
+      if (_status == 'delivered') {
+        if (_podPhoto != null) {
+          final url = await uploadBytes(
+            base64Decode(_podPhoto!.file),
+            'pod', // upload endpoint type
+            'pod.jpg',
+          );
+          if (url != null) uploadedImages.add({'file': url, 'type': 'pod'});
+        }
+        if (_selfiePhoto != null) {
+          final url = await uploadBytes(
+            base64Decode(_selfiePhoto!.file),
+            'selfie', // upload endpoint type
+            'selfie.jpg',
+          );
+          if (url != null) uploadedImages.add({'file': url, 'type': 'selfie'});
+        }
+        payload['recipient'] = _recipient.text.trim();
+        payload['relationship'] = _relationship;
+        payload['placement_type'] = _placement;
+        payload['delivery_images'] = uploadedImages;
+        if (_signatureBytes != null) {
+          final url = await uploadBytes(
+            _signatureBytes!,
+            'recipient_signature',
+            'signature.png',
+          );
+          if (url != null) payload['recipient_signature'] = url;
+        }
+      } else {
+        // rts / osa — single selfie photo tagged as 'selfie'
+        payload['reason'] = _reason;
+        debugPrint(
+          '[SUBMIT] rts/osa selfie: ${_selfiePhoto != null ? "present" : "not taken"}',
+        );
+        if (_selfiePhoto != null) {
+          final url = await uploadBytes(
+            base64Decode(_selfiePhoto!.file),
+            'selfie',
+            'selfie.jpg',
+          );
+          debugPrint('[SUBMIT] rts/osa selfie upload result: $url');
+          if (url == null) {
+            // Upload failed — surface the error instead of silently proceeding
+            // without images attached to the delivery.
+            if (mounted) {
+              setState(() => _loading = false);
+              showAppSnackbar(
+                context,
+                'Photo upload failed. Please check your connection and try again.',
+                type: SnackbarType.error,
+              );
+            }
+            return;
+          }
+          uploadedImages.add({'file': url, 'type': 'selfie', 'captured_at': DateTime.now().toUtc().toIso8601String()});
+        }
+        if (uploadedImages.isNotEmpty) {
+          payload['delivery_images'] = uploadedImages;
+        }
+      }
+
+      debugPrint('[PATCH] payload keys: ${payload.keys.toList()}');
+      debugPrint('[PATCH] delivery_images: ${payload['delivery_images']}');
+
+      if (!mounted) return;
+
+      final result = await api.patch<Map<String, dynamic>>(
+        '/deliveries/${widget.barcode}',
+        data: payload,
+        parser: parseApiMap,
       );
-      await DeliveryUpdateDao.instance.insert(entry);
-      // Optimistic local status update so the list reflects the change.
+
+      if (!mounted) return;
+
+      switch (result) {
+        case ApiSuccess<Map<String, dynamic>>(:final data):
+          debugPrint('[PATCH] response keys: ${data.keys.toList()}');
+          // Backend now returns { data: { delivery_status, rts_count, rts_attempts, media, ... } }
+          // Unwrap the 'data' key; fall back to the flat response for backwards compat.
+          final rawData = data['data'] is Map<String, dynamic>
+              ? data['data'] as Map<String, dynamic>
+              : data;
+          debugPrint('[PATCH] response data keys: ${rawData.keys.toList()}');
+          debugPrint('[PATCH] response media: ${rawData['media']}');
+          debugPrint('[PATCH] rts_count: ${rawData['rts_count']}  rts_attempts: ${rawData['rts_attempts']}');
+          await LocalDeliveryDao.instance.updateFromJson(
+            widget.barcode,
+            rawData,
+          );
+          final now = DateTime.now().millisecondsSinceEpoch;
+          await DeliveryUpdateDao.instance.insert(
+            DeliveryUpdateEntry(
+              barcode: widget.barcode,
+              payloadJson: jsonEncode(payload),
+              syncStatus: SyncStatus.synced,
+              attemptCount: 1,
+              createdAt: now,
+              updatedAt: now,
+              syncedAt: now,
+            ),
+          );
+          ref.read(deliveryRefreshProvider.notifier).state++;
+          setState(() => _success = true);
+          return;
+        case ApiValidationError<Map<String, dynamic>>(
+          :final errors,
+          :final message,
+        ):
+          errors.forEach((key, value) => _errors[key] = value.first);
+          setState(() {});
+          final validationMsg = message?.isNotEmpty == true
+              ? message!
+              : 'Please correct the errors and try again.';
+          showAppSnackbar(context, validationMsg, type: SnackbarType.error);
+        case ApiConflict<Map<String, dynamic>>(:final message):
+          showAppSnackbar(context, message, type: SnackbarType.error);
+        case ApiNetworkError<Map<String, dynamic>>(:final message):
+          showAppSnackbar(context, message, type: SnackbarType.error);
+        case ApiRateLimited<Map<String, dynamic>>(:final message):
+          showAppSnackbar(context, message, type: SnackbarType.error);
+        case ApiServerError<Map<String, dynamic>>(:final message):
+          showAppSnackbar(context, message, type: SnackbarType.error);
+        case ApiUnauthorized<Map<String, dynamic>>():
+          showAppSnackbar(
+            context,
+            'Session expired. Please log in again.',
+            type: SnackbarType.error,
+          );
+      }
+    } else {
+      // ── Offline path: queue for later sync ──────────────────────────────
+      // Store image bytes as base64 in _pending_media so the sync manager
+      // can upload them when connectivity is restored.
+      final pendingMedia = <Map<String, dynamic>>[];
+
+      if (_status == 'delivered') {
+        if (_podPhoto != null) {
+          pendingMedia.add({
+            'upload_type': 'pod',
+            'delivery_images_type': 'pod', // API delivery_images type
+            'b64': _podPhoto!.file,
+            'filename': 'pod.jpg',
+          });
+        }
+        if (_selfiePhoto != null) {
+          pendingMedia.add({
+            'upload_type': 'selfie',
+            'delivery_images_type': 'selfie',
+            'b64': _selfiePhoto!.file,
+            'filename': 'selfie.jpg',
+          });
+        }
+        if (_signatureBytes != null) {
+          pendingMedia.add({
+            'upload_type':
+                'recipient_signature', // no delivery_images_type — goes to recipient_signature field
+            'b64': base64Encode(_signatureBytes!),
+            'filename': 'signature.png',
+          });
+        }
+        payload['recipient'] = _recipient.text.trim();
+        payload['relationship'] = _relationship;
+        payload['placement_type'] = _placement;
+      } else {
+        // rts / osa — single selfie, same type for upload and delivery_images
+        payload['reason'] = _reason;
+        if (_selfiePhoto != null) {
+          pendingMedia.add({
+            'upload_type': 'selfie',
+            'delivery_images_type': 'selfie',
+            'b64': _selfiePhoto!.file,
+            'filename': 'selfie.jpg',
+          });
+        }
+      }
+
+      if (pendingMedia.isNotEmpty) {
+        payload['_pending_media'] = pendingMedia;
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      await DeliveryUpdateDao.instance.insert(
+        DeliveryUpdateEntry(
+          barcode: widget.barcode,
+          payloadJson: jsonEncode(payload),
+          syncStatus: SyncStatus.pending,
+          attemptCount: 0,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
       await LocalDeliveryDao.instance.updateStatus(widget.barcode, _status);
 
       if (!mounted) return;
@@ -421,73 +635,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       );
       context.go('/dashboard');
       return;
-    }
-
-    // ── Online path: send to API directly ────────────────────────────────────
-    final result = await ref
-        .read(apiClientProvider)
-        .patch<Map<String, dynamic>>(
-          '/deliveries/${widget.barcode}',
-          data: payload,
-          parser: parseApiMap,
-        );
-
-    if (!mounted) return;
-
-    switch (result) {
-      case ApiSuccess<Map<String, dynamic>>(:final data):
-        // Persist the server response in SQLite so offline reads stay accurate.
-        final deliveryData = data['data'];
-        if (deliveryData is Map<String, dynamic>) {
-          await LocalDeliveryDao.instance.updateFromJson(
-            widget.barcode,
-            deliveryData,
-          );
-        } else {
-          await LocalDeliveryDao.instance.updateStatus(widget.barcode, _status);
-        }
-        // Record a synced entry for history visibility in the Sync screen.
-        final now = DateTime.now().millisecondsSinceEpoch;
-        await DeliveryUpdateDao.instance.insert(
-          DeliveryUpdateEntry(
-            barcode: widget.barcode,
-            payloadJson: jsonEncode(payload),
-            syncStatus: SyncStatus.synced,
-            attemptCount: 1,
-            createdAt: now,
-            updatedAt: now,
-            syncedAt: now,
-          ),
-        );
-        // Signal all delivery-watching screens to refresh.
-        ref.read(deliveryRefreshProvider.notifier).state++;
-        setState(() => _success = true);
-        return; // success overlay takes over; skip _loading = false below
-      case ApiValidationError<Map<String, dynamic>>(
-        :final errors,
-        :final message,
-      ):
-        errors.forEach((key, value) => _errors[key] = value.first);
-        setState(() {});
-        // Always show the server message so nothing is silently lost.
-        final validationMsg = message?.isNotEmpty == true
-            ? message!
-            : 'Please correct the errors and try again.';
-        showAppSnackbar(context, validationMsg, type: SnackbarType.error);
-      case ApiConflict<Map<String, dynamic>>(:final message):
-        showAppSnackbar(context, message, type: SnackbarType.error);
-      case ApiNetworkError<Map<String, dynamic>>(:final message):
-        showAppSnackbar(context, message, type: SnackbarType.error);
-      case ApiRateLimited<Map<String, dynamic>>(:final message):
-        showAppSnackbar(context, message, type: SnackbarType.error);
-      case ApiServerError<Map<String, dynamic>>(:final message):
-        showAppSnackbar(context, message, type: SnackbarType.error);
-      default:
-        showAppSnackbar(
-          context,
-          'Failed to update delivery.',
-          type: SnackbarType.error,
-        );
     }
 
     if (mounted) setState(() => _loading = false);
@@ -562,6 +709,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     required IconData icon,
     required Color color,
     required bool isDark,
+    VoidCallback? onTapOverride,
   }) {
     final hasPhoto = photo != null;
     final errorKey = slotType == 'pod' ? 'pod_photo' : 'selfie_photo';
@@ -569,7 +717,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => _pickPhotoForSlot(slotType),
+        onTap: onTapOverride ?? () => _pickPhotoForSlot(slotType),
         child: Container(
           height: 148,
           decoration: BoxDecoration(
@@ -783,7 +931,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'TAP TO SIGN',
+                    'TAP TO SIGN (OPTIONAL)',
                     style: TextStyle(
                       fontSize: 9,
                       color: Colors.grey.shade500,
@@ -888,609 +1036,440 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           ), // Column
         ), // AppBar
         bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: FilledButton.icon(
-            icon: const Icon(Icons.check_circle_outline_rounded),
-            label: const Text(
-              'SUBMIT UPDATE',
-              style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: ColorStyles.grabGreen,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: FilledButton.icon(
+              icon: const Icon(Icons.check_circle_outline_rounded),
+              label: const Text(
+                'SUBMIT UPDATE',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
               ),
+              style: FilledButton.styleFrom(
+                backgroundColor: ColorStyles.grabGreen,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: _loading ? null : _submit,
             ),
-            onPressed: _loading ? null : _submit,
           ),
         ),
-      ),
-      body: Stack(
-        children: [
-          _loadingDelivery
-              ? const Center(child: CircularProgressIndicator())
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  children: [
-                    // ── STATUS SELECTION ──────────────────────────────────────
-                    const DeliverySectionHeader(label: 'SELECT STATUS'),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: kUpdateStatuses.map((s) {
-                        final meta = _kStatusMeta[s]!;
-                        final selected = _status == s;
-                        return Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4.0,
-                            ),
-                            child: GestureDetector(
-                              onTap: () => _onStatusTap(s),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                decoration: BoxDecoration(
-                                  color: selected
-                                      ? meta.color
-                                      : meta.color.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
+        body: Stack(
+          children: [
+            _loadingDelivery
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                    children: [
+                      // ── STATUS SELECTION ──────────────────────────────────────
+                      const DeliverySectionHeader(label: 'SELECT STATUS'),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: kUpdateStatuses.map((s) {
+                          final meta = _kStatusMeta[s]!;
+                          final selected = _status == s;
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4.0,
+                              ),
+                              child: GestureDetector(
+                                onTap: () => _onStatusTap(s),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  decoration: BoxDecoration(
                                     color: selected
                                         ? meta.color
-                                        : meta.color.withValues(alpha: 0.35),
-                                    width: selected ? 2 : 1.2,
-                                  ),
-                                  boxShadow: selected
-                                      ? [
-                                          BoxShadow(
-                                            color: meta.color.withValues(
-                                              alpha: 0.18,
-                                            ),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ]
-                                      : [],
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 0,
-                                  vertical: 12,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      meta.icon,
+                                        : meta.color.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
                                       color: selected
-                                          ? Colors.white
-                                          : meta.color,
-                                      size: 22,
+                                          ? meta.color
+                                          : meta.color.withValues(alpha: 0.35),
+                                      width: selected ? 2 : 1.2,
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      meta.label,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
+                                    boxShadow: selected
+                                        ? [
+                                            BoxShadow(
+                                              color: meta.color.withValues(
+                                                alpha: 0.18,
+                                              ),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : [],
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 0,
+                                    vertical: 12,
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        meta.icon,
                                         color: selected
                                             ? Colors.white
                                             : meta.color,
-                                        letterSpacing: 0.5,
+                                        size: 22,
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        meta.label,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 11,
+                                          color: selected
+                                              ? Colors.white
+                                              : meta.color,
+                                          letterSpacing: 0.5,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    if (_errors['delivery_status'] != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          _errors['delivery_status']!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
-                          ),
-                        ),
+                          );
+                        }).toList(),
                       ),
-
-                    // ── RECIPIENT INFO (delivered only) ───────────────────────
-                    if (_status == 'delivered') ...[
-                      const SizedBox(height: 20),
-                      const DeliverySectionHeader(label: 'RECIPIENT INFO'),
-                      const SizedBox(height: 8),
-                      DeliveryRecipientCards(
-                        recipientName: _delivery['name']?.toString() ?? '',
-                        authorizedRep:
-                            _delivery['authorized_rep']?.toString() ?? '',
-                        onSelectRecipient: (name, relationship) {
-                          // Detach listener so programmatic setText does not
-                          // falsely trigger the owner-clearing logic.
-                          _recipient.removeListener(_onRecipientTextChanged);
-                          _recipient.text = name;
-                          _recipient.addListener(_onRecipientTextChanged);
-                          setState(() {
-                            // null relationship = auth rep → reset to blank
-                            _relationship = relationship;
-                            _recipientIsOwner = relationship == 'self';
-                            _errors.remove('recipient');
-                            _errors.remove('relationship');
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Recipient name field with clear (✕) suffix icon
-                      ValueListenableBuilder<TextEditingValue>(
-                        valueListenable: _recipient,
-                        builder: (context, value, _) => TextFormField(
-                          controller: _recipient,
-                          maxLength: kMaxRecipientLength,
-                          textCapitalization: TextCapitalization.characters,
-                          decoration:
-                              deliveryFieldDecoration(
-                                context,
-                                labelText: 'RECIPIENT NAME',
-                                errorText: _errors['recipient'],
-                              ).copyWith(
-                                suffixIcon: value.text.isNotEmpty
-                                    ? IconButton(
-                                        icon: const Icon(
-                                          Icons.clear_rounded,
-                                          size: 18,
-                                        ),
-                                        color: Colors.grey.shade500,
-                                        onPressed: () {
-                                          _recipient.clear();
-                                          setState(() {
-                                            _recipientIsOwner = false;
-                                            _relationship = null;
-                                          });
-                                        },
-                                      )
-                                    : null,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Relationship dropdown: disabled (locked) when owner
-                      // is selected; key forces rebuild when value changes.
-                      DropdownButtonFormField<String>(
-                        key: ValueKey(_relationship),
-                        initialValue: _relationship,
-                        decoration: deliveryFieldDecoration(
-                          context,
-                          labelText: _recipientIsOwner
-                              ? 'RELATIONSHIP (LOCKED — OWNER)'
-                              : 'RELATIONSHIP',
-                          errorText: _errors['relationship'],
-                        ),
-                        items: kRelationshipOptions
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e['value'],
-                                child: Text(e['label']!),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: _recipientIsOwner
-                            ? null
-                            : (v) => setState(() => _relationship = v),
-                      ),
-                      const SizedBox(height: 8),
-
-                      DropdownButtonFormField<String>(
-                        initialValue: _placement,
-                        decoration: deliveryFieldDecoration(
-                          context,
-                          labelText: 'PLACEMENT TYPE',
-                          errorText: _errors['placement'],
-                        ),
-                        items: kPlacementOptions
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e['value'],
-                                child: Text(e['label']!),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _placement = v ?? _placement),
-                      ),
-                    ],
-
-                    // ── REASON (rts / osa) ───────────────────────────────────
-                    if (needsReason) ...[
-                      const SizedBox(height: 20),
-                      const DeliverySectionHeader(
-                        label: 'REASON FOR NON-DELIVERY',
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: _reason,
-                        decoration: deliveryFieldDecoration(
-                          context,
-                          labelText: 'SELECT REASON',
-                          errorText: _errors['reason'],
-                        ),
-                        items: kReasons
-                            .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
-                            )
-                            .toList(),
-                        onChanged: (v) => setState(() => _reason = v),
-                      ),
-                    ],
-
-                    // ── PROOF OF DELIVERY: two fixed slots + signature ────────
-                    if (_status == 'delivered') ...[
-                      const SizedBox(height: 20),
-                      const DeliverySectionHeader(
-                        label: 'PROOF OF DELIVERY PHOTOS',
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildPhotoSlot(
-                            slotType: 'pod',
-                            label: 'POD',
-                            photo: _podPhoto,
-                            icon: Icons.inventory_2_rounded,
-                            color: ColorStyles.grabGreen,
-                            isDark: isDark,
-                          ),
-                          const SizedBox(width: 10),
-                          _buildPhotoSlot(
-                            slotType: 'selfie',
-                            label: 'SELFIE',
-                            photo: _selfiePhoto,
-                            icon: Icons.face_rounded,
-                            color: Colors.blueGrey,
-                            isDark: isDark,
-                          ),
-                        ],
-                      ),
-                      if (_errors['pod_photo'] != null ||
-                          _errors['selfie_photo'] != null)
+                      if (_errors['delivery_status'] != null)
                         Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (_errors['pod_photo'] != null)
-                                Text(
-                                  _errors['pod_photo']!,
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              if (_errors['selfie_photo'] != null)
-                                Text(
-                                  _errors['selfie_photo']!,
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-
-                      // Signature — same click-box design as photo slots
-                      const SizedBox(height: 10),
-                      _buildSignatureSlot(isDark),
-                      if (_errors['recipient_signature'] != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
+                          padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            _errors['recipient_signature']!,
+                            _errors['delivery_status']!,
                             style: const TextStyle(
                               color: Colors.red,
                               fontSize: 12,
                             ),
                           ),
                         ),
-                    ],
 
-                    // ── PHOTOS: camera + gallery (rts / osa) ─────────────────
-                    if (_status != 'delivered') ...[
-                      const SizedBox(height: 20),
-                      const DeliverySectionHeader(label: 'PHOTOS'),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DeliveryPhotoSourceButton(
-                              icon: Icons.photo_camera_rounded,
-                              label: 'CAMERA',
-                              color: ColorStyles.grabGreen,
-                              enabled: _photos.length < kMaxDeliveryImages,
-                              onTap: () => _pickImage(ImageSource.camera),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: DeliveryPhotoSourceButton(
-                              icon: Icons.photo_library_rounded,
-                              label: 'GALLERY',
-                              color: Colors.blueGrey,
-                              enabled: _photos.length < kMaxDeliveryImages,
-                              onTap: () => _pickImage(ImageSource.gallery),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (_photos.length >= kMaxDeliveryImages)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            'MAXIMUM $kMaxDeliveryImages IMAGES REACHED.',
-                            style: TextStyle(
-                              color: Colors.orange.shade700,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      // ── RECIPIENT INFO (delivered only) ───────────────────────
+                      if (_status == 'delivered') ...[
+                        const SizedBox(height: 20),
+                        const DeliverySectionHeader(label: 'RECIPIENT INFO'),
+                        const SizedBox(height: 8),
+                        DeliveryRecipientCards(
+                          recipientName: _delivery['name']?.toString() ?? '',
+                          authorizedRep:
+                              _delivery['authorized_rep']?.toString() ?? '',
+                          onSelectRecipient: (name, relationship) {
+                            // Detach listener so programmatic setText does not
+                            // falsely trigger the owner-clearing logic.
+                            _recipient.removeListener(_onRecipientTextChanged);
+                            _recipient.text = name;
+                            _recipient.addListener(_onRecipientTextChanged);
+                            setState(() {
+                              // null relationship = auth rep → reset to blank
+                              _relationship = relationship;
+                              _recipientIsOwner = relationship == 'self';
+                              _errors.remove('recipient');
+                              _errors.remove('relationship');
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Recipient name field with clear (✕) suffix icon
+                        ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _recipient,
+                          builder: (context, value, _) => TextFormField(
+                            controller: _recipient,
+                            maxLength: kMaxRecipientLength,
+                            textCapitalization: TextCapitalization.characters,
+                            decoration:
+                                deliveryFieldDecoration(
+                                  context,
+                                  labelText: 'RECIPIENT NAME',
+                                  errorText: _errors['recipient'],
+                                ).copyWith(
+                                  suffixIcon: value.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(
+                                            Icons.clear_rounded,
+                                            size: 18,
+                                          ),
+                                          color: Colors.grey.shade500,
+                                          onPressed: () {
+                                            _recipient.clear();
+                                            setState(() {
+                                              _recipientIsOwner = false;
+                                              _relationship = null;
+                                            });
+                                          },
+                                        )
+                                      : null,
+                                ),
                           ),
                         ),
-                      if (_photos.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Column(
-                          children: List.generate(_photos.length, (i) {
-                            final photo = _photos[i];
-                            final imageBytes = base64Decode(photo.file);
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? ColorStyles.grabCardElevatedDark
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: isDark
-                                      ? Colors.white10
-                                      : Colors.grey.shade200,
+                        const SizedBox(height: 8),
+
+                        // Relationship dropdown: disabled (locked) when owner
+                        // is selected; key forces rebuild when value changes.
+                        DropdownButtonFormField<String>(
+                          key: ValueKey(_relationship),
+                          initialValue: _relationship,
+                          decoration: deliveryFieldDecoration(
+                            context,
+                            labelText: _recipientIsOwner
+                                ? 'RELATIONSHIP (LOCKED — OWNER)'
+                                : 'RELATIONSHIP',
+                            errorText: _errors['relationship'],
+                          ),
+                          items: kRelationshipOptions
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e['value'],
+                                  child: Text(e['label']!),
                                 ),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 100,
-                                    height: 100,
-                                    child: Image.memory(
-                                      imageBytes,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        color: isDark
-                                            ? Colors.white10
-                                            : Colors.grey.shade100,
-                                        child: Icon(
-                                          Icons.broken_image_rounded,
-                                          size: 28,
-                                          color: Colors.grey.shade400,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        12,
-                                        10,
-                                        10,
-                                        10,
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'PHOTO ${i + 1}',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: 0.5,
-                                              color: Colors.grey.shade500,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: isDark
-                                                  ? ColorStyles.grabCardDark
-                                                  : Colors.grey.shade50,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              border: Border.all(
-                                                color: isDark
-                                                    ? Colors.white12
-                                                    : Colors.grey.shade300,
-                                              ),
-                                            ),
-                                            child: DropdownButton<String>(
-                                              value: photo.type,
-                                              isExpanded: true,
-                                              underline:
-                                                  const SizedBox.shrink(),
-                                              isDense: true,
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                color: isDark
-                                                    ? Colors.white
-                                                    : Colors.black87,
-                                              ),
-                                              items: kImageTypes
-                                                  .map(
-                                                    (e) =>
-                                                        DropdownMenuItem<
-                                                          String
-                                                        >(
-                                                          value: e,
-                                                          child: Text(
-                                                            e.toUpperCase(),
-                                                          ),
-                                                        ),
-                                                  )
-                                                  .toList(),
-                                              onChanged: (v) {
-                                                if (v == null) return;
-                                                setState(() {
-                                                  _photos[i] = PhotoEntry(
-                                                    id: photo.id,
-                                                    file: photo.file,
-                                                    type: v,
-                                                  );
-                                                });
-                                              },
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          GestureDetector(
-                                            onTap: () => setState(
-                                              () => _photos.removeAt(i),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.delete_outline_rounded,
-                                                  size: 14,
-                                                  color: Colors.red.shade400,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  'REMOVE',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Colors.red.shade400,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
+                              )
+                              .toList(),
+                          onChanged: _recipientIsOwner
+                              ? null
+                              : (v) => setState(() => _relationship = v),
+                        ),
+                        const SizedBox(height: 8),
+
+                        DropdownButtonFormField<String>(
+                          initialValue: _placement,
+                          decoration: deliveryFieldDecoration(
+                            context,
+                            labelText: 'PLACEMENT TYPE',
+                            errorText: _errors['placement'],
+                          ),
+                          items: kPlacementOptions
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e['value'],
+                                  child: Text(e['label']!),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => _placement = v ?? _placement),
                         ),
                       ],
-                    ],
 
-                    // ── REMARKS ───────────────────────────────────────────────
-                    const SizedBox(height: 20),
-                    const DeliverySectionHeader(label: 'REMARKS'),
-                    const SizedBox(height: 8),
-                    ValueListenableBuilder<TextEditingValue>(
-                      valueListenable: _note,
-                      builder: (context, value, _) => TextFormField(
-                        controller: _note,
-                        maxLength: kMaxNoteLength,
-                        maxLines: 3,
-                        textCapitalization: TextCapitalization.characters,
+                      // ── REASON (rts / osa) ───────────────────────────────────
+                      if (needsReason) ...[
+                        const SizedBox(height: 20),
+                        const DeliverySectionHeader(
+                          label: 'REASON FOR NON-DELIVERY',
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue: _reason,
+                          decoration: deliveryFieldDecoration(
+                            context,
+                            labelText: 'SELECT REASON',
+                            errorText: _errors['reason'],
+                          ),
+                          items: kReasons
+                              .map(
+                                (e) =>
+                                    DropdownMenuItem(value: e, child: Text(e)),
+                              )
+                              .toList(),
+                          onChanged: (v) => setState(() => _reason = v),
+                        ),
+                      ],
+
+                      // ── PROOF OF DELIVERY: two fixed slots + signature ────────
+                      if (_status == 'delivered') ...[
+                        const SizedBox(height: 20),
+                        const DeliverySectionHeader(
+                          label: 'PROOF OF DELIVERY PHOTOS',
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _buildPhotoSlot(
+                              slotType: 'pod',
+                              label: 'POD',
+                              photo: _podPhoto,
+                              icon: Icons.inventory_2_rounded,
+                              color: ColorStyles.grabGreen,
+                              isDark: isDark,
+                            ),
+                            const SizedBox(width: 10),
+                            _buildPhotoSlot(
+                              slotType: 'selfie',
+                              label: 'SELFIE',
+                              photo: _selfiePhoto,
+                              icon: Icons.face_rounded,
+                              color: Colors.blueGrey,
+                              isDark: isDark,
+                            ),
+                          ],
+                        ),
+                        if (_errors['pod_photo'] != null ||
+                            _errors['selfie_photo'] != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (_errors['pod_photo'] != null)
+                                  Text(
+                                    _errors['pod_photo']!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                if (_errors['selfie_photo'] != null)
+                                  Text(
+                                    _errors['selfie_photo']!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                        // Signature — same click-box design as photo slots
+                        const SizedBox(height: 10),
+                        _buildSignatureSlot(isDark),
+                        if (_errors['recipient_signature'] != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              _errors['recipient_signature']!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+
+                      // ── SELFIE PHOTO (rts / osa) ──────────────────────────────
+                      if (_status != 'delivered') ...[
+                        const SizedBox(height: 20),
+                        const DeliverySectionHeader(label: 'SELFIE PHOTO'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _buildPhotoSlot(
+                              slotType: 'selfie',
+                              label: 'SELFIE',
+                              photo: _selfiePhoto,
+                              icon: Icons.face_rounded,
+                              color: Colors.blueGrey,
+                              isDark: isDark,
+                              onTapOverride: _pickSelfieForRtsOsa,
+                            ),
+                          ],
+                        ),
+                      ],
+
+                      // ── REMARKS ───────────────────────────────────────────────
+                      const SizedBox(height: 20),
+                      const DeliverySectionHeader(label: 'REMARKS'),
+                      const SizedBox(height: 8),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _note,
+                        builder: (context, value, _) => TextFormField(
+                          controller: _note,
+                          maxLength: kMaxNoteLength,
+                          maxLines: 3,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration:
+                              deliveryFieldDecoration(
+                                context,
+                                hintText: 'REMARKS (OPTIONAL)',
+                                errorText: _errors['note'],
+                              ).copyWith(
+                                suffixIcon: value.text.isNotEmpty
+                                    ? Align(
+                                        alignment: Alignment.topRight,
+                                        heightFactor: 1.0,
+                                        child: IconButton(
+                                          icon: const Icon(
+                                            Icons.clear_rounded,
+                                            size: 18,
+                                          ),
+                                          color: Colors.grey.shade500,
+                                          onPressed: () => _note.clear(),
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                        ),
+                      ),
+
+                      // ── TRANSACTION DATE (today in PST, read-only) ───────────
+                      const SizedBox(height: 20),
+                      const DeliverySectionHeader(label: 'TRANSACTION DATE'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        initialValue: _todayPST(),
+                        enabled: false,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
                         decoration:
                             deliveryFieldDecoration(
                               context,
-                              hintText: 'REMARKS (OPTIONAL)',
-                              errorText: _errors['note'],
+                              labelText: 'DATE (PHILIPPINE STANDARD TIME)',
                             ).copyWith(
-                              suffixIcon: value.text.isNotEmpty
-                                  ? Align(
-                                      alignment: Alignment.topRight,
-                                      heightFactor: 1.0,
-                                      child: IconButton(
-                                        icon: const Icon(
-                                          Icons.clear_rounded,
-                                          size: 18,
-                                        ),
-                                        color: Colors.grey.shade500,
-                                        onPressed: () => _note.clear(),
-                                      ),
-                                    )
-                                  : null,
+                              prefixIcon: Icon(
+                                Icons.calendar_today_rounded,
+                                size: 18,
+                                color: Colors.grey.shade500,
+                              ),
+                              suffixIcon: Icon(
+                                Icons.lock_outline_rounded,
+                                size: 16,
+                                color: Colors.grey.shade400,
+                              ),
                             ),
                       ),
-                    ),
 
-                    // ── TRANSACTION DATE (today in PST, read-only) ───────────
-                    const SizedBox(height: 20),
-                    const DeliverySectionHeader(label: 'TRANSACTION DATE'),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      initialValue: _todayPST(),
-                      enabled: false,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: isDark ? Colors.white70 : Colors.black87,
+                      // ── GEO LOCATION ──────────────────────────────────────────
+                      const SizedBox(height: 20),
+                      const DeliverySectionHeader(label: 'GEO LOCATION'),
+                      const SizedBox(height: 8),
+                      DeliveryGeoLocationField(
+                        latitude: _latitude,
+                        longitude: _longitude,
+                        geoAccuracy: _geoAccuracy,
+                        isLoading: _gettingLocation,
+                        onCapture: _captureLocation,
                       ),
-                      decoration:
-                          deliveryFieldDecoration(
-                            context,
-                            labelText: 'DATE (PHILIPPINE STANDARD TIME)',
-                          ).copyWith(
-                            prefixIcon: Icon(
-                              Icons.calendar_today_rounded,
-                              size: 18,
-                              color: Colors.grey.shade500,
-                            ),
-                            suffixIcon: Icon(
-                              Icons.lock_outline_rounded,
-                              size: 16,
-                              color: Colors.grey.shade400,
-                            ),
-                          ),
-                    ),
 
-                    // ── GEO LOCATION ──────────────────────────────────────────
-                    const SizedBox(height: 20),
-                    const DeliverySectionHeader(label: 'GEO LOCATION'),
-                    const SizedBox(height: 8),
-                    DeliveryGeoLocationField(
-                      latitude: _latitude,
-                      longitude: _longitude,
-                      geoAccuracy: _geoAccuracy,
-                      isLoading: _gettingLocation,
-                      onCapture: _captureLocation,
-                    ),
-
-                    const SizedBox(height: 80),
-                  ],
-                ),
-          if (_loading) const LoadingOverlay(),
-          if (_success)
-            SuccessOverlay(
-              onDone: () {
-                if (!mounted) return;
-                showAppSnackbar(
-                  context,
-                  'Delivery status updated successfully.',
-                  type: SnackbarType.success,
-                );
-                context.go('/dashboard');
-              },
-            ),
-        ],
-      ),
-    ), // Scaffold
+                      const SizedBox(height: 80),
+                    ],
+                  ),
+            if (_loading) const LoadingOverlay(),
+            if (_success)
+              SuccessOverlay(
+                onDone: () {
+                  if (!mounted) return;
+                  showAppSnackbar(
+                    context,
+                    'Delivery status updated successfully.',
+                    type: SnackbarType.success,
+                  );
+                  context.go('/dashboard');
+                },
+              ),
+          ],
+        ),
+      ), // Scaffold
     ); // PopScope
   }
 }
+
+// working

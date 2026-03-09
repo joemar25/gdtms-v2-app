@@ -216,7 +216,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           color: Colors.blueGrey,
                           onTap: () => context.push('/sync'),
                           subdued: true,
-                          details: 'Offline to online sync.',
+                        details: 'Offline to online sync.',
                         ),
                       ),
                     ],

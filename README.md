@@ -73,18 +73,69 @@ flutter analyze
 flutter run -d emulator-5554
 ```
 
-## API Base URL Configuration
+## Environment Configuration
 
-This project uses `--dart-define` for environment switching.
+All environment values live in `lib/core/config.dart` and are injected at
+build/run time via `--dart-define` or `--dart-define-from-file`.
 
-- Base URL handling is defined in `lib/core/config.dart`.
-- Use your team-approved environment value at build/run time.
+> **Flutter does NOT support `.env` files natively.**
+> Use `dart_defines.json` (the recommended approach below) instead.
 
-Examples:
+### Recommended: `dart_defines.json`
+
+1. Copy the example file and fill in your values:
+
+   ```bash
+   cp dart_defines.example.json dart_defines.json
+   ```
+
+2. `dart_defines.json` is **git-ignored** — never commit it.
+
+3. Run or build with:
+
+   ```bash
+   flutter run  --dart-define-from-file=dart_defines.json
+   flutter build apk --dart-define-from-file=dart_defines.json
+   ```
+
+### Available keys
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `API_BASE_URL` | `http://YOUR_API_BASE_URL/api/mbl` | Backend API base URL |
+| `USE_S3_UPLOAD` | `false` | `true` to upload media directly to S3 instead of via the API |
+| `AWS_ACCESS_KEY_ID` | _(empty)_ | AWS IAM key ID — required when `USE_S3_UPLOAD=true` |
+| `AWS_SECRET_ACCESS_KEY` | _(empty)_ | AWS IAM secret — required when `USE_S3_UPLOAD=true` |
+| `AWS_REGION` | `ap-southeast-1` | S3 bucket region |
+| `AWS_BUCKET` | `REDACTED_BUCKET_NAME` | S3 bucket name |
+
+### Media upload modes
+
+**API mode** (`USE_S3_UPLOAD=false`, default)
+- App POSTs `{ file_data, mime_type, type }` JSON to `/deliveries/{barcode}/media`.
+- Server handles S3 storage and returns the object URL.
+
+**S3 direct mode** (`USE_S3_UPLOAD=true`)
+- App signs and PUTs the image directly to S3 using AWS Signature V4.
+- S3 key structure: `deliveries/{barcode}/images/{type}_{timestamp}.{ext}`
+- No PHP upload buffering; the URL is returned immediately and included in the PATCH.
+- **Offline behaviour**: images are queued as base64 in the local SQLite
+  `delivery_update_queue` table under `_pending_media`. On reconnect,
+  `SyncManagerNotifier` uploads each pending image using the same
+  `deliveries/{barcode}/images/` path before sending the PATCH.
+
+### Single-pass (no file) — local dev only
 
 ```bash
-flutter run --dart-define=API_BASE_URL=<your-approved-api-base-url>
-flutter build apk --dart-define=API_BASE_URL=<your-approved-api-base-url>
+# API mode, local dev server
+flutter run --dart-define=API_BASE_URL=http://YOUR_API_BASE_URL/api/mbl
+
+# S3 direct upload, staging API
+flutter run \
+  --dart-define=API_BASE_URL=https://staging-gdtms-v2.skyward.com.ph/api/mbl \
+  --dart-define=USE_S3_UPLOAD=true \
+  --dart-define=AWS_ACCESS_KEY_ID=<key_id> \
+  --dart-define=AWS_SECRET_ACCESS_KEY=<secret>
 ```
 
 ## Useful Commands
@@ -169,4 +220,9 @@ Possible future improvements:
 REDACTED_TEST_NUMBER
 flutter clean - to
 dart run flutter_native_splash:create - to replace assets with new one
+
+- who recieved in the delivery /
+- signature can be optional
+- dfamci has courier reference number for delivery upon updating the status for submittions (special case)
+
 -->

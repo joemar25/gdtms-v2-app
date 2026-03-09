@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +12,7 @@ import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'api_result.dart';
+import 's3_upload_service.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(
@@ -19,7 +23,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 class ApiClient {
   ApiClient({required AuthStorage authStorage, this.onUnauthorized})
-      : _authStorage = authStorage {
+    : _authStorage = authStorage {
     _dio = Dio(
       BaseOptions(
         baseUrl: apiBaseUrl,
@@ -230,6 +234,96 @@ class ApiClient {
       return _mapResponse<T>(response, parser);
     } catch (e) {
       debugPrint('[API] PATCH error: $e');
+      return _mapError<T>(e);
+    }
+  }
+
+  /// Uploads a file to S3 or the API media endpoint.
+  ///
+  /// Routing rules:
+  ///  • [kUseS3Upload]=true  AND credentials present  → S3 for all types.
+  ///  • type is NOT pod/selfie (i.e. recipient_signature, other)           → S3
+  ///    forced, because the API upload endpoint only accepts pod / selfie.
+  ///    Requires AWS credentials; returns [ApiServerError] if absent.
+  ///  • type is pod/selfie AND [kUseS3Upload]=false                        → API
+  ///    JSON endpoint: POST { file_data, mime_type, type }.
+  ///
+  /// S3 key structure: `deliveries/{barcode}/images/{type}_{ts}.{ext}`
+  ///
+  /// [path]     — e.g. `/deliveries/BARCODE/media` (used to extract barcode).
+  /// [bytes]    — raw file bytes.
+  /// [filename] — e.g. `'pod.jpg'` / `'signature.png'` (derives mime_type).
+  /// [type]     — upload type: `pod` | `selfie` | `recipient_signature` | `other`.
+  Future<ApiResult<T>> uploadMedia<T>(
+    String path, {
+    required Uint8List bytes,
+    required String filename,
+    required String type,
+    required T Function(dynamic) parser,
+  }) async {
+    final mimeType = filename.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+    // When USE_S3_UPLOAD=false, ALL types go through the API upload endpoint
+    // (/deliveries/:barcode/media accepts: pod, selfie, recipient_signature, other).
+    // When USE_S3_UPLOAD=true, skip the API endpoint entirely and push directly to S3.
+    final needsS3 =
+        kUseS3Upload &&
+        awsAccessKeyId.isNotEmpty &&
+        awsSecretAccessKey.isNotEmpty;
+
+    // ── S3 direct upload ────────────────────────────────────────────────────
+    if (needsS3) {
+      if (awsAccessKeyId.isEmpty || awsSecretAccessKey.isEmpty) {
+        debugPrint('[UPLOAD] S3 required but credentials are empty.');
+        return ApiServerError<T>(
+          'AWS credentials are required to upload "$type" media. '
+          'Add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY via --dart-define-from-file.',
+        );
+      }
+      // Derive barcode from path: '/deliveries/BARCODE/media' → BARCODE
+      final segments = path.split('/').where((s) => s.isNotEmpty).toList();
+      final barcode = segments.length >= 2 ? segments[1] : 'unknown';
+      final ext = filename.endsWith('.png') ? 'png' : 'jpg';
+      final s3Key =
+          'deliveries/$barcode/images/${type}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+
+      debugPrint(
+        '[UPLOAD] S3 upload: type=$type s3Key=$s3Key (${bytes.length}b)',
+      );
+      final url = await S3UploadService.upload(
+        bytes: bytes,
+        mimeType: mimeType,
+        s3Key: s3Key,
+      );
+      if (url != null) {
+        debugPrint('[UPLOAD] S3 success: $url');
+        return ApiSuccess<T>(
+          parser({
+            'data': {'url': url},
+          }),
+        );
+      }
+      debugPrint('[UPLOAD] S3 failed for type=$type s3Key=$s3Key');
+      return ApiServerError<T>(
+        'S3 upload failed. Check AWS credentials and bucket permissions.',
+      );
+    }
+
+    // ── API upload (pod / selfie only) ──────────────────────────────────────
+    debugPrint('[UPLOAD] API upload: type=$type path=$path (${bytes.length}b)');
+    try {
+      final response = await _dio.post<dynamic>(
+        path,
+        data: {
+          'file_data': base64Encode(bytes),
+          'mime_type': mimeType,
+          'type': type,
+        },
+      );
+      debugPrint('[UPLOAD] API response status=${response.statusCode} body=${response.data.toString().substring(0, response.data.toString().length.clamp(0, 300))}');
+      return _mapResponse<T>(response, parser);
+    } catch (e) {
+      debugPrint('[UPLOAD] API upload exception: $e');
       return _mapError<T>(e);
     }
   }
