@@ -40,7 +40,7 @@ class S3UploadService {
 
       // Canonical URI: percent-encode each path segment; preserve '/' separator.
       final canonicalUri =
-          '/' + s3Key.split('/').map(Uri.encodeComponent).join('/');
+          '/${s3Key.split('/').map(Uri.encodeComponent).join('/')}';
 
       // Canonical headers must be sorted alphabetically by header name.
       final canonicalHeaders =

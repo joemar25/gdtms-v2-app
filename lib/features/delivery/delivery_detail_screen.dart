@@ -889,7 +889,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         height: 90,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
-                          itemCount: (images as List).length,
+                          itemCount: (images).length,
                           separatorBuilder: (_, __) => const SizedBox(width: 6),
                           itemBuilder: (context, i) {
                             final img = images[i];

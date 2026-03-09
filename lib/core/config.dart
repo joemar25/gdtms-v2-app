@@ -4,18 +4,6 @@ import 'package:flutter/foundation.dart';
 //  FSI Courier App Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Base URL for API requests.
-///
-/// - Set via --dart-define=API_BASE_URL at build/run time.
-/// - Default: Local dev server (for emulator/real device on same WiFi).
-///   To expose locally: run `php artisan serve --host=0.0.0.0` and
-///   `npm run dev -- --host=0.0.0.0`, then use your IPv4 address from `ipconfig`.
-/// - Note: This will not work for web builds.
-const String apiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://YOUR_API_BASE_URL/api/mbl',
-);
-
 /// App version string.
 const String appVersion = '1.0.0';
 
@@ -27,6 +15,19 @@ const String appName = 'FSI Courier';
 
 /// Android/iOS package identifier.
 const String packageId = 'com.fsi.courier';
+
+/// Base URL for API requests.
+///
+/// - Set via --dart-define=API_BASE_URL at build/run time.
+/// - Default: Local dev server (for emulator/real device on same WiFi).
+///   To expose locally: run `php artisan serve --host=0.0.0.0` and
+///   `npm run dev -- --host=0.0.0.0`, then use your IPv4 address from `ipconfig`.
+/// - Note: This will not work for web builds.
+const String apiBaseUrl = String.fromEnvironment(
+  // 'API_BASE_URL',
+  'API_BASE_URL_PROD',
+  defaultValue: 'http://YOUR_API_BASE_URL/api/mbl',
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Media Upload Configuration
