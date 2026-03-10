@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -120,9 +121,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final isCompact = ref.watch(compactModeProvider);
     final isOnline = ref.watch(isOnlineProvider);
 
-    return Scaffold(
-      extendBody: true,
-      appBar: const AppHeaderBar(title: 'Profile'),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldExit = await ConfirmationDialog.show(
+          context,
+          title: 'Exit App',
+          subtitle: 'Are you sure you want to exit?',
+          confirmLabel: 'Exit',
+          cancelLabel: 'Stay',
+          isDestructive: true,
+        );
+        if (shouldExit == true && mounted) SystemNavigator.pop();
+      },
+      child: Scaffold(
+        extendBody: true,
+        appBar: const AppHeaderBar(title: 'Profile'),
       bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/profile'),
       body: RefreshIndicator(
         onRefresh: _refresh,
@@ -509,6 +524,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const SizedBox(height: 32),
         ],
+      ),
       ),
       ),
     );

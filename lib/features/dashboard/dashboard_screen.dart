@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,6 +11,7 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -104,9 +106,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final osaCount = _summary['osa'] ?? 0;
     final deliveredCount = _summary['delivered_today'] ?? 0;
 
-    return Scaffold(
-      extendBody: true,
-      appBar: AppHeaderBar(title: ''),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldExit = await ConfirmationDialog.show(
+          context,
+          title: 'Exit App',
+          subtitle: 'Are you sure you want to exit?',
+          confirmLabel: 'Exit',
+          cancelLabel: 'Stay',
+          isDestructive: true,
+        );
+        if (shouldExit == true && mounted) SystemNavigator.pop();
+      },
+      child: Scaffold(
+        extendBody: true,
+        appBar: AppHeaderBar(title: ''),
       bottomNavigationBar: const FloatingBottomNavBar(
         currentPath: '/dashboard',
       ),
@@ -259,6 +275,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ],
               ),
             ),
+      ),
     );
   }
 }

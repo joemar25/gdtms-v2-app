@@ -9,6 +9,7 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class PayoutRequestScreen extends ConsumerStatefulWidget {
@@ -24,10 +25,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   bool _submitting = false;
   String? _error;
   Map<String, dynamic>? _previewData;
-  int _daysShown = 7;
-
-  /// The currently selected date tab (from daily_breakdown).
-  String? _selectedDate;
+  String? _initialSelectedDate;
+  int _refreshKey = 0;
 
   @override
   void initState() {
@@ -53,11 +52,30 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       final breakdown =
           (preview['daily_breakdown'] as List?)?.cast<Map<String, dynamic>>() ??
           [];
+
+      String? selectedDate;
+      if (breakdown.isNotEmpty) {
+        // Try to select today's date
+        final today = DateTime.now();
+        final todayStr =
+            '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+        final todayInBreakdown = breakdown.firstWhere(
+          (d) => d['date'] == todayStr,
+          orElse: () => <String, dynamic>{},
+        );
+
+        if (todayInBreakdown.isNotEmpty) {
+          selectedDate = todayStr;
+        } else {
+          // Fall back to the last date in breakdown (latest available)
+          selectedDate = breakdown.last['date'] as String?;
+        }
+      }
+
       setState(() {
         _previewData = preview;
-        _selectedDate = breakdown.isNotEmpty
-            ? breakdown.first['date'] as String?
-            : null;
+        _initialSelectedDate = selectedDate;
+        _refreshKey++;
         _loading = false;
       });
     } else {
@@ -66,6 +84,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         _loading = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _submit() async {
@@ -202,28 +225,26 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     }
   }
 
-  String _fmtDayLabel(String dateStr) {
-    try {
-      return DateFormat('EEE').format(DateTime.parse(dateStr)).toUpperCase();
-    } catch (_) {
-      return '';
-    }
-  }
-
-  String _fmtDayNum(String dateStr) {
-    try {
-      return DateTime.parse(dateStr).day.toString();
-    } catch (_) {
-      return dateStr;
-    }
-  }
-
-  String _fmtDateHeader(String dateStr) {
-    try {
-      return DateFormat('EEE, MMM d').format(DateTime.parse(dateStr));
-    } catch (_) {
-      return dateStr;
-    }
+  /// Ensures each delivery map has a [delivery_status] field so [DeliveryCard]
+  /// colours correctly. Deliveries listed in a payment request are always
+  /// "delivered" unless the API says otherwise.
+  List<Map<String, dynamic>> _normalisedBreakdown(
+    List<Map<String, dynamic>> raw,
+  ) {
+    return raw.map((day) {
+      final deliveries =
+          (day['deliveries'] as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(
+                (d) => <String, dynamic>{
+                  ...d,
+                  'delivery_status': d['delivery_status'] ?? 'delivered',
+                },
+              )
+              .toList() ??
+          [];
+      return <String, dynamic>{...day, 'deliveries': deliveries};
+    }).toList();
   }
 
   @override
@@ -350,14 +371,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
   Widget _buildContent() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1E1E2E) : ColorStyles.white;
-    final subtleBg = isDark
-        ? const Color(0xFF2A2A3D)
-        : ColorStyles.grabCardLight;
-    final cardBorder = isDark
-        ? Colors.white.withValues(alpha: 0.10)
-        : ColorStyles.tertiary;
-    final primaryText = isDark ? ColorStyles.white : ColorStyles.black;
 
     final preview = _previewData!;
     final eligibleCount = preview['eligible_delivery_count'] as int? ?? 0;
@@ -369,33 +382,12 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         (preview['estimated_coordinator_incentive'] as num?)?.toDouble() ?? 0;
     final estimatedNet =
         (preview['estimated_net_payable'] as num?)?.toDouble() ?? 0;
-    final dailyBreakdown =
-        (preview['daily_breakdown'] as List?)?.cast<Map<String, dynamic>>() ??
-        [];
+    final dailyBreakdown = _normalisedBreakdown(
+      (preview['daily_breakdown'] as List?)?.cast<Map<String, dynamic>>() ?? [],
+    );
     final coverage = preview['coverage_period'] as Map<String, dynamic>?;
     final fromDate = coverage?['from_date'] as String? ?? '';
     final toDate = coverage?['to_date'] as String? ?? '';
-
-    // Deliveries for the selected date tab
-    final selectedDay = dailyBreakdown.firstWhere(
-      (d) => d['date'] == _selectedDate,
-      orElse: () => <String, dynamic>{},
-    );
-    final visibleDeliveries =
-        (selectedDay['deliveries'] as List?)?.cast<Map<String, dynamic>>() ??
-        [];
-
-    // Build a full N-day range ending today
-    final today = DateTime.now();
-    final allDates = List.generate(_daysShown, (i) {
-      final d = today.subtract(Duration(days: _daysShown - 1 - i));
-      return DateTime(d.year, d.month, d.day);
-    });
-
-    // Map existing breakdown by date string for quick lookup
-    final breakdownMap = {
-      for (final d in dailyBreakdown) d['date'] as String: d,
-    };
 
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return ListView(
@@ -434,185 +426,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             ),
           ),
           const SizedBox(height: 8),
-
-          // Horizontal date strip — MORE on the left, all dates tappable
-          SizedBox(
-            height: 72,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: allDates.length + 1,
-              itemBuilder: (context, i) {
-                // First item (leftmost) is the "Load more" button — older dates
-                if (i == 0) {
-                  return GestureDetector(
-                    onTap: () => setState(() => _daysShown += 7),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: cardBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: cardBorder),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.chevron_left_rounded,
-                            size: 18,
-                            color: ColorStyles.subSecondary,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'MORE',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: ColorStyles.subSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                final date = allDates[i - 1]; // offset by 1 for the MORE button
-                final dateStr =
-                    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                final dayData = breakdownMap[dateStr];
-                final count = dayData?['delivery_count'] as int? ?? 0;
-                final hasDeliveries = count > 0;
-                final selected = dateStr == _selectedDate;
-                final isToday =
-                    date.year == today.year &&
-                    date.month == today.month &&
-                    date.day == today.day;
-
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedDate = dateStr),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? ColorStyles.grabGreen
-                          : hasDeliveries
-                          ? cardBg
-                          : subtleBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: selected
-                            ? ColorStyles.grabGreen
-                            : isToday
-                            ? ColorStyles.grabGreen.withValues(alpha: 0.4)
-                            : hasDeliveries
-                            ? ColorStyles.subSecondary.withValues(alpha: 0.4)
-                            : cardBorder,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _fmtDayLabel(dateStr),
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: selected
-                                ? ColorStyles.white.withValues(alpha: 0.7)
-                                : ColorStyles.subSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _fmtDayNum(dateStr),
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: selected
-                                ? ColorStyles.white
-                                : hasDeliveries
-                                ? primaryText
-                                : ColorStyles.subSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        // Dot indicator: green if has deliveries, transparent otherwise
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: hasDeliveries
-                                ? (selected
-                                      ? ColorStyles.white
-                                      : ColorStyles.grabGreen)
-                                : Colors.transparent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+          DateStripWithDeliveries(
+            key: ValueKey(_refreshKey),
+            dailyBreakdown: dailyBreakdown,
+            initialSelectedDate: _initialSelectedDate,
           ),
-          const SizedBox(height: 12),
-
-          // Day header
-          if (_selectedDate != null) ...[
-            Row(
-              children: [
-                Text(
-                  _fmtDateHeader(_selectedDate!),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: subtleBg,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${visibleDeliveries.length} ${visibleDeliveries.length == 1 ? 'delivery' : 'deliveries'}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: ColorStyles.secondary,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '₱ ${((selectedDay['day_total'] as num?)?.toDouble() ?? 0).toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: ColorStyles.grabGreen,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          // Delivery rows for selected date
-          ...visibleDeliveries.map((d) => _DeliveryRow(delivery: d)),
         ],
 
         // ── Error banner ──────────────────────────────────────────────
@@ -887,254 +705,6 @@ class _AmountRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Delivery Row ─────────────────────────────────────────────────────────────
-
-class _DeliveryRow extends StatelessWidget {
-  const _DeliveryRow({required this.delivery});
-  final Map<String, dynamic> delivery;
-
-  Color _statusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'delivered':
-        return ColorStyles.grabGreen;
-      default:
-        return ColorStyles.subSecondary;
-    }
-  }
-
-  IconData _statusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'delivered':
-        return Icons.check_circle_rounded;
-      case 'failed':
-      case 'returned':
-        return Icons.cancel_rounded;
-      case 'in_transit':
-      case 'out_for_delivery':
-        return Icons.local_shipping_rounded;
-      default:
-        return Icons.radio_button_unchecked_rounded;
-    }
-  }
-
-  String _statusLabel(String status) {
-    return status
-        .split('_')
-        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-        .join(' ');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF2A2A3D) : ColorStyles.white;
-    final cardBorder = isDark
-        ? Colors.white.withValues(alpha: 0.10)
-        : ColorStyles.tertiary;
-
-    final barcode = delivery['barcode'] as String? ?? '';
-    final name = delivery['name'] as String? ?? '';
-    final address = delivery['address'] as String? ?? '';
-    final rateType = delivery['rate_type'] as String? ?? '';
-    final status = delivery['delivery_status'] as String? ?? '';
-    final netAmount = (delivery['net_amount'] as num?)?.toDouble() ?? 0;
-    final penaltyAmount = (delivery['penalty_amount'] as num?)?.toDouble() ?? 0;
-
-    final statusColor = _statusColor(status);
-    final isDelivered = status.toLowerCase() == 'delivered';
-
-    return GestureDetector(
-      onTap: barcode.isNotEmpty
-          ? () => context.push('/deliveries/$barcode')
-          : null,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isDelivered
-                ? ColorStyles.grabGreen.withValues(alpha: 0.35)
-                : cardBorder,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: ColorStyles.black.withValues(alpha: isDark ? 0.25 : 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // ── Top accent bar ──
-            Container(
-              height: 3,
-              decoration: BoxDecoration(
-                color: statusColor,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(14),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Status icon
-                  Padding(
-                    padding: const EdgeInsets.only(top: 1),
-                    child: Icon(
-                      _statusIcon(status),
-                      size: 20,
-                      color: statusColor,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  // Main info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Barcode + status badge
-                        Row(
-                          children: [
-                            Text(
-                              barcode,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                                color: ColorStyles.subSecondary,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                _statusLabel(status).toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w800,
-                                  color: statusColor,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-
-                        // Name
-                        Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-
-                        // Address
-                        if (address.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            address,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: ColorStyles.subSecondary,
-                              height: 1.3,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-
-                        // Rate type badge
-                        if (rateType.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: ColorStyles.grabGreen.withValues(
-                                alpha: 0.10,
-                              ),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              rateType.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: ColorStyles.grabDarkGreen,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Amount column
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '₱ ${netAmount.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: isDelivered
-                              ? ColorStyles.grabGreen
-                              : ColorStyles.secondary,
-                        ),
-                      ),
-                      if (penaltyAmount > 0) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '-₱ ${penaltyAmount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: ColorStyles.red,
-                          ),
-                        ),
-                      ],
-                      if (barcode.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          size: 16,
-                          color: ColorStyles.subSecondary,
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

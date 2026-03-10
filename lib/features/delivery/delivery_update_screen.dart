@@ -1,7 +1,7 @@
 ﻿import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -31,6 +31,13 @@ import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
+
+// ─── Consistent spacing constants ───────────────────────────────────────────
+const _kSectionGap = SizedBox(height: 24); // between major sections
+const _kFieldGap = SizedBox(height: 12); // between fields within a section
+const _kInnerGap = SizedBox(height: 8); // header → first field
+const _kPhotoHeight = 160.0; // photo slot height (was 148 — bigger tap target)
+const _kSignatureHeight = 144.0; // signature slot height (was 130)
 
 // ─── Status metadata ────────────────────────────────────────────────────────
 const _kStatusMeta = {
@@ -94,20 +101,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   @override
   void initState() {
     super.initState();
-    _recipient.addListener(_onRecipientTextChanged);
     _loadDelivery();
     _captureLocation();
-  }
-
-  /// When the courier manually edits the recipient field, un-lock the
-  /// owner-selection and reset the relationship to blank.
-  void _onRecipientTextChanged() {
-    if (_recipientIsOwner) {
-      setState(() {
-        _recipientIsOwner = false;
-        _relationship = null;
-      });
-    }
   }
 
   Future<void> _loadDelivery() async {
@@ -142,7 +137,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   @override
   void dispose() {
     _note.dispose();
-    _recipient.removeListener(_onRecipientTextChanged);
     _recipient.dispose();
     super.dispose();
   }
@@ -238,8 +232,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     );
     if (bytes == null) return;
 
-    // Map display slot name to the API-accepted delivery_images type.
-    // API accepts: pod, selfie, recipient_signature, other.
     final apiType = slotType == 'pod' ? 'pod' : 'selfie';
     final entry = PhotoEntry(
       id: _uuid.v4(),
@@ -262,13 +254,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Container(
               width: 36,
               height: 4,
@@ -277,18 +269,20 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
               leading: const Icon(Icons.photo_camera_rounded),
               title: const Text('Camera'),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
               leading: const Icon(Icons.photo_library_rounded),
               title: const Text('Gallery'),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -315,7 +309,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   static DateTime _pstNow() =>
       DateTime.now().toUtc().add(const Duration(hours: 8));
 
-  static String _todayPST() => DateFormat('MMMM d, yyyy').format(_pstNow());
+  static String _getCurrentDateTimePST() {
+    final now = _pstNow();
+    return DateFormat("MMMM d, yyyy 'at' h:mm a").format(now);
+  }
 
   // ── Validation ────────────────────────────────────────────────────────────
   bool _validate() {
@@ -363,11 +360,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     setState(() => _loading = true);
 
-    final courierId =
-        ref.read(authProvider).courier?['id']?.toString() ?? '';
+    final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
     final isOnline = ref.read(isOnlineProvider);
 
-    // Build payload — only include fields relevant to the current status.
     final payload = <String, dynamic>{
       'delivery_status': _status,
       if (_note.text.trim().isNotEmpty) 'note': _note.text.trim(),
@@ -404,8 +399,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         if (!mounted) return null;
         if (r case ApiSuccess<Map<String, dynamic>>(:final data)) {
           final inner = data['data'];
-          // The upload endpoint may return the URL in several field names.
-          // Try the nested data object first, then fall back to top-level keys.
           final url =
               (inner is Map
                       ? inner['url'] ??
@@ -417,10 +410,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           debugPrint('[UPLOAD] uploadBytes success: url=$url raw_data=$data');
           return url;
         }
-        // Log the failure so we can see the actual API error
         switch (r) {
-          case ApiValidationError<Map<String, dynamic>>(:final message, :final errors):
-            debugPrint('[UPLOAD] uploadBytes validation error: $message | errors: $errors');
+          case ApiValidationError<Map<String, dynamic>>(
+            :final message,
+            :final errors,
+          ):
+            debugPrint(
+              '[UPLOAD] uploadBytes validation error: $message | errors: $errors',
+            );
           case ApiServerError<Map<String, dynamic>>(:final message):
             debugPrint('[UPLOAD] uploadBytes server error: $message');
           case ApiNetworkError<Map<String, dynamic>>(:final message):
@@ -439,7 +436,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         if (_podPhoto != null) {
           final url = await uploadBytes(
             base64Decode(_podPhoto!.file),
-            'pod', // upload endpoint type
+            'pod',
             'pod.jpg',
           );
           if (url != null) uploadedImages.add({'file': url, 'type': 'pod'});
@@ -447,7 +444,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         if (_selfiePhoto != null) {
           final url = await uploadBytes(
             base64Decode(_selfiePhoto!.file),
-            'selfie', // upload endpoint type
+            'selfie',
             'selfie.jpg',
           );
           if (url != null) uploadedImages.add({'file': url, 'type': 'selfie'});
@@ -465,7 +462,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           if (url != null) payload['recipient_signature'] = url;
         }
       } else {
-        // rts / osa — single selfie photo tagged as 'selfie'
         payload['reason'] = _reason;
         debugPrint(
           '[SUBMIT] rts/osa selfie: ${_selfiePhoto != null ? "present" : "not taken"}',
@@ -478,8 +474,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           );
           debugPrint('[SUBMIT] rts/osa selfie upload result: $url');
           if (url == null) {
-            // Upload failed — surface the error instead of silently proceeding
-            // without images attached to the delivery.
             if (mounted) {
               setState(() => _loading = false);
               showAppSnackbar(
@@ -490,7 +484,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             }
             return;
           }
-          uploadedImages.add({'file': url, 'type': 'selfie', 'captured_at': DateTime.now().toUtc().toIso8601String()});
+          uploadedImages.add({
+            'file': url,
+            'type': 'selfie',
+            'captured_at': DateTime.now().toUtc().toIso8601String(),
+          });
         }
         if (uploadedImages.isNotEmpty) {
           payload['delivery_images'] = uploadedImages;
@@ -513,14 +511,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       switch (result) {
         case ApiSuccess<Map<String, dynamic>>(:final data):
           debugPrint('[PATCH] response keys: ${data.keys.toList()}');
-          // Backend now returns { data: { delivery_status, rts_count, rts_attempts, media, ... } }
-          // Unwrap the 'data' key; fall back to the flat response for backwards compat.
           final rawData = data['data'] is Map<String, dynamic>
               ? data['data'] as Map<String, dynamic>
               : data;
           debugPrint('[PATCH] response data keys: ${rawData.keys.toList()}');
           debugPrint('[PATCH] response media: ${rawData['media']}');
-          debugPrint('[PATCH] rts_count: ${rawData['rts_count']}  rts_attempts: ${rawData['rts_attempts']}');
+          debugPrint(
+            '[PATCH] rts_count: ${rawData['rts_count']}  rts_attempts: ${rawData['rts_attempts']}',
+          );
           await LocalDeliveryDao.instance.updateFromJson(
             widget.barcode,
             rawData,
@@ -568,15 +566,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
     } else {
       // ── Offline path: queue for later sync ──────────────────────────────
-      // Store image bytes as base64 in _pending_media so the sync manager
-      // can upload them when connectivity is restored.
       final pendingMedia = <Map<String, dynamic>>[];
 
       if (_status == 'delivered') {
         if (_podPhoto != null) {
           pendingMedia.add({
             'upload_type': 'pod',
-            'delivery_images_type': 'pod', // API delivery_images type
+            'delivery_images_type': 'pod',
             'b64': _podPhoto!.file,
             'filename': 'pod.jpg',
           });
@@ -591,8 +587,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         }
         if (_signatureBytes != null) {
           pendingMedia.add({
-            'upload_type':
-                'recipient_signature', // no delivery_images_type — goes to recipient_signature field
+            'upload_type': 'recipient_signature',
             'b64': base64Encode(_signatureBytes!),
             'filename': 'signature.png',
           });
@@ -601,7 +596,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         payload['relationship'] = _relationship;
         payload['placement_type'] = _placement;
       } else {
-        // rts / osa — single selfie, same type for upload and delivery_images
         payload['reason'] = _reason;
         if (_selfiePhoto != null) {
           pendingMedia.add({
@@ -722,7 +716,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       child: GestureDetector(
         onTap: onTapOverride ?? () => _pickPhotoForSlot(slotType),
         child: Container(
-          height: 148,
+          height: _kPhotoHeight,
           decoration: BoxDecoration(
             color: hasPhoto
                 ? Colors.transparent
@@ -749,7 +743,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         color: isDark ? Colors.white10 : Colors.grey.shade100,
                         child: Icon(
                           Icons.broken_image_rounded,
-                          size: 28,
+                          size: 32,
                           color: Colors.grey.shade400,
                         ),
                       ),
@@ -761,8 +755,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       child: Container(
                         color: Colors.black54,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+                          horizontal: 12,
+                          vertical: 8,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -770,9 +764,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             Text(
                               label,
                               style: const TextStyle(
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w800,
-
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -785,10 +778,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   _selfiePhoto = null;
                                 }
                               }),
-                              child: const Icon(
-                                Icons.delete_outline_rounded,
-                                size: 14,
-                                color: Colors.redAccent,
+                              child: const Padding(
+                                padding: EdgeInsets.all(4), // bigger hit area
+                                child: Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 16,
+                                  color: Colors.redAccent,
+                                ),
                               ),
                             ),
                           ],
@@ -800,8 +796,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon, size: 30, color: color),
-                    const SizedBox(height: 8),
+                    Icon(icon, size: 34, color: color),
+                    const SizedBox(height: 10),
                     Text(
                       label,
                       style: TextStyle(
@@ -815,7 +811,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     Text(
                       'TAP TO CAPTURE',
                       style: TextStyle(
-                        fontSize: 9,
+                        fontSize: 10,
                         color: Colors.grey.shade500,
                         letterSpacing: 0.3,
                       ),
@@ -835,7 +831,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     return GestureDetector(
       onTap: _openSignatureCapture,
       child: Container(
-        height: 130,
+        height: _kSignatureHeight,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
@@ -853,7 +849,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 fit: StackFit.expand,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     child: Image.memory(_signatureBytes!, fit: BoxFit.contain),
                   ),
                   Positioned(
@@ -864,7 +860,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       color: Colors.black54,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 6,
+                        vertical: 8,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -872,9 +868,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                           const Text(
                             'SIGNATURE',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w800,
-
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -883,26 +878,37 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onTap: _openSignatureCapture,
-                                child: const Text(
-                                  'RE-SIGN',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white70,
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  child: Text(
+                                    'RE-SIGN',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white70,
+                                    ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
                               GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onTap: () =>
                                     setState(() => _signatureBytes = null),
-                                child: const Text(
-                                  'CLEAR',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.redAccent,
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  child: Text(
+                                    'CLEAR',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.redAccent,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -919,10 +925,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 children: [
                   Icon(
                     Icons.draw_rounded,
-                    size: 30,
+                    size: 34,
                     color: ColorStyles.grabGreen.withValues(alpha: 0.7),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
                     'SIGNATURE',
                     style: TextStyle(
@@ -936,7 +942,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   Text(
                     'TAP TO SIGN (OPTIONAL)',
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 10,
                       color: Colors.grey.shade500,
                       letterSpacing: 0.3,
                     ),
@@ -948,19 +954,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  /// Returns true if the user has modified any form field from its initial
-  /// state. Used by the navigation guard to decide whether to show the
-  /// "Discard changes?" prompt.
   bool get _isDirty =>
-      // changed status tab
       _status != 'delivered' ||
-      // text fields
       _recipient.text.isNotEmpty ||
       _note.text.isNotEmpty ||
-      // dropdowns
       _relationship != null ||
       _reason != null ||
-      // photos / signature
       _podPhoto != null ||
       _selfiePhoto != null ||
       _photos.isNotEmpty ||
@@ -976,8 +975,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        // Allow immediate back-navigation when nothing has changed or after
-        // a successful submit (SuccessOverlay is already showing).
         if (!_isDirty || _success) {
           if (mounted) context.pop();
           return;
@@ -1037,11 +1034,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 ),
               ),
             ],
-          ), // Column
-        ), // AppBar
+          ),
+        ),
         bottomNavigationBar: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: FilledButton.icon(
               icon: const Icon(Icons.check_circle_outline_rounded),
               label: const Text(
@@ -1053,7 +1050,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               ),
               style: FilledButton.styleFrom(
                 backgroundColor: ColorStyles.grabGreen,
-                minimumSize: const Size.fromHeight(52),
+                minimumSize: const Size.fromHeight(
+                  56,
+                ), // was 52 — taller tap target
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -1067,18 +1066,20 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             _loadingDelivery
                 ? const Center(child: CircularProgressIndicator())
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                     children: [
                       // ── Offline Banner ────────────────────────────────────────
                       if (!isOnline)
                         const OfflineBanner(
                           isMinimal: true,
-                          customMessage: 'Update queued—will submit when online',
-                          margin: EdgeInsets.only(bottom: 16),
+                          customMessage:
+                              'Update queued—will submit when online',
+                          margin: EdgeInsets.only(bottom: 20),
                         ),
+
                       // ── STATUS SELECTION ──────────────────────────────────────
                       const DeliverySectionHeader(label: 'SELECT STATUS'),
-                      const SizedBox(height: 10),
+                      _kInnerGap,
                       Row(
                         children: kUpdateStatuses.map((s) {
                           final meta = _kStatusMeta[s]!;
@@ -1116,8 +1117,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         : [],
                                   ),
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 0,
-                                    vertical: 12,
+                                    horizontal: 4,
+                                    vertical:
+                                        14, // was 12 — slightly taller tap target
                                   ),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -1127,7 +1129,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         color: selected
                                             ? Colors.white
                                             : meta.color,
-                                        size: 22,
+                                        size: 24, // was 22
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
@@ -1152,7 +1154,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       ),
                       if (_errors['delivery_status'] != null)
                         Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.only(top: 6),
                           child: Text(
                             _errors['delivery_status']!,
                             style: const TextStyle(
@@ -1164,21 +1166,16 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                       // ── RECIPIENT INFO (delivered only) ───────────────────────
                       if (_status == 'delivered') ...[
-                        const SizedBox(height: 20),
+                        _kSectionGap,
                         const DeliverySectionHeader(label: 'RECIPIENT INFO'),
-                        const SizedBox(height: 8),
+                        _kInnerGap,
                         DeliveryRecipientCards(
                           recipientName: _delivery['name']?.toString() ?? '',
                           authorizedRep:
                               _delivery['authorized_rep']?.toString() ?? '',
                           onSelectRecipient: (name, relationship) {
-                            // Detach listener so programmatic setText does not
-                            // falsely trigger the owner-clearing logic.
-                            _recipient.removeListener(_onRecipientTextChanged);
                             _recipient.text = name;
-                            _recipient.addListener(_onRecipientTextChanged);
                             setState(() {
-                              // null relationship = auth rep → reset to blank
                               _relationship = relationship;
                               _recipientIsOwner = relationship == 'self';
                               _errors.remove('recipient');
@@ -1186,19 +1183,37 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             });
                           },
                         ),
-                        const SizedBox(height: 8),
+                        _kFieldGap,
 
-                        // Recipient name field with clear (✕) suffix icon
                         ValueListenableBuilder<TextEditingValue>(
                           valueListenable: _recipient,
                           builder: (context, value, _) => TextFormField(
                             controller: _recipient,
+                            readOnly: _recipientIsOwner,
                             maxLength: kMaxRecipientLength,
+                            maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                            buildCounter:
+                                (
+                                  _, {
+                                  required currentLength,
+                                  required isFocused,
+                                  maxLength,
+                                }) => null,
                             textCapitalization: TextCapitalization.characters,
+                            onChanged: (_) {
+                              if (_recipientIsOwner) {
+                                setState(() {
+                                  _recipientIsOwner = false;
+                                  _relationship = null;
+                                });
+                              }
+                            },
                             decoration:
                                 deliveryFieldDecoration(
                                   context,
-                                  labelText: 'RECIPIENT NAME',
+                                  labelText: _recipientIsOwner
+                                      ? 'RECIPIENT NAME (LOCKED — OWNER)'
+                                      : 'RECIPIENT NAME',
                                   errorText: _errors['recipient'],
                                 ).copyWith(
                                   suffixIcon: value.text.isNotEmpty
@@ -1220,10 +1235,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 ),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        _kFieldGap,
 
-                        // Relationship dropdown: disabled (locked) when owner
-                        // is selected; key forces rebuild when value changes.
                         DropdownButtonFormField<String>(
                           key: ValueKey(_relationship),
                           initialValue: _relationship,
@@ -1235,6 +1248,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             errorText: _errors['relationship'],
                           ),
                           items: kRelationshipOptions
+                              .where(
+                                (e) =>
+                                    _recipientIsOwner || e['value'] != 'self',
+                              )
                               .map(
                                 (e) => DropdownMenuItem(
                                   value: e['value'],
@@ -1246,7 +1263,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               ? null
                               : (v) => setState(() => _relationship = v),
                         ),
-                        const SizedBox(height: 8),
+                        _kFieldGap,
 
                         DropdownButtonFormField<String>(
                           initialValue: _placement,
@@ -1270,11 +1287,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                       // ── REASON (rts / osa) ───────────────────────────────────
                       if (needsReason) ...[
-                        const SizedBox(height: 20),
+                        _kSectionGap,
                         const DeliverySectionHeader(
                           label: 'REASON FOR NON-DELIVERY',
                         ),
-                        const SizedBox(height: 8),
+                        _kInnerGap,
                         DropdownButtonFormField<String>(
                           initialValue: _reason,
                           decoration: deliveryFieldDecoration(
@@ -1294,11 +1311,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                       // ── PROOF OF DELIVERY: two fixed slots + signature ────────
                       if (_status == 'delivered') ...[
-                        const SizedBox(height: 20),
+                        _kSectionGap,
                         const DeliverySectionHeader(
                           label: 'PROOF OF DELIVERY PHOTOS',
                         ),
-                        const SizedBox(height: 8),
+                        _kInnerGap,
                         Row(
                           children: [
                             _buildPhotoSlot(
@@ -1309,7 +1326,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               color: ColorStyles.grabGreen,
                               isDark: isDark,
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12), // was 10
                             _buildPhotoSlot(
                               slotType: 'selfie',
                               label: 'SELFIE',
@@ -1323,7 +1340,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         if (_errors['pod_photo'] != null ||
                             _errors['selfie_photo'] != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.only(top: 8),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1347,12 +1364,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             ),
                           ),
 
-                        // Signature — same click-box design as photo slots
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12), // was 10
                         _buildSignatureSlot(isDark),
                         if (_errors['recipient_signature'] != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               _errors['recipient_signature']!,
                               style: const TextStyle(
@@ -1365,9 +1381,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                       // ── SELFIE PHOTO (rts / osa) ──────────────────────────────
                       if (_status != 'delivered') ...[
-                        const SizedBox(height: 20),
+                        _kSectionGap,
                         const DeliverySectionHeader(label: 'SELFIE PHOTO'),
-                        const SizedBox(height: 8),
+                        _kInnerGap,
                         Row(
                           children: [
                             _buildPhotoSlot(
@@ -1384,9 +1400,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       ],
 
                       // ── REMARKS ───────────────────────────────────────────────
-                      const SizedBox(height: 20),
-                      const DeliverySectionHeader(label: 'REMARKS'),
-                      const SizedBox(height: 8),
+                      _kSectionGap,
+                      const DeliverySectionHeader(label: 'REMARKS (OPTIONAL)'),
+                      _kInnerGap,
                       ValueListenableBuilder<TextEditingValue>(
                         valueListenable: _note,
                         builder: (context, value, _) => TextFormField(
@@ -1397,7 +1413,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                           decoration:
                               deliveryFieldDecoration(
                                 context,
-                                hintText: 'REMARKS (OPTIONAL)',
+                                hintText: 'REMARKS',
                                 errorText: _errors['note'],
                               ).copyWith(
                                 suffixIcon: value.text.isNotEmpty
@@ -1418,40 +1434,38 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         ),
                       ),
 
-                      // ── TRANSACTION DATE (today in PST, read-only) ───────────
-                      const SizedBox(height: 20),
-                      const DeliverySectionHeader(label: 'TRANSACTION DATE'),
-                      const SizedBox(height: 8),
+                      // ── TRANSACTION DATE ──────────────────────────────────────
+                      _kSectionGap,
+                      const DeliverySectionHeader(
+                        label: 'TRANSACTION DATE (PHILIPPINE STANDARD TIME)',
+                      ),
+                      _kInnerGap,
                       TextFormField(
-                        initialValue: _todayPST(),
+                        initialValue: _getCurrentDateTimePST(),
                         enabled: false,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                           color: isDark ? Colors.white70 : Colors.black87,
                         ),
-                        decoration:
-                            deliveryFieldDecoration(
-                              context,
-                              labelText: 'DATE (PHILIPPINE STANDARD TIME)',
-                            ).copyWith(
-                              prefixIcon: Icon(
-                                Icons.calendar_today_rounded,
-                                size: 18,
-                                color: Colors.grey.shade500,
-                              ),
-                              suffixIcon: Icon(
-                                Icons.lock_outline_rounded,
-                                size: 16,
-                                color: Colors.grey.shade400,
-                              ),
-                            ),
+                        decoration: deliveryFieldDecoration(context).copyWith(
+                          prefixIcon: Icon(
+                            Icons.calendar_today_rounded,
+                            size: 18,
+                            color: Colors.grey.shade500,
+                          ),
+                          suffixIcon: Icon(
+                            Icons.lock_outline_rounded,
+                            size: 16,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
                       ),
 
                       // ── GEO LOCATION ──────────────────────────────────────────
-                      const SizedBox(height: 20),
+                      _kSectionGap,
                       const DeliverySectionHeader(label: 'GEO LOCATION'),
-                      const SizedBox(height: 8),
+                      _kInnerGap,
                       DeliveryGeoLocationField(
                         latitude: _latitude,
                         longitude: _longitude,
@@ -1478,9 +1492,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               ),
           ],
         ),
-      ), // Scaffold
-    ); // PopScope
+      ),
+    );
   }
 }
-
-// working

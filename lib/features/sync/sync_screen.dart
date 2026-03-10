@@ -98,7 +98,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
 
     return Scaffold(
       appBar: AppHeaderBar(
-        title: 'History',
+        title: 'Sync',
         actions: [
           if (isOnline)
             TextButton.icon(
@@ -400,8 +400,7 @@ class _EntryTile extends StatelessWidget {
                         _Chip(mailType.toUpperCase()),
                       if (dispatchCode != null && dispatchCode.isNotEmpty)
                         _Chip(dispatchCode),
-                      if (delivery?.paidAt != null)
-                        const _ArchivedChip(),
+                      if (delivery?.paidAt != null) const _ArchivedChip(),
                     ],
                   ),
 
@@ -669,16 +668,48 @@ class _MetaRow extends StatelessWidget {
 
 // ── Empty State ───────────────────────────────────────────────────────────────
 
-class _EmptyState extends StatelessWidget {
+class _EmptyState extends StatefulWidget {
   const _EmptyState({required this.isSyncing});
 
   final bool isSyncing;
 
   @override
+  State<_EmptyState> createState() => _EmptyStateState();
+}
+
+class _EmptyStateState extends State<_EmptyState>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onLoaded(LottieComposition composition) {
+    if (_loaded) return;
+    _loaded = true;
+    _controller.duration = composition.duration;
+    _controller.forward().whenComplete(() {
+      if (mounted) {
+        _controller.value = 1.0;
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (isSyncing) {
+    if (widget.isSyncing) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -706,7 +737,8 @@ class _EmptyState extends StatelessWidget {
               'assets/anim/successfully-done.json',
               width: 180,
               height: 180,
-              repeat: false,
+              controller: _controller,
+              onLoaded: _onLoaded,
             ),
             const SizedBox(height: 16),
             Text(

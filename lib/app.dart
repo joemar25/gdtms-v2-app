@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/api/api_client.dart';
@@ -35,9 +34,7 @@ class FsiCourierApp extends ConsumerWidget {
         useMaterial3: true,
       ),
       routerConfig: router,
-      builder: (context, child) => _ExitGuard(
-        child: _AutoSyncListener(child: child!),
-      ),
+      builder: (context, child) => _AutoSyncListener(child: child!),
     );
   }
 }
@@ -99,48 +96,5 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener> {
     });
 
     return widget.child;
-  }
-}
-
-/// Intercepts the system back gesture/button on the root route and asks the
-/// user to confirm before exiting the app.
-class _ExitGuard extends StatelessWidget {
-  const _ExitGuard({required this.child});
-  final Widget child;
-
-  Future<void> _onPopInvoked(BuildContext context, bool didPop) async {
-    if (didPop) return;
-    final shouldExit = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Exit App'),
-        content: const Text('Are you sure you want to exit?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('NO'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'YES, EXIT',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (shouldExit == true) {
-      SystemNavigator.pop();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) => _onPopInvoked(context, didPop),
-      child: child,
-    );
   }
 }

@@ -346,10 +346,16 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 child: FilledButton.icon(
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('UPDATE STATUS'),
+                  label: const Text(
+                    'UPDATE STATUS',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
                   style: FilledButton.styleFrom(
                     backgroundColor: ColorStyles.grabGreen,
-                    minimumSize: const Size.fromHeight(32),
+                    minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -369,94 +375,94 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   child: RefreshIndicator(
                     onRefresh: _load,
                     child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                    children: [
-                      // ─ Recipient ────────────────────────────────────────────
-                      _DetailCard(
-                        children: [
-                          _DetailHeader(
-                            icon: Icons.person_outline,
-                            title: 'Recipient',
-                          ),
-                          _DetailRow(
-                            label: 'Name',
-                            value: _str('name'),
-                            bold: true,
-                          ),
-                          _TappableRow(
-                            label: 'Address',
-                            value: _str('address'),
-                            onTap: status == 'delivered'
-                                ? null
-                                : () => _launchMaps(_str('address')),
-                            trailingIcon: status == 'delivered'
-                                ? null
-                                : Icons.map_outlined,
-                          ),
-                          _TappableRow(
-                            label: 'Contact',
-                            value: _str('contact'),
-                            onTap: status == 'delivered'
-                                ? null
-                                : () => _onPhoneTap(_str('contact')),
-                            trailingIcon: status == 'delivered'
-                                ? null
-                                : Icons.call_outlined,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // ─ Proof of delivery ─────────────────────────────────
-                      _buildDeliveredDetails(),
-
-                      // ─ RTS / OSA attempts ────────────────────────────────
-                      _buildRtsAttempts(),
-
-                      const SizedBox(height: 12),
-
-                      // ─ Delivery details ──────────────────────────────────────
-                      _DetailCard(
-                        children: [
-                          _DetailHeader(
-                            icon: Icons.local_shipping_outlined,
-                            title: 'Delivery Details',
-                          ),
-                          if (_str('job_order').isNotEmpty)
-                            _DetailRow(
-                              label: 'Job Order',
-                              value: formatDate(_str('job_order')),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                      children: [
+                        // ─ Recipient ────────────────────────────────────────────
+                        _DetailCard(
+                          children: [
+                            _DetailHeader(
+                              icon: Icons.person_outline,
+                              title: 'Recipient',
                             ),
-                          // dispatch_code intentionally hidden from delivery views (ENH-005)
-                          if (_str('special_instruction').isNotEmpty)
                             _DetailRow(
-                              label: 'Instructions',
-                              value: _str('special_instruction'),
+                              label: 'Name',
+                              value: _str('name'),
+                              bold: true,
                             ),
-                          if (_str('remarks').isNotEmpty)
-                            _DetailRow(
-                              label: 'Remarks',
-                              value: _str('remarks'),
+                            _TappableRow(
+                              label: 'Address',
+                              value: _str('address'),
+                              onTap: status == 'delivered'
+                                  ? null
+                                  : () => _launchMaps(_str('address')),
+                              trailingIcon: status == 'delivered'
+                                  ? null
+                                  : Icons.map_outlined,
                             ),
-                          if (_str('transmittal_date').isNotEmpty)
-                            _DetailRow(
-                              label: 'Transmittal',
-                              value: formatDate(_str('transmittal_date')),
+                            _TappableRow(
+                              label: 'Contact',
+                              value: _str('contact'),
+                              onTap: status == 'delivered'
+                                  ? null
+                                  : () => _onPhoneTap(_str('contact')),
+                              trailingIcon: status == 'delivered'
+                                  ? null
+                                  : Icons.call_outlined,
                             ),
-                          if (_str('tat').isNotEmpty)
-                            _DetailRow(
-                              label: 'TAT',
-                              value: formatDate(_str('tat')),
-                            ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                      // ─ History timeline ──────────────────────────────────
-                      const SizedBox(height: 12),
-                      _buildTimeline(),
-                    ],
-                  ),
+                        const SizedBox(height: 12),
+
+                        // ─ Proof of delivery ─────────────────────────────────
+                        _buildDeliveredDetails(),
+
+                        // ─ RTS / OSA attempts ────────────────────────────────
+                        _buildRtsAttempts(),
+
+                        const SizedBox(height: 12),
+
+                        // ─ Delivery details ──────────────────────────────────────
+                        _DetailCard(
+                          children: [
+                            _DetailHeader(
+                              icon: Icons.local_shipping_outlined,
+                              title: 'Delivery Details',
+                            ),
+                            if (_str('job_order').isNotEmpty)
+                              _DetailRow(
+                                label: 'Job Order',
+                                value: formatDate(_str('job_order')),
+                              ),
+                            // dispatch_code intentionally hidden from delivery views (ENH-005)
+                            if (_str('special_instruction').isNotEmpty)
+                              _DetailRow(
+                                label: 'Instructions',
+                                value: _str('special_instruction'),
+                              ),
+                            if (_str('remarks').isNotEmpty)
+                              _DetailRow(
+                                label: 'Remarks',
+                                value: _str('remarks'),
+                              ),
+                            if (_str('transmittal_date').isNotEmpty)
+                              _DetailRow(
+                                label: 'Transmittal',
+                                value: formatDate(_str('transmittal_date')),
+                              ),
+                            if (_str('tat').isNotEmpty)
+                              _DetailRow(
+                                label: 'TAT',
+                                value: formatDate(_str('tat')),
+                              ),
+                          ],
+                        ),
+
+                        // ─ History timeline ──────────────────────────────────
+                        const SizedBox(height: 12),
+                        _buildTimeline(),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -834,7 +840,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
             ...typedAttempts.asMap().entries.map((entry) {
               final idx = entry.key;
               final attempt = Map<String, dynamic>.from(entry.value);
-              final attemptNum = (attempt['attempt_number'] as num?)?.toInt() ?? (idx + 1);
+              final attemptNum =
+                  (attempt['attempt_number'] as num?)?.toInt() ?? (idx + 1);
               final label = _ordinal(attemptNum);
               final reason = attempt['reason']?.toString() ?? '';
               final attemptedAt = attempt['attempted_at']?.toString() ?? '';
@@ -845,13 +852,20 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (idx > 0)
-                    Divider(height: 1, thickness: 0.5, color: isDark ? Colors.white12 : Colors.black12),
+                    Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      color: isDark ? Colors.white12 : Colors.black12,
+                    ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
@@ -866,7 +880,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                             ),
                           ),
                         ),
-                        if (attemptedAt.isNotEmpty) ...[                          
+                        if (attemptedAt.isNotEmpty) ...[
                           const SizedBox(width: 8),
                           Text(
                             formatDate(attemptedAt, includeTime: true),
@@ -890,7 +904,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         ),
                       ),
                     ),
-                  if (hasImages) ...[                    
+                  if (hasImages) ...[
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 0, 8),
                       child: SizedBox(
@@ -903,15 +917,26 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                             final img = images[i];
                             final String url;
                             if (img is Map) {
-                              final signed = img['signed_url']?.toString() ?? '';
-                              final raw = img['url']?.toString() ?? img['file']?.toString() ?? '';
+                              final signed =
+                                  img['signed_url']?.toString() ?? '';
+                              final raw =
+                                  img['url']?.toString() ??
+                                  img['file']?.toString() ??
+                                  '';
                               url = signed.isNotEmpty ? signed : raw;
                             } else {
                               url = img?.toString() ?? '';
                             }
-                            if (url.isEmpty) return const SizedBox(width: 90, height: 90);
+                            if (url.isEmpty) {
+                              return const SizedBox(width: 90, height: 90);
+                            }
                             return GestureDetector(
-                              onTap: isOffline ? null : () => _showFullscreenImage(url, mediaType: 'SELFIE'),
+                              onTap: isOffline
+                                  ? null
+                                  : () => _showFullscreenImage(
+                                      url,
+                                      mediaType: 'SELFIE',
+                                    ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: isOffline
@@ -919,7 +944,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                         width: 90,
                                         height: 90,
                                         color: Colors.grey.shade200,
-                                        child: Icon(Icons.wifi_off_rounded, color: Colors.grey.shade400),
+                                        child: Icon(
+                                          Icons.wifi_off_rounded,
+                                          color: Colors.grey.shade400,
+                                        ),
                                       )
                                     : Image.network(
                                         url,
@@ -930,7 +958,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                           width: 90,
                                           height: 90,
                                           color: Colors.grey.shade200,
-                                          child: Icon(Icons.broken_image_outlined, color: Colors.grey.shade400),
+                                          child: Icon(
+                                            Icons.broken_image_outlined,
+                                            color: Colors.grey.shade400,
+                                          ),
                                         ),
                                       ),
                               ),
@@ -953,10 +984,14 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   static String _ordinal(int n) {
     if (n >= 11 && n <= 13) return '${n}th Attempt';
     switch (n % 10) {
-      case 1: return '${n}st Attempt';
-      case 2: return '${n}nd Attempt';
-      case 3: return '${n}rd Attempt';
-      default: return '${n}th Attempt';
+      case 1:
+        return '${n}st Attempt';
+      case 2:
+        return '${n}nd Attempt';
+      case 3:
+        return '${n}rd Attempt';
+      default:
+        return '${n}th Attempt';
     }
   }
 
