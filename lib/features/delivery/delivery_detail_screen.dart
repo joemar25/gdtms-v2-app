@@ -12,11 +12,22 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/core/config.dart';
 
 /// Shows a bottom action sheet listing available communication apps for a phone number.
-Future<void> showContactAppSheet(BuildContext context, String phone) async {
+/// When [messageTemplate] is provided it is pre-filled as the message body
+/// for SMS, WhatsApp, and Viber (Telegram and Call do not support pre-fill).
+Future<void> showContactAppSheet(
+  BuildContext context,
+  String phone, {
+  String? messageTemplate,
+}) async {
   final cleaned = phone.trim();
   if (cleaned.isEmpty) return;
+
+  final encodedMsg = messageTemplate != null
+      ? Uri.encodeComponent(messageTemplate)
+      : null;
 
   // SMS and Call are always shown first (no canLaunchUrl gating).
   // Optional apps (WhatsApp, Viber, Telegram) are added only if available.
@@ -25,7 +36,9 @@ Future<void> showContactAppSheet(BuildContext context, String phone) async {
       label: 'SMS',
       icon: Icons.sms_rounded,
       color: Colors.blueGrey,
-      uri: Uri(scheme: 'sms', path: cleaned),
+      uri: encodedMsg != null
+          ? Uri.parse('sms:$cleaned?body=$encodedMsg')
+          : Uri(scheme: 'sms', path: cleaned),
     ),
     _CommApp(
       label: 'Call',
@@ -35,18 +48,27 @@ Future<void> showContactAppSheet(BuildContext context, String phone) async {
     ),
   ];
 
+  final noPlus = cleaned.replaceAll('+', '');
   final optionalCandidates = [
     _CommApp(
       label: 'WhatsApp',
       icon: Icons.chat_rounded,
       color: const Color(0xFF25D366),
-      uri: Uri.parse('whatsapp://send?phone=${cleaned.replaceAll('+', '')}'),
+      uri: Uri.parse(
+        encodedMsg != null
+            ? 'whatsapp://send?phone=$noPlus&text=$encodedMsg'
+            : 'whatsapp://send?phone=$noPlus',
+      ),
     ),
     _CommApp(
       label: 'Viber',
       icon: Icons.video_call_rounded,
       color: const Color(0xFF7360F2),
-      uri: Uri.parse('viber://chat?number=${cleaned.replaceAll('+', '')}'),
+      uri: Uri.parse(
+        encodedMsg != null
+            ? 'viber://chat?number=$noPlus&text=$encodedMsg'
+            : 'viber://chat?number=$noPlus',
+      ),
     ),
     _CommApp(
       label: 'Telegram',
@@ -252,7 +274,14 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
   Future<void> _onPhoneTap(String? phone) async {
     if (!mounted) return;
-    await showContactAppSheet(context, phone ?? '');
+    final barcode = widget.barcode;
+    final name = _str('name');
+    final template =
+        'Hi${name.isNotEmpty ? ' ${name.split(' ').first}' : ''}! '
+        "I'm your FSI courier "
+        '${barcode.isNotEmpty ? 'with tracking number $barcode' : 'with your delivery'}. '
+        'Please be ready or contact me for re-scheduling. Thank you!';
+    await showContactAppSheet(context, phone ?? '', messageTemplate: template);
   }
 
   Future<void> _launchMaps(String? address) async {
@@ -399,16 +428,15 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                   ? null
                                   : Icons.map_outlined,
                             ),
-                            _TappableRow(
-                              label: 'Contact',
-                              value: _str('contact'),
-                              onTap: status == 'delivered'
-                                  ? null
-                                  : () => _onPhoneTap(_str('contact')),
-                              trailingIcon: status == 'delivered'
-                                  ? null
-                                  : Icons.call_outlined,
-                            ),
+                            // Contact number hidden once delivered — no reason
+                            // to expose personal info after the parcel is done.
+                            if (status != 'delivered')
+                              _TappableRow(
+                                label: 'Contact',
+                                value: _str('contact'),
+                                onTap: () => _onPhoneTap(_str('contact')),
+                                trailingIcon: Icons.call_outlined,
+                              ),
                           ],
                         ),
 
@@ -567,6 +595,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     final hasMedia = media is List && (media).isNotEmpty;
     final hasSignature = signature.isNotEmpty;
     final isOffline = _isOfflineMode;
+    // Privacy: Hide images if delivered and not in debug mode
+    final isDelivered = _str('delivery_status').toLowerCase() == 'delivered';
+    final showMedia = !isDelivered || kAppDebugMode;
 
     // Relationship transformation
     if (relationship.isNotEmpty) {
@@ -627,7 +658,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           _DetailRow(label: 'Authorized Rep', value: authRep),
         if (relationship.isNotEmpty)
           _DetailRow(label: 'Relationship', value: relationship),
-        if (contactRep.isNotEmpty)
+        // Do not expose the auth-rep contact number after delivery is complete.
+        if (contactRep.isNotEmpty &&
+            _str('delivery_status').toLowerCase() != 'delivered')
           _TappableRow(
             label: 'Contact',
             value: contactRep,
@@ -641,8 +674,20 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           _DetailRow(label: 'Transaction', value: transactionDateToShow),
         if (deliveredDateToShow.isNotEmpty)
           _DetailRow(label: 'Delivered', value: deliveredDateToShow),
-        if (hasMedia) ...[
+        if (hasMedia && showMedia) ...[
           _DetailHeader(icon: Icons.photo_library_outlined, title: 'Photos'),
+          if (isDelivered && kAppDebugMode)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                'DEBUG MODE: Images are visible for privacy review.',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           SizedBox(
             height: 108,
             child: ListView.separated(
@@ -744,8 +789,32 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
             ),
           ),
         ],
-        if (hasSignature) ...[
+        if (hasMedia && !showMedia)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              'Images are hidden for privacy after delivery. (Production mode)',
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        if (hasSignature && showMedia) ...[
           _DetailHeader(icon: Icons.draw_outlined, title: 'Signature'),
+          if (isDelivered && kAppDebugMode)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                'DEBUG MODE: Images are visible for privacy review.',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: GestureDetector(

@@ -8,7 +8,9 @@ import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -42,7 +44,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   String get _title => _isDispatch ? 'Scan Dispatch' : 'Scan POD';
 
   String get _hintText =>
-      _isDispatch ? 'E.G. E-GEOFXXXXX1234' : 'Enter delivery barcode';
+      _isDispatch ? 'E.G. E-GEOFXXXXX1234' : 'Enter delivery barcode or account name';
 
   String get _submitLabel =>
       _isDispatch ? 'Check Eligibility' : 'Find Delivery';
@@ -100,17 +102,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   Future<void> _handleCode(String code) async {
     if (_processing || code.trim().isEmpty) return;
-
-    // Dispatch scanning requires an active internet connection because we
-    // must call the server to check eligibility and accept the dispatch.
-    if (_isDispatch && !ref.read(isOnlineProvider)) {
-      setState(() {
-        _inlineError =
-            'You are offline. Dispatch scanning requires an internet connection.';
-      });
-      return;
-    }
-
+    // Normalize input: always uppercase
+    final normalizedCode = code.trim().toUpperCase();
     setState(() {
       _processing = true;
       _inlineError = null;
@@ -118,9 +111,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     await _scannerController.stop();
 
     if (_isDispatch) {
-      await _handleDispatch(code.trim());
+      await _handleDispatch(normalizedCode);
     } else {
-      await _handlePod(code.trim());
+      await _handlePod(normalizedCode);
     }
 
     if (mounted) setState(() => _processing = false);
@@ -146,6 +139,40 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           .getAutoAcceptDispatch();
       if (!mounted) return;
       final partialCode = data['partial_code']?.toString() ?? code;
+
+      // If scanned, show full dispatch code and skip modal
+      if (autoAccept && data['eligible'] == true) {
+        // Auto-accept dispatch if eligible and autoAccept is enabled
+        final acceptResult = await ref
+            .read(apiClientProvider)
+            .post<Map<String, dynamic>>(
+              '/accept-dispatch',
+              data: {'dispatch_code': partialCode, 'client_request_id': requestId},
+              parser: parseApiMap,
+            );
+        if (!mounted) return;
+        if (acceptResult is ApiSuccess<Map<String, dynamic>>) {
+          context.push(
+            '/dispatches/accepted',
+            extra: {
+              'dispatch_code': partialCode,
+              'accept_response': acceptResult.data,
+              'auto_accept': true,
+            },
+          );
+        } else {
+          setState(() => _inlineError = 'Unable to accept dispatch. Please try again.');
+          showAppSnackbar(
+            context,
+            'Unable to accept dispatch.',
+            type: SnackbarType.error,
+          );
+          await _scannerController.start();
+        }
+        return;
+      }
+
+      // Otherwise, show eligibility screen with full code, skip modal
       context.push(
         '/dispatches/eligibility',
         extra: {
@@ -153,6 +180,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           'eligibility_response': data,
           'auto_accept': autoAccept,
           'eligible': data['eligible'] == true,
+          'show_full_code': true,
+          'skip_accept_modal': true,
         },
       );
     } else {
@@ -186,7 +215,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           error: _inlineError,
           onSubmit: () {
             Navigator.of(context).pop();
-            _handleCode(_manualController.text);
+            // Normalize manual input to uppercase
+            _handleCode(_manualController.text.toUpperCase());
           },
         ),
       ),
@@ -195,6 +225,34 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   }
 
   Future<void> _handlePod(String code) async {
+    // Search locally first — barcode substring OR recipient name substring.
+    final matches = await LocalDeliveryDao.instance.searchByQuery(code);
+    if (!mounted) return;
+
+    if (matches.length == 1) {
+      // Exactly one hit — navigate directly.
+      // Use push to allow back navigation
+      context.push('/deliveries/${matches.first.barcode}');
+      return;
+    }
+
+    if (matches.length > 1) {
+      // Multiple hits — let the courier pick the correct one.
+      final chosen = await _showSearchResults(
+        code,
+        matches.map((m) => m.toDeliveryMap()).toList(),
+      );
+      if (!mounted) return;
+      if (chosen != null) {
+        final barcode = resolveDeliveryIdentifier(chosen);
+        if (barcode.isNotEmpty) context.go('/deliveries/$barcode');
+      } else {
+        if (_hasPermission) await _scannerController.start();
+      }
+      return;
+    }
+
+    // 0 local results — fall back to exact API lookup.
     final result = await ref
         .read(apiClientProvider)
         .get<Map<String, dynamic>>('/deliveries/$code', parser: parseApiMap);
@@ -202,11 +260,24 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     if (!mounted) return;
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
-      context.go('/deliveries/$code');
+      // Use push to allow back navigation
+      context.push('/deliveries/$code');
     } else {
-      setState(() => _inlineError = 'Delivery not found or unavailable.');
-      await _scannerController.start();
+      setState(() => _inlineError = 'No delivery found for "$code".');
+      if (_hasPermission) await _scannerController.start();
     }
+  }
+
+  Future<Map<String, dynamic>?> _showSearchResults(
+    String query,
+    List<Map<String, dynamic>> results,
+  ) {
+    return showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SearchResultsSheet(query: query, results: results),
+    );
   }
 
   @override
@@ -347,48 +418,48 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Static hint for dispatch mode so the user always knows
-                  // connectivity is required before they even attempt a scan.
-                  if (_isDispatch)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Consumer(
-                            builder: (_, ref, __) {
-                              final isOnline = ref.watch(isOnlineProvider);
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isOnline
-                                        ? Icons.wifi_rounded
-                                        : Icons.wifi_off_rounded,
-                                    size: 12,
-                                    color: isOnline
-                                        ? Colors.white54
-                                        : Colors.orange,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    isOnline
-                                        ? 'Dispatch scanning requires an internet connection.'
-                                        : 'You are offline — dispatch scanning unavailable.',
-                                    style: TextStyle(
-                                      color: isOnline
-                                          ? Colors.white54
-                                          : Colors.orange,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
+                      // connectivity is required before they even attempt a scan.
+                      if (_isDispatch)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Consumer(
+                                builder: (_, ref, __) {
+                                  final isOnline = ref.watch(isOnlineProvider);
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isOnline
+                                            ? Icons.wifi_rounded
+                                            : Icons.wifi_off_rounded,
+                                        size: 12,
+                                        color: isOnline
+                                            ? Colors.white54
+                                            : Colors.orange,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        isOnline
+                                            ? 'Dispatch scanning requires an internet connection.'
+                                            : 'You are offline — dispatch scanning unavailable.',
+                                        style: TextStyle(
+                                          color: isOnline
+                                              ? Colors.white54
+                                              : Colors.orange,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  if (_inlineError != null)
+                        ),
+                      if (_inlineError != null)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Container(
@@ -594,7 +665,7 @@ class _ManualInputArea extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'MANUAL BARCODE ENTRY',
+            'MANUAL BARCODE/ACCOUNT NAME ENTRY',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 11,
@@ -627,6 +698,7 @@ class _ManualInputArea extends StatelessWidget {
             style: const TextStyle(color: Colors.white),
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
+            inputFormatters: [_UpperCaseFormatter()],
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
@@ -683,4 +755,183 @@ class _ManualInputArea extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── Search Results Sheet ─────────────────────────────────────────────────────
+
+/// Shown in POD scan mode when the barcode/name query matches multiple local
+/// deliveries. Displays all hits so the courier can select the right one.
+/// Returns the selected delivery map, or `null` if the user dismisses.
+class _SearchResultsSheet extends StatelessWidget {
+  const _SearchResultsSheet({required this.query, required this.results});
+
+  final String query;
+  final List<Map<String, dynamic>> results;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.55,
+      minChildSize: 0.35,
+      maxChildSize: 0.9,
+      builder: (_, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${results.length} RESULT${results.length == 1 ? '' : 'S'} FOUND',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.grey.shade500,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Tap one to open delivery details',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.separated(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: results.length,
+                separatorBuilder: (_, __) =>
+                    const Divider(height: 1, indent: 16, endIndent: 16),
+                itemBuilder: (_, i) {
+                  final d = results[i];
+                  final barcode =
+                      d['barcode_value']?.toString() ??
+                      d['barcode']?.toString() ??
+                      '';
+                  final name =
+                      d['name']?.toString() ??
+                      d['recipient_name']?.toString() ??
+                      '';
+                  final address = d['address']?.toString() ?? '';
+                  final status = d['delivery_status']?.toString() ?? 'pending';
+
+                  return ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: ColorStyles.grabGreen.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.qr_code_rounded,
+                        color: ColorStyles.grabGreen,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      barcode,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (name.isNotEmpty)
+                          Text(
+                            name,
+                            style: const TextStyle(fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        if (address.isNotEmpty)
+                          Text(
+                            address,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        status.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.blueGrey,
+                        ),
+                      ),
+                    ),
+                    onTap: () => Navigator.pop(context, d),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Uppercase text formatter ─────────────────────────────────────────────────
+
+class _UpperCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) =>
+      newValue.copyWith(text: newValue.text.toUpperCase());
 }

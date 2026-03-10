@@ -1408,7 +1408,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         builder: (context, value, _) => TextFormField(
                           controller: _note,
                           maxLength: kMaxNoteLength,
-                          maxLines: 3,
+                          minLines: 3,
+                          maxLines: 6,
                           textCapitalization: TextCapitalization.characters,
                           decoration:
                               deliveryFieldDecoration(
@@ -1416,18 +1417,18 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 hintText: 'REMARKS',
                                 errorText: _errors['note'],
                               ).copyWith(
+                                suffixIconConstraints: const BoxConstraints(
+                                  minWidth: 40,
+                                  minHeight: 40,
+                                ),
                                 suffixIcon: value.text.isNotEmpty
-                                    ? Align(
-                                        alignment: Alignment.topRight,
-                                        heightFactor: 1.0,
-                                        child: IconButton(
-                                          icon: const Icon(
-                                            Icons.clear_rounded,
-                                            size: 18,
-                                          ),
-                                          color: Colors.grey.shade500,
-                                          onPressed: () => _note.clear(),
+                                    ? IconButton(
+                                        icon: const Icon(
+                                          Icons.clear_rounded,
+                                          size: 18,
                                         ),
+                                        color: Colors.grey.shade500,
+                                        onPressed: () => _note.clear(),
                                       )
                                     : null,
                               ),

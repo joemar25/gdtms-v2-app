@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -633,9 +634,11 @@ class _SummaryCard extends StatelessWidget {
                       amount: estimatedPenalties,
                       isDeduction: true,
                     ),
-                  if (estimatedIncentive != 0)
+                  // Coordinator incentive is an internal field — hidden from
+                  // production couriers; visible only in debug builds.
+                  if (kAppDebugMode && estimatedIncentive != 0)
                     _AmountRow(
-                      label: 'Coordinator Incentive',
+                      label: 'Coordinator Incentive ‹debug›',
                       amount: estimatedIncentive,
                       isDeduction: true,
                     ),

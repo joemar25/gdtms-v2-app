@@ -516,7 +516,7 @@ class _EarningsCard extends StatelessWidget {
               if (pendingAmt > 0)
                 _payoutRow(
                   icon: Icons.schedule_rounded,
-                  label: 'Pending payout',
+                  label: 'Pending payment reqeust',
                   amount: _fmt(pendingAmt),
                 ),
               if (pendingAmt > 0 && eligible > 0) const SizedBox(height: 8),

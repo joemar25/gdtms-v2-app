@@ -214,6 +214,26 @@ class LocalDeliveryDao {
     return LocalDelivery.fromDb(rows.first);
   }
 
+  /// Searches all deliveries whose [barcode] or [recipient_name] contains
+  /// [query] (case-insensitive substring match). Returns up to [limit] results
+  /// ordered by created_at ASC.
+  Future<List<LocalDelivery>> searchByQuery(
+    String query, {
+    int limit = 30,
+  }) async {
+    if (query.trim().isEmpty) return [];
+    final db = await _db;
+    final q = '%${query.trim()}%';
+    final rows = await db.query(
+      'local_deliveries',
+      where: 'barcode LIKE ? OR recipient_name LIKE ?',
+      whereArgs: [q, q],
+      orderBy: 'created_at ASC',
+      limit: limit,
+    );
+    return rows.map(LocalDelivery.fromDb).toList();
+  }
+
   /// Returns delivered items whose [delivered_at] falls within today
   /// (i.e. transaction_date / delivered_date from the server is today).
   ///
