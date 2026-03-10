@@ -201,6 +201,87 @@ class LocalDeliveryDao {
     return rows.map(LocalDelivery.fromDb).toList();
   }
 
+  /// Paginated variant of [getByStatus].
+  Future<List<LocalDelivery>> getByStatusPaged(
+    String status, {
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    final db = await _db;
+    final rows = await db.query(
+      'local_deliveries',
+      where: 'delivery_status = ?',
+      whereArgs: [status],
+      orderBy: 'created_at ASC',
+      limit: limit,
+      offset: offset,
+    );
+    return rows.map(LocalDelivery.fromDb).toList();
+  }
+
+  /// Paginated variant of [getVisibleDelivered].
+  Future<List<LocalDelivery>> getVisibleDeliveredPaged({
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    final db = await _db;
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final rows = await db.query(
+      'local_deliveries',
+      where:
+          "delivery_status = 'delivered' "
+          'AND delivered_at >= ? AND delivered_at < ?',
+      whereArgs: [todayStart, tomorrowStart],
+      orderBy: 'delivered_at DESC, created_at DESC',
+      limit: limit,
+      offset: offset,
+    );
+    return rows.map(LocalDelivery.fromDb).toList();
+  }
+
+  /// Searches deliveries by [query] filtered to a specific [status].
+  /// For the 'delivered' status, restricts to today's range.
+  Future<List<LocalDelivery>> searchByStatusAndQuery(
+    String status,
+    String query, {
+    int limit = 300,
+  }) async {
+    if (query.trim().isEmpty) return [];
+    final db = await _db;
+    final q = '%${query.trim()}%';
+    if (status == 'delivered') {
+      final now = DateTime.now();
+      final todayStart =
+          DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+      final tomorrowStart =
+          DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+      final rows = await db.query(
+        'local_deliveries',
+        where:
+            "(barcode LIKE ? OR recipient_name LIKE ?) "
+            "AND delivery_status = 'delivered' "
+            'AND delivered_at >= ? AND delivered_at < ?',
+        whereArgs: [q, q, todayStart, tomorrowStart],
+        orderBy: 'delivered_at DESC, created_at DESC',
+        limit: limit,
+      );
+      return rows.map(LocalDelivery.fromDb).toList();
+    }
+    final rows = await db.query(
+      'local_deliveries',
+      where:
+          '(barcode LIKE ? OR recipient_name LIKE ?) AND delivery_status = ?',
+      whereArgs: [q, q, status],
+      orderBy: 'created_at ASC',
+      limit: limit,
+    );
+    return rows.map(LocalDelivery.fromDb).toList();
+  }
+
   /// Returns the delivery matching [barcode], or `null` if not found.
   Future<LocalDelivery?> getByBarcode(String barcode) async {
     final db = await _db;

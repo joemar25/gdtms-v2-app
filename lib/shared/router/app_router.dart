@@ -101,6 +101,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     .toString(),
             eligibilityResponse: response,
             autoAccept: extra['auto_accept'] == true,
+            skipPinDialog: extra['skip_accept_modal'] == true,
+            showFullCode: extra['show_full_code'] == true,
           );
         },
       ),

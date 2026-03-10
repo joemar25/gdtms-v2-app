@@ -22,11 +22,15 @@ class DispatchEligibilityScreen extends ConsumerStatefulWidget {
     required this.dispatchCode,
     required this.eligibilityResponse,
     required this.autoAccept,
+    this.skipPinDialog = false,
+    this.showFullCode = false,
   });
 
   final String dispatchCode;
   final Map<String, dynamic> eligibilityResponse;
   final bool autoAccept;
+  final bool skipPinDialog;
+  final bool showFullCode;
 
   @override
   ConsumerState<DispatchEligibilityScreen> createState() =>
@@ -86,8 +90,10 @@ class _DispatchEligibilityScreenState
   }
 
   Future<void> _acceptDispatch() async {
-    final confirmed = await _showPinDialog();
-    if (!confirmed) return;
+    if (!widget.skipPinDialog) {
+      final confirmed = await _showPinDialog();
+      if (!confirmed) return;
+    }
 
     setState(() {
       _loading = true;
@@ -298,8 +304,10 @@ class _DispatchEligibilityScreenState
         'You are not eligible for this dispatch.';
     final dispatchCode = _resolvedPartialCode;
     final last4 = _getMaskedLast4(dispatchCode);
-    final maskedCode = dispatchCode.length > last4.length
-      ? '${dispatchCode.substring(0, dispatchCode.length - last4.length)}****'
+    final maskedCode = widget.showFullCode
+        ? dispatchCode
+        : dispatchCode.length > last4.length
+        ? '${dispatchCode.substring(0, dispatchCode.length - last4.length)}****'
         : '****';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -611,38 +619,39 @@ class _DispatchEligibilityScreenState
                   ),
                 ],
 
-                const SizedBox(height: 20),
-
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.amber.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.lock_outline,
-                        color: Colors.amber,
-                        size: 16,
+                if (!widget.skipPinDialog) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.4),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'To confirm acceptance, you will need to enter the last 4 digits of the dispatch code.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.amber.shade700,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.lock_outline,
+                          color: Colors.amber,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'To confirm acceptance, you will need to enter the last 4 digits of the dispatch code.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.amber.shade700,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 20),
 
                 FilledButton.icon(

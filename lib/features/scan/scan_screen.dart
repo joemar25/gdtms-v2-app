@@ -9,12 +9,15 @@ import 'package:uuid/uuid.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
+import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 enum ScanMode { dispatch, pod }
@@ -37,6 +40,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   bool _hasPermission = false;
   bool _processing = false;
+  bool _showAutoAcceptSuccess = false;
   String? _inlineError;
 
   bool get _isDispatch => widget.mode == ScanMode.dispatch;
@@ -147,19 +151,30 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             .read(apiClientProvider)
             .post<Map<String, dynamic>>(
               '/accept-dispatch',
-              data: {'dispatch_code': partialCode, 'client_request_id': requestId},
+              data: {
+                'partial_code': partialCode,
+                'client_request_id': requestId,
+                'device_info': await ref.read(deviceInfoProvider).toMap(),
+              },
               parser: parseApiMap,
             );
         if (!mounted) return;
         if (acceptResult is ApiSuccess<Map<String, dynamic>>) {
-          context.push(
-            '/dispatches/accepted',
-            extra: {
-              'dispatch_code': partialCode,
-              'accept_response': acceptResult.data,
-              'auto_accept': true,
-            },
-          );
+          final rawDeliveries = data['deliveries'];
+          if (rawDeliveries is List) {
+            final deliveries = rawDeliveries
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
+            if (deliveries.isNotEmpty) {
+              await LocalDeliveryDao.instance.insertAll(
+                deliveries,
+                dispatchCode: partialCode,
+              );
+            }
+          }
+          ref.read(deliveryRefreshProvider.notifier).state++;
+          if (mounted) setState(() => _showAutoAcceptSuccess = true);
         } else {
           setState(() => _inlineError = 'Unable to accept dispatch. Please try again.');
           showAppSnackbar(
@@ -525,6 +540,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             ),
 
             if (_processing) const LoadingOverlay(),
+            if (_showAutoAcceptSuccess)
+              SuccessOverlay(
+                onDone: () {
+                  if (!mounted) return;
+                  context.go('/dashboard');
+                },
+              ),
           ],
         ),
       ),
