@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -145,12 +144,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final latest = asStringDynamicMap(_data['latest_request']);
     final earnings = _data['total_earnings'] ?? 0;
     final pending = _data['tentative_pending_payout'] ?? 0;
-
-    // 1-week rolling window label
     final today = DateTime.now();
-    final weekStart = today.subtract(const Duration(days: 6));
-    final weekLabel =
-        '${DateFormat('MMM d').format(weekStart)} – ${DateFormat('MMM d').format(today)}';
 
     // Check if latest request is pending/active
     final latestStatus = latest['status']?.toString().toLowerCase() ?? '';
@@ -224,25 +218,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           border: Border.all(
                             color: ColorStyles.grabGreen.withValues(alpha: 0.3),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today_rounded,
-                              size: 14,
-                              color: ColorStyles.grabGreen,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'ACTIVE PERIOD: $weekLabel',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                                color: ColorStyles.grabGreen,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ],

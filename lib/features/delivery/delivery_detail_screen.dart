@@ -793,7 +793,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
-              'Images are hidden for privacy after delivery. (Production mode)',
+              'Images are hidden for privacy after delivery.',
               style: TextStyle(
                 color: Colors.red,
                 fontSize: 12,

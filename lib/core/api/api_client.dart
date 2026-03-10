@@ -46,6 +46,11 @@ class ApiClient {
         },
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
+            if (_handlingUnauthorized) {
+              handler.next(error);
+              return;
+            }
+            _handlingUnauthorized = true;
             await _authStorage.clearAll();
             onUnauthorized?.call();
             showAppSnackbar(
@@ -59,6 +64,7 @@ class ApiClient {
               // ignore: use_build_context_synchronously
               navContext.go('/login');
             }
+            _handlingUnauthorized = false;
           }
           handler.next(error);
         },
@@ -69,6 +75,7 @@ class ApiClient {
   final AuthStorage _authStorage;
   final VoidCallback? onUnauthorized;
   late final Dio _dio;
+  bool _handlingUnauthorized = false;
 
   Dio get dio => _dio;
 

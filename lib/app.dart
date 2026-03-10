@@ -82,6 +82,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener> {
     ref.listen<bool>(isOnlineProvider, (previous, current) {
       // Only trigger when transitioning from offline → online.
       if (previous == false && current == true) {
+        if (!ref.read(authProvider).isAuthenticated) return;
         _triggerBootstrapAndSync();
       }
     });
