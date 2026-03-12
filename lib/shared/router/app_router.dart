@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/providers/location_provider.dart';
+import 'package:fsi_courier_app/features/location/location_required_screen.dart';
 import 'package:fsi_courier_app/features/auth/login_screen.dart';
 import 'package:fsi_courier_app/features/auth/reset_password_screen.dart';
 import 'package:fsi_courier_app/splash_screen.dart';
@@ -27,6 +29,7 @@ final initialLocationProvider = Provider<String>((ref) => '/splash');
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(Ref ref) {
     ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+    ref.listen<LocationState>(locationProvider, (_, __) => notifyListeners());
   }
 }
 
@@ -40,25 +43,45 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: (context, state) {
       final auth = ref.read(authProvider);
+      final locationState = ref.watch(locationProvider);
+      
       final path = state.uri.path;
       final isAuthRoute =
           path == '/login' ||
           path == '/reset-password' ||
           path == '/splash';
+      
+      // Allow unauthenticated users to access auth routes
+      if (!auth.isAuthenticated) {
+        if (!isAuthRoute) return '/login';
+        return null;
+      }
 
-      if (!auth.isAuthenticated && !isAuthRoute) {
-        return '/login';
+      // ── GLOBAL GEOLOCATION GUARD ──
+      // If authenticated, we MUST have a working GPS / permission state.
+      // Exception: Splash screen where initial routing/loading happens
+      if (path != '/splash') {
+        if (!locationState.isReady) {
+          if (path != '/location-required') {
+            return '/location-required';
+          }
+          return null;
+        } else if (path == '/location-required' && locationState.isReady) {
+           // If on the block screen but location is fixed, go to dashboard
+           return '/dashboard';
+        }
       }
 
       if (auth.isAuthenticated && isAuthRoute) {
         return '/dashboard';
       }
 
-      if (path == '/') return '/login';
+      if (path == '/') return '/dashboard';
       return null;
     },
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
+      GoRoute(path: '/location-required', builder: (_, __) => const LocationRequiredScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
         path: '/reset-password',

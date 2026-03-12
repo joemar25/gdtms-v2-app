@@ -228,7 +228,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: StatCard(
-                          label: 'SYNC QUEUE',
+                          label: 'SYNC',
                           count: pendingSyncCount > 0 ? '$pendingSyncCount' : '0',
                           icon: Icons.sync_rounded,
                           color: pendingSyncCount > 0 ? Colors.blueAccent : Colors.blueGrey,
