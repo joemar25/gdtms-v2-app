@@ -1042,7 +1042,7 @@ class _DispatchInfoCard extends StatelessWidget {
                 icon: Icons.schedule_outlined,
                 label: 'TAT',
                 value: tat.isNotEmpty
-                    ? formatDate(tat, includeTime: true)
+                    ? formatDate(tat, includeTime: false)
                     : '-',
               ),
             ],

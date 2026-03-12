@@ -98,7 +98,7 @@ build/run time via `--dart-define` or `--dart-define-from-file`.
 3. Run or build with:
 
    ```bash
-   flutter run  --dart-define-from-file=dart_defines.json
+   flutter run --dart-define-from-file=dart_defines.json
    flutter build apk --dart-define-from-file=dart_defines.json
    ```
 
@@ -152,6 +152,21 @@ flutter run -d emulator-5554 -v
 adb -s emulator-5554 logcat -d | tail -n 300
 ```
 
+### Reset App Environment
+```bash
+flutter clean
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
+```
+
+### Wireless Pairing
+```bash
+# On phone (dev mode): wireless debugging = true
+# On PC:
+adb pair REDACTED_ADB_HOST
+# Enter pairing code from device
+```
+
 ## Android Notes
 
 ### Desugaring requirement
@@ -198,13 +213,12 @@ flutter run -d emulator-5554
 
 ## Credentials
 
-Use credentials provided privately by your team leads or secure vault. Do not commit account credentials in repository files.
+Use credentials provided privately by the programmer leads or secure vault. Do not commit account credentials in repository files.
 
 ## Reference Documentation
 
-- `.documentation/FLUTTER_MIGRATION.md`
-- `.documentation/TODO.md`
-- `.documentation/FRONTEND_STRUCTURE.md`
+- `.documentation/architecture.md`
+- `.documentation/sync_logic_state.md`
 
 ## Future Enhancements
 
@@ -222,13 +236,9 @@ Possible future improvements:
 - [ ] Background periodic cleanup using WorkManager (Android) / BGTaskScheduler (iOS)
 - [ ] Push-notification digest of daily sync failures sent to a supervisor endpoint
 
-<!--
-REDACTED_TEST_NUMBER
-flutter clean - to
-dart run flutter_native_splash:create - to replace assets with new one
+### Mobile App Deliveries
+- [ ] Determine who received the delivery in the update payload.
+- [ ] Make signature optional for certain scenarios.
+- [ ] DFAMCI special case: include courier reference number upon updating submission status.
 
-- who recieved in the delivery /
-- signature can be optional
-- dfamci has courier reference number for delivery upon updating the status for submittions (special case)
-
--->
+<!-- check connection:  curl -v https://staging-gdtms-v2.skyward.com.ph -->

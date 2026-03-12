@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show TextInputFormatter, TextEditingValue;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,7 +12,9 @@ import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
-import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
+import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/search_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/status_notice_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 
 const int _kPageSize = 10;
@@ -81,9 +82,12 @@ class _DeliveryStatusListScreenState
     setState(() => _loading = true);
     final offset = _currentPage * _kPageSize;
     final rows = await _fetchPage(offset: offset);
-    final total = widget.status == 'delivered'
-        ? await LocalDeliveryDao.instance.countVisibleDelivered()
-        : await LocalDeliveryDao.instance.countByStatus(widget.status);
+    final total = switch (widget.status) {
+      'delivered' => await LocalDeliveryDao.instance.countVisibleDelivered(),
+      'rts' => await LocalDeliveryDao.instance.countVisibleRts(),
+      'osa' => await LocalDeliveryDao.instance.countVisibleOsa(),
+      _ => await LocalDeliveryDao.instance.countByStatus(widget.status),
+    };
     if (!mounted) return;
     // If page is out of range (e.g. after a refresh), clamp to last page.
     final totalPages = (total / _kPageSize).ceil().clamp(1, 999999);
@@ -103,17 +107,25 @@ class _DeliveryStatusListScreenState
   }
 
   Future<List<LocalDelivery>> _fetchPage({required int offset}) {
-    if (widget.status == 'delivered') {
-      return LocalDeliveryDao.instance.getVisibleDeliveredPaged(
+    return switch (widget.status) {
+      'delivered' => LocalDeliveryDao.instance.getVisibleDeliveredPaged(
         limit: _kPageSize,
         offset: offset,
-      );
-    }
-    return LocalDeliveryDao.instance.getByStatusPaged(
-      widget.status,
-      limit: _kPageSize,
-      offset: offset,
-    );
+      ),
+      'rts' => LocalDeliveryDao.instance.getVisibleRtsPaged(
+        limit: _kPageSize,
+        offset: offset,
+      ),
+      'osa' => LocalDeliveryDao.instance.getVisibleOsaPaged(
+        limit: _kPageSize,
+        offset: offset,
+      ),
+      _ => LocalDeliveryDao.instance.getByStatusPaged(
+        widget.status,
+        limit: _kPageSize,
+        offset: offset,
+      ),
+    };
   }
 
   Future<void> _goToPage(int page) async {
@@ -202,9 +214,9 @@ class _DeliveryStatusListScreenState
 
   String _emptyMessage() => switch (widget.status) {
     'pending' => 'No active deliveries.',
-    'delivered' => 'No delivered items today.',
-    'rts' => 'No RTS mailpacks.',
-    'osa' => 'No OSA mailpacks.',
+    'delivered' => "No delivered items today.",
+    'rts' => "No RTS mailpacks today.",
+    'osa' => "No OSA mailpacks today.",
     _ => 'No items found.',
   };
 
@@ -232,14 +244,16 @@ class _DeliveryStatusListScreenState
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeInOut,
             child: _showSearch
-                ? _SearchBar(
+                ? AppSearchBar(
                     controller: _searchController,
                     query: _searchQuery,
+                    hintText: 'BARCODE OR NAME',
+                    isLoading: _searchLoading,
                     resultCount: isSearching
                         ? (_searchLoading ? null : _searchResults.length)
                         : null,
-                    totalCount: !isSearching ? _totalCount : null,
-                    isLoading: _searchLoading,
+                    totalCount:
+                        (!isSearching && _searchQuery.isEmpty) ? _totalCount : null,
                     onChanged: (v) {
                       setState(() => _searchQuery = v);
                       _runSearch(v);
@@ -270,10 +284,12 @@ class _DeliveryStatusListScreenState
                         if (!isOnline) const OfflineBanner(isMinimal: true),
                         SizedBox(
                           height: 400,
-                          child: EmptyState(
-                            message: isSearching
-                                ? 'No results for "$_searchQuery".'
-                                : _emptyMessage(),
+                          child: Center(
+                            child: Text(
+                              isSearching
+                                  ? 'No results for "$_searchQuery".'
+                                  : _emptyMessage(),
+                            ),
                           ),
                         ),
                       ],
@@ -305,8 +321,8 @@ class _DeliveryStatusListScreenState
           ),
 
           // ── Pagination bar (hidden in search mode) ─────────────────────────
-          if (!isSearching && !_loading && _totalCount > 0)
-            _PaginationBar(
+          if (!isSearching && !_loading && _totalCount > _kPageSize)
+            PaginationBar(
               currentPage: _currentPage,
               totalPages: _totalPages,
               firstItem: _firstItem,
@@ -323,6 +339,7 @@ class _DeliveryStatusListScreenState
     int count = 0;
     if (!isOnline) count++;
     if (widget.status == 'osa') count++;
+    if (widget.status == 'rts') count++;
     if (widget.status == 'delivered') count++;
     return count;
   }
@@ -330,429 +347,14 @@ class _DeliveryStatusListScreenState
   Widget _buildBanner(int index, bool isOnline) {
     final widgets = <Widget>[
       if (!isOnline) const OfflineBanner(isMinimal: true),
-      if (widget.status == 'osa') const _OsaNoticeBanner(),
-      if (widget.status == 'delivered') const _DeliveredTodayNoticeBanner(),
+      if (widget.status == 'osa')
+        const StatusNoticeBanner(type: StatusNoticeType.osa),
+      if (widget.status == 'rts')
+        const StatusNoticeBanner(type: StatusNoticeType.rts),
+      if (widget.status == 'delivered')
+        const StatusNoticeBanner(type: StatusNoticeType.deliveredToday),
     ];
     return widgets[index];
   }
 }
 
-// ─── Pagination bar ───────────────────────────────────────────────────────────
-
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.currentPage,
-    required this.totalPages,
-    required this.firstItem,
-    required this.lastItem,
-    required this.totalCount,
-    required this.onPageChanged,
-  });
-
-  final int currentPage;
-  final int totalPages;
-  final int firstItem;
-  final int lastItem;
-  final int totalCount;
-  final ValueChanged<int> onPageChanged;
-
-  /// Returns up to 5 page numbers centred around [currentPage].
-  List<int> get _pageNumbers {
-    if (totalPages <= 7) return List.generate(totalPages, (i) => i);
-    final start = (currentPage - 2).clamp(0, totalPages - 5);
-    return List.generate(5, (i) => start + i);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A2E) : cs.surface,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? Colors.white12 : Colors.grey.shade200,
-          ),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Range label ─────────────────────────────────────────────────
-          Text(
-            '$firstItem–$lastItem of $totalCount',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-              letterSpacing: 0.3,
-            ),
-          ),
-          const SizedBox(height: 6),
-          // ── Page controls ───────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // First page
-              _NavButton(
-                icon: Icons.first_page_rounded,
-                enabled: currentPage > 0,
-                onTap: () => onPageChanged(0),
-              ),
-              // Previous
-              _NavButton(
-                icon: Icons.chevron_left_rounded,
-                enabled: currentPage > 0,
-                onTap: () => onPageChanged(currentPage - 1),
-              ),
-              const SizedBox(width: 4),
-              // Page number chips
-              ..._pageNumbers.map(
-                (page) => _PageChip(
-                  page: page,
-                  isSelected: page == currentPage,
-                  onTap: () => onPageChanged(page),
-                ),
-              ),
-              const SizedBox(width: 4),
-              // Next
-              _NavButton(
-                icon: Icons.chevron_right_rounded,
-                enabled: currentPage < totalPages - 1,
-                onTap: () => onPageChanged(currentPage + 1),
-              ),
-              // Last page
-              _NavButton(
-                icon: Icons.last_page_rounded,
-                enabled: currentPage < totalPages - 1,
-                onTap: () => onPageChanged(totalPages - 1),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavButton extends StatelessWidget {
-  const _NavButton({
-    required this.icon,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Icon(
-          icon,
-          size: 22,
-          color: enabled
-              ? cs.onSurface
-              : cs.onSurface.withValues(alpha: 0.25),
-        ),
-      ),
-    );
-  }
-}
-
-class _PageChip extends StatelessWidget {
-  const _PageChip({
-    required this.page,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final int page;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: isSelected ? null : onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: isSelected ? cs.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: isSelected
-              ? null
-              : Border.all(color: cs.outline.withValues(alpha: 0.3)),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          '${page + 1}',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: isSelected ? cs.onPrimary : cs.onSurface,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Uppercase formatter ──────────────────────────────────────────────────────
-
-class _UpperCaseFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) =>
-      newValue.copyWith(text: newValue.text.toUpperCase());
-}
-
-// ─── Search bar ───────────────────────────────────────────────────────────────
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({
-    required this.controller,
-    required this.query,
-    required this.onChanged,
-    required this.onClear,
-    this.resultCount,
-    this.totalCount,
-    this.isLoading = false,
-  });
-
-  final TextEditingController controller;
-  final String query;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onClear;
-  final int? resultCount;
-  final int? totalCount;
-  final bool isLoading;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A2E) : cs.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? Colors.white12 : Colors.grey.shade200,
-            width: 1,
-          ),
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF2A2A3E)
-                  : cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: controller,
-              autofocus: true,
-              textCapitalization: TextCapitalization.characters,
-              inputFormatters: [_UpperCaseFormatter()],
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
-              ),
-              decoration: InputDecoration(
-                hintText: 'BARCODE OR NAME',
-                hintStyle: TextStyle(
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.5),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                  letterSpacing: 0.4,
-                ),
-                prefixIcon: Icon(
-                  Icons.search_rounded,
-                  color: cs.primary,
-                  size: 22,
-                ),
-                suffixIcon: query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20),
-                        color: cs.onSurfaceVariant,
-                        onPressed: onClear,
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 4,
-                ),
-              ),
-              onChanged: onChanged,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const SizedBox(width: 4),
-              if (isLoading) ...[
-                SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.5,
-                    color: cs.primary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'SEARCHING…',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: cs.primary,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ] else if (resultCount != null) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: cs.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '$resultCount RESULT${resultCount == 1 ? '' : 'S'}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: cs.primary,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ),
-              ] else if (totalCount != null) ...[
-                Text(
-                  '$totalCount ITEM${totalCount == 1 ? '' : 'S'} TOTAL',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-                    letterSpacing: 0.6,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── OSA read-only notice ─────────────────────────────────────────────────────
-
-class _OsaNoticeBanner extends StatelessWidget {
-  const _OsaNoticeBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 8, bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.amber.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.shade300, width: 1.2),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline_rounded, size: 18, color: Colors.amber.shade800),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'PENDING ADMIN REVIEW — NO ACTION REQUIRED',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Colors.amber.shade900,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Delivered today notice ───────────────────────────────────────────────────
-
-class _DeliveredTodayNoticeBanner extends StatelessWidget {
-  const _DeliveredTodayNoticeBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 8, bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade300, width: 1.2),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.check_circle_outline_rounded,
-            size: 18,
-            color: Colors.green.shade800,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Showing your delivered items',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Colors.green.shade900,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

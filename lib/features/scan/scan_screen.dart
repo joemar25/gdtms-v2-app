@@ -16,6 +16,7 @@ import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/formatters.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -188,7 +189,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       }
 
       // Otherwise, show eligibility screen with full code, skip modal
-      context.push(
+      await context.push(
         '/dispatches/eligibility',
         extra: {
           'dispatch_code': partialCode,
@@ -199,6 +200,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           'skip_accept_modal': true,
         },
       );
+      if (mounted && _hasPermission) await _scannerController.start();
     } else {
       setState(
         () => _inlineError = 'Unable to check eligibility. Please try again.',
@@ -247,7 +249,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     if (matches.length == 1) {
       // Exactly one hit — navigate directly.
       // Use push to allow back navigation
-      context.push('/deliveries/${matches.first.barcode}');
+      await context.push('/deliveries/${matches.first.barcode}');
+      if (mounted && _hasPermission) await _scannerController.start();
       return;
     }
 
@@ -276,7 +279,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
       // Use push to allow back navigation
-      context.push('/deliveries/$code');
+      await context.push('/deliveries/$code');
+      if (mounted && _hasPermission) await _scannerController.start();
     } else {
       setState(() => _inlineError = 'No delivery found for "$code".');
       if (_hasPermission) await _scannerController.start();
@@ -720,7 +724,7 @@ class _ManualInputArea extends StatelessWidget {
             style: const TextStyle(color: Colors.white),
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
-            inputFormatters: [_UpperCaseFormatter()],
+            inputFormatters: [UpperCaseFormatter()],
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
@@ -945,15 +949,4 @@ class _SearchResultsSheet extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─── Uppercase text formatter ─────────────────────────────────────────────────
-
-class _UpperCaseFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) =>
-      newValue.copyWith(text: newValue.text.toUpperCase());
 }

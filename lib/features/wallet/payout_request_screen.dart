@@ -14,7 +14,9 @@ import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class PayoutRequestScreen extends ConsumerStatefulWidget {
-  const PayoutRequestScreen({super.key});
+  const PayoutRequestScreen({super.key, this.isConsolidation = false});
+
+  final bool isConsolidation;
 
   @override
   ConsumerState<PayoutRequestScreen> createState() =>
@@ -50,32 +52,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       final preview = mapFromKey(data, 'data');
-      final breakdown =
-          (preview['daily_breakdown'] as List?)?.cast<Map<String, dynamic>>() ??
-          [];
-
-      String? selectedDate;
-      if (breakdown.isNotEmpty) {
-        // Try to select today's date
-        final today = DateTime.now();
-        final todayStr =
-            '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-        final todayInBreakdown = breakdown.firstWhere(
-          (d) => d['date'] == todayStr,
-          orElse: () => <String, dynamic>{},
-        );
-
-        if (todayInBreakdown.isNotEmpty) {
-          selectedDate = todayStr;
-        } else {
-          // Fall back to the last date in breakdown (latest available)
-          selectedDate = breakdown.last['date'] as String?;
-        }
-      }
 
       setState(() {
         _previewData = preview;
-        _initialSelectedDate = selectedDate;
+        _initialSelectedDate = null;
         _refreshKey++;
         _loading = false;
       });
@@ -106,9 +86,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Confirm Payout Request',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        title: Text(
+          widget.isConsolidation
+              ? 'Confirm Consolidated Request'
+              : 'Confirm Payout Request',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -263,9 +245,16 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         appBar: AppBar(
           backgroundColor: appBarBg,
           elevation: 0,
-          title: const Text(
-            'REQUEST PAYOUT',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.payments_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                widget.isConsolidation ? 'CONSOLIDATE REQUEST' : 'REQUEST PAYOUT',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+              ),
+            ],
           ),
         ),
         body: Center(
@@ -299,9 +288,16 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       appBar: AppBar(
         backgroundColor: appBarBg,
         elevation: 0,
-        title: const Text(
-          'REQUEST PAYOUT',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.payments_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            const Text(
+              'REQUEST PAYOUT',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: SafeArea(
@@ -318,9 +314,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                     ),
                   )
                 : const Icon(Icons.send_rounded),
-            label: const Text(
-              'SUBMIT REQUEST',
-              style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
+            label: Text(
+              widget.isConsolidation ? 'SUBMIT CONSOLIDATED REQUEST' : 'SUBMIT REQUEST',
+              style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: ColorStyles.grabGreen,
@@ -329,7 +325,12 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            onPressed: (_submitting || _loading || _previewData == null)
+            onPressed: (_submitting ||
+                    _loading ||
+                    _previewData == null ||
+                    (_previewData!['eligible_delivery_count'] as int? ?? 0) ==
+                        0 ||
+                    _previewData!['has_existing_request_today'] == true)
                 ? null
                 : _submit,
           ),
@@ -394,6 +395,38 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
       children: [
+        // ── Consolidation notice ──────────────────────────────────────
+        if (widget.isConsolidation) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.merge_rounded, color: Colors.amber.shade700, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    preview['has_existing_request_today'] == true
+                        ? "You've already submitted a payout request today. Only one request per day is allowed. Your eligible deliveries will automatically be included in tomorrow's request if you submit again."
+                        : 'You currently have a pending payout request. If you submit another request, all eligible deliveries will be combined into a single consolidated payout.',
+                    style: TextStyle(
+                      color: Colors.amber.shade700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
         // ── Summary Card ──────────────────────────────────────────────
         _SummaryCard(
           eligibleCount: eligibleCount,
@@ -402,6 +435,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           estimatedIncentive: estimatedIncentive,
           estimatedNet: estimatedNet,
           isDark: isDark,
+          deliveriesLabel: widget.isConsolidation
+              ? 'ELIGIBLE FOR CONSOLIDATION'
+              : 'ELIGIBLE DELIVERIES',
         ),
         const SizedBox(height: 16),
 
@@ -418,7 +454,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         // ── Date Strip + Deliveries ───────────────────────────────────
         if (dailyBreakdown.isNotEmpty) ...[
           Text(
-            'DELIVERIES',
+            widget.isConsolidation ? 'ELIGIBLE FOR CONSOLIDATION' : 'DELIVERIES',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -431,6 +467,62 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             key: ValueKey(_refreshKey),
             dailyBreakdown: dailyBreakdown,
             initialSelectedDate: _initialSelectedDate,
+          ),
+        ],
+
+        // ── Submission limits banner (hidden in consolidation — banner above covers it) ──
+        if (!widget.isConsolidation && preview['has_existing_request_today'] == true) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    color: Colors.amber.shade700, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'You have already submitted a request today.',
+                    style: TextStyle(
+                      color: Colors.amber.shade700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else if (eligibleCount == 0) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: Colors.grey, size: 18),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'No eligible deliveries found for payout.',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
 
@@ -553,6 +645,7 @@ class _SummaryCard extends StatelessWidget {
     required this.estimatedIncentive,
     required this.estimatedNet,
     required this.isDark,
+    this.deliveriesLabel = 'ELIGIBLE DELIVERIES',
   });
 
   final int eligibleCount;
@@ -561,6 +654,7 @@ class _SummaryCard extends StatelessWidget {
   final double estimatedIncentive;
   final double estimatedNet;
   final bool isDark;
+  final String deliveriesLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -595,7 +689,7 @@ class _SummaryCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'ELIGIBLE DELIVERIES',
+                    deliveriesLabel,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,

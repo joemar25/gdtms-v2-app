@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -31,6 +33,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(notificationsProvider);
+    final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -46,59 +49,102 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             ),
         ],
       ),
-      body: _buildBody(context, state),
+      body: _buildBody(context, state, isOnline),
     );
   }
 
-  Widget _buildBody(BuildContext context, NotificationsState state) {
-    if (state.loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+  Widget _buildBody(
+    BuildContext context,
+    NotificationsState state,
+    bool isOnline,
+  ) {
+    Widget content;
 
-    if (state.entries.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.notifications_none_rounded,
-              size: 56,
-              color: Colors.grey.shade300,
+    if (state.loading && state.entries.isEmpty) {
+      content = const Center(child: CircularProgressIndicator());
+    } else if (state.entries.isEmpty) {
+      content = LayoutBuilder(
+        builder: (context, constraints) {
+          return RefreshIndicator(
+            onRefresh: () => ref.read(notificationsProvider.notifier).load(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Container(
+                height: constraints.maxHeight,
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.notifications_none_rounded,
+                      size: 56,
+                      color: Colors.grey.shade300,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No notifications yet',
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'No notifications yet',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-            ),
-          ],
+          );
+        },
+      );
+    } else {
+      content = RefreshIndicator(
+        onRefresh: () => ref.read(notificationsProvider.notifier).load(),
+        child: ListView.separated(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: state.entries.length + (state.hasMore ? 1 : 0),
+          separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+          itemBuilder: (context, index) {
+            if (index == state.entries.length) {
+              return _LoadMoreButton(
+                loading: state.loadingMore,
+                onTap: () =>
+                    ref.read(notificationsProvider.notifier).loadMore(),
+              );
+            }
+            return _NotificationTile(
+              notification: state.entries[index],
+              onTap: () => _handleTap(state.entries[index], isOnline),
+            );
+          },
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () => ref.read(notificationsProvider.notifier).load(),
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: state.entries.length + (state.hasMore ? 1 : 0),
-        separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-        itemBuilder: (context, index) {
-          if (index == state.entries.length) {
-            return _LoadMoreButton(
-              loading: state.loadingMore,
-              onTap: () =>
-                  ref.read(notificationsProvider.notifier).loadMore(),
-            );
-          }
-          return _NotificationTile(
-            notification: state.entries[index],
-            onTap: () => _handleTap(state.entries[index]),
-          );
-        },
-      ),
-    );
+    if (!isOnline) {
+      return Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: OfflineBanner(
+              isMinimal: true,
+              margin: EdgeInsets.zero,
+            ),
+          ),
+          Expanded(child: content),
+        ],
+      );
+    }
+
+    return content;
   }
 
-  void _handleTap(AppNotification n) {
+  void _handleTap(AppNotification n, bool isOnline) {
+    if (!isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot open notification while offline'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     if (!n.read) {
       ref.read(notificationsProvider.notifier).markAsRead(n.id);
     }

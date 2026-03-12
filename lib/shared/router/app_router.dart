@@ -152,7 +152,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/wallet', builder: (_, __) => const WalletScreen()),
       GoRoute(
         path: '/wallet/request',
-        builder: (_, __) => const PayoutRequestScreen(),
+        builder: (_, state) {
+          final extra = state.extra;
+          return PayoutRequestScreen(
+            isConsolidation:
+                extra is Map && extra['consolidate'] == true,
+          );
+        },
       ),
       GoRoute(
         path: '/wallet/:reference',

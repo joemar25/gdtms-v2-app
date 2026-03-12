@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +9,7 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/core/config.dart';
 
 class PayoutDetailScreen extends ConsumerStatefulWidget {
   const PayoutDetailScreen({super.key, required this.reference});
@@ -156,125 +158,20 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
                   // ── Amount hero ──────────────────────────────────────────
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF007A36), Color(0xFF00B14F)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: ColorStyles.grabGreen.withValues(alpha: 0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-
-                    padding: const EdgeInsets.all(20),
-
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Payout Amount',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                              ),
-                            ),
-                            _StatusBadgeLight(status),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '₱ ${amount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Divider(color: Colors.white24, height: 1),
-                        const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: _buildHeroDetail('Reference', reference),
-                            ),
-                            Expanded(
-                              flex: 4,
-                              child: _buildHeroDetail('Period', periodLabel),
-                            ),
-                            if (totalItems != null)
-                              Expanded(
-                                flex: 2,
-                                child: _buildHeroDetail('Items', '$totalItems'),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  _PayoutHeroFlipCard(
+                    amount: amount,
+                    status: status,
+                    reference: reference,
+                    periodLabel: periodLabel,
+                    totalItems: totalItems,
+                    breakdown: breakdown,
                   ),
 
                   const SizedBox(height: 12),
 
-                  // ── Breakdown ────────────────────────────────────────────
-                  if (breakdown.isNotEmpty) ...[
-                    _SectionCard(
-                      title: 'Breakdown',
-                      children: breakdown.entries.map((e) {
-                        final val = double.tryParse('${e.value}') ?? 0.0;
-                        final isDeduction = val < 0;
-                        final isDark =
-                            Theme.of(context).brightness == Brightness.dark;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _formatKey(e.key),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? Colors.grey.shade400
-                                      : Colors.grey.shade600,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                '${isDeduction ? '-' : ''}₱ ${val.abs().toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDeduction
-                                      ? Colors.red.shade400
-                                      : (isDark
-                                            ? Colors.white
-                                            : Colors.black87),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-
                   // ── Status History ───────────────────────────────────────
                   _SectionCard(
-                    title: 'Status History',                    trailing: transactionHistory.isNotEmpty
+                    title: 'Status History', trailing: transactionHistory.isNotEmpty
                         ? TextButton(
                             onPressed: () => _showTransactionHistory(
                               context,
@@ -285,6 +182,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                         : null,                    children: [
                       _buildHorizontalStepper(
                         context,
+                        status,
                         requestedAt,
                         approvedAt,
                         paidAt,
@@ -402,13 +300,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     ];
   }
 
-  String _formatKey(String key) {
-    return key
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-        .join(' ');
-  }
+
 
   void _showTransactionHistory(
     BuildContext context,
@@ -571,29 +463,9 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     );
   }
 
-  Widget _buildHeroDetail(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildHorizontalStepper(
     BuildContext context,
+    String status,
     String req,
     String app,
     String paid,
@@ -604,10 +476,22 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         val != '—' &&
         val != '-';
 
+    final s = status.toLowerCase();
+    
+    // Status Lifecycle: Submitted (Pending) -> Operations Approved -> HR Processing -> Paid
     final steps = [
-      {'title': 'Requested', 'date': req, 'done': isDone(req)},
-      {'title': 'Approved', 'date': app, 'done': isDone(app)},
-      {'title': 'Paid', 'date': paid, 'done': isDone(paid)},
+      {'title': 'Submitted', 'date': req, 'done': true}, // Always done if we are here
+      {
+        'title': 'Ops Approved', 
+        'date': (isDone(app) && s != 'pending') ? app : '', 
+        'done': s == 'ops_approved' || s == 'hr_approved' || s == 'paid'
+      },
+      {
+        'title': 'HR Processing', 
+        'date': '', // API doesn't seem to provide a specific hr_approved_at yet
+        'done': s == 'hr_approved' || s == 'paid'
+      },
+      {'title': 'Paid', 'date': paid, 'done': s == 'paid'},
     ];
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -789,6 +673,278 @@ class _StatusBadgeLight extends StatelessWidget {
       child: Text(
         status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
         style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _PayoutHeroFlipCard extends StatefulWidget {
+  const _PayoutHeroFlipCard({
+    required this.amount,
+    required this.status,
+    required this.reference,
+    required this.periodLabel,
+    this.totalItems,
+    required this.breakdown,
+  });
+
+  final double amount;
+  final String status;
+  final String reference;
+  final String periodLabel;
+  final int? totalItems;
+  final Map<String, dynamic> breakdown;
+
+  @override
+  State<_PayoutHeroFlipCard> createState() => _PayoutHeroFlipCardState();
+}
+
+class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  bool _isFront = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _flip() {
+    if (_isFront) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+    _isFront = !_isFront;
+  }
+
+  String _formatKey(String key) {
+    return key
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
+  }
+
+  Widget _buildHeroDetail(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFront() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF007A36), Color(0xFF00B14F)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: ColorStyles.grabGreen.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Payout Amount',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              _StatusBadgeLight(widget.status),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '₱ ${widget.amount.toStringAsFixed(2)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white24, height: 1),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: _buildHeroDetail('Reference', widget.reference),
+              ),
+              Expanded(
+                flex: 4,
+                child: _buildHeroDetail('Period', widget.periodLabel),
+              ),
+              if (widget.totalItems != null)
+                Expanded(
+                  flex: 2,
+                  child: _buildHeroDetail('Items', '${widget.totalItems}'),
+                ),
+            ],
+          ),
+          if (widget.breakdown.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Center(
+              child: Text(
+                'Tap to reveal breakdown',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBack(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? ColorStyles.grabCardDark
+            : ColorStyles.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+        ),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Breakdown Details',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
+                ),
+              ),
+              _StatusBadgeLight(widget.status),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...widget.breakdown.entries.where((e) {
+            if (e.key == 'coordinator_incentive') return kAppDebugMode;
+            return true;
+          }).map((e) {
+            final val = double.tryParse('${e.value}') ?? 0.0;
+            final isDeduction = val < 0;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    e.key == 'coordinator_incentive' 
+                        ? 'Coordinator Incentive (for debug only)' 
+                        : _formatKey(e.key),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    '${isDeduction ? '-' : ''}₱ ${val.abs().toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDeduction
+                          ? Colors.red.shade400
+                          : (isDark ? Colors.white : Colors.black87),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 14),
+          Center(
+            child: Text(
+              'Tap to flip back',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.withValues(alpha: 0.8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.breakdown.isNotEmpty ? _flip : null,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final isUnder = _controller.value > 0.5;
+          final transform = Matrix4.identity()
+            ..setEntry(3, 2, 0.001) // perspective
+            ..rotateX(_controller.value * math.pi);
+            
+          return Transform(
+            transform: transform,
+            alignment: Alignment.center,
+            child: isUnder
+                ? Transform(
+                    transform: Matrix4.identity()..rotateX(math.pi),
+                    alignment: Alignment.center,
+                    child: _buildBack(context),
+                  )
+                : _buildFront(),
+          );
+        },
       ),
     );
   }

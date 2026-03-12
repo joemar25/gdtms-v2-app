@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
@@ -106,11 +107,28 @@ class NotificationsState {
 // ─── Notifier ─────────────────────────────────────────────────────────────────
 
 class NotificationsNotifier extends StateNotifier<NotificationsState> {
-  NotificationsNotifier(this._ref) : super(const NotificationsState());
+  NotificationsNotifier(this._ref) : super(const NotificationsState()) {
+    _initOfflineCount();
+  }
 
   final Ref _ref;
 
   ApiClient get _api => _ref.read(apiClientProvider);
+
+  static const _unreadCountKey = 'offline_unread_count';
+
+  Future<void> _initOfflineCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedCount = prefs.getInt(_unreadCountKey);
+    if (cachedCount != null && state.unreadCount == 0 && mounted) {
+      state = state.copyWith(unreadCount: cachedCount);
+    }
+  }
+
+  Future<void> _saveOfflineCount(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_unreadCountKey, count);
+  }
 
   /// Loads page 1 and replaces the current list.
   Future<void> load() async {
@@ -118,7 +136,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
 
     final result = await _api.get<Map<String, dynamic>>(
       '/notifications',
-      queryParameters: {'page': 1, 'per_page': 20},
+      queryParameters: {'page': 1, 'per_page': 10},
       parser: parseApiMap,
     );
 
@@ -144,6 +162,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
         currentPage: 1,
         lastPage: lastPage,
       );
+      _saveOfflineCount(unreadCount);
     } else {
       state = state.copyWith(loading: false);
     }
@@ -157,7 +176,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     final nextPage = state.currentPage + 1;
     final result = await _api.get<Map<String, dynamic>>(
       '/notifications',
-      queryParameters: {'page': nextPage, 'per_page': 20},
+      queryParameters: {'page': nextPage, 'per_page': 10},
       parser: parseApiMap,
     );
 
@@ -195,6 +214,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       final count = (data['count'] as num?)?.toInt() ?? state.unreadCount;
       state = state.copyWith(unreadCount: count);
+      _saveOfflineCount(count);
     }
   }
 
@@ -205,12 +225,16 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
       return n.id == id ? n.copyWith(read: true, readAt: DateTime.now().toIso8601String()) : n;
     }).toList();
     final wasUnread = state.entries.any((n) => n.id == id && !n.read);
+    final newCount = wasUnread
+          ? (state.unreadCount - 1).clamp(0, double.maxFinite.toInt())
+          : state.unreadCount;
+
     state = state.copyWith(
       entries: updated,
-      unreadCount: wasUnread
-          ? (state.unreadCount - 1).clamp(0, double.maxFinite.toInt())
-          : state.unreadCount,
+      unreadCount: newCount,
     );
+
+    _saveOfflineCount(newCount);
 
     await _api.post<Map<String, dynamic>>(
       '/notifications/$id/mark-as-read',
@@ -224,6 +248,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
         .map((n) => n.copyWith(read: true, readAt: DateTime.now().toIso8601String()))
         .toList();
     state = state.copyWith(entries: updated, unreadCount: 0);
+    _saveOfflineCount(0);
 
     await _api.post<Map<String, dynamic>>(
       '/notifications/mark-all-as-read',

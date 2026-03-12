@@ -13,6 +13,7 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/stat_widgets.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -48,8 +49,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!mounted) return;
     setState(() => _loading = true);
 
-    final isOnline = ref.read(isOnlineProvider);
+    // Always derive delivery counts from SQLite — same source as list screens.
+    // This guarantees dashboard numbers always match what clicking a card shows.
+    final dao = LocalDeliveryDao.instance;
+    final pending = await dao.countByStatus('pending');
+    final delivered = await dao.countVisibleDelivered();
+    final rts = await dao.countVisibleRts();
+    final osa = await dao.countVisibleOsa();
 
+    // pending_dispatches cannot be derived from SQLite — try API when online.
+    int pendingDispatches = 0;
+    final isOnline = ref.read(isOnlineProvider);
     if (isOnline) {
       final api = ref.read(apiClientProvider);
       final summaryResult = await api.get<Map<String, dynamic>>(
@@ -57,31 +67,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         queryParameters: {'paid': 'all'},
         parser: parseApiMap,
       );
-
-      if (!mounted) return;
-
       if (summaryResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
-        _summary = mapFromKey(data, 'data');
-        setState(() => _loading = false);
-        return;
+        final d = mapFromKey(data, 'data');
+        pendingDispatches = (d['pending_dispatches'] as num?)?.toInt() ?? 0;
       }
-      // On any API failure fall through to the SQLite count fallback below.
     }
 
     if (!mounted) return;
 
-    // Offline fallback: derive counts from local SQLite so the dashboard
-    // remains informative without a network connection.
-    final dao = LocalDeliveryDao.instance;
-    final pending = await dao.countByStatus('pending');
-    final delivered = await dao.countVisibleDelivered();
-    final rts = await dao.countByStatus('rts');
-    final osa = await dao.countByStatus('osa');
-
-    if (!mounted) return;
-
     _summary = {
-      'pending_dispatches': 0, // cannot be derived locally
+      'pending_dispatches': pendingDispatches,
       'pending_deliveries': pending,
       'delivered_today': delivered,
       'rts': rts,
@@ -122,7 +117,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       },
       child: Scaffold(
         extendBody: true,
-        appBar: AppHeaderBar(title: ''),
+        appBar: const AppHeaderBar(
+          title: 'Dashboard',
+          pageIcon: Icons.dashboard_rounded,
+        ),
       bottomNavigationBar: const FloatingBottomNavBar(
         currentPath: '/dashboard',
       ),
@@ -152,7 +150,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _StatCard(
+                        child: StatCard(
                           label: 'DISPATCH',
                           count: '$pendingDispatchCount',
                           icon: Icons.qr_code_rounded,
@@ -165,7 +163,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: _StatCard(
+                        child: StatCard(
                           label: 'DELIVERIES',
                           count: '$deliveriesCount',
                           icon: Icons.local_shipping_outlined,
@@ -182,7 +180,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _StatCard(
+                        child: StatCard(
                           label: 'DELIVERED',
                           count: '$deliveredCount',
                           icon: Icons.check_circle_outline_rounded,
@@ -195,7 +193,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: _StatCard(
+                        child: StatCard(
                           label: 'RTS',
                           count: '$rtsCount',
                           icon: Icons.assignment_return_outlined,
@@ -213,7 +211,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _StatCard(
+                        child: StatCard(
                           label: 'OSA',
                           count: '$osaCount',
                           icon: Icons.lock_outline_rounded,
@@ -227,7 +225,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: _StatCard(
+                        child: StatCard(
                           label: 'Sync',
                           count: '',
                           icon: Icons.history_rounded,
@@ -245,7 +243,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _ScanButton(
+                        child: ScanButton(
                           label: 'SCAN DISPATCH',
                           icon: Icons.qr_code_scanner_rounded,
                           color: ColorStyles.grabOrange,
@@ -259,7 +257,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: _ScanButton(
+                        child: ScanButton(
                           label: 'SCAN POD',
                           icon: Icons.qr_code_scanner_rounded,
                           color: ColorStyles.grabGreen,
@@ -280,151 +278,3 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.label,
-    required this.count,
-    required this.icon,
-    required this.color,
-    this.onTap,
-    this.subdued = false,
-    this.details,
-  });
-
-  final String label;
-  final String count;
-  final IconData icon;
-  final Color color;
-  final VoidCallback? onTap;
-  final bool subdued;
-  final String? details;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
-    final effectiveColor = subdued ? color.withValues(alpha: 0.6) : color;
-    final isDisabled = onTap == null;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Opacity(
-        opacity: isDisabled ? 0.5 : 1.0,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.grey.withValues(alpha: 0.2),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, color: effectiveColor, size: 18),
-                  const SizedBox(width: 4),
-                  const Spacer(),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                count,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: effectiveColor,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: subdued ? Colors.grey.shade400 : Colors.grey.shade500,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              if (details != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  details!,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Scan Button ──────────────────────────────────────────────────────────────
-
-class _ScanButton extends StatelessWidget {
-  const _ScanButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-    this.details,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  final String? details;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.30), width: 1.5),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: color,
-                letterSpacing: 0.5,
-              ),
-            ),
-            if (details != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                details!,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}

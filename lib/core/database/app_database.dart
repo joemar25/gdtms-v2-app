@@ -26,7 +26,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -47,7 +47,8 @@ class AppDatabase {
         created_at       INTEGER NOT NULL,
         updated_at       INTEGER NOT NULL,
         paid_at          INTEGER,
-        delivered_at     INTEGER
+        delivered_at     INTEGER,
+        completed_at     INTEGER
       )
     ''');
 
@@ -104,24 +105,25 @@ class AppDatabase {
         "WHERE delivery_status = 'delivered' AND delivered_at IS NULL",
       );
     }
-    if (oldVersion < 5) {
-      // v5: guard migration — devices that had a fresh v4 install before the
-      // _onCreate fix landed are at version 4 but lack the delivered_at column.
-      // PRAGMA table_info lets us check safely; ALTER TABLE ADD COLUMN only
-      // runs when the column is missing.
+    if (oldVersion < 6) {
+      // v6: add completed_at to local_deliveries.
+      // This timestamp is used for all terminal statuses (delivered, rts, osa)
+      // so that the today-only filter can be applied consistently across
+      // all of them.
       final cols = await db.rawQuery(
         'PRAGMA table_info(local_deliveries)',
       );
-      final hasDeliveredAt = cols.any((c) => c['name'] == 'delivered_at');
-      if (!hasDeliveredAt) {
+      final hasCompletedAt = cols.any((c) => c['name'] == 'completed_at');
+      if (!hasCompletedAt) {
         await db.execute(
-          'ALTER TABLE local_deliveries ADD COLUMN delivered_at INTEGER',
-        );
-        await db.execute(
-          "UPDATE local_deliveries SET delivered_at = updated_at "
-          "WHERE delivery_status = 'delivered'",
+          'ALTER TABLE local_deliveries ADD COLUMN completed_at INTEGER',
         );
       }
+      // Backfill completed_at from delivered_at or updated_at.
+      await db.execute(
+        "UPDATE local_deliveries SET completed_at = COALESCE(delivered_at, updated_at) "
+        "WHERE delivery_status IN ('delivered', 'rts', 'osa')",
+      );
     }
   }
 

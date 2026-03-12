@@ -51,6 +51,8 @@ class LocalDeliveryDao {
         'delivery_status': status,
         'updated_at': now,
         if (status == 'delivered') 'delivered_at': now,
+        if (status == 'delivered' || status == 'rts' || status == 'osa')
+          'completed_at': now,
       },
       where: 'barcode = ?',
       whereArgs: [barcode],
@@ -82,6 +84,8 @@ class LocalDeliveryDao {
             json['delivery_address']?.toString(),
         'raw_json': jsonEncode(json),
         'updated_at': now,
+        if (status == 'delivered' || status == 'rts' || status == 'osa')
+          'completed_at': now,
       },
       where: 'barcode = ?',
       whereArgs: [barcode],
@@ -122,56 +126,109 @@ class LocalDeliveryDao {
   /// Uses [LocalDelivery.fromApiItem] which tolerates both eligibility-response
   /// field names and delivery-API field names.
   ///
-  /// Records that are already in a terminal state locally (`delivered`, `rts`,
-  /// `osa`) are never overwritten by this bootstrap operation. This prevents
-  /// the background API sync from downgrading a locally-delivered item back to
-  /// `pending` (which would cause it to vanish from the delivered list).
+  /// ## Reconciliation Rules
+  ///
+  /// - If the SERVER returns an item with a *terminal* status (`delivered`, `rts`,
+  ///   `osa`) the local record is **always** updated so that manual web-app
+  ///   status changes are reflected on the mobile device.
+  ///
+  /// - If the SERVER returns an item with a *pending* status, local terminal
+  ///   records are **not** downgraded (prevents a courier's confirmed delivery
+  ///   from reverting to pending during a background sync).
+  ///
+  /// - `delivered_at` and `completed_at` timestamps are always corrected from
+  ///   the server-provided date fields so the today-filter works accurately.
+  ///
+  /// [serverStatus] — the status bucket this batch was fetched from (e.g.
+  /// `'pending'`, `'delivered'`). Pass it so the DAO can apply the right rule.
   Future<void> insertAllFromApiItems(
     List<Map<String, dynamic>> items, {
     String dispatchCode = '',
+    String serverStatus = 'pending',
   }) async {
     final db = await _db;
 
-    // Collect barcodes that already have a terminal status locally so we can
-    // skip them and preserve their status and updatedAt timestamp.
+    // Collect all local records so we can decide what to do per-item.
     final existingRows = await db.query(
       'local_deliveries',
       columns: ['barcode', 'delivery_status'],
-      where: "delivery_status IN ('delivered', 'rts', 'osa')",
     );
-    final terminalBarcodes = <String>{
-      for (final row in existingRows) row['barcode'] as String,
+    final localStatusByBarcode = <String, String>{
+      for (final row in existingRows)
+        row['barcode'] as String: row['delivery_status'] as String,
     };
 
+    final terminalStatuses = {'delivered', 'rts', 'osa'};
     final batch = db.batch();
+
     for (final json in items) {
       final delivery = LocalDelivery.fromApiItem(
         json,
         dispatchCode: dispatchCode,
       );
       if (delivery.barcode.isEmpty) continue;
-      // Never overwrite a locally terminal record via bootstrap — the sync
-      // queue (not the bootstrap) is responsible for reconciling those.
-      // Exception: always correct delivered_at from the server's delivered_date
-      // so the today-filter works accurately (v4 migration may have stamped
-      // delivered_at = bootstrap-time for old items).
-      if (terminalBarcodes.contains(delivery.barcode)) {
-        if (delivery.deliveredAt != null) {
+
+      final localStatus = localStatusByBarcode[delivery.barcode];
+      final isLocalTerminal =
+          localStatus != null && terminalStatuses.contains(localStatus);
+      final isServerTerminal = terminalStatuses.contains(serverStatus);
+
+      if (isLocalTerminal && !isServerTerminal) {
+        // Rule: Never downgrade a terminal local record to pending.
+        // Only correct timestamps if available.
+        if (delivery.deliveredAt != null || delivery.completedAt != null) {
           batch.update(
             'local_deliveries',
-            {'delivered_at': delivery.deliveredAt},
-            where: "barcode = ? AND delivery_status = 'delivered'",
+            {
+              if (delivery.deliveredAt != null)
+                'delivered_at': delivery.deliveredAt,
+              if (delivery.completedAt != null)
+                'completed_at': delivery.completedAt,
+            },
+            where: 'barcode = ?',
             whereArgs: [delivery.barcode],
           );
         }
         continue;
       }
+
+      // If it is terminal on the server, we always want the server's state
+      // (either it's a new terminal state, or upgrading from pending to terminal).
+      if (isServerTerminal) {
+        batch.update(
+          'local_deliveries',
+          {
+            'delivery_status': serverStatus,
+            'raw_json': delivery.rawJson,
+            'updated_at': delivery.updatedAt,
+            if (delivery.deliveredAt != null)
+              'delivered_at': delivery.deliveredAt,
+            if (delivery.completedAt != null)
+              'completed_at': delivery.completedAt,
+          },
+          where: 'barcode = ?',
+          whereArgs: [delivery.barcode],
+        );
+        // If the row didn't exist at all, the update above does nothing, so we
+        // also insert — but only for genuinely new rows (IGNORE keeps existing
+        // rows untouched, preserving dispatch_code, created_at, paid_at, etc.).
+        batch.insert(
+          'local_deliveries',
+          delivery.toDb(),
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+        continue;
+      }
+
+      // Default for pending items: upsert the record (new item or same-status update).
+      // Since it's pending on the server, it's safe to replace.
       batch.insert(
         'local_deliveries',
         delivery.toDb(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
+
     await batch.commit(noResult: true);
   }
 
@@ -187,6 +244,19 @@ class LocalDeliveryDao {
       whereArgs: [status],
     );
     return rows.length;
+  }
+
+  /// Returns all barcodes for locally-pending deliveries.
+  /// Used by [DeliveryBootstrapService] to identify which items need
+  /// priority reconciliation against the server on the next sync.
+  Future<Set<String>> getPendingBarcodes() async {
+    final db = await _db;
+    final rows = await db.query(
+      'local_deliveries',
+      columns: ['barcode'],
+      where: "delivery_status = 'pending'",
+    );
+    return rows.map((r) => r['barcode'] as String).toSet();
   }
 
   /// Returns all deliveries with the given [status], ordered by [created_at].
@@ -213,6 +283,54 @@ class LocalDeliveryDao {
       where: 'delivery_status = ?',
       whereArgs: [status],
       orderBy: 'created_at ASC',
+      limit: limit,
+      offset: offset,
+    );
+    return rows.map(LocalDelivery.fromDb).toList();
+  }
+
+  /// Paginated variant of [getVisibleRts].
+  Future<List<LocalDelivery>> getVisibleRtsPaged({
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    final db = await _db;
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final rows = await db.query(
+      'local_deliveries',
+      where:
+          "delivery_status = 'rts' "
+          'AND completed_at >= ? AND completed_at < ?',
+      whereArgs: [todayStart, tomorrowStart],
+      orderBy: 'completed_at DESC, created_at DESC',
+      limit: limit,
+      offset: offset,
+    );
+    return rows.map(LocalDelivery.fromDb).toList();
+  }
+
+  /// Paginated variant of [getVisibleOsa].
+  Future<List<LocalDelivery>> getVisibleOsaPaged({
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    final db = await _db;
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final rows = await db.query(
+      'local_deliveries',
+      where:
+          "delivery_status = 'osa' "
+          'AND completed_at >= ? AND completed_at < ?',
+      whereArgs: [todayStart, tomorrowStart],
+      orderBy: 'completed_at DESC, created_at DESC',
       limit: limit,
       offset: offset,
     );
@@ -253,7 +371,7 @@ class LocalDeliveryDao {
     if (query.trim().isEmpty) return [];
     final db = await _db;
     final q = '%${query.trim()}%';
-    if (status == 'delivered') {
+    if (status == 'delivered' || status == 'rts' || status == 'osa') {
       final now = DateTime.now();
       final todayStart =
           DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
@@ -263,10 +381,10 @@ class LocalDeliveryDao {
         'local_deliveries',
         where:
             "(barcode LIKE ? OR recipient_name LIKE ?) "
-            "AND delivery_status = 'delivered' "
-            'AND delivered_at >= ? AND delivered_at < ?',
-        whereArgs: [q, q, todayStart, tomorrowStart],
-        orderBy: 'delivered_at DESC, created_at DESC',
+            'AND delivery_status = ? '
+            'AND completed_at >= ? AND completed_at < ?',
+        whereArgs: [q, q, status, todayStart, tomorrowStart],
+        orderBy: 'completed_at DESC, created_at DESC',
         limit: limit,
       );
       return rows.map(LocalDelivery.fromDb).toList();
@@ -338,7 +456,7 @@ class LocalDeliveryDao {
     return rows.map(LocalDelivery.fromDb).toList();
   }
 
-  /// Returns the count of delivered items whose [delivered_at] is today.
+  /// Returns the count of delivered items whose [completed_at] is today.
   /// Used by the dashboard offline fallback to match the server's
   /// today-only [delivered_today] figure.
   Future<int> countVisibleDelivered() async {
@@ -359,12 +477,90 @@ class LocalDeliveryDao {
     return rows.length;
   }
 
+  /// Returns the count of RTS items whose [completed_at] is today.
+  Future<int> countVisibleRts() async {
+    final db = await _db;
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final rows = await db.query(
+      'local_deliveries',
+      columns: ['id'],
+      where:
+          "delivery_status = 'rts' "
+          'AND completed_at >= ? AND completed_at < ?',
+      whereArgs: [todayStart, tomorrowStart],
+    );
+    return rows.length;
+  }
+
+  /// Returns the count of OSA items whose [completed_at] is today.
+  Future<int> countVisibleOsa() async {
+    final db = await _db;
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final rows = await db.query(
+      'local_deliveries',
+      columns: ['id'],
+      where:
+          "delivery_status = 'osa' "
+          'AND completed_at >= ? AND completed_at < ?',
+      whereArgs: [todayStart, tomorrowStart],
+    );
+    return rows.length;
+  }
+
   /// Deletes ALL rows from [local_deliveries].
   /// Used by [DeliveryBootstrapService.clearAndSyncFromApi] to force a fresh
   /// load from the server (e.g. "Reload from Server" action on Sync screen).
   Future<void> deleteAll() async {
     final db = await _db;
     await db.delete('local_deliveries');
+  }
+
+  /// Removes locally-pending items whose barcodes are NOT present in
+  /// [serverBarcodes] — the full set returned by the server across all
+  /// status pages during the latest sync cycle.
+  ///
+  /// This cleans up deliveries that a web-app admin cancelled, reassigned,
+  /// or otherwise removed from the courier's workload since the last sync.
+  ///
+  /// Items in a terminal state (`delivered`, `rts`, `osa`) are never removed
+  /// by this method — they are kept for payout and history purposes.
+  Future<void> removeStaleLocalPending(Set<String> serverBarcodes) async {
+    if (serverBarcodes.isEmpty) return;
+    final db = await _db;
+
+    // Only operate on locally-pending records.
+    final pendingRows = await db.query(
+      'local_deliveries',
+      columns: ['barcode'],
+      where: "delivery_status = 'pending'",
+    );
+
+    final staleBarcodes = pendingRows
+        .map((r) => r['barcode'] as String)
+        .where((b) => !serverBarcodes.contains(b))
+        .toList();
+
+    if (staleBarcodes.isEmpty) return;
+
+    // Delete in batches to stay within SQLite parameter limits.
+    const chunkSize = 50;
+    for (var i = 0; i < staleBarcodes.length; i += chunkSize) {
+      final chunk = staleBarcodes.skip(i).take(chunkSize).toList();
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      await db.delete(
+        'local_deliveries',
+        where: "barcode IN ($placeholders) AND delivery_status = 'pending'",
+        whereArgs: chunk,
+      );
+    }
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────

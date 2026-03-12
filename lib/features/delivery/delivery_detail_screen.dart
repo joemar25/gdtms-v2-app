@@ -246,10 +246,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
       if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
         final deliveryData = mapFromKey(data, 'data');
-        debugPrint('[DETAIL] GET delivery keys: ${deliveryData.keys.toList()}');
-        debugPrint('[DETAIL] GET media: ${deliveryData['media']}');
-        debugPrint('[DETAIL] GET status: ${deliveryData['delivery_status']}');
         _delivery = deliveryData;
+        
         // Keep local SQLite in sync with the freshest server data.
         if (deliveryData.isNotEmpty) {
           await LocalDeliveryDao.instance.updateFromJson(

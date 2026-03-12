@@ -99,6 +99,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
     return Scaffold(
       appBar: AppHeaderBar(
         title: 'Sync',
+        pageIcon: Icons.sync_rounded,
         actions: [
           if (isOnline)
             TextButton.icon(

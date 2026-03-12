@@ -137,7 +137,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       },
       child: Scaffold(
         extendBody: true,
-        appBar: const AppHeaderBar(title: 'Profile'),
+        appBar: const AppHeaderBar(
+          title: 'Profile',
+          pageIcon: Icons.person_rounded,
+        ),
       bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/profile'),
       body: RefreshIndicator(
         onRefresh: _refresh,

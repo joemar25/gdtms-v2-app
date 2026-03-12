@@ -127,8 +127,25 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
   }
 
   String? _defaultDate() {
-    if (widget.dailyBreakdown.isEmpty) return null;
-    return widget.dailyBreakdown.last['date'] as String?;
+    // Determine the max date available in the breakdown
+    String? maxDate;
+    if (widget.dailyBreakdown.isNotEmpty) {
+      final dates = widget.dailyBreakdown
+          .map((e) => e['date'] as String?)
+          .whereType<String>()
+          .toList()
+        ..sort();
+      if (dates.isNotEmpty) {
+        maxDate = dates.last;
+      }
+    }
+
+    if (maxDate != null) {
+      return maxDate;
+    }
+
+    // Fall back to referenceDate or today if no values
+    return _toDateStr(widget.referenceDate ?? DateTime.now());
   }
 
   // ── Formatters ────────────────────────────────────────────────────────────

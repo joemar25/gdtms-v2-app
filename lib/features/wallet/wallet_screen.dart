@@ -86,11 +86,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       newData = mapFromKey(data, 'data');
     }
 
-    // ── Eligible amount + daily breakdown from payment preview ───────────
     if (results[1] case ApiSuccess<Map<String, dynamic>>(:final data)) {
       final preview = mapFromKey(data, 'data');
       newEligible =
           double.tryParse('${preview['estimated_net_payable'] ?? 0}') ?? 0.0;
+      // Store has_existing_request_today in the summary data for UI use
+      newData['has_existing_request_today'] = preview['has_existing_request_today'] ?? false;
     }
 
     // ── Payout request history (from wallet-summary.payment_requests) ────
@@ -117,9 +118,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           'day_total': double.tryParse('${req['amount'] ?? 0}') ?? 0.0,
         };
       }).toList();
-      if (historyBreakdown.isNotEmpty) {
-        initialHistoryDate = historyBreakdown.last['date'] as String?;
-      }
     }
 
     // Persist the full snapshot as JSON — same pattern as courier data.
@@ -141,33 +139,19 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
-    final latest = asStringDynamicMap(_data['latest_request']);
     final earnings = _data['total_earnings'] ?? 0;
     final pending = _data['tentative_pending_payout'] ?? 0;
-    final today = DateTime.now();
-
-    // Check if latest request is pending/active
+    final latest = _data['latest_request'] ?? {};
     final latestStatus = latest['status']?.toString().toLowerCase() ?? '';
-    final latestDate =
-        latest['requested_at']?.toString() ??
-        latest['created_at']?.toString() ??
-        '';
-    final isLatestPending =
-        latestStatus == 'pending' ||
+    final isLatestPending = latestStatus == 'pending' ||
         latestStatus == 'processing' ||
+        latestStatus == 'ops_approved' ||
+        latestStatus == 'hr_approved' ||
         latestStatus == 'approved';
-    bool requestedToday = false;
-    if (latestDate.isNotEmpty) {
-      try {
-        final requestDate = DateTime.parse(latestDate);
-        requestedToday =
-            requestDate.year == today.year &&
-            requestDate.month == today.month &&
-            requestDate.day == today.day;
-      } catch (_) {}
-    }
 
-    final canRequestPayout = !isLatestPending && !requestedToday;
+    // Use has_existing_request_today from the latest API preview if available
+    final hasExistingRequestToday = _data['has_existing_request_today'] == true;
+    final canRequestPayout = !isLatestPending && !hasExistingRequestToday;
 
     ref.listen<int>(walletRefreshProvider, (_, __) => _load());
 
@@ -187,7 +171,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       },
       child: Scaffold(
         extendBody: true,
-        appBar: const AppHeaderBar(title: 'Wallet'),
+        appBar: const AppHeaderBar(
+          title: 'Wallet',
+          pageIcon: Icons.account_balance_wallet_rounded,
+        ),
         bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/wallet'),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -205,22 +192,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         margin: EdgeInsets.only(bottom: 14),
                       ),
 
-                    // ── Active 1-week window label (online only) ───────────
-                    if (isOnline) ...[
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: ColorStyles.grabGreen.withValues(alpha: 0.3),
-                          ),
-                        ),
-                      ),
-                    ],
+
 
                     // ── Earnings card (always shown, pending hidden offline) ─
                     _EarningsCard(
@@ -236,13 +208,29 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
                     // ── Online-only section ──────────────────────────────
                     if (isOnline) ...[
-                      // Request payout / pending notice
+                      // Request payout / consolidate / pending notice
                       if (canRequestPayout)
                         FilledButton.icon(
                           onPressed: () => context.push('/wallet/request'),
                           icon: const Icon(Icons.add),
                           label: const Text('Request Payout'),
                           style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        )
+                      else if (isLatestPending && _eligible > 0)
+                        FilledButton.icon(
+                          onPressed: () => context.push(
+                            '/wallet/request',
+                            extra: {'consolidate': true},
+                          ),
+                          icon: const Icon(Icons.merge_rounded),
+                          label: const Text('Consolidate Payout Request'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.amber.shade700,
                             minimumSize: const Size.fromHeight(50),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
@@ -274,7 +262,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                 child: Text(
                                   isLatestPending
                                       ? 'You have a pending payout request'
-                                      : 'One request per day. Try again tomorrow',
+                                      : 'You have already submitted a request today.',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.amber.shade700,
@@ -662,9 +650,16 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (status.toLowerCase()) {
-      'approved' || 'paid' => (const Color(0xFFE6F9EE), ColorStyles.grabGreen),
+      'paid' => (const Color(0xFFE6F9EE), ColorStyles.grabGreen),
+      'approved' || 'ops_approved' || 'hr_approved' => (
+        const Color(0xFFE6F2FF),
+        Colors.blue.shade700,
+      ),
       'rejected' => (const Color(0xFFFFEBEB), Colors.red.shade600),
-      'processing' => (const Color(0xFFFFF4E0), Colors.orange.shade700),
+      'pending' || 'processing' => (
+        const Color(0xFFFFF4E0),
+        Colors.orange.shade700,
+      ),
       _ => (Colors.grey.shade100, Colors.grey.shade600),
     };
     return Container(

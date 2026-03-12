@@ -87,14 +87,5 @@ const bool kAppDebugMode = kDebugMode;
 
 
 
-
-
-
-
-
-
-
-
-
-
+// to emphasize:
 // rule - if payout na yung delivery, then atleast 1 day yung retainability neto sa database before it was to be cleared. 

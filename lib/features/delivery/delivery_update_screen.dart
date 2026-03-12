@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1036,34 +1036,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: FilledButton.icon(
-              icon: const Icon(Icons.check_circle_outline_rounded),
-              label: const Text(
-                'SUBMIT UPDATE',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: ColorStyles.grabGreen,
-                minimumSize: const Size.fromHeight(
-                  56,
-                ), // was 52 — taller tap target
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              onPressed: _loading ? null : _submit,
-            ),
-          ),
-        ),
-        body: Stack(
+        body: Column(
           children: [
-            _loadingDelivery
+            Expanded(
+              child: Stack(
+                children: [
+                  _loadingDelivery
                 ? const Center(child: CircularProgressIndicator())
                 : ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -1491,6 +1469,32 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   context.go('/dashboard');
                 },
               ),
+            ],
+          ),
+        ),
+      SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: FilledButton.icon(
+            icon: const Icon(Icons.check_circle_outline_rounded),
+            label: const Text(
+              'SUBMIT UPDATE',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorStyles.grabGreen,
+              minimumSize: const Size.fromHeight(56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            onPressed: _loading ? null : _submit,
+          ),
+        ),
+      ),
           ],
         ),
       ),

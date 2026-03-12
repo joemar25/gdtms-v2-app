@@ -19,6 +19,7 @@ class LocalDelivery {
     required this.updatedAt,
     this.paidAt,
     this.deliveredAt,
+    this.completedAt,
   });
 
   final int? id;
@@ -38,6 +39,9 @@ class LocalDelivery {
   final int? paidAt;
   /// Millisecond timestamp when this delivery transitioned to [delivered] status.
   final int? deliveredAt;
+  /// Millisecond timestamp when this delivery transitioned to any terminal
+  /// status (delivered, rts, osa). used for today-only filtering.
+  final int? completedAt;
 
   // ── Factories ─────────────────────────────────────────────────────────────
 
@@ -73,6 +77,11 @@ class LocalDelivery {
       rawJson: jsonEncode(json),
       createdAt: now,
       updatedAt: now,
+      completedAt: (json['delivery_status'] == 'delivered' ||
+              json['delivery_status'] == 'rts' ||
+              json['delivery_status'] == 'osa')
+          ? now
+          : null,
     );
   }
 
@@ -111,6 +120,13 @@ class LocalDelivery {
       }
     }
 
+    // completedAt is essentially the same as deliveredAt for 'delivered',
+    // but also covers 'rts' and 'osa'.
+    int? completedAt = deliveredAt;
+    if (completedAt == null && (status == 'rts' || status == 'osa')) {
+      completedAt = now;
+    }
+
     return LocalDelivery(
       barcode: barcode,
       trackingNumber: _str(json, 'tracking_number') ?? _str(json, 'job_order'),
@@ -126,6 +142,7 @@ class LocalDelivery {
       // the today-visible delivered list until next-day cleanup applies.
       paidAt: (json['is_paid'] as bool? ?? false) ? 1 : null,
       deliveredAt: deliveredAt,
+      completedAt: completedAt,
     );
   }
 
@@ -145,6 +162,7 @@ class LocalDelivery {
       updatedAt: row['updated_at'] as int,
       paidAt: row['paid_at'] as int?,
       deliveredAt: row['delivered_at'] as int?,
+      completedAt: row['completed_at'] as int?,
     );
   }
 
@@ -164,6 +182,7 @@ class LocalDelivery {
     'updated_at': updatedAt,
     if (paidAt != null) 'paid_at': paidAt,
     if (deliveredAt != null) 'delivered_at': deliveredAt,
+    'completed_at': completedAt,
   };
 
   /// Decodes [rawJson] back into the delivery map consumed by UI widgets
@@ -186,6 +205,7 @@ class LocalDelivery {
     int? updatedAt,
     int? paidAt,
     int? deliveredAt,
+    int? completedAt,
   }) {
     return LocalDelivery(
       id: id,
@@ -201,6 +221,7 @@ class LocalDelivery {
       updatedAt: updatedAt ?? this.updatedAt,
       paidAt: paidAt ?? this.paidAt,
       deliveredAt: deliveredAt ?? this.deliveredAt,
+      completedAt: completedAt ?? this.completedAt,
     );
   }
 
