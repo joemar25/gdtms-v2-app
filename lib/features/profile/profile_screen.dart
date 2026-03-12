@@ -12,6 +12,7 @@ import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
+import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
@@ -77,10 +78,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _loadDeviceSpecs() async {
     final device = ref.read(deviceInfoProvider);
+    final authStorage = ref.read(authStorageProvider);
     final results = await Future.wait([
       device.deviceModel,
       device.osVersion,
-      device.deviceId,
+      authStorage.getDeviceId(),
       device.sdkVersion,
       device.getFreeStorageGb(),
     ]);
@@ -97,6 +99,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _logout() async {
+    final pendingCount = await SyncOperationsDao.instance.getPendingCount();
+    if (pendingCount > 0) {
+      final forceLogout = await ConfirmationDialog.show(
+        context,
+        title: 'Pending Sync Operations',
+        subtitle: 'You have $pendingCount pending offline updates. If you sign out now, they may be lost. Are you sure you want to force sign out?',
+        confirmLabel: 'Force Sign Out',
+        cancelLabel: 'Wait',
+        isDestructive: true,
+      );
+      if (forceLogout != true) return;
+    }
+
     await ref
         .read(apiClientProvider)
         .post<Map<String, dynamic>>('/logout', parser: parseApiMap);

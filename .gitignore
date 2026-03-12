@@ -50,6 +50,7 @@ Thumbs.db
 
 # mar
 .claude
+*.txt
 
 # Flutter and Dart generated artifacts
 .dart_tool/

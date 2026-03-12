@@ -804,6 +804,11 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (widget.totalItems != null)
+                Expanded(
+                  flex: 2,
+                  child: _buildHeroDetail('Items', '${widget.totalItems}'),
+                ),
               Expanded(
                 flex: 3,
                 child: _buildHeroDetail('Reference', widget.reference),
@@ -812,11 +817,6 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                 flex: 4,
                 child: _buildHeroDetail('Period', widget.periodLabel),
               ),
-              if (widget.totalItems != null)
-                Expanded(
-                  flex: 2,
-                  child: _buildHeroDetail('Items', '${widget.totalItems}'),
-                ),
             ],
           ),
           if (widget.breakdown.isNotEmpty) ...[

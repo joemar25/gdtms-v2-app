@@ -13,6 +13,11 @@ final class ApiValidationError<T> extends ApiResult<T> {
   final String? message;
 }
 
+final class ApiBadRequest<T> extends ApiResult<T> {
+  const ApiBadRequest(this.message);
+  final String message;
+}
+
 final class ApiNetworkError<T> extends ApiResult<T> {
   const ApiNetworkError(this.message);
   final String message;

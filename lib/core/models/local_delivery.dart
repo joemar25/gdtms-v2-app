@@ -20,6 +20,9 @@ class LocalDelivery {
     this.paidAt,
     this.deliveredAt,
     this.completedAt,
+    this.serverUpdatedAt,
+    this.syncStatus = 'clean',
+    this.isArchived = false,
   });
 
   final int? id;
@@ -42,6 +45,12 @@ class LocalDelivery {
   /// Millisecond timestamp when this delivery transitioned to any terminal
   /// status (delivered, rts, osa). used for today-only filtering.
   final int? completedAt;
+  /// Timestamp of last server-side update.
+  final int? serverUpdatedAt;
+  /// 'clean', 'dirty', or 'conflict'
+  final String syncStatus;
+  /// True if missing from server list
+  final bool isArchived;
 
   // ── Factories ─────────────────────────────────────────────────────────────
 
@@ -82,6 +91,8 @@ class LocalDelivery {
               json['delivery_status'] == 'osa')
           ? now
           : null,
+      syncStatus: 'clean',
+      isArchived: false,
     );
   }
 
@@ -143,6 +154,9 @@ class LocalDelivery {
       paidAt: (json['is_paid'] as bool? ?? false) ? 1 : null,
       deliveredAt: deliveredAt,
       completedAt: completedAt,
+      serverUpdatedAt: _dateMs(json, 'updated_at'),
+      syncStatus: 'clean',
+      isArchived: false,
     );
   }
 
@@ -163,6 +177,9 @@ class LocalDelivery {
       paidAt: row['paid_at'] as int?,
       deliveredAt: row['delivered_at'] as int?,
       completedAt: row['completed_at'] as int?,
+      serverUpdatedAt: row['server_updated_at'] as int?,
+      syncStatus: row['sync_status'] as String? ?? 'clean',
+      isArchived: (row['is_archived'] as int? ?? 0) == 1,
     );
   }
 
@@ -183,6 +200,9 @@ class LocalDelivery {
     if (paidAt != null) 'paid_at': paidAt,
     if (deliveredAt != null) 'delivered_at': deliveredAt,
     'completed_at': completedAt,
+    if (serverUpdatedAt != null) 'server_updated_at': serverUpdatedAt,
+    'sync_status': syncStatus,
+    'is_archived': isArchived ? 1 : 0,
   };
 
   /// Decodes [rawJson] back into the delivery map consumed by UI widgets
@@ -206,6 +226,9 @@ class LocalDelivery {
     int? paidAt,
     int? deliveredAt,
     int? completedAt,
+    int? serverUpdatedAt,
+    String? syncStatus,
+    bool? isArchived,
   }) {
     return LocalDelivery(
       id: id,
@@ -222,6 +245,9 @@ class LocalDelivery {
       paidAt: paidAt ?? this.paidAt,
       deliveredAt: deliveredAt ?? this.deliveredAt,
       completedAt: completedAt ?? this.completedAt,
+      serverUpdatedAt: serverUpdatedAt ?? this.serverUpdatedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 
@@ -232,5 +258,15 @@ class LocalDelivery {
     if (v == null) return null;
     final s = v.toString().trim();
     return s.isEmpty ? null : s;
+  }
+
+  static int? _dateMs(Map<String, dynamic> json, String key) {
+    final str = _str(json, key);
+    if (str == null) return null;
+    try {
+      return DateTime.parse(str).millisecondsSinceEpoch;
+    } catch (_) {
+      return null;
+    }
   }
 }

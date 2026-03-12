@@ -9,6 +9,7 @@ import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
@@ -100,6 +101,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final rtsCount = _summary['rts'] ?? 0;
     final osaCount = _summary['osa'] ?? 0;
     final deliveredCount = _summary['delivered_today'] ?? 0;
+    final pendingSyncCount = ref.watch(pendingSyncCountProvider);
 
     return PopScope(
       canPop: false,
@@ -226,13 +228,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: StatCard(
-                          label: 'Sync',
-                          count: '',
-                          icon: Icons.history_rounded,
-                          color: Colors.blueGrey,
-                          onTap: () => context.push('/history'),
-                          subdued: true,
-                          details: 'Delivery update history.',
+                          label: 'SYNC QUEUE',
+                          count: pendingSyncCount > 0 ? '$pendingSyncCount' : '0',
+                          icon: Icons.sync_rounded,
+                          color: pendingSyncCount > 0 ? Colors.blueAccent : Colors.blueGrey,
+                          onTap: () => context.push('/sync'),
+                          subdued: pendingSyncCount == 0,
+                          details: pendingSyncCount > 0 
+                              ? '$pendingSyncCount pending updates.' 
+                              : 'All caught up.',
                         ),
                       ),
                     ],

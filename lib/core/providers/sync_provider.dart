@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:fsi_courier_app/core/models/delivery_update_entry.dart';
 import 'package:fsi_courier_app/core/sync/sync_manager.dart';
 
 export 'package:fsi_courier_app/core/sync/sync_manager.dart'
@@ -19,5 +18,8 @@ final syncManagerProvider =
 /// Useful for displaying a badge on the Sync nav item.
 final pendingSyncCountProvider = Provider<int>((ref) {
   final entries = ref.watch(syncManagerProvider).entries;
-  return entries.where((e) => e.syncStatus == SyncStatus.pending).length;
+  return entries.where((e) => e.status == 'pending' || e.status == 'processing' || e.status == 'error' || e.status == 'failed' || e.status == 'conflict').length;
 });
+
+/// The timestamp of the last successful full sync.
+final lastSyncTimeProvider = StateProvider<DateTime?>((ref) => null);

@@ -5,16 +5,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/api/api_client.dart';
 import 'core/auth/auth_provider.dart';
+import 'core/auth/auth_storage.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/providers/delivery_refresh_provider.dart';
 import 'core/providers/notifications_provider.dart';
 import 'core/providers/sync_provider.dart';
+import 'core/settings/app_settings.dart';
 import 'core/sync/delivery_bootstrap_service.dart';
+import 'core/database/cleanup_service.dart';
 import 'shared/router/app_router.dart';
 import 'shared/router/router_keys.dart';
 
 // How often to automatically re-sync data in the background while online.
-const _kAutoSyncInterval = Duration(minutes: 5);
+const _kAutoSyncInterval = Duration(minutes: 3);
 
 class FsiCourierApp extends ConsumerWidget {
   const FsiCourierApp({super.key});
@@ -174,9 +177,16 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
           .syncFromApi(ref.read(apiClientProvider));
 
       if (mounted) {
+        final now = DateTime.now();
+        ref.read(lastSyncTimeProvider.notifier).state = now;
+        ref.read(authStorageProvider).setLastSyncTime(now.millisecondsSinceEpoch);
+        
         // Notify all listening screens (dashboard, delivery lists) to reload.
         ref.read(deliveryRefreshProvider.notifier).state++;
       }
+
+      // Automatically clean up old data after successful sync
+      await CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
     } finally {
       if (mounted) _isSyncing = false;
     }
@@ -188,9 +198,12 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     ref.listen<bool>(isOnlineProvider, (previous, current) {
       if (previous == false && current == true) {
         if (!ref.read(authProvider).isAuthenticated) return;
-        _maybeTriggerSync(reason: 'reconnected');
-        _startPeriodicSync(); // Resume periodic timer once online.
-        ref.read(notificationsProvider.notifier).loadUnreadCount();
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!mounted) return;
+          _maybeTriggerSync(reason: 'reconnected');
+          _startPeriodicSync(); // Resume periodic timer once online.
+          ref.read(notificationsProvider.notifier).loadUnreadCount();
+        });
       } else if (current == false) {
         _periodicTimer?.cancel(); // Pause periodic timer when offline.
       }

@@ -26,7 +26,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     return openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -48,7 +48,10 @@ class AppDatabase {
         updated_at       INTEGER NOT NULL,
         paid_at          INTEGER,
         delivered_at     INTEGER,
-        completed_at     INTEGER
+        completed_at     INTEGER,
+        server_updated_at INTEGER,
+        sync_status      TEXT    NOT NULL DEFAULT 'clean',
+        is_archived      INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -64,6 +67,22 @@ class AppDatabase {
         created_at      INTEGER NOT NULL,
         updated_at      INTEGER NOT NULL,
         synced_at       INTEGER
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE sync_operations (
+        id               TEXT PRIMARY KEY,
+        courier_id       TEXT,
+        barcode          TEXT NOT NULL,
+        operation_type   TEXT NOT NULL,
+        payload_json     TEXT NOT NULL,
+        media_paths_json TEXT,
+        status           TEXT NOT NULL DEFAULT 'pending',
+        retry_count      INTEGER NOT NULL DEFAULT 0,
+        last_error       TEXT,
+        created_at       INTEGER NOT NULL,
+        last_attempt_at  INTEGER
       )
     ''');
   }
@@ -125,6 +144,34 @@ class AppDatabase {
         "WHERE delivery_status IN ('delivered', 'rts', 'osa')",
       );
     }
+    if (oldVersion < 7) {
+      // v7: Add mobile-only offline sync architecture components
+      await db.execute('''
+        CREATE TABLE sync_operations (
+          id               TEXT PRIMARY KEY,
+          courier_id       TEXT,
+          barcode          TEXT NOT NULL,
+          operation_type   TEXT NOT NULL,
+          payload_json     TEXT NOT NULL,
+          media_paths_json TEXT,
+          status           TEXT NOT NULL DEFAULT 'pending',
+          retry_count      INTEGER NOT NULL DEFAULT 0,
+          last_error       TEXT,
+          created_at       INTEGER NOT NULL,
+          last_attempt_at  INTEGER
+        )
+      ''');
+
+      await db.execute(
+        "ALTER TABLE local_deliveries ADD COLUMN server_updated_at INTEGER",
+      );
+      await db.execute(
+        "ALTER TABLE local_deliveries ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'clean'",
+      );
+      await db.execute(
+        "ALTER TABLE local_deliveries ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+      );
+    }
   }
 
   /// Deletes ALL rows from [local_deliveries] and [delivery_update_queue].
@@ -134,5 +181,6 @@ class AppDatabase {
     final db = await getInstance();
     await db.delete('local_deliveries');
     await db.delete('delivery_update_queue');
+    await db.delete('sync_operations');
   }
 }

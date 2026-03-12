@@ -123,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         'phone_number': _phoneController.text.trim(),
         'password': _passwordController.text,
         'device_name': deviceName,
-        'device_identifier': await device.deviceId,
+        'device_identifier': await authStorage.getDeviceId(),
         'device_type': kDeviceTypeLogin,
         'app_version': appVersion,
       },
@@ -155,13 +155,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final newFingerprint = '${apiBaseUrl}_$courierId';
         final prefs = await SharedPreferences.getInstance();
         final prevFingerprint = prefs.getString('_session_fingerprint') ?? '';
-        if (prevFingerprint.isNotEmpty && prevFingerprint != newFingerprint) {
+        
+        final lastCourierId = await authStorage.getLastCourierId();
+        if ((prevFingerprint.isNotEmpty && prevFingerprint != newFingerprint) ||
+            (lastCourierId != null && lastCourierId != courierId)) {
           await AppDatabase.clearAllDeliveryData();
         }
         await prefs.setString('_session_fingerprint', newFingerprint);
 
         await authStorage.setToken(token);
         await authStorage.setCourier(mergedCourier);
+        await authStorage.setLastCourierId(courierId);
         await _saveCredentials();
         await ref.read(authProvider.notifier).initialize();
         if (mounted) context.go('/dashboard');

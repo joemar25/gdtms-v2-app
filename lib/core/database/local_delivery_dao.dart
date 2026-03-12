@@ -53,6 +53,7 @@ class LocalDeliveryDao {
         if (status == 'delivered') 'delivered_at': now,
         if (status == 'delivered' || status == 'rts' || status == 'osa')
           'completed_at': now,
+        'sync_status': 'dirty',
       },
       where: 'barcode = ?',
       whereArgs: [barcode],
@@ -73,16 +74,24 @@ class LocalDeliveryDao {
     // Sentinel 1 = historically paid; only set when not already a real timestamp.
     final isPaid = json['is_paid'] as bool? ?? false;
 
+    // Get existing raw_json to merge
+    final existing = await getByBarcode(barcode);
+    final existingJson = existing?.toDeliveryMap() ?? {};
+    final mergedJson = {...existingJson, ...json};
+
     await db.update(
       'local_deliveries',
       {
         'delivery_status': status,
         'recipient_name':
-            json['name']?.toString() ?? json['recipient_name']?.toString(),
+            json['name']?.toString() ??
+            json['recipient_name']?.toString() ??
+            existing?.recipientName,
         'delivery_address':
             json['address']?.toString() ??
-            json['delivery_address']?.toString(),
-        'raw_json': jsonEncode(json),
+            json['delivery_address']?.toString() ??
+            existing?.deliveryAddress,
+        'raw_json': jsonEncode(mergedJson),
         'updated_at': now,
         if (status == 'delivered' || status == 'rts' || status == 'osa')
           'completed_at': now,
@@ -151,11 +160,15 @@ class LocalDeliveryDao {
     // Collect all local records so we can decide what to do per-item.
     final existingRows = await db.query(
       'local_deliveries',
-      columns: ['barcode', 'delivery_status'],
+      columns: ['barcode', 'delivery_status', 'sync_status'],
     );
     final localStatusByBarcode = <String, String>{
       for (final row in existingRows)
         row['barcode'] as String: row['delivery_status'] as String,
+    };
+    final syncStatusByBarcode = <String, String?>{
+      for (final row in existingRows)
+        row['barcode'] as String: row['sync_status'] as String?,
     };
 
     final terminalStatuses = {'delivered', 'rts', 'osa'};
@@ -169,11 +182,14 @@ class LocalDeliveryDao {
       if (delivery.barcode.isEmpty) continue;
 
       final localStatus = localStatusByBarcode[delivery.barcode];
+      final syncStatus = syncStatusByBarcode[delivery.barcode];
+      final isDirty = syncStatus == 'dirty';
       final isLocalTerminal =
           localStatus != null && terminalStatuses.contains(localStatus);
       final isServerTerminal = terminalStatuses.contains(serverStatus);
 
-      if (isLocalTerminal && !isServerTerminal) {
+      if (isDirty || (isLocalTerminal && !isServerTerminal)) {
+        // Rule: Never overwrite status of dirty deliveries.
         // Rule: Never downgrade a terminal local record to pending.
         // Only correct timestamps if available.
         if (delivery.deliveredAt != null || delivery.completedAt != null) {
@@ -240,7 +256,7 @@ class LocalDeliveryDao {
     final rows = await db.query(
       'local_deliveries',
       columns: ['id'],
-      where: 'delivery_status = ?',
+      where: 'delivery_status = ? AND COALESCE(is_archived, 0) = 0',
       whereArgs: [status],
     );
     return rows.length;
@@ -254,7 +270,7 @@ class LocalDeliveryDao {
     final rows = await db.query(
       'local_deliveries',
       columns: ['barcode'],
-      where: "delivery_status = 'pending'",
+      where: "delivery_status = 'pending' AND COALESCE(is_archived, 0) = 0",
     );
     return rows.map((r) => r['barcode'] as String).toSet();
   }
@@ -264,7 +280,7 @@ class LocalDeliveryDao {
     final db = await _db;
     final rows = await db.query(
       'local_deliveries',
-      where: 'delivery_status = ?',
+      where: 'delivery_status = ? AND COALESCE(is_archived, 0) = 0',
       whereArgs: [status],
       orderBy: 'created_at ASC',
     );
@@ -280,7 +296,7 @@ class LocalDeliveryDao {
     final db = await _db;
     final rows = await db.query(
       'local_deliveries',
-      where: 'delivery_status = ?',
+      where: 'delivery_status = ? AND COALESCE(is_archived, 0) = 0',
       whereArgs: [status],
       orderBy: 'created_at ASC',
       limit: limit,
@@ -304,7 +320,8 @@ class LocalDeliveryDao {
       'local_deliveries',
       where:
           "delivery_status = 'rts' "
-          'AND completed_at >= ? AND completed_at < ?',
+          'AND completed_at >= ? AND completed_at < ? '
+          'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
       orderBy: 'completed_at DESC, created_at DESC',
       limit: limit,
@@ -328,7 +345,8 @@ class LocalDeliveryDao {
       'local_deliveries',
       where:
           "delivery_status = 'osa' "
-          'AND completed_at >= ? AND completed_at < ?',
+          'AND completed_at >= ? AND completed_at < ? '
+          'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
       orderBy: 'completed_at DESC, created_at DESC',
       limit: limit,
@@ -352,7 +370,8 @@ class LocalDeliveryDao {
       'local_deliveries',
       where:
           "delivery_status = 'delivered' "
-          'AND delivered_at >= ? AND delivered_at < ?',
+          'AND delivered_at >= ? AND delivered_at < ? '
+          'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
       orderBy: 'delivered_at DESC, created_at DESC',
       limit: limit,
@@ -380,9 +399,10 @@ class LocalDeliveryDao {
       final rows = await db.query(
         'local_deliveries',
         where:
-            "(barcode LIKE ? OR recipient_name LIKE ?) "
+            "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
             'AND delivery_status = ? '
-            'AND completed_at >= ? AND completed_at < ?',
+            'AND completed_at >= ? AND completed_at < ? '
+            'AND COALESCE(is_archived, 0) = 0',
         whereArgs: [q, q, status, todayStart, tomorrowStart],
         orderBy: 'completed_at DESC, created_at DESC',
         limit: limit,
@@ -392,7 +412,8 @@ class LocalDeliveryDao {
     final rows = await db.query(
       'local_deliveries',
       where:
-          '(barcode LIKE ? OR recipient_name LIKE ?) AND delivery_status = ?',
+          '(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) AND delivery_status = ? '
+          'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [q, q, status],
       orderBy: 'created_at ASC',
       limit: limit,
@@ -425,7 +446,7 @@ class LocalDeliveryDao {
     final q = '%${query.trim()}%';
     final rows = await db.query(
       'local_deliveries',
-      where: 'barcode LIKE ? OR recipient_name LIKE ?',
+      where: '(barcode LIKE ? OR recipient_name LIKE ?) AND COALESCE(is_archived, 0) = 0',
       whereArgs: [q, q],
       orderBy: 'created_at ASC',
       limit: limit,
@@ -449,7 +470,8 @@ class LocalDeliveryDao {
       'local_deliveries',
       where:
           "delivery_status = 'delivered' "
-          'AND delivered_at >= ? AND delivered_at < ?',
+          'AND delivered_at >= ? AND delivered_at < ? '
+          'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
       orderBy: 'delivered_at DESC, created_at DESC',
     );
@@ -471,7 +493,8 @@ class LocalDeliveryDao {
       columns: ['id'],
       where:
           "delivery_status = 'delivered' "
-          'AND delivered_at >= ? AND delivered_at < ?',
+          'AND delivered_at >= ? AND delivered_at < ? '
+          'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
     );
     return rows.length;
@@ -490,7 +513,8 @@ class LocalDeliveryDao {
       columns: ['id'],
       where:
           "delivery_status = 'rts' "
-          'AND completed_at >= ? AND completed_at < ?',
+          'AND completed_at >= ? AND completed_at < ? '
+          'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
     );
     return rows.length;
@@ -509,7 +533,8 @@ class LocalDeliveryDao {
       columns: ['id'],
       where:
           "delivery_status = 'osa' "
-          'AND completed_at >= ? AND completed_at < ?',
+          'AND completed_at >= ? AND completed_at < ? '
+          'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
     );
     return rows.length;
@@ -536,11 +561,11 @@ class LocalDeliveryDao {
     if (serverBarcodes.isEmpty) return;
     final db = await _db;
 
-    // Only operate on locally-pending records.
+    // Only operate on locally-pending records that are NOT dirty.
     final pendingRows = await db.query(
       'local_deliveries',
       columns: ['barcode'],
-      where: "delivery_status = 'pending'",
+      where: "delivery_status = 'pending' AND COALESCE(sync_status, '') != 'dirty'",
     );
 
     final staleBarcodes = pendingRows
@@ -550,13 +575,14 @@ class LocalDeliveryDao {
 
     if (staleBarcodes.isEmpty) return;
 
-    // Delete in batches to stay within SQLite parameter limits.
+    // Set is_archived = 1 in batches to stay within SQLite parameter limits.
     const chunkSize = 50;
     for (var i = 0; i < staleBarcodes.length; i += chunkSize) {
       final chunk = staleBarcodes.skip(i).take(chunkSize).toList();
       final placeholders = List.filled(chunk.length, '?').join(',');
-      await db.delete(
+      await db.update(
         'local_deliveries',
+        {'is_archived': 1},
         where: "barcode IN ($placeholders) AND delivery_status = 'pending'",
         whereArgs: chunk,
       );
@@ -594,14 +620,14 @@ class LocalDeliveryDao {
   /// once a delivery belongs to a paid payout ([paid_at] IS NOT NULL) it is
   /// kept for only [kPaidDeliveryRetentionDays] day before deletion, regardless
   /// of the standard [retentionMs].
-  Future<void> deleteOldSynced(int retentionMs, {required int paidRetentionMs}) async {
+  Future<int> deleteOldSynced(int retentionMs, {required int paidRetentionMs}) async {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
     final cutoff = now - retentionMs;
     final paidCutoff = now - paidRetentionMs;
 
     // Delete standard (unpaid) completed records past standard retention.
-    await db.delete(
+    final countUnpaid = await db.delete(
       'local_deliveries',
       where:
           "delivery_status IN ('delivered', 'rts', 'osa') "
@@ -611,7 +637,7 @@ class LocalDeliveryDao {
     );
 
     // Delete paid records past the shorter paid retention window.
-    await db.delete(
+    final countPaid = await db.delete(
       'local_deliveries',
       where:
           "delivery_status IN ('delivered', 'rts', 'osa') "
@@ -619,5 +645,7 @@ class LocalDeliveryDao {
           "AND paid_at < ?",
       whereArgs: [paidCutoff],
     );
+
+    return countUnpaid + countPaid;
   }
 }

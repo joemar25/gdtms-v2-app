@@ -2,9 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
 
 const _tokenKey = 'courier_token';
 const _courierKey = 'courier_data';
+const _deviceIdKey = 'device_id';
+const _courierIdKey = 'last_courier_id';
 
 final authStorageProvider = Provider<AuthStorage>((ref) => AuthStorage());
 
@@ -40,6 +43,29 @@ class AuthStorage {
       // Ignore malformed persisted courier payload and continue as logged-out.
     }
     return null;
+  }
+
+  Future<String> getDeviceId() async {
+    String? deviceId = await _storage.read(key: _deviceIdKey);
+    if (deviceId == null || deviceId.isEmpty) {
+      deviceId = const Uuid().v4();
+      await _storage.write(key: _deviceIdKey, value: deviceId);
+    }
+    return deviceId;
+  }
+
+  Future<void> setLastCourierId(String courierId) =>
+      _storage.write(key: _courierIdKey, value: courierId);
+
+  Future<String?> getLastCourierId() => _storage.read(key: _courierIdKey);
+
+  Future<void> setLastSyncTime(int timestampMs) =>
+      _storage.write(key: 'last_sync_time', value: timestampMs.toString());
+
+  Future<int?> getLastSyncTime() async {
+    final val = await _storage.read(key: 'last_sync_time');
+    if (val == null) return null;
+    return int.tryParse(val);
   }
 
   Future<void> clearAll() async {

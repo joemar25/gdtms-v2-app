@@ -144,7 +144,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           title: 'OSA',
         ),
       ),
-      GoRoute(path: '/history', builder: (_, __) => const SyncScreen()),
+      GoRoute(path: '/sync', builder: (_, __) => const SyncScreen()),
       GoRoute(
         path: '/notifications',
         builder: (_, __) => const NotificationsScreen(),

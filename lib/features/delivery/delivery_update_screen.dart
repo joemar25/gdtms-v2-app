@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,17 +11,19 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
-import 'package:fsi_courier_app/core/database/delivery_update_dao.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
-import 'package:fsi_courier_app/core/models/delivery_update_entry.dart';
+import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
+import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/models/photo_entry.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/features/delivery/signature_capture_screen.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_geo_location_field.dart';
@@ -89,8 +92,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   // Non-delivered photos (rts / osa) — camera + gallery, free type
   final _photos = <PhotoEntry>[];
 
-  // Signature bytes (PNG) for delivered status
-  Uint8List? _signatureBytes;
+  // Signature file path for delivered status
+  String? _signaturePath;
 
   // Geo location
   double? _latitude;
@@ -233,9 +236,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     if (bytes == null) return;
 
     final apiType = slotType == 'pod' ? 'pod' : 'selfie';
+    final dir = await getApplicationDocumentsDirectory();
+    final filename = '${widget.barcode}_${_uuid.v4()}_$apiType.jpg';
+    final path = '${dir.path}/$filename';
+    await File(path).writeAsBytes(bytes);
+
     final entry = PhotoEntry(
       id: _uuid.v4(),
-      file: base64Encode(bytes),
+      file: path,
       type: apiType,
     );
     setState(() {
@@ -298,8 +306,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       MaterialPageRoute(builder: (_) => const SignatureCaptureScreen()),
     );
     if (bytes != null && mounted) {
+      final dir = await getApplicationDocumentsDirectory();
+      final filename = '${widget.barcode}_${_uuid.v4()}_signature.png';
+      final path = '${dir.path}/$filename';
+      await File(path).writeAsBytes(bytes);
+
       setState(() {
-        _signatureBytes = bytes;
+        _signaturePath = path;
         _errors.remove('recipient_signature');
       });
     }
@@ -374,265 +387,59 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (_geoAccuracy != null) payload['geo_accuracy'] = _geoAccuracy;
     }
 
-    if (isOnline) {
-      // ── Online path: upload media first, then patch ─────────────────────
-      final uploadedImages = <Map<String, dynamic>>[];
-      final api = ref.read(apiClientProvider);
-      final uploadPath = '/deliveries/${widget.barcode}/media';
+    final pendingMediaPaths = <String, String>{};
 
-      Future<String?> uploadBytes(
-        Uint8List bytes,
-        String type,
-        String filename,
-      ) async {
-        final r = await api.uploadMedia<Map<String, dynamic>>(
-          uploadPath,
-          bytes: bytes,
-          filename: filename,
-          type: type,
-          parser: (d) {
-            if (d is Map<String, dynamic>) return d;
-            if (d is Map) return d.map((k, v) => MapEntry(k.toString(), v));
-            return <String, dynamic>{};
-          },
-        );
-        if (!mounted) return null;
-        if (r case ApiSuccess<Map<String, dynamic>>(:final data)) {
-          final inner = data['data'];
-          final url =
-              (inner is Map
-                      ? inner['url'] ??
-                            inner['signed_url'] ??
-                            inner['file'] ??
-                            inner['path']
-                      : data['url'] ?? data['signed_url'])
-                  ?.toString();
-          debugPrint('[UPLOAD] uploadBytes success: url=$url raw_data=$data');
-          return url;
-        }
-        switch (r) {
-          case ApiValidationError<Map<String, dynamic>>(
-            :final message,
-            :final errors,
-          ):
-            debugPrint(
-              '[UPLOAD] uploadBytes validation error: $message | errors: $errors',
-            );
-          case ApiServerError<Map<String, dynamic>>(:final message):
-            debugPrint('[UPLOAD] uploadBytes server error: $message');
-          case ApiNetworkError<Map<String, dynamic>>(:final message):
-            debugPrint('[UPLOAD] uploadBytes network error: $message');
-          case ApiConflict<Map<String, dynamic>>(:final message):
-            debugPrint('[UPLOAD] uploadBytes conflict: $message');
-          case ApiUnauthorized<Map<String, dynamic>>():
-            debugPrint('[UPLOAD] uploadBytes unauthorized (401)');
-          default:
-            debugPrint('[UPLOAD] uploadBytes failed (unknown): $r');
-        }
-        return null;
+    if (_status == 'delivered') {
+      if (_podPhoto != null) {
+        pendingMediaPaths['pod'] = _podPhoto!.file;
       }
-
-      if (_status == 'delivered') {
-        if (_podPhoto != null) {
-          final url = await uploadBytes(
-            base64Decode(_podPhoto!.file),
-            'pod',
-            'pod.jpg',
-          );
-          if (url != null) uploadedImages.add({'file': url, 'type': 'pod'});
-        }
-        if (_selfiePhoto != null) {
-          final url = await uploadBytes(
-            base64Decode(_selfiePhoto!.file),
-            'selfie',
-            'selfie.jpg',
-          );
-          if (url != null) uploadedImages.add({'file': url, 'type': 'selfie'});
-        }
-        payload['recipient'] = _recipient.text.trim();
-        payload['relationship'] = _relationship;
-        payload['placement_type'] = _placement;
-        payload['delivery_images'] = uploadedImages;
-        if (_signatureBytes != null) {
-          final url = await uploadBytes(
-            _signatureBytes!,
-            'recipient_signature',
-            'signature.png',
-          );
-          if (url != null) payload['recipient_signature'] = url;
-        }
-      } else {
-        payload['reason'] = _reason;
-        debugPrint(
-          '[SUBMIT] rts/osa selfie: ${_selfiePhoto != null ? "present" : "not taken"}',
-        );
-        if (_selfiePhoto != null) {
-          final url = await uploadBytes(
-            base64Decode(_selfiePhoto!.file),
-            'selfie',
-            'selfie.jpg',
-          );
-          debugPrint('[SUBMIT] rts/osa selfie upload result: $url');
-          if (url == null) {
-            if (mounted) {
-              setState(() => _loading = false);
-              showAppSnackbar(
-                context,
-                'Photo upload failed. Please check your connection and try again.',
-                type: SnackbarType.error,
-              );
-            }
-            return;
-          }
-          uploadedImages.add({
-            'file': url,
-            'type': 'selfie',
-            'captured_at': DateTime.now().toUtc().toIso8601String(),
-          });
-        }
-        if (uploadedImages.isNotEmpty) {
-          payload['delivery_images'] = uploadedImages;
-        }
+      if (_selfiePhoto != null) {
+        pendingMediaPaths['selfie'] = _selfiePhoto!.file;
       }
-
-      debugPrint('[PATCH] payload keys: ${payload.keys.toList()}');
-      debugPrint('[PATCH] delivery_images: ${payload['delivery_images']}');
-
-      if (!mounted) return;
-
-      final result = await api.patch<Map<String, dynamic>>(
-        '/deliveries/${widget.barcode}',
-        data: payload,
-        parser: parseApiMap,
-      );
-
-      if (!mounted) return;
-
-      switch (result) {
-        case ApiSuccess<Map<String, dynamic>>(:final data):
-          debugPrint('[PATCH] response keys: ${data.keys.toList()}');
-          final rawData = data['data'] is Map<String, dynamic>
-              ? data['data'] as Map<String, dynamic>
-              : data;
-          debugPrint('[PATCH] response data keys: ${rawData.keys.toList()}');
-          debugPrint('[PATCH] response media: ${rawData['media']}');
-          debugPrint(
-            '[PATCH] rts_count: ${rawData['rts_count']}  rts_attempts: ${rawData['rts_attempts']}',
-          );
-          await LocalDeliveryDao.instance.updateFromJson(
-            widget.barcode,
-            rawData,
-          );
-          final now = DateTime.now().millisecondsSinceEpoch;
-          await DeliveryUpdateDao.instance.insert(
-            DeliveryUpdateEntry(
-              courierId: courierId,
-              barcode: widget.barcode,
-              payloadJson: jsonEncode(payload),
-              syncStatus: SyncStatus.synced,
-              attemptCount: 1,
-              createdAt: now,
-              updatedAt: now,
-              syncedAt: now,
-            ),
-          );
-          ref.read(deliveryRefreshProvider.notifier).state++;
-          setState(() => _success = true);
-          return;
-        case ApiValidationError<Map<String, dynamic>>(
-          :final errors,
-          :final message,
-        ):
-          errors.forEach((key, value) => _errors[key] = value.first);
-          setState(() {});
-          final validationMsg = message?.isNotEmpty == true
-              ? message!
-              : 'Please correct the errors and try again.';
-          showAppSnackbar(context, validationMsg, type: SnackbarType.error);
-        case ApiConflict<Map<String, dynamic>>(:final message):
-          showAppSnackbar(context, message, type: SnackbarType.error);
-        case ApiNetworkError<Map<String, dynamic>>(:final message):
-          showAppSnackbar(context, message, type: SnackbarType.error);
-        case ApiRateLimited<Map<String, dynamic>>(:final message):
-          showAppSnackbar(context, message, type: SnackbarType.error);
-        case ApiServerError<Map<String, dynamic>>(:final message):
-          showAppSnackbar(context, message, type: SnackbarType.error);
-        case ApiUnauthorized<Map<String, dynamic>>():
-          showAppSnackbar(
-            context,
-            'Session expired. Please log in again.',
-            type: SnackbarType.error,
-          );
+      if (_signaturePath != null) {
+        pendingMediaPaths['recipient_signature'] = _signaturePath!;
       }
+      payload['recipient'] = _recipient.text.trim();
+      payload['relationship'] = _relationship;
+      payload['placement_type'] = _placement;
     } else {
-      // ── Offline path: queue for later sync ──────────────────────────────
-      final pendingMedia = <Map<String, dynamic>>[];
-
-      if (_status == 'delivered') {
-        if (_podPhoto != null) {
-          pendingMedia.add({
-            'upload_type': 'pod',
-            'delivery_images_type': 'pod',
-            'b64': _podPhoto!.file,
-            'filename': 'pod.jpg',
-          });
-        }
-        if (_selfiePhoto != null) {
-          pendingMedia.add({
-            'upload_type': 'selfie',
-            'delivery_images_type': 'selfie',
-            'b64': _selfiePhoto!.file,
-            'filename': 'selfie.jpg',
-          });
-        }
-        if (_signatureBytes != null) {
-          pendingMedia.add({
-            'upload_type': 'recipient_signature',
-            'b64': base64Encode(_signatureBytes!),
-            'filename': 'signature.png',
-          });
-        }
-        payload['recipient'] = _recipient.text.trim();
-        payload['relationship'] = _relationship;
-        payload['placement_type'] = _placement;
-      } else {
-        payload['reason'] = _reason;
-        if (_selfiePhoto != null) {
-          pendingMedia.add({
-            'upload_type': 'selfie',
-            'delivery_images_type': 'selfie',
-            'b64': _selfiePhoto!.file,
-            'filename': 'selfie.jpg',
-          });
-        }
+      payload['reason'] = _reason;
+      if (_selfiePhoto != null) {
+        pendingMediaPaths['selfie'] = _selfiePhoto!.file;
       }
-
-      if (pendingMedia.isNotEmpty) {
-        payload['_pending_media'] = pendingMedia;
-      }
-
-      final now = DateTime.now().millisecondsSinceEpoch;
-      await DeliveryUpdateDao.instance.insert(
-        DeliveryUpdateEntry(
-          courierId: courierId,
-          barcode: widget.barcode,
-          payloadJson: jsonEncode(payload),
-          syncStatus: SyncStatus.pending,
-          attemptCount: 0,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
-      await LocalDeliveryDao.instance.updateStatus(widget.barcode, _status);
-
-      if (!mounted) return;
-      ref.read(deliveryRefreshProvider.notifier).state++;
-      setState(() {
-        _loading = false;
-        _success = true;
-      });
-      return;
     }
+
+    final opId = const Uuid().v4();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await SyncOperationsDao.instance.insert(
+      SyncOperation(
+        id: opId,
+        courierId: courierId,
+        barcode: widget.barcode,
+        operationType: 'UPDATE_STATUS',
+        payloadJson: jsonEncode(payload),
+        mediaPathsJson: pendingMediaPaths.isNotEmpty ? jsonEncode(pendingMediaPaths) : null,
+        status: 'pending',
+        createdAt: now,
+      ),
+    );
+    
+    // Optimistically update local database (which also sets sync_status = dirty)
+    await LocalDeliveryDao.instance.updateStatus(widget.barcode, _status);
+
+    // If online, trigger sync immediately
+    if (isOnline) {
+      // ignore: unawaited_futures
+      ref.read(syncManagerProvider.notifier).processQueue();
+    }
+
+    if (!mounted) return;
+    ref.read(deliveryRefreshProvider.notifier).state++;
+    setState(() {
+      _loading = false;
+      _success = true;
+    });
+    return;
 
     if (mounted) setState(() => _loading = false);
   }
@@ -644,7 +451,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _placement = 'received';
     _podPhoto = null;
     _selfiePhoto = null;
-    _signatureBytes = null;
+    _signaturePath = null;
     _photos.clear();
     _errors.clear();
   }
@@ -657,7 +464,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         _relationship != null ||
         _podPhoto != null ||
         _selfiePhoto != null ||
-        _signatureBytes != null;
+        _signaturePath != null;
 
     if (_status == 'delivered' && hasDeliveredData) {
       final confirmed = await showDialog<bool>(
@@ -736,8 +543,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               ? Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.memory(
-                      base64Decode(photo.file),
+                    Image.file(
+                      File(photo.file),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                         color: isDark ? Colors.white10 : Colors.grey.shade100,
@@ -825,7 +632,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   /// Clickable box for the recipient signature — same visual style as photo slots.
   Widget _buildSignatureSlot(bool isDark) {
-    final hasSignature = _signatureBytes != null;
+    final hasSignature = _signaturePath != null;
     final hasError = _errors['recipient_signature'] != null;
 
     return GestureDetector(
@@ -850,7 +657,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(12),
-                    child: Image.memory(_signatureBytes!, fit: BoxFit.contain),
+                    child: Image.file(File(_signaturePath!), fit: BoxFit.contain),
                   ),
                   Positioned(
                     bottom: 0,
@@ -896,7 +703,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onTap: () =>
-                                    setState(() => _signatureBytes = null),
+                                    setState(() => _signaturePath = null),
                                 child: const Padding(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -963,7 +770,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       _podPhoto != null ||
       _selfiePhoto != null ||
       _photos.isNotEmpty ||
-      _signatureBytes != null;
+      _signaturePath != null;
 
   @override
   Widget build(BuildContext context) {

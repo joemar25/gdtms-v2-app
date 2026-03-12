@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fsi_courier_app/core/constants.dart';
-import 'package:fsi_courier_app/core/database/delivery_update_dao.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 
 /// Removes old synced data from both SQLite tables.
@@ -48,12 +49,22 @@ class CleanupService {
     final deliveryMs = kLocalDataRetentionDays * Duration.millisecondsPerDay;
     const paidDeliveryMs =
         kPaidDeliveryRetentionDays * Duration.millisecondsPerDay;
-    await Future.wait([
-      DeliveryUpdateDao.instance.deleteOldSynced(syncMs),
+    final results = await Future.wait([
+      SyncOperationsDao.instance.deleteOldSynced(syncMs),
       LocalDeliveryDao.instance.deleteOldSynced(
         deliveryMs,
         paidRetentionMs: paidDeliveryMs,
       ),
     ]);
+
+    final syncCount = results[0];
+    final deliveryCount = results[1];
+
+    if (syncCount > 0 || deliveryCount > 0) {
+      debugPrint(
+        '[CleanupService] Deleted $syncCount old sync '
+        'operations and $deliveryCount old deliveries.',
+      );
+    }
   }
 }

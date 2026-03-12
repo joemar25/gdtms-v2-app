@@ -138,6 +138,12 @@ class ApiClient {
       );
     }
 
+    if (status == 400) {
+      return ApiBadRequest<T>(
+        _extractMessage(response.data, fallback: 'Bad request.'),
+      );
+    }
+
     if (status == 429) {
       return ApiRateLimited<T>(
         'Too many attempts, please wait.',
@@ -190,6 +196,11 @@ class ApiClient {
             message: _extractMessage(response.data, fallback: ''),
           );
         }
+        if (status == 400) {
+          return ApiBadRequest<T>(
+            _extractMessage(response.data, fallback: 'Bad request.'),
+          );
+        }
 
         return ApiServerError<T>(_extractMessage(response.data));
       }
@@ -230,12 +241,16 @@ class ApiClient {
   Future<ApiResult<T>> patch<T>(
     String path, {
     Map<String, dynamic>? data,
+    Map<String, dynamic>? extraHeaders,
     required T Function(dynamic) parser,
   }) async {
     try {
       debugPrint('[API] PATCH ${_dio.options.baseUrl}$path');
       debugPrint('[API] payload: $data');
-      final response = await _dio.patch<dynamic>(path, data: data);
+      final options = extraHeaders != null
+          ? Options(headers: extraHeaders)
+          : null;
+      final response = await _dio.patch<dynamic>(path, data: data, options: options);
       debugPrint('[API] response ${response.statusCode}: ${response.data}');
       return _mapResponse<T>(response, parser);
     } catch (e) {

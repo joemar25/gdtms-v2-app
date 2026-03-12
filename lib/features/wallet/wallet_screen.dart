@@ -448,48 +448,43 @@ class _EarningsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.account_balance_wallet_rounded,
-                  color: Colors.white70,
-                  size: 18,
-                ),
-                const SizedBox(width: 6),
-                const Text(
-                  'Total Earnings',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '₱ ${_fmt(earnings)}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 34,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
-            ),
+            // AFTER
+Row(
+  children: [
+    const Icon(Icons.schedule_rounded, color: Colors.white70, size: 18),
+    const SizedBox(width: 6),
+    const Text(
+      'Pending Payment Request',
+      style: TextStyle(color: Colors.white70, fontSize: 13),
+    ),
+  ],
+),
+const SizedBox(height: 6),
+Text(
+  '₱ ${_fmt(pending)}',
+  style: const TextStyle(
+    color: Colors.white,
+    fontSize: 34,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.5,
+  ),
+),
+// Total earnings demoted to a subtle secondary line
+const SizedBox(height: 4),
+Text(
+  'Total earned: ₱ ${_fmt(earnings)}',
+  style: const TextStyle(color: Colors.white54, fontSize: 12),
+),
 
             // ── Pending payout rows — online only ─────────────────────────
-            if (showPending && (pendingAmt > 0 || eligible > 0)) ...[
-              const SizedBox(height: 18),
-              if (pendingAmt > 0)
-                _payoutRow(
-                  icon: Icons.schedule_rounded,
-                  label: 'Pending payment reqeust',
-                  amount: _fmt(pendingAmt),
-                ),
-              if (pendingAmt > 0 && eligible > 0) const SizedBox(height: 8),
-              if (eligible > 0)
-                _payoutRow(
-                  icon: Icons.arrow_circle_up_rounded,
-                  label: 'Upcoming payout',
-                  amount: _fmt(eligible),
-                ),
-            ],
+            if (showPending && eligible > 0) ...[
+  const SizedBox(height: 14),
+  _payoutRow(
+    icon: Icons.arrow_circle_up_rounded,
+    label: 'Accumulated for next request',
+    amount: _fmt(eligible),
+  ),
+],
 
             if (onTap != null) ...[
               const SizedBox(height: 14),

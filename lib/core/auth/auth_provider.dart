@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
+import 'package:fsi_courier_app/core/database/app_database.dart';
 
 class AuthState {
   const AuthState({
@@ -50,10 +51,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final isAuthFuture = _authStorage.isAuthenticated();
     final courierFuture = _authStorage.getCourier();
     final themeModeFuture = _settings.getThemeMode();
+    final lastCourierIdFuture = _authStorage.getLastCourierId();
 
     final isAuth = await isAuthFuture;
     final courier = await courierFuture;
     final themeMode = await themeModeFuture;
+    final lastCourierId = await lastCourierIdFuture;
+
+    if (isAuth && courier != null) {
+      final currentCourierId = courier['id']?.toString() ?? '';
+      if (currentCourierId.isNotEmpty && lastCourierId != null && currentCourierId != lastCourierId) {
+        await AppDatabase.clearAllDeliveryData();
+        await _authStorage.setLastCourierId(currentCourierId);
+      } else if (lastCourierId == null && currentCourierId.isNotEmpty) {
+        await _authStorage.setLastCourierId(currentCourierId);
+      }
+    }
 
     state = state.copyWith(
       isAuthenticated: isAuth,

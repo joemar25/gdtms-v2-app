@@ -7,8 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
-import 'package:fsi_courier_app/core/models/delivery_update_entry.dart';
+import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
@@ -36,6 +37,11 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(syncManagerProvider.notifier).loadEntries();
       await _loadDeliveries();
+      final authStorage = ref.read(authStorageProvider);
+      final lastSyncMs = await authStorage.getLastSyncTime();
+      if (lastSyncMs != null) {
+        ref.read(lastSyncTimeProvider.notifier).state = DateTime.fromMillisecondsSinceEpoch(lastSyncMs);
+      }
     });
   }
 
@@ -119,9 +125,14 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
         children: [
           _SyncHeader(syncState: syncState, isOnline: isOnline),
           Expanded(
-            child: syncState.entries.isEmpty
-                ? _EmptyState(isSyncing: syncState.isSyncing)
-                : _EntryList(syncState: syncState, deliveries: _deliveries),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await ref.read(syncManagerProvider.notifier).loadEntries();
+              },
+              child: syncState.entries.isEmpty
+                  ? _EmptyState(isSyncing: syncState.isSyncing)
+                  : _EntryList(syncState: syncState, deliveries: _deliveries),
+            ),
           ),
         ],
       ),
@@ -132,24 +143,25 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
-class _SyncHeader extends StatelessWidget {
+class _SyncHeader extends ConsumerWidget {
   const _SyncHeader({required this.syncState, required this.isOnline});
 
   final SyncState syncState;
   final bool isOnline;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final lastSyncTime = ref.watch(lastSyncTimeProvider);
     final synced = syncState.entries
-        .where((e) => e.syncStatus == SyncStatus.synced)
+        .where((e) => e.status == 'synced')
         .length;
     final total = syncState.entries.length;
     final pending = syncState.entries
-        .where((e) => e.syncStatus == SyncStatus.pending)
+        .where((e) => e.status == 'pending' || e.status == 'processing')
         .length;
     final failed = syncState.entries
-        .where((e) => e.syncStatus == SyncStatus.failed)
+        .where((e) => e.status == 'error' || e.status == 'failed' || e.status == 'conflict')
         .length;
 
     return Container(
@@ -215,6 +227,15 @@ class _SyncHeader extends StatelessWidget {
               ),
             ),
           ],
+          if (lastSyncTime != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Last sync: ${DateFormat('MMM d, yyyy · h:mm a').format(lastSyncTime)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -233,6 +254,7 @@ class _EntryList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final entries = syncState.entries;
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(top: 8, bottom: 100),
       itemCount: entries.length,
       separatorBuilder: (_, __) => const Divider(height: 1),
@@ -243,10 +265,45 @@ class _EntryList extends ConsumerWidget {
           delivery: deliveries[entry.barcode],
           isSyncing:
               syncState.isSyncing && syncState.currentBarcode == entry.barcode,
-          onRetry: entry.syncStatus == SyncStatus.failed
-              ? () => ref
-                    .read(syncManagerProvider.notifier)
-                    .retrySingle(entry.id!)
+          onRetry: (entry.status == 'error' || entry.status == 'failed')
+              ? () async {
+                  final confirmed = await ConfirmationDialog.show(
+                    context,
+                    title: 'Retry sync?',
+                    subtitle: 'This will attempt to upload this update to the server again.',
+                    confirmLabel: 'Retry',
+                  );
+                  if (confirmed == true) {
+                    ref.read(syncManagerProvider.notifier).retrySingle(entry.id);
+                  }
+                }
+              : null,
+          onDismiss: (entry.status == 'conflict')
+              ? () async {
+                  final confirmed = await ConfirmationDialog.show(
+                    context,
+                    title: 'Resolve conflict?',
+                    subtitle: 'This will mark the update as "Resolved" locally without sending it to the server. Use this if you have manually confirmed the state on the server.',
+                    confirmLabel: 'Resolve',
+                  );
+                  if (confirmed == true) {
+                    ref.read(syncManagerProvider.notifier).dismissConflict(entry.id);
+                  }
+                }
+              : null,
+          onDelete: (entry.status != 'synced' || entry.lastError != null)
+              ? () async {
+                  final confirmed = await ConfirmationDialog.show(
+                    context,
+                    title: 'Delete operation?',
+                    subtitle: 'This will permanently remove this update from your sync queue. The local delivery status will NOT be reverted.',
+                    confirmLabel: 'Delete',
+                    isDestructive: true,
+                  );
+                  if (confirmed == true) {
+                    ref.read(syncManagerProvider.notifier).deleteSingle(entry.id);
+                  }
+                }
               : null,
         );
       },
@@ -262,12 +319,16 @@ class _EntryTile extends StatelessWidget {
     required this.isSyncing,
     this.delivery,
     this.onRetry,
+    this.onDismiss,
+    this.onDelete,
   });
 
-  final DeliveryUpdateEntry entry;
+  final SyncOperation entry;
   final LocalDelivery? delivery;
   final bool isSyncing;
   final VoidCallback? onRetry;
+  final VoidCallback? onDismiss;
+  final VoidCallback? onDelete;
 
   /// Decodes delivery_status from the queue payload.
   String get _payloadStatus {
@@ -322,10 +383,10 @@ class _EntryTile extends StatelessWidget {
     final queuedStr = DateFormat(
       'MMM d, yyyy · h:mm a',
     ).format(DateTime.fromMillisecondsSinceEpoch(entry.createdAt));
-    final syncedStr = entry.syncedAt != null
+    final syncedStr = (entry.status == 'synced' && entry.lastAttemptAt != null)
         ? DateFormat(
             'MMM d, yyyy · h:mm a',
-          ).format(DateTime.fromMillisecondsSinceEpoch(entry.syncedAt!))
+          ).format(DateTime.fromMillisecondsSinceEpoch(entry.lastAttemptAt!))
         : null;
 
     final recipientName = delivery?.recipientName;
@@ -333,9 +394,11 @@ class _EntryTile extends StatelessWidget {
     final dispatchCode = delivery?.dispatchCode;
     final payloadStatus = _payloadStatus;
     final dates = _dates;
+    final isOsa = payloadStatus.toLowerCase() == 'osa';
 
     return InkWell(
-      onTap: () => context.push('/deliveries/${entry.barcode}'),
+      onTap: isOsa ? null : () => context.push('/deliveries/${entry.barcode}'),
+      onLongPress: onDelete,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -345,7 +408,7 @@ class _EntryTile extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: _StatusChip(
-                status: entry.syncStatus,
+                status: entry.status,
                 isSyncing: isSyncing,
               ),
             ),
@@ -449,7 +512,7 @@ class _EntryTile extends StatelessWidget {
                     ),
 
                   // Error message
-                  if (entry.errorMessage != null) ...[
+                  if (entry.lastError != null) ...[
                     const SizedBox(height: 4),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,7 +525,7 @@ class _EntryTile extends StatelessWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            entry.errorMessage!,
+                            entry.lastError!,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.error,
                             ),
@@ -474,19 +537,40 @@ class _EntryTile extends StatelessWidget {
                     ),
                   ],
 
-                  // Retry button
-                  if (onRetry != null) ...[
+                  // Retry, Dismiss, or Delete buttons
+                  if (onRetry != null || onDismiss != null || onDelete != null) ...[
                     const SizedBox(height: 4),
-                    SizedBox(
-                      height: 28,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        onPressed: onRetry,
-                        child: const Text('RETRY'),
-                      ),
+                    Row(
+                      children: [
+                        if (onRetry != null)
+                          SizedBox(
+                            height: 28,
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: onRetry,
+                              child: const Text('RETRY'),
+                            ),
+                          ),
+                        if (onRetry != null && (onDismiss != null || onDelete != null))
+                          const SizedBox(width: 16),
+                        if (onDismiss != null)
+                          SizedBox(
+                            height: 28,
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: onDismiss,
+                              child: const Text('RESOLVE'),
+                            ),
+                          ),
+                        if (onDismiss != null && onDelete != null)
+                          const SizedBox(width: 16),
+                      ],
                     ),
                   ],
                 ],
@@ -504,12 +588,12 @@ class _EntryTile extends StatelessWidget {
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status, required this.isSyncing});
 
-  final SyncStatus status;
+  final String status;
   final bool isSyncing;
 
   @override
   Widget build(BuildContext context) {
-    if (isSyncing) {
+    if (isSyncing || status == 'processing') {
       return const SizedBox(
         width: 20,
         height: 20,
@@ -518,10 +602,12 @@ class _StatusChip extends StatelessWidget {
     }
 
     final (color, icon) = switch (status) {
-      SyncStatus.pending => (Colors.amber.shade700, Icons.schedule_rounded),
-      SyncStatus.syncing => (Colors.blue, Icons.sync_rounded),
-      SyncStatus.synced => (Colors.green, Icons.check_circle_rounded),
-      SyncStatus.failed => (Colors.red, Icons.error_rounded),
+      'pending' => (Colors.amber.shade700, Icons.schedule_rounded),
+      'synced' => (Colors.green, Icons.check_circle_rounded),
+      'error' => (Colors.red, Icons.error_rounded),
+      'failed' => (Colors.red, Icons.error_rounded),
+      'conflict' => (Colors.orange, Icons.warning_rounded),
+      _ => (Colors.grey, Icons.help_outline_rounded),
     };
 
     return Icon(icon, color: color, size: 22);
@@ -710,54 +796,54 @@ class _EmptyStateState extends State<_EmptyState>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (widget.isSyncing) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Lottie.asset(
-              'assets/anim/hour-glass.json',
-              width: 160,
-              height: 160,
-              repeat: true,
+    // Must be scrollable for RefreshIndicator to work.
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.isSyncing) ...[
+                  Lottie.asset(
+                    'assets/anim/hour-glass.json',
+                    width: 160,
+                    height: 160,
+                    repeat: true,
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Syncing…', style: theme.textTheme.titleMedium),
+                ] else ...[
+                  Lottie.asset(
+                    'assets/anim/successfully-done.json',
+                    width: 180,
+                    height: 180,
+                    controller: _controller,
+                    onLoaded: _onLoaded,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'All caught up!',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No pending deliveries to sync.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 16),
-            Text('Syncing…', style: theme.textTheme.titleMedium),
-          ],
+          ),
         ),
-      );
-    }
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Lottie.asset(
-              'assets/anim/successfully-done.json',
-              width: 180,
-              height: 180,
-              controller: _controller,
-              onLoaded: _onLoaded,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'All caught up!',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No pending deliveries to sync.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }
@@ -774,8 +860,10 @@ class _SyncFab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final hasPending = syncState.entries.any(
       (e) =>
-          e.syncStatus == SyncStatus.pending ||
-          e.syncStatus == SyncStatus.failed,
+          e.status == 'pending' ||
+          e.status == 'error' ||
+          e.status == 'failed' ||
+          e.status == 'processing',
     );
     final canSync = isOnline && !syncState.isSyncing && hasPending;
 

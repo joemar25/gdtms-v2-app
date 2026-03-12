@@ -153,6 +153,7 @@ adb -s emulator-5554 logcat -d | tail -n 300
 ```
 
 ### Reset App Environment
+
 ```bash
 flutter clean
 dart run flutter_launcher_icons
@@ -160,6 +161,7 @@ dart run flutter_native_splash:create
 ```
 
 ### Wireless Pairing
+
 ```bash
 # On phone (dev mode): wireless debugging = true
 # On PC:
@@ -237,6 +239,7 @@ Possible future improvements:
 - [ ] Push-notification digest of daily sync failures sent to a supervisor endpoint
 
 ### Mobile App Deliveries
+
 - [ ] Determine who received the delivery in the update payload.
 - [ ] Make signature optional for certain scenarios.
 - [ ] DFAMCI special case: include courier reference number upon updating submission status.

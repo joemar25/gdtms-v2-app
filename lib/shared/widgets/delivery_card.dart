@@ -31,10 +31,11 @@ class DeliveryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final barcode = resolveDeliveryIdentifier(delivery);
     final status = delivery['delivery_status']?.toString() ?? 'pending';
-    final jobOrder = delivery['job_order']?.toString() ?? '';
-    final address = delivery['address']?.toString() ?? '';
+    final jobOrder = (delivery['job_order'] ?? delivery['tracking_number'] ?? '').toString();
+    final address = (delivery['address'] ?? delivery['delivery_address'] ?? '').toString();
     final name = (delivery['name'] ??
             delivery['recipient'] ??
+            delivery['recipient_name'] ??
             '')
         .toString();
     final color = statusColor(status);

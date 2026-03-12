@@ -1,15 +1,19 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:retry/retry.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
-import 'package:fsi_courier_app/core/database/delivery_update_dao.dart';
+import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
-import 'package:fsi_courier_app/core/models/delivery_update_entry.dart';
+import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
+import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -43,7 +47,7 @@ class SyncState {
   final int total;
 
   /// All queue entries — used to drive the Sync screen list.
-  final List<DeliveryUpdateEntry> entries;
+  final List<SyncOperation> entries;
 
   /// Human-readable status message shown in the Sync screen header.
   final String? lastMessage;
@@ -53,7 +57,7 @@ class SyncState {
     Object? currentBarcode = _sentinel,
     int? processed,
     int? total,
-    List<DeliveryUpdateEntry>? entries,
+    List<SyncOperation>? entries,
     Object? lastMessage = _sentinel,
   }) {
     return SyncState(
@@ -85,7 +89,9 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
   /// Loads all queue entries from SQLite and refreshes [state.entries].
   /// Call this when opening the Sync screen.
   Future<void> loadEntries() async {
-    final entries = await DeliveryUpdateDao.instance.getAll();
+    final courier = _ref.read(authProvider).courier ?? {};
+    final courierId = courier['id']?.toString() ?? '';
+    final entries = await SyncOperationsDao.instance.getAll(courierId);
     if (mounted) state = state.copyWith(entries: entries);
   }
 
@@ -99,7 +105,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
 
     final courier = _ref.read(authProvider).courier ?? {};
     final courierId = courier['id']?.toString() ?? '';
-    final pending = await DeliveryUpdateDao.instance.getPending(courierId);
+    final pending = await SyncOperationsDao.instance.getPending(courierId);
     if (pending.isEmpty) {
       await loadEntries();
       return;
@@ -122,127 +128,116 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
         lastMessage: 'Updating delivery ${entry.barcode} to server…',
       );
 
-      await DeliveryUpdateDao.instance.markSyncing(entry.id!);
+      final attemptAt = DateTime.now().millisecondsSinceEpoch;
+      await SyncOperationsDao.instance.updateStatus(entry.id, 'processing', lastAttemptAt: attemptAt);
 
       try {
         final payload = jsonDecode(entry.payloadJson) as Map<String, dynamic>;
 
-        // ── Upload any pending media (stored offline as base64) ────────────
-        final pendingMedia = payload.remove('_pending_media');
-        if (pendingMedia is List && pendingMedia.isNotEmpty) {
-          state = state.copyWith(
-            lastMessage:
-                'Uploading media for ${entry.barcode} (${pendingMedia.length} file${pendingMedia.length == 1 ? '' : 's'})…',
-          );
-          final uploadedImages = <Map<String, dynamic>>[];
-          final api = _ref.read(apiClientProvider);
-          final uploadPath = '/deliveries/${entry.barcode}/media';
-
-          for (final item in pendingMedia) {
-            if (item is! Map) continue;
-            // upload_type: sent to the /media endpoint (pod/selfie/recipient_signature/other)
-            // delivery_images_type: used in PATCH delivery_images[].type (package/recipient/…)
-            final uploadType =
-                item['upload_type']?.toString() ??
-                item['type']?.toString() ??
-                'other';
-            final deliveryImagesType = item['delivery_images_type']?.toString();
-            final filename = item['filename']?.toString() ?? 'file.jpg';
-            final b64 = item['b64']?.toString() ?? '';
-            if (b64.isEmpty) continue;
-
-            Uint8List bytes;
-            try {
-              bytes = base64Decode(b64);
-            } catch (_) {
-              continue;
-            }
-
-            final result = await api.uploadMedia<Map<String, dynamic>>(
-              uploadPath,
-              bytes: bytes,
-              filename: filename,
-              type: uploadType,
-              parser: (d) {
-                if (d is Map<String, dynamic>) return d;
-                if (d is Map) {
-                  return d.map((k, v) => MapEntry(k.toString(), v));
-                }
-                return <String, dynamic>{};
-              },
+        // ── Upload any pending media (stored offline as local files) ────────────
+        if (entry.mediaPathsJson != null && entry.mediaPathsJson!.isNotEmpty) {
+          final pendingMedia = jsonDecode(entry.mediaPathsJson!) as Map<String, dynamic>;
+          if (pendingMedia.isNotEmpty) {
+            state = state.copyWith(
+              lastMessage:
+                  'Uploading media for ${entry.barcode} (${pendingMedia.length} file${pendingMedia.length == 1 ? '' : 's'})…',
             );
+            final uploadedImages = <Map<String, dynamic>>[];
+            final api = _ref.read(apiClientProvider);
+            final uploadPath = '/deliveries/${entry.barcode}/media';
 
-            if (result is ApiSuccess<Map<String, dynamic>>) {
-              final inner = result.data['data'];
-              final url =
-                  (inner is Map
-                          ? inner['url'] ??
-                                inner['signed_url'] ??
-                                inner['file'] ??
-                                inner['path']
-                          : result.data['url'] ?? result.data['signed_url'])
-                      ?.toString();
-              if (url != null && url.isNotEmpty) {
-                if (uploadType == 'recipient_signature') {
-                  payload['recipient_signature'] = url;
-                } else {
-                  // Use the delivery_images_type for the PATCH payload;
-                  // fall back to uploadType only as last resort.
-                  uploadedImages.add({
-                    'file': url,
-                    'type': deliveryImagesType ?? uploadType,
-                    'captured_at': DateTime.now().toUtc().toIso8601String(),
-                  });
+            for (final kv in pendingMedia.entries) {
+              final uploadType = kv.key; // e.g., 'pod', 'selfie', 'recipient_signature'
+              final filePath = kv.value.toString();
+              
+              final file = File(filePath);
+              if (!await file.exists()) continue; // Skip if file was deleted
+
+              final bytes = await file.readAsBytes();
+              final filename = '${uploadType}.jpg'; // Or png if signature? Backend handles it.
+
+              final result = await api.uploadMedia<Map<String, dynamic>>(
+                uploadPath,
+                bytes: bytes,
+                filename: filename,
+                type: uploadType,
+                parser: (d) {
+                  if (d is Map<String, dynamic>) return d;
+                  if (d is Map) return d.map((k, v) => MapEntry(k.toString(), v));
+                  return <String, dynamic>{};
+                },
+              );
+
+              if (result is ApiSuccess<Map<String, dynamic>>) {
+                final inner = result.data['data'];
+                final url = (inner is Map
+                        ? inner['url'] ?? inner['signed_url'] ?? inner['file'] ?? inner['path']
+                        : result.data['url'] ?? result.data['signed_url'])?.toString();
+                
+                if (url != null && url.isNotEmpty) {
+                  if (uploadType == 'recipient_signature') {
+                    payload['recipient_signature'] = url;
+                  } else {
+                    uploadedImages.add({
+                      'file': url,
+                      'type': uploadType,
+                      'captured_at': DateTime.now().toUtc().toIso8601String(),
+                    });
+                  }
                 }
               }
             }
-            // If upload fails for an individual file we continue; the patch
-            // will still proceed with whatever could be uploaded.
-          }
 
-          if (uploadedImages.isNotEmpty) {
-            // Merge with any already-resolved delivery_images in the payload.
-            final existing = payload['delivery_images'];
-            final merged = <Map<String, dynamic>>[
-              if (existing is List)
-                ...existing.whereType<Map<String, dynamic>>(),
-              ...uploadedImages,
-            ];
-            payload['delivery_images'] = merged;
-          }
+            if (uploadedImages.isNotEmpty) {
+              final existing = payload['delivery_images'];
+              final merged = <Map<String, dynamic>>[
+                if (existing is List) ...existing.whereType<Map<String, dynamic>>(),
+                ...uploadedImages,
+              ];
+              payload['delivery_images'] = merged;
+            }
 
-          // Guard: if media was queued but nothing uploaded at all (not even a
-          // signature), abort the PATCH rather than creating a delivery record
-          // with no proof photos — the entry stays failed so it can be retried.
-          final hasSignature = payload.containsKey('recipient_signature');
-          if (pendingMedia.isNotEmpty &&
-              uploadedImages.isEmpty &&
-              !hasSignature) {
-            await DeliveryUpdateDao.instance.markFailed(
-              entry.id!,
-              'Media upload failed — no proof photos could be uploaded. Will retry on next sync.',
-            );
-            state = state.copyWith(
-              processed: state.processed + 1,
-              lastMessage:
-                  'Media upload failed for ${entry.barcode}. Will retry.',
-            );
-            continue;
+            final hasSignature = payload.containsKey('recipient_signature');
+            if (pendingMedia.isNotEmpty && uploadedImages.isEmpty && !hasSignature) {
+              final newRetryCount = entry.retryCount + 1;
+              await SyncOperationsDao.instance.updateStatus(
+                entry.id,
+                'failed',
+                lastError: 'Media upload failed — no proof photos could be uploaded.',
+                retryCount: newRetryCount,
+              );
+              state = state.copyWith(
+                processed: state.processed + 1,
+                lastMessage: 'Media upload failed for ${entry.barcode}. Will retry.',
+              );
+              continue;
+            }
           }
         }
 
-        final result = await _ref
-            .read(apiClientProvider)
-            .patch<Map<String, dynamic>>(
-              '/deliveries/${entry.barcode}',
-              data: payload,
-              parser: parseApiMap,
-            );
+        final result = await retry<ApiResult<Map<String, dynamic>>>(
+          () async {
+            final res = await _ref
+                .read(apiClientProvider)
+                .patch<Map<String, dynamic>>(
+                  '/deliveries/${entry.barcode}',
+                  data: payload,
+                  extraHeaders: {'X-Request-ID': entry.id}, // Use op UUID for idempotency
+                  parser: parseApiMap,
+                );
+            if (res is ApiNetworkError || res is ApiServerError || res is ApiRateLimited) {
+              throw Exception('Transient error during PATCH: ${_errorMessage(res)}');
+            }
+            return res;
+          },
+          maxAttempts: 3,
+          delayFactor: const Duration(milliseconds: 500),
+        );
 
         if (!mounted) break;
 
         if (result is ApiSuccess<Map<String, dynamic>>) {
-          await DeliveryUpdateDao.instance.markSynced(entry.id!);
+          await SyncOperationsDao.instance.updateStatus(entry.id, 'synced');
           final deliveryData = result.data['data'];
           if (deliveryData is Map<String, dynamic>) {
             await LocalDeliveryDao.instance.updateFromJson(
@@ -263,16 +258,45 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
             processed: state.processed + 1,
             lastMessage: 'Delivery ${entry.barcode} successfully synced.',
           );
+        } else if (result is ApiConflict<Map<String, dynamic>> || 
+                   result is ApiBadRequest<Map<String, dynamic>> || 
+                   result is ApiValidationError<Map<String, dynamic>>) {
+          // Terminal conflicts/errors from server -> abandon retry, mark as conflict or resolve automatically
+          final errorMsg = _errorMessage(result);
+          
+          // Special case: "cannot change status of delivered items"
+          // If the courier intended to deliver, and the server says it's already delivered (immutable),
+          // we treat this as a success to clear the queue, as the end state is what the courier wanted.
+          final isDeliveredError = errorMsg.toLowerCase().contains('delivered') && 
+                                   errorMsg.toLowerCase().contains('immutable');
+          final wasIntendingToDeliver = payload['delivery_status'] == 'delivered';
+
+          if (isDeliveredError && wasIntendingToDeliver) {
+            await SyncOperationsDao.instance.updateStatus(entry.id, 'synced', lastError: 'Resolved: $errorMsg');
+            successCount++;
+            state = state.copyWith(
+              processed: state.processed + 1,
+              lastMessage: 'Delivery ${entry.barcode} already delivered on server.',
+            );
+          } else {
+            await SyncOperationsDao.instance.updateStatus(entry.id, 'conflict', lastError: errorMsg);
+            state = state.copyWith(
+              processed: state.processed + 1,
+              lastMessage: 'Conflict on ${entry.barcode}: $errorMsg',
+            );
+          }
         } else {
           final errorMsg = _errorMessage(result);
-          await DeliveryUpdateDao.instance.markFailed(entry.id!, errorMsg);
+          final newRetryCount = entry.retryCount + 1;
+          await SyncOperationsDao.instance.updateStatus(entry.id, 'failed', lastError: errorMsg, retryCount: newRetryCount);
           state = state.copyWith(
             processed: state.processed + 1,
             lastMessage: 'Failed to sync ${entry.barcode}: $errorMsg',
           );
         }
       } catch (e) {
-        await DeliveryUpdateDao.instance.markFailed(entry.id!, e.toString());
+        final newRetryCount = entry.retryCount + 1;
+        await SyncOperationsDao.instance.updateStatus(entry.id, 'failed', lastError: e.toString(), retryCount: newRetryCount);
         state = state.copyWith(
           processed: state.processed + 1,
           lastMessage: 'Error syncing ${entry.barcode}.',
@@ -288,7 +312,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
     // Import is deferred at runtime to avoid circular reference at parse time.
     _runCleanupSilently();
 
-    final allEntries = await DeliveryUpdateDao.instance.getAll();
+    final allEntries = await SyncOperationsDao.instance.getAll(courierId);
     if (mounted) {
       state = state.copyWith(
         isSyncing: false,
@@ -305,16 +329,30 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
 
   /// Resets a single [failed] entry back to [pending] and immediately
   /// processes the queue. Intended for manual retry from the Sync screen.
-  Future<void> retrySingle(int id) async {
+  Future<void> retrySingle(String id) async {
     if (state.isSyncing) return;
-    await DeliveryUpdateDao.instance.resetToPending(id);
+    await SyncOperationsDao.instance.resetToPending(id);
     await processQueue();
   }
 
-  /// Permanently deletes all [failed] queue entries and refreshes the list.
-  /// Only intended for debug / developer use.
+  /// Clears all failed entries and refreshes the list.
   Future<void> clearFailed() async {
-    await DeliveryUpdateDao.instance.deleteAllFailed();
+    final auth = _ref.read(authProvider);
+    if (auth.courier == null) return;
+    await SyncOperationsDao.instance.deleteAllFailed(auth.courier!['id'].toString());
+    await loadEntries(); // Reload list
+  }
+
+  /// Dismisses a conflict operation.
+  Future<void> dismissConflict(String id) async {
+    await SyncOperationsDao.instance.updateStatus(id, 'synced', lastError: 'Dismissed by user');
+    await loadEntries();
+  }
+
+  /// Permanently deletes a single operation.
+  Future<void> deleteSingle(String id) async {
+    final db = await AppDatabase.getInstance();
+    await db.delete('sync_operations', where: 'id = ?', whereArgs: [id]);
     await loadEntries();
   }
 
@@ -348,7 +386,9 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
       const paidDeliveryMs =
           kPaidDeliveryRetentionDays * Duration.millisecondsPerDay;
       await Future.wait([
-        DeliveryUpdateDao.instance.deleteOldSynced(syncMs),
+        // Do not delete from SyncOperationsDao aggressively yet, it might be used by UI history.
+        // Wait, retention policy should delete old "synced" operations.
+        SyncOperationsDao.instance.deleteOldSynced(syncMs),
         LocalDeliveryDao.instance.deleteOldSynced(
           deliveryMs,
           paidRetentionMs: paidDeliveryMs,

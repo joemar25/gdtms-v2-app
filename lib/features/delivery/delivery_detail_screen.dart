@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -219,6 +220,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   bool _loading = true;
   Map<String, dynamic> _delivery = {};
   bool _isOfflineMode = false;
+  bool _hasPendingSync = false;
 
   @override
   void initState() {
@@ -262,12 +264,17 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
     // Offline — or API call failed — fall back to local storage.
     final local = await LocalDeliveryDao.instance.getByBarcode(widget.barcode);
+    final pendingSync = await SyncOperationsDao.instance.hasPendingSync(widget.barcode);
+
     if (!mounted) return;
     if (local != null) {
       _delivery = local.toDeliveryMap();
       _isOfflineMode = true;
     }
-    setState(() => _loading = false);
+    setState(() {
+      _hasPendingSync = pendingSync;
+      _loading = false;
+    });
   }
 
   Future<void> _onPhoneTap(String? phone) async {
@@ -371,24 +378,53 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text(
-                    'UPDATE STATUS',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_hasPendingSync)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Syncing last update...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.amber.shade800,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.edit_outlined),
+                      label: Text(
+                        _hasPendingSync ? 'SYNC PENDING...' : 'UPDATE STATUS',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _hasPendingSync ? Colors.grey : ColorStyles.grabGreen,
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _hasPendingSync
+                          ? null
+                          : () => context.push('/deliveries/${widget.barcode}/update'),
                     ),
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: ColorStyles.grabGreen,
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () =>
-                      context.push('/deliveries/${widget.barcode}/update'),
+                  ],
                 ),
               ),
             )
