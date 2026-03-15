@@ -225,7 +225,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     ImageSource source = ImageSource.camera,
   }) async {
     final picked = await _picker.pickImage(source: source);
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
 
     final bytes = await FlutterImageCompress.compressWithFile(
       picked.path,
@@ -233,7 +233,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       quality: 70,
       format: CompressFormat.jpeg,
     );
-    if (bytes == null) return;
+    if (bytes == null || !mounted) return;
 
     final apiType = slotType == 'pod' ? 'pod' : 'selfie';
     final dir = await getApplicationDocumentsDirectory();
@@ -246,6 +246,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       file: path,
       type: apiType,
     );
+    if (!mounted) return;
     setState(() {
       if (slotType == 'pod') {
         _podPhoto = entry;
@@ -779,13 +780,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     final isOnline = ref.read(isOnlineProvider);
 
     return PopScope(
-      canPop: false,
+      // Allow the system to pop naturally when nothing has been filled in.
+      // Only intercept pops (to show the discard dialog) when the form is dirty.
+      canPop: !_isDirty || _success,
       onPopInvokedWithResult: (didPop, _) async {
+        // didPop is true when canPop allowed the pop — nothing to do.
         if (didPop) return;
-        if (!_isDirty || _success) {
-          if (mounted) context.pop();
-          return;
-        }
+        // At this point canPop was false (form is dirty and not submitted).
+        // Show a confirmation dialog before letting the user leave.
         final leave = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(

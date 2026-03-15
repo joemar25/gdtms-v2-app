@@ -26,7 +26,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     return openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -51,7 +51,8 @@ class AppDatabase {
         completed_at     INTEGER,
         server_updated_at INTEGER,
         sync_status      TEXT    NOT NULL DEFAULT 'clean',
-        is_archived      INTEGER NOT NULL DEFAULT 0
+        is_archived      INTEGER NOT NULL DEFAULT 0,
+        rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'
       )
     ''');
 
@@ -171,6 +172,18 @@ class AppDatabase {
       await db.execute(
         "ALTER TABLE local_deliveries ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
       );
+    }
+    if (oldVersion < 8) {
+      // v8: add rts_verification_status to local_deliveries.
+      // Tracks RTS verification state. Note: this handles duplicate cases
+      // caused by hot-reload interruptions during previous DB upgrade runs.
+      final cols = await db.rawQuery('PRAGMA table_info(local_deliveries)');
+      final hasRtsStatus = cols.any((c) => c['name'] == 'rts_verification_status');
+      if (!hasRtsStatus) {
+        await db.execute(
+          "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
+        );
+      }
     }
   }
 

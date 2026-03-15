@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -272,80 +273,94 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       }
                     : null,
               ),
-              const Divider(height: 1, indent: 16),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: Colors.teal.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.history_rounded,
-                            color: Colors.teal,
-                            size: 18,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Sync history',
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              Text(
-                                'How long synced updates are kept before auto-removal.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  height: 1.4,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      child: SegmentedButton<int>(
-                        showSelectedIcon: false,
-                        segments: const [
-                          ButtonSegment(value: 1, label: Text('1 day')),
-                          ButtonSegment(value: 3, label: Text('3 days')),
-                          ButtonSegment(value: 5, label: Text('5 days')),
-                        ],
-                        selected: {_syncRetentionDays},
-                        style: ButtonStyle(
-                          textStyle: WidgetStateProperty.all(
-                            const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
+
+              // show this on debug mode only
+              if (kDebugMode) ...[
+                const Divider(height: 1, indent: 16),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.teal.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.history_rounded,
+                              color: Colors.teal,
+                              size: 18,
                             ),
                           ),
-                        ),
-                        onSelectionChanged: (val) async {
-                          await ref
-                              .read(appSettingsProvider)
-                              .setSyncRetentionDays(val.first);
-                          setState(() => _syncRetentionDays = val.first);
-                          _showSettingsUpdated();
-                        },
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Sync history',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  'How long synced updates are kept before auto-removal.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    height: 1.4,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<int>(
+                          showSelectedIcon: false,
+                          segments: const [
+                            ButtonSegment(value: 1, label: Text('1 day')),
+                            ButtonSegment(value: 3, label: Text('3 days')),
+                            ButtonSegment(value: 5, label: Text('5 days')),
+                          ],
+                          selected: {_syncRetentionDays},
+                          style: ButtonStyle(
+                            textStyle: WidgetStateProperty.all(
+                              const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          onSelectionChanged: (val) async {
+                            final confirmed = await ConfirmationDialog.show(
+                              context,
+                              title: 'Update Retention Period?',
+                              subtitle:
+                                  'This changes how long offline sync history is kept on this device. Are you sure you want to change it?',
+                              confirmLabel: 'Update',
+                              cancelLabel: 'Cancel',
+                            );
+                            if (confirmed != true || !mounted) return;
+
+                            await ref
+                                .read(appSettingsProvider)
+                                .setSyncRetentionDays(val.first);
+                            setState(() => _syncRetentionDays = val.first);
+                            _showSettingsUpdated();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
           const SizedBox(height: 24),

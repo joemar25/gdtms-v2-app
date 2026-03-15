@@ -127,44 +127,30 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
   }
 
   String? _defaultDate() {
-    // Determine the max date available in the breakdown
-    String? maxDate;
-    if (widget.dailyBreakdown.isNotEmpty) {
-      final dates = widget.dailyBreakdown
-          .map((e) => e['date'] as String?)
-          .whereType<String>()
-          .toList()
-        ..sort();
-      if (dates.isNotEmpty) {
-        maxDate = dates.last;
-      }
-    }
-
-    if (maxDate != null) {
-      return maxDate;
-    }
-
-    // Fall back to referenceDate or today if no values
-    return _toDateStr(widget.referenceDate ?? DateTime.now());
+    // Determine the anchor date (Today or referenceDate)
+    final anchor = widget.referenceDate ?? DateTime.now();
+    return _toDateStr(anchor);
   }
 
   // ── Formatters ────────────────────────────────────────────────────────────
 
   String _dayLabel(String d) {
     try {
-      return DateFormat('EEE').format(DateTime.parse(d)).toUpperCase();
+      final dt = DateTime.parse(d);
+      return '${DateFormat('MMM').format(dt)} ${DateFormat('d').format(dt)}';
     } catch (_) {
       return '';
     }
   }
 
-  String _dayNum(String d) {
+  String _dayYear(String d) {
     try {
-      return DateTime.parse(d).day.toString();
+      return DateFormat('yyyy').format(DateTime.parse(d));
     } catch (_) {
-      return d;
+      return '';
     }
   }
+
 
   String _dateHeader(String d) {
     try {
@@ -181,8 +167,16 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
 
   int _countFor(String dateStr, Map<String, Map<String, dynamic>> index) {
     final d = index[dateStr];
-    final raw = d?['delivery_count'] ?? d?['count'] ?? 0;
-    return (raw as num).toInt();
+    
+    // Fall back to list length if count fields are missing or zero but list has items.
+    // This is crucial for history items that might not have explicit count metadata.
+    final list = d?['deliveries'] as List?;
+    if (list != null && list.isNotEmpty) return list.length;
+
+    final fromCount = d?['delivery_count'] ?? d?['count'];
+    if (fromCount != null) return (fromCount as num).toInt();
+    
+    return 0;
   }
 
   @override
@@ -214,19 +208,22 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
     // In dataMode, only tiles that have data are shown (no virtual empties).
     final List<DateTime> allDates;
     if (widget.dataMode) {
-      allDates = widget.dailyBreakdown
+      final parsedDates = widget.dailyBreakdown
           .map((d) => d['date'] as String?)
           .whereType<String>()
           .map((s) {
-            try {
-              return DateTime.parse(s);
-            } catch (_) {
-              return null;
-            }
+            try { return DateTime.parse(s); } catch (_) { return null; }
           })
           .whereType<DateTime>()
-          .toList()
-        ..sort();
+          .toList();
+          
+      // Force include today if it's the requested behavior
+      final today = DateTime.now();
+      final todayNormalized = DateTime(today.year, today.month, today.day);
+      if (!parsedDates.any((d) => d.year == today.year && d.month == today.month && d.day == today.day)) {
+        parsedDates.add(todayNormalized);
+      }
+      allDates = parsedDates..sort();
     } else {
       final anchorDate = widget.referenceDate ?? DateTime.now();
       final anchor =
@@ -252,7 +249,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
       children: [
         // ── Date strip ──────────────────────────────────────────────────────
         SizedBox(
-          height: 72,
+          height: 85,
           child: NotificationListener<ScrollNotification>(
             onNotification: (notif) {
               if (notif is ScrollUpdateNotification && _loadMoreEnabled) {
@@ -354,29 +351,27 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          _dayLabel(dateStr),
+                          _dayYear(dateStr),
                           style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
                             color: selected
                                 ? Colors.white.withValues(alpha: 0.7)
-                                : ColorStyles.subSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _dayNum(dateStr),
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: selected
-                                ? Colors.white
-                                : hasDeliveries
-                                ? primaryText
-                                : ColorStyles.subSecondary,
+                                : ColorStyles.subSecondary.withValues(alpha: 0.7),
                           ),
                         ),
                         const SizedBox(height: 4),
+                        Text(
+                          _dayLabel(dateStr),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: selected
+                                ? Colors.white
+                                : primaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                         Container(
                           width: 6,
                           height: 6,

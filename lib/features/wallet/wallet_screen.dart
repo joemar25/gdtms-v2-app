@@ -70,52 +70,88 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       return;
     }
 
-    // Online: fetch summary and payment preview in parallel.
+    // Online: fetch summary 
     final api = ref.read(apiClientProvider);
-    final results = await Future.wait([
-      api.get<Map<String, dynamic>>('/wallet-summary', parser: parseApiMap),
-      api.get<Map<String, dynamic>>('/payment-request', parser: parseApiMap),
-    ]);
+    final result = await api.get<Map<String, dynamic>>('/wallet-summary', parser: parseApiMap);
 
     // Parse results and persist the full snapshot before the mounted check
     // so the cache is always written even if the user navigated away.
     Map<String, dynamic> newData = cachedData;
     double newEligible = cachedEligible;
 
-    if (results[0] case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      newData = mapFromKey(data, 'data');
+    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
+      final summary = mapFromKey(data, 'data');
+      newData = summary;
+      
+      // Handle tentative_pending_payout
+      final pendingAmount = summary['tentative_pending_payout'];
+      if (pendingAmount != null) {
+        newEligible = double.tryParse('$pendingAmount') ?? 0.0;
+      }
+      
+      // Check if there is already a pending request to prevent duplicate requests
+      final latestRequest = summary['latest_request'];
+      final requestedAt = latestRequest?['requested_at']?.toString() ?? '';
+      bool isToday = false;
+      if (requestedAt.isNotEmpty) {
+        try {
+          final reqDate = DateTime.parse(requestedAt).toLocal();
+          final now = DateTime.now();
+          isToday = reqDate.year == now.year && 
+                    reqDate.month == now.month && 
+                    reqDate.day == now.day;
+        } catch (_) {}
+      }
+      newData['has_existing_request_today'] = 
+          latestRequest != null && latestRequest['status'] == 'pending' && isToday;
     }
 
-    if (results[1] case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      final preview = mapFromKey(data, 'data');
-      newEligible =
-          double.tryParse('${preview['estimated_net_payable'] ?? 0}') ?? 0.0;
-      // Store has_existing_request_today in the summary data for UI use
-      newData['has_existing_request_today'] = preview['has_existing_request_today'] ?? false;
-    }
-
-    // ── Payout request history (from wallet-summary.payment_requests) ────
+    // ── Payout request history (from wallet-summary.payout_history.data) ────
     List<Map<String, dynamic>> historyBreakdown = [];
-    String? initialHistoryDate;
     {
+      final historyWrapper = newData['payout_history'] as Map<String, dynamic>?;
       final rawList =
-          (newData['payment_requests'] as List?)
+          (historyWrapper?['data'] as List?)
               ?.whereType<Map<String, dynamic>>()
               .toList() ??
           [];
-      historyBreakdown = rawList.map((req) {
-        final raw =
-            req['requested_at']?.toString() ??
+
+      // Group requests by date so DateStrip can show a single tile for multiple requests/day.
+      final grouped = <String, List<Map<String, dynamic>>>{};
+      for (final req in rawList) {
+        final dateField = req['date']?.toString();
+        final raw = dateField ??
+            req['from_date']?.toString() ??
             req['created_at']?.toString() ??
+            req['requested_at']?.toString() ??
             '';
-        final dateStr = raw.contains('T')
-            ? raw.split('T').first
-            : (raw.contains(' ') ? raw.split(' ').first : raw);
+        
+        String dateStr;
+        if (raw.isNotEmpty) {
+          dateStr = raw.contains('T')
+              ? raw.split('T').first
+              : (raw.contains(' ') ? raw.split(' ').first : raw);
+        } else {
+          dateStr = req['reference']?.toString() ?? 'Recent';
+        }
+        
+        grouped.putIfAbsent(dateStr, () => []).add(req);
+      }
+
+      historyBreakdown = grouped.entries.map((e) {
+        final dateStr = e.key;
+        final requests = e.value;
+        
+        double dayTotal = 0;
+        for (final r in requests) {
+          dayTotal += double.tryParse('${r['amount'] ?? 0}') ?? 0.0;
+        }
+        
         return <String, dynamic>{
           'date': dateStr,
-          'deliveries': [req],
-          'delivery_count': 1,
-          'day_total': double.tryParse('${req['amount'] ?? 0}') ?? 0.0,
+          'deliveries': requests,
+          'day_total': dayTotal,
+          'delivery_count': requests.length,
         };
       }).toList();
     }
@@ -131,7 +167,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     _data = newData;
     _eligible = newEligible;
     _historyBreakdown = historyBreakdown;
-    _initialHistoryDate = initialHistoryDate;
     _stripKey++;
     setState(() => _loading = false);
   }
@@ -140,7 +175,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
     final earnings = _data['total_earnings'] ?? 0;
-    final pending = _data['tentative_pending_payout'] ?? 0;
+    final tentativePayout = _data['tentative_pending_payout'] ?? 0;
     final latest = _data['latest_request'] ?? {};
     final latestStatus = latest['status']?.toString().toLowerCase() ?? '';
     final isLatestPending = latestStatus == 'pending' ||
@@ -148,6 +183,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         latestStatus == 'ops_approved' ||
         latestStatus == 'hr_approved' ||
         latestStatus == 'approved';
+
+    final pendingRequestAmt = isLatestPending ? (latest['amount'] ?? 0) : 0;
 
     // Use has_existing_request_today from the latest API preview if available
     final hasExistingRequestToday = _data['has_existing_request_today'] == true;
@@ -197,11 +234,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     // ── Earnings card (always shown, pending hidden offline) ─
                     _EarningsCard(
                       earnings: earnings,
-                      pending: pending,
-                      eligible: _eligible,
+                      tentativePayout: tentativePayout,
+                      pendingRequestAmt: pendingRequestAmt,
+                      isLatestPending: isLatestPending,
                       showPending: isOnline,
                       onTap: () =>
-                          _showEarningsDetail(context, earnings, pending),
+                          _showEarningsDetail(context, earnings, tentativePayout, pendingRequestAmt, isLatestPending),
                     ),
 
                     const SizedBox(height: 20),
@@ -221,7 +259,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             ),
                           ),
                         )
-                      else if (isLatestPending && _eligible > 0)
+                      else if (isLatestPending && _eligible > 0 && !hasExistingRequestToday)
                         FilledButton.icon(
                           onPressed: () => context.push(
                             '/wallet/request',
@@ -260,9 +298,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  isLatestPending
-                                      ? 'You have a pending payout request'
-                                      : 'You have already submitted a request today.',
+                                  hasExistingRequestToday
+                                      ? 'You have already submitted a request today. You can consolidate your deliveries tomorrow.'
+                                      : 'You have a pending payout request',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.amber.shade700,
@@ -311,10 +349,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   void _showEarningsDetail(
     BuildContext context,
     dynamic earnings,
-    dynamic pending,
+    dynamic tentativePayout,
+    dynamic pendingRequestAmt,
+    bool isLatestPending,
   ) {
     final earningsAmt = double.tryParse('$earnings') ?? 0.0;
-    final pendingAmt = double.tryParse('$pending') ?? 0.0;
+    final tentativeAmt = double.tryParse('$tentativePayout') ?? 0.0;
+    final pendingAmt = double.tryParse('$pendingRequestAmt') ?? 0.0;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet<void>(
@@ -374,22 +415,22 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   : ColorStyles.tertiary,
             ),
             const SizedBox(height: 12),
-            if (pendingAmt > 0) ...[
+            if (isLatestPending && pendingAmt > 0) ...[
               _EarningsDetailRow(
                 icon: Icons.schedule_rounded,
-                label: 'Pending Payout',
+                label: 'Pending Payment Request',
                 sublabel: 'Submitted, awaiting approval',
                 amount: pendingAmt,
                 color: Colors.orange.shade600,
               ),
               const SizedBox(height: 10),
             ],
-            if (_eligible > 0) ...[
+            if (tentativeAmt > 0) ...[
               _EarningsDetailRow(
                 icon: Icons.arrow_circle_up_rounded,
-                label: 'Upcoming Payout',
+                label: 'Available for Request',
                 sublabel: 'Eligible deliveries this period',
-                amount: _eligible,
+                amount: tentativeAmt,
                 color: ColorStyles.grabGreen,
               ),
               const SizedBox(height: 10),
@@ -411,21 +452,26 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 class _EarningsCard extends StatelessWidget {
   const _EarningsCard({
     required this.earnings,
-    required this.pending,
-    this.eligible = 0.0,
+    required this.tentativePayout,
+    this.pendingRequestAmt = 0.0,
+    this.isLatestPending = false,
     this.showPending = true,
     this.onTap,
   });
 
   final dynamic earnings;
-  final dynamic pending;
-  final double eligible;
+  final dynamic tentativePayout;
+  final dynamic pendingRequestAmt;
+  final bool isLatestPending;
   final bool showPending;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final pendingAmt = double.tryParse('$pending') ?? 0.0;
+    final tentativeAmt = double.tryParse('$tentativePayout') ?? 0.0;
+    final pendingAmt = double.tryParse('$pendingRequestAmt') ?? 0.0;
+    final displayAmt = isLatestPending ? pendingAmt : tentativeAmt;
+    final displayLabel = isLatestPending ? 'Pending Payment Request' : 'Available for Request';
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -451,17 +497,17 @@ class _EarningsCard extends StatelessWidget {
             // AFTER
 Row(
   children: [
-    const Icon(Icons.schedule_rounded, color: Colors.white70, size: 18),
+    Icon(isLatestPending ? Icons.schedule_rounded : Icons.account_balance_wallet_rounded, color: Colors.white70, size: 18),
     const SizedBox(width: 6),
-    const Text(
-      'Pending Payment Request',
-      style: TextStyle(color: Colors.white70, fontSize: 13),
+    Text(
+      displayLabel,
+      style: const TextStyle(color: Colors.white70, fontSize: 13),
     ),
   ],
 ),
 const SizedBox(height: 6),
 Text(
-  '₱ ${_fmt(pending)}',
+  '₱ ${_fmt(displayAmt)}',
   style: const TextStyle(
     color: Colors.white,
     fontSize: 34,
@@ -477,12 +523,12 @@ Text(
 ),
 
             // ── Pending payout rows — online only ─────────────────────────
-            if (showPending && eligible > 0) ...[
+            if (showPending && isLatestPending && tentativeAmt > 0) ...[
   const SizedBox(height: 14),
   _payoutRow(
     icon: Icons.arrow_circle_up_rounded,
     label: 'Accumulated for next request',
-    amount: _fmt(eligible),
+    amount: _fmt(tentativeAmt),
   ),
 ],
 
@@ -564,7 +610,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
         ? ((from == to || to == '—') ? from : '$from \u2013 $to')
         : formatDate('${data['requested_at'] ?? data['created_at'] ?? ''}');
     final paidAt = formatDate('${data['paid_at'] ?? ''}');
-    final totalItems = data['total_items'];
+    final totalItems = data['total_items'] ?? data['delivery_count'];
 
     return Card(
       elevation: 0,
@@ -599,18 +645,19 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _InfoChip(
-                    icon: Icons.calendar_today_outlined,
-                    label: dateLabel,
-                  ),
-                  if (totalItems != null) ...[
+                  if (dateLabel != '—') ...[
+                    _InfoChip(
+                      icon: Icons.calendar_today_outlined,
+                      label: dateLabel,
+                    ),
                     const SizedBox(width: 10),
+                  ],
+                  if (totalItems != null) ...[
                     _InfoChip(
                       icon: Icons.inventory_2_outlined,
                       label: '$totalItems items',
                     ),
                   ] else if (paidAt != '—') ...[
-                    const SizedBox(width: 10),
                     _InfoChip(icon: Icons.payments_outlined, label: paidAt),
                   ],
                   const Spacer(),

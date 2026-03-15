@@ -111,12 +111,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     final from = formatDate('${_data['from_date'] ?? ''}');
     final to = formatDate('${_data['to_date'] ?? ''}');
     final periodLabel = (from == to) ? from : '$from – $to';
-    final requestedAt = formatDate(
-      '${_data['requested_at'] ?? ''}',
-      includeTime: true,
-    );
-    final approvedAt = formatDate(_data['approved_at'], includeTime: true);
-    final paidAt = formatDate('${_data['paid_at'] ?? ''}', includeTime: true);
     final totalItems = _data['total_items'];
     final breakdown = asStringDynamicMap(_data['breakdown']);
     final transactionHistory =
@@ -171,7 +165,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
 
                   // ── Status History ───────────────────────────────────────
                   _SectionCard(
-                    title: 'Status History', trailing: transactionHistory.isNotEmpty
+                    title: 'Status History',
+                    trailing: transactionHistory.isNotEmpty
                         ? TextButton(
                             onPressed: () => _showTransactionHistory(
                               context,
@@ -179,14 +174,22 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                             ),
                             child: const Text('View all'),
                           )
-                        : null,                    children: [
-                      _buildHorizontalStepper(
-                        context,
-                        status,
-                        requestedAt,
-                        approvedAt,
-                        paidAt,
-                      ),
+                        : null,
+                    children: [
+                      // User feedback: "it should be dynamic or just remove it"
+                      // Removing the horizontal stepper to simplify the UI.
+                      if (transactionHistory.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            'Click "View all" for full transition history.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
 
@@ -226,7 +229,11 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
               )
               .toList() ??
           [];
-      return <String, dynamic>{...day, 'deliveries': deliveries};
+      return <String, dynamic>{
+        ...day,
+        'deliveries': deliveries,
+        'delivery_count': deliveries.length, // Ensure volume is available for the tiles
+      };
     }).toList();
   }
 
@@ -478,20 +485,37 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
 
     final s = status.toLowerCase();
     
+    // Extract real timestamps from transaction history if top-level fields are missing
+    final history = (_data['transaction_history'] as List?)
+        ?.whereType<Map<String, dynamic>>()
+        .toList() ?? [];
+
+    String? findTs(String event) {
+      final item = history.lastWhere(
+        (e) => e['event']?.toString() == event,
+        orElse: () => {},
+      );
+      return item['timestamp']?.toString();
+    }
+
+    final reqTs = formatDate(findTs('submitted') ?? req, includeTime: true);
+    final opsTs = formatDate(findTs('ops_approved') ?? findTs('approved') ?? app, includeTime: true);
+    final paidTs = formatDate(findTs('paid') ?? findTs('payment_released') ?? paid, includeTime: true);
+
     // Status Lifecycle: Submitted (Pending) -> Operations Approved -> HR Processing -> Paid
     final steps = [
-      {'title': 'Submitted', 'date': req, 'done': true}, // Always done if we are here
+      {'title': 'Submitted', 'date': reqTs, 'done': true},
       {
         'title': 'Ops Approved', 
-        'date': (isDone(app) && s != 'pending') ? app : '', 
-        'done': s == 'ops_approved' || s == 'hr_approved' || s == 'paid'
+        'date': (opsTs != '—') ? opsTs : '', 
+        'done': s == 'ops_approved' || s == 'hr_approved' || s == 'paid' || s == 'processing'
       },
       {
         'title': 'HR Processing', 
-        'date': '', // API doesn't seem to provide a specific hr_approved_at yet
+        'date': '', 
         'done': s == 'hr_approved' || s == 'paid'
       },
-      {'title': 'Paid', 'date': paid, 'done': s == 'paid'},
+      {'title': 'Paid', 'date': paidTs, 'done': s == 'paid'},
     ];
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -882,16 +906,14 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    e.key == 'coordinator_incentive' 
-                        ? 'Coordinator Incentive (for debug only)' 
-                        : _formatKey(e.key),
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                      fontWeight: FontWeight.w500,
+                    Text(
+                      _formatKey(e.key),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
                   Text(
                     '${isDeduction ? '-' : ''}₱ ${val.abs().toStringAsFixed(2)}',
                     style: TextStyle(

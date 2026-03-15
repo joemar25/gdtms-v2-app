@@ -43,7 +43,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: (context, state) {
       final auth = ref.read(authProvider);
-      final locationState = ref.watch(locationProvider);
+      final locationState = ref.read(locationProvider);
       
       final path = state.uri.path;
       final isAuthRoute =
@@ -59,8 +59,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // ── GLOBAL GEOLOCATION GUARD ──
       // If authenticated, we MUST have a working GPS / permission state.
-      // Exception: Splash screen where initial routing/loading happens
-      if (path != '/splash') {
+      // Exception: Splash screen where initial routing/loading happens.
+      // Exception: /update screens — camera usage briefly pauses the app so
+      //   the GPS provider may report 'not ready'; skipping the redirect here
+      //   keeps the form mounted and prevents losing photos / typed data.
+      final isUpdateRoute = path.contains('/update');
+      if (path != '/splash' && !isUpdateRoute) {
         if (!locationState.isReady) {
           if (path != '/location-required') {
             return '/location-required';

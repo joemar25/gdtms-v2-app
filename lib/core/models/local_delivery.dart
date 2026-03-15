@@ -23,6 +23,7 @@ class LocalDelivery {
     this.serverUpdatedAt,
     this.syncStatus = 'clean',
     this.isArchived = false,
+    this.rtsVerificationStatus = 'unvalidated',
   });
 
   final int? id;
@@ -51,6 +52,8 @@ class LocalDelivery {
   final String syncStatus;
   /// True if missing from server list
   final bool isArchived;
+  /// RTS verification: 'unvalidated', 'verified_with_pay', 'verified_no_pay'
+  final String rtsVerificationStatus;
 
   // ── Factories ─────────────────────────────────────────────────────────────
 
@@ -93,6 +96,7 @@ class LocalDelivery {
           : null,
       syncStatus: 'clean',
       isArchived: false,
+      rtsVerificationStatus: _str(json, 'rts_verification_status') ?? 'unvalidated',
     );
   }
 
@@ -157,6 +161,7 @@ class LocalDelivery {
       serverUpdatedAt: _dateMs(json, 'updated_at'),
       syncStatus: 'clean',
       isArchived: false,
+      rtsVerificationStatus: _str(json, 'rts_verification_status') ?? 'unvalidated',
     );
   }
 
@@ -180,6 +185,7 @@ class LocalDelivery {
       serverUpdatedAt: row['server_updated_at'] as int?,
       syncStatus: row['sync_status'] as String? ?? 'clean',
       isArchived: (row['is_archived'] as int? ?? 0) == 1,
+      rtsVerificationStatus: row['rts_verification_status'] as String? ?? 'unvalidated',
     );
   }
 
@@ -203,6 +209,7 @@ class LocalDelivery {
     if (serverUpdatedAt != null) 'server_updated_at': serverUpdatedAt,
     'sync_status': syncStatus,
     'is_archived': isArchived ? 1 : 0,
+    'rts_verification_status': rtsVerificationStatus,
   };
 
   /// Decodes [rawJson] back into the delivery map consumed by UI widgets
@@ -229,6 +236,7 @@ class LocalDelivery {
     int? serverUpdatedAt,
     String? syncStatus,
     bool? isArchived,
+    String? rtsVerificationStatus,
   }) {
     return LocalDelivery(
       id: id,
@@ -248,6 +256,7 @@ class LocalDelivery {
       serverUpdatedAt: serverUpdatedAt ?? this.serverUpdatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       isArchived: isArchived ?? this.isArchived,
+      rtsVerificationStatus: rtsVerificationStatus ?? this.rtsVerificationStatus,
     );
   }
 

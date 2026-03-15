@@ -299,6 +299,13 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
   String _str(String key) => _delivery[key]?.toString().trim() ?? '';
 
+  bool get _isRtsLocked {
+    final status = _str('delivery_status').toLowerCase();
+    if (status != 'rts') return false;
+    final rtsStatus = _delivery['rts_verification_status']?.toString() ?? 'unvalidated';
+    return rtsStatus == 'verified_with_pay' || rtsStatus == 'verified_no_pay';
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<int>(deliveryRefreshProvider, (_, __) => _load());
@@ -374,7 +381,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               ),
       ),
       // RULE: If status is 'osa', do not ever show update status button here
-      bottomNavigationBar: (status == 'pending' || status == 'rts')
+      // NEW RULE: If status is 'rts' and already verified, hide the button.
+      bottomNavigationBar: ((status == 'pending' || status == 'rts') && !_isRtsLocked)
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
