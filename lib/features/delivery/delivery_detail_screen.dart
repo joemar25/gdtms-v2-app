@@ -14,6 +14,7 @@ import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 
 /// Shows a bottom action sheet listing available communication apps for a phone number.
 /// When [messageTemplate] is provided it is pre-filled as the message body
@@ -641,16 +642,13 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     final isDelivered = _str('delivery_status').toLowerCase() == 'delivered';
     final showMedia = !isDelivered || kAppDebugMode;
 
-    // Relationship transformation
+    // Relationship transformation: resolve stored value to its display label.
     if (relationship.isNotEmpty) {
-      // If self, transform to Owner
-      if (relationship.toLowerCase() == 'self') {
-        relationship = 'Owner';
-      } else {
-        // Capitalize first letter
-        relationship =
-            relationship[0].toUpperCase() + relationship.substring(1);
-      }
+      final match = kRelationshipOptions.firstWhere(
+        (e) => e['value']!.toUpperCase() == relationship.toUpperCase(),
+        orElse: () => {},
+      );
+      relationship = match['label'] ?? relationship;
       // Append placement type if available
       if (placementType.isNotEmpty) {
         relationship = '$relationship ($placementType)';

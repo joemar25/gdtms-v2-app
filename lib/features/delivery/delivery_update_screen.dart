@@ -362,6 +362,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (_reason == null || _reason!.isEmpty) {
         _errors['reason'] = 'Reason is required.';
       }
+      if (_selfiePhoto == null) {
+        _errors['selfie_photo'] = 'Selfie photo is required.';
+      }
     }
 
     setState(() {});
@@ -964,7 +967,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             _recipient.text = name;
                             setState(() {
                               _relationship = relationship;
-                              _recipientIsOwner = relationship == 'self';
+                              _recipientIsOwner = relationship == 'OWNER';
                               _errors.remove('recipient');
                               _errors.remove('relationship');
                             });
@@ -1037,7 +1040,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                           items: kRelationshipOptions
                               .where(
                                 (e) =>
-                                    _recipientIsOwner || e['value'] != 'self',
+                                    _recipientIsOwner || e['value'] != 'OWNER',
                               )
                               .map(
                                 (e) => DropdownMenuItem(
@@ -1124,46 +1127,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             ),
                           ],
                         ),
-                        if (_errors['pod_photo'] != null ||
-                            _errors['selfie_photo'] != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (_errors['pod_photo'] != null)
-                                  Text(
-                                    _errors['pod_photo']!,
-                                    style: const TextStyle(
-                                      color: Colors.red,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                if (_errors['selfie_photo'] != null)
-                                  Text(
-                                    _errors['selfie_photo']!,
-                                    style: const TextStyle(
-                                      color: Colors.red,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-
                         const SizedBox(height: 12), // was 10
                         _buildSignatureSlot(isDark),
-                        if (_errors['recipient_signature'] != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              _errors['recipient_signature']!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
                       ],
 
                       // ── SELFIE PHOTO (rts / osa) ──────────────────────────────

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Renders quick-tap cards for the consignee (recipient) and authorized rep.
 ///
 /// [onSelectRecipient] is called with the tapped person's name and a
-/// relationship hint: `'self'` for the primary recipient, `null` for the
+/// relationship hint: `'OWNER'` for the primary recipient, `null` for the
 /// authorized rep (relationship stays unchanged by the caller).
 class DeliveryRecipientCards extends StatelessWidget {
   const DeliveryRecipientCards({
@@ -16,9 +16,10 @@ class DeliveryRecipientCards extends StatelessWidget {
   final String recipientName;
   final String authorizedRep;
 
-  /// Called with `(name, relationship?)`.  Relationship is `null` when the
-  /// authorized-rep card is tapped — callers should reset the relationship
-  /// field to blank (null) so the user must choose a relationship manually.
+  /// Called with `(name, relationship?)`.  Relationship is `'OWNER'` when the
+  /// recipient card is tapped, and `null` when the authorized-rep card is tapped
+  /// — callers should reset the relationship field to blank (null) so the user
+  /// must choose a relationship manually.
   final void Function(String name, String? relationship) onSelectRecipient;
 
   @override
@@ -28,7 +29,7 @@ class DeliveryRecipientCards extends StatelessWidget {
       children: [
         if (recipientName.isNotEmpty)
           GestureDetector(
-            onTap: () => onSelectRecipient(recipientName, 'self'),
+            onTap: () => onSelectRecipient(recipientName, 'OWNER'),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
