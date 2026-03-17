@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 /// A delivery record stored locally in SQLite after dispatch acceptance.
 ///
@@ -106,9 +107,15 @@ class LocalDelivery {
   /// Handles both the eligibility-response field names (`barcode_value`, `name`,
   /// `address`, `product`) and the delivery-API field names (`barcode`,
   /// `recipient_name`, `delivery_address`, `mail_type`).
+  ///
+  /// [serverStatus] — the status bucket this item was fetched from (e.g.
+  /// `'delivered'`, `'rts'`). Used as a fallback when the API item does not
+  /// include its own `delivery_status` field, ensuring timestamps are computed
+  /// correctly even when the server omits the field from list responses.
   factory LocalDelivery.fromApiItem(
     Map<String, dynamic> json, {
     String dispatchCode = '',
+    String serverStatus = '',
   }) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final barcode =
@@ -117,13 +124,25 @@ class LocalDelivery {
         _str(json, 'tracking_number') ??
         '';
 
-    final status = _str(json, 'delivery_status') ?? 'pending';
+    // serverStatus is the endpoint bucket we fetched from ('pending', 'delivered',
+    // 'rts', 'osa'). Use it as the primary status — the API sometimes returns an
+    // internal delivery_status value that differs from our local taxonomy (e.g.
+    // 'for_delivery', 'completed'). Fall back to the JSON field only when no
+    // serverStatus is provided (e.g. the per-barcode reconciliation path).
+    final status = serverStatus.isNotEmpty
+        ? serverStatus
+        : (_str(json, 'delivery_status') ?? 'pending');
+    debugPrint('[fromApiItem] barcode=${_str(json, 'barcode_value') ?? _str(json, 'barcode')} '
+        'json.delivery_status=${json['delivery_status']} → status=$status serverStatus=$serverStatus');
 
     // Derive deliveredAt from server-provided date fields when available.
+    // Only use delivered_date — transaction_at is the package creation date
+    // (assigned at dispatch time) and must NOT be used as a fallback because
+    // it would set delivered_at to a past date, causing the today-filter in
+    // countVisibleDelivered / getVisibleDeliveredPaged to exclude the item.
     int? deliveredAt;
     if (status == 'delivered') {
-      final dateStr =
-          _str(json, 'delivered_date') ?? _str(json, 'transaction_at');
+      final dateStr = _str(json, 'delivered_date');
       if (dateStr != null) {
         try {
           deliveredAt = DateTime.parse(dateStr).millisecondsSinceEpoch;
@@ -153,8 +172,15 @@ class LocalDelivery {
       rawJson: jsonEncode(json),
       createdAt: now,
       updatedAt: now,
-      // Sentinel 1ms = "paid historically" — shows PAID badge, excluded from
-      // the today-visible delivered list until next-day cleanup applies.
+      // mar-note: paid_at sentinel values:
+      //   NULL / 0  → not yet paid; shows in dashboard + delivery list.
+      //   1 (sentinel) → server reports is_paid=true but no local payout yet;
+      //                   EXCLUDED from dashboard/list counts; PAID badge shown.
+      //   >1 (real ms) → locally confirmed paid via payout request;
+      //                   EXCLUDED from all dashboard/list/search views;
+      //                   deleted after kPaidDeliveryRetentionDays (1 day).
+      // Any COALESCE(paid_at,0) > 0 means the record is considered paid and
+      // must not appear in visible-delivered counts or scan results.
       paidAt: (json['is_paid'] as bool? ?? false) ? 1 : null,
       deliveredAt: deliveredAt,
       completedAt: completedAt,

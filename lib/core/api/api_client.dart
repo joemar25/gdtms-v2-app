@@ -214,13 +214,17 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     required T Function(dynamic) parser,
   }) async {
+    final qStr = queryParameters != null ? ' $queryParameters' : '';
+    debugPrint('[API] GET $path$qStr');
     try {
       final response = await _dio.get<dynamic>(
         path,
         queryParameters: queryParameters,
       );
+      debugPrint('[API] GET $path → ${response.statusCode}');
       return _mapResponse<T>(response, parser);
     } catch (e) {
+      debugPrint('[API] GET $path ERROR: $e');
       return _mapError<T>(e);
     }
   }

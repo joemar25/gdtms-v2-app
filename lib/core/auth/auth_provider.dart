@@ -10,21 +10,25 @@ class AuthState {
     required this.isAuthenticated,
     required this.themeMode,
     this.courier,
+    this.initialSyncCompleted = false,
   });
 
   final bool isAuthenticated;
   final ThemeMode themeMode;
   final Map<String, dynamic>? courier;
+  final bool initialSyncCompleted;
 
   AuthState copyWith({
     bool? isAuthenticated,
     ThemeMode? themeMode,
     Map<String, dynamic>? courier,
+    bool? initialSyncCompleted,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       themeMode: themeMode ?? this.themeMode,
       courier: courier ?? this.courier,
+      initialSyncCompleted: initialSyncCompleted ?? this.initialSyncCompleted,
     );
   }
 }
@@ -52,11 +56,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final courierFuture = _authStorage.getCourier();
     final themeModeFuture = _settings.getThemeMode();
     final lastCourierIdFuture = _authStorage.getLastCourierId();
+    final initialSyncFuture = _authStorage.isInitialSyncCompleted();
 
     final isAuth = await isAuthFuture;
     final courier = await courierFuture;
     final themeMode = await themeModeFuture;
     final lastCourierId = await lastCourierIdFuture;
+    final initialSync = await initialSyncFuture;
 
     if (isAuth && courier != null) {
       final currentCourierId = courier['id']?.toString() ?? '';
@@ -72,6 +78,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isAuthenticated: isAuth,
       courier: courier,
       themeMode: themeMode,
+      initialSyncCompleted: initialSync,
     );
   }
 
@@ -80,9 +87,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isAuthenticated: true, courier: courier);
   }
 
+  Future<void> markInitialSyncCompleted() async {
+    await _authStorage.setInitialSyncCompleted(true);
+    state = state.copyWith(initialSyncCompleted: true);
+  }
+
   Future<void> clearAuth() async {
     await _authStorage.clearAll();
-    state = state.copyWith(isAuthenticated: false, courier: null);
+    state = state.copyWith(
+      isAuthenticated: false,
+      courier: null,
+      initialSyncCompleted: false,
+    );
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {

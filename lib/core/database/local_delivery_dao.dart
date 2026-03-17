@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:fsi_courier_app/core/database/app_database.dart';
@@ -67,7 +68,12 @@ class LocalDeliveryDao {
     Map<String, dynamic> json,
   ) async {
     final db = await _db;
-    final status = json['delivery_status']?.toString() ?? 'pending';
+    // Always lowercase — server returns UPPERCASE (e.g. 'DELIVERED').
+    // All DAO queries filter on lowercase values; storing uppercase makes
+    // the record invisible to countVisibleDelivered / getVisibleDeliveredPaged
+    // until the next syncFromApi pass overwrites it.
+    final status =
+        (json['delivery_status']?.toString() ?? 'pending').toLowerCase();
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // Parse is_paid from the fresh API response (v2.0 field).
@@ -78,6 +84,11 @@ class LocalDeliveryDao {
     final existing = await getByBarcode(barcode);
     final existingJson = existing?.toDeliveryMap() ?? {};
     final mergedJson = {...existingJson, ...json};
+
+    // Parse rts_verification_status from fresh API response.
+    final rtsVerifStatus =
+        json['rts_verification_status']?.toString() ??
+        existing?.rtsVerificationStatus;
 
     await db.update(
       'local_deliveries',
@@ -95,6 +106,11 @@ class LocalDeliveryDao {
         'updated_at': now,
         if (status == 'delivered' || status == 'rts' || status == 'osa')
           'completed_at': now,
+        // Server confirmed this record — mark clean so insertAllFromApiItems
+        // no longer treats it as a dirty/unsynced courier update.
+        'sync_status': 'clean',
+        if (rtsVerifStatus != null)
+          'rts_verification_status': rtsVerifStatus,
       },
       where: 'barcode = ?',
       whereArgs: [barcode],
@@ -113,9 +129,10 @@ class LocalDeliveryDao {
     // fall back to transaction_at, then now. COALESCE keeps the earlier value
     // on subsequent syncs so the timestamp is never overwritten.
     if (status == 'delivered') {
-      final dateStr =
-          json['delivered_date']?.toString() ??
-          json['transaction_at']?.toString();
+      // Only use delivered_date — transaction_at is the package creation date,
+      // not the delivery completion date. Using it would push delivered_at
+      // to a past date and exclude the item from the today-filter.
+      final dateStr = json['delivered_date']?.toString();
       int deliveredAt = now;
       if (dateStr != null && dateStr.isNotEmpty) {
         try {
@@ -155,6 +172,7 @@ class LocalDeliveryDao {
     String dispatchCode = '',
     String serverStatus = 'pending',
   }) async {
+    debugPrint('[DAO] insertAllFromApiItems: ${items.length} items, status=$serverStatus');
     final db = await _db;
 
     // Collect all local records so we can decide what to do per-item.
@@ -178,6 +196,7 @@ class LocalDeliveryDao {
       final delivery = LocalDelivery.fromApiItem(
         json,
         dispatchCode: dispatchCode,
+        serverStatus: serverStatus,
       );
       if (delivery.barcode.isEmpty) continue;
 
@@ -188,9 +207,9 @@ class LocalDeliveryDao {
           localStatus != null && terminalStatuses.contains(localStatus);
       final isServerTerminal = terminalStatuses.contains(serverStatus);
 
-      if (isDirty || (isLocalTerminal && !isServerTerminal)) {
-        // Rule: Never overwrite status of dirty deliveries.
-        // Rule: Never downgrade a terminal local record to pending.
+      if (isDirty) {
+        // Rule: Never overwrite status of dirty (unsynced courier update).
+        // Clean terminal records CAN be updated by the server (e.g. web admin correction).
         // Only correct timestamps if available.
         if (delivery.deliveredAt != null || delivery.completedAt != null) {
           batch.update(
@@ -221,6 +240,9 @@ class LocalDeliveryDao {
               'delivered_at': delivery.deliveredAt,
             if (delivery.completedAt != null)
               'completed_at': delivery.completedAt,
+            // Always refresh so pay-status badge stays current without
+            // requiring a full re-insert (ConflictAlgorithm.ignore skips it).
+            'rts_verification_status': delivery.rtsVerificationStatus,
           },
           where: 'barcode = ?',
           whereArgs: [delivery.barcode],
@@ -246,6 +268,8 @@ class LocalDeliveryDao {
     }
 
     await batch.commit(noResult: true);
+    final totalRows = await db.rawQuery('SELECT COUNT(*) as c FROM local_deliveries');
+    debugPrint('[DAO] insertAllFromApiItems done — total rows in DB: ${totalRows.first['c']}');
   }
 
   // ── Read ──────────────────────────────────────────────────────────────────────────────
@@ -259,6 +283,14 @@ class LocalDeliveryDao {
       where: 'delivery_status = ? AND COALESCE(is_archived, 0) = 0',
       whereArgs: [status],
     );
+    if (status == 'pending') {
+      // Diagnostic: dump distinct statuses and archived counts to trace pending=0.
+      final dist = await db.rawQuery(
+        "SELECT delivery_status, COALESCE(is_archived,0) as arch, COUNT(*) as n "
+        "FROM local_deliveries GROUP BY delivery_status, arch",
+      );
+      debugPrint('[DAO] countByStatus(pending)=${rows.length} — breakdown: $dist');
+    }
     return rows.length;
   }
 
@@ -356,6 +388,9 @@ class LocalDeliveryDao {
   }
 
   /// Paginated variant of [getVisibleDelivered].
+  ///
+  /// mar-note: paid items (paid_at > 0) are intentionally excluded.
+  /// See [kPaidDeliveryRetentionDays] for the full security/anti-fraud rationale.
   Future<List<LocalDelivery>> getVisibleDeliveredPaged({
     int limit = 30,
     int offset = 0,
@@ -371,6 +406,10 @@ class LocalDeliveryDao {
       where:
           "delivery_status = 'delivered' "
           'AND delivered_at >= ? AND delivered_at < ? '
+          // mar-note: exclude paid records — COALESCE(paid_at,0) > 0 means
+          // sentinel (1) or real paid timestamp; both must be hidden from
+          // the courier's list to prevent double-payout manipulation.
+          'AND COALESCE(paid_at, 0) = 0 '
           'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
       orderBy: 'delivered_at DESC, created_at DESC',
@@ -402,6 +441,11 @@ class LocalDeliveryDao {
             "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
             'AND delivery_status = ? '
             'AND completed_at >= ? AND completed_at < ? '
+            // mar-note: for 'delivered' search results, paid records are hidden
+            // (COALESCE(paid_at,0)>0). For rts/osa paid_at is always NULL so
+            // this filter is a no-op on those statuses — no risk of excluding
+            // valid rts/osa items.
+            'AND COALESCE(paid_at, 0) = 0 '
             'AND COALESCE(is_archived, 0) = 0',
         whereArgs: [q, q, status, todayStart, tomorrowStart],
         orderBy: 'completed_at DESC, created_at DESC',
@@ -459,6 +503,11 @@ class LocalDeliveryDao {
   ///
   /// Strictly bounded to [todayStart, tomorrowStart) so only deliveries
   /// with an actual delivery date of today are shown.
+  ///
+  /// mar-note: paid records (COALESCE(paid_at,0) > 0) are excluded.
+  /// Once a payout is confirmed the delivered record has a 1-day lifespan
+  /// and must not resurface in the list — prevents couriers from re-claiming
+  /// or referencing already-paid deliveries.
   Future<List<LocalDelivery>> getVisibleDelivered() async {
     final db = await _db;
     final now = DateTime.now();
@@ -471,6 +520,7 @@ class LocalDeliveryDao {
       where:
           "delivery_status = 'delivered' "
           'AND delivered_at >= ? AND delivered_at < ? '
+          'AND COALESCE(paid_at, 0) = 0 '
           'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
       orderBy: 'delivered_at DESC, created_at DESC',
@@ -478,9 +528,16 @@ class LocalDeliveryDao {
     return rows.map(LocalDelivery.fromDb).toList();
   }
 
-  /// Returns the count of delivered items whose [completed_at] is today.
-  /// Used by the dashboard offline fallback to match the server's
-  /// today-only [delivered_today] figure.
+  /// Returns the count of delivered items whose [delivered_at] is today AND
+  /// that have NOT yet been paid.
+  ///
+  /// mar-note: the dashboard delivered count reflects work the courier can still
+  /// request payout for. Paid records (paid_at > 0, either sentinel=1 or real
+  /// timestamp) are deliberately excluded:
+  ///   • They already appear in wallet/payout history on the server.
+  ///   • Their local lifespan is kPaidDeliveryRetentionDays (1 day) — showing
+  ///     them in the count would create a phantom number that disappears after
+  ///     cleanup, which could confuse or be exploited by the courier.
   Future<int> countVisibleDelivered() async {
     final db = await _db;
     final now = DateTime.now();
@@ -494,9 +551,18 @@ class LocalDeliveryDao {
       where:
           "delivery_status = 'delivered' "
           'AND delivered_at >= ? AND delivered_at < ? '
+          'AND COALESCE(paid_at, 0) = 0 '
           'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
     );
+    // Log all delivered rows to diagnose date filter issues
+    final allDelivered = await db.rawQuery(
+      "SELECT barcode, delivered_at, completed_at FROM local_deliveries WHERE delivery_status='delivered' LIMIT 5",
+    );
+    debugPrint('[DAO] countVisibleDelivered: ${rows.length} today (todayStart=$todayStart)');
+    for (final r in allDelivered) {
+      debugPrint('[DAO]   barcode=${r['barcode']} delivered_at=${r['delivered_at']} completed_at=${r['completed_at']}');
+    }
     return rows.length;
   }
 
@@ -616,10 +682,14 @@ class LocalDeliveryDao {
   /// Only `delivered`, `rts`, and `osa` records are eligible.
   /// `pending` records are never deleted.
   ///
-  /// Privacy rule — paid deliveries use a shorter window ([paidRetentionMs]):
-  /// once a delivery belongs to a paid payout ([paid_at] IS NOT NULL) it is
-  /// kept for only [kPaidDeliveryRetentionDays] day before deletion, regardless
-  /// of the standard [retentionMs].
+  /// mar-note: TWO separate deletions run here:
+  ///   1. Unpaid completed records older than retentionMs (3 days default).
+  ///   2. Paid records older than paidRetentionMs (1 day).
+  ///
+  /// After either deletion, [getByBarcode] returns null for that barcode.
+  /// This is intentional: a courier scanning or navigating to a paid+expired
+  /// barcode finds nothing — preventing re-submission, double-payout attempts,
+  /// or viewing of the recipient's personal data after the payout is settled.
   Future<int> deleteOldSynced(int retentionMs, {required int paidRetentionMs}) async {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -636,7 +706,9 @@ class LocalDeliveryDao {
       whereArgs: [cutoff],
     );
 
-    // Delete paid records past the shorter paid retention window.
+    // mar-note: paid records use paidCutoff (1-day window) — much shorter than
+    // the unpaid window. This aggressively removes settled deliveries to close
+    // the manipulation window as quickly as possible.
     final countPaid = await db.delete(
       'local_deliveries',
       where:

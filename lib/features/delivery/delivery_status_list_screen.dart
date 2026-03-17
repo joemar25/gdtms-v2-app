@@ -173,6 +173,9 @@ class _DeliveryStatusListScreenState
       base['barcode_value'] = row.barcode;
     }
     if (row.paidAt != null) base['_paid_at'] = row.paidAt;
+    // Always stamp from the model field — raw JSON may lag behind local updates.
+    base['_rts_verification_status'] = row.rtsVerificationStatus;
+    base['_sync_status'] = row.syncStatus;
     return base;
   }
 
@@ -307,11 +310,19 @@ class _DeliveryStatusListScreenState
                         final d = displayed[index - banners];
                         final identifier = resolveDeliveryIdentifier(d);
                         final isOsa = widget.status == 'osa';
+                        final rtsVerifStatus =
+                            d['_rts_verification_status']?.toString() ??
+                            d['rts_verification_status']?.toString() ??
+                            'unvalidated';
+                        final isValidatedRts = widget.status == 'rts' &&
+                            (rtsVerifStatus == 'verified_with_pay' ||
+                                rtsVerifStatus == 'verified_no_pay');
+                        final isLocked = isOsa || isValidatedRts;
                         return DeliveryCard(
                           delivery: d,
                           compact: isCompact,
-                          showChevron: !isOsa,
-                          onTap: (isOsa || identifier.isEmpty)
+                          showChevron: !isLocked,
+                          onTap: (isLocked || identifier.isEmpty)
                               ? () {}
                               : () => context.push('/deliveries/$identifier'),
                         );

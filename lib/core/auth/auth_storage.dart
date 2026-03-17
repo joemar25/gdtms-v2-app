@@ -8,6 +8,7 @@ const _tokenKey = 'courier_token';
 const _courierKey = 'courier_data';
 const _deviceIdKey = 'device_id';
 const _courierIdKey = 'last_courier_id';
+const _initialSyncKey = 'initial_sync_completed';
 
 final authStorageProvider = Provider<AuthStorage>((ref) => AuthStorage());
 
@@ -68,8 +69,17 @@ class AuthStorage {
     return int.tryParse(val);
   }
 
+  Future<bool> isInitialSyncCompleted() async {
+    final val = await _storage.read(key: _initialSyncKey);
+    return val == 'true';
+  }
+
+  Future<void> setInitialSyncCompleted(bool completed) =>
+      _storage.write(key: _initialSyncKey, value: completed.toString());
+
   Future<void> clearAll() async {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _courierKey);
+    await _storage.delete(key: _initialSyncKey);
   }
 }

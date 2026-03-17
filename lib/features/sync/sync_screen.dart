@@ -128,6 +128,12 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
+                // When online: push pending queue entries to server first,
+                // then reload the list so statuses reflect the latest state.
+                // When offline: just reload from local SQLite.
+                if (ref.read(isOnlineProvider)) {
+                  await ref.read(syncManagerProvider.notifier).processQueue();
+                }
                 await ref.read(syncManagerProvider.notifier).loadEntries();
               },
               child: syncState.entries.isEmpty

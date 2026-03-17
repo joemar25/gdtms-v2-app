@@ -38,8 +38,16 @@ class DeliveryCard extends StatelessWidget {
             delivery['recipient_name'] ??
             '')
         .toString();
-    final color = statusColor(status);
+    final syncStatus = delivery['_sync_status']?.toString() ?? 'clean';
+    final isDirty = syncStatus == 'dirty';
+    final color = isDirty ? Colors.amber.shade700 : statusColor(status);
     final isPaid = delivery['_paid_at'] != null;
+    final rtsVerifStatus =
+        delivery['_rts_verification_status']?.toString() ??
+        delivery['rts_verification_status']?.toString() ??
+        'unvalidated';
+    final isRtsWithPay = status == 'rts' && rtsVerifStatus == 'verified_with_pay';
+    final isRtsNoPay = status == 'rts' && rtsVerifStatus == 'verified_no_pay';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
 
@@ -90,6 +98,26 @@ class DeliveryCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (isDirty) ...[
+                  const SizedBox(width: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade100,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.amber.shade400),
+                    ),
+                    child: Text(
+                      'UNSYNCED',
+                      style: TextStyle(
+                        fontSize: 7,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.amber.shade800,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ],
                 Container(
                   width: 8,
                   height: 8,
@@ -107,6 +135,30 @@ class DeliveryCard extends StatelessWidget {
                       fontSize: 8,
                       fontWeight: FontWeight.w800,
                       color: Colors.green.shade600,
+                    ),
+                  ),
+                ],
+                if (isRtsWithPay || isRtsNoPay) ...[
+                  const SizedBox(width: 5),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: isRtsWithPay
+                          ? Colors.green.shade500
+                          : Colors.red.shade400,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    isRtsWithPay ? 'W/PAY' : 'NO PAY',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      color: isRtsWithPay
+                          ? Colors.teal.shade600
+                          : Colors.red.shade400,
                     ),
                   ),
                 ],
@@ -193,6 +245,36 @@ class DeliveryCard extends StatelessWidget {
                         ),
                       ),
                     ],
+                    if (isDirty) ...[
+                      const SizedBox(height: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.amber.shade300),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.sync_problem_rounded, size: 10, color: Colors.amber.shade700),
+                            const SizedBox(width: 3),
+                            Text(
+                              'UNSYNCED',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.amber.shade800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (isPaid) ...[
                       const SizedBox(height: 5),
                       Container(
@@ -213,6 +295,53 @@ class DeliveryCard extends StatelessWidget {
                             color: Colors.green.shade700,
                             letterSpacing: 0.5,
                           ),
+                        ),
+                      ),
+                    ],
+                    if (isRtsWithPay || isRtsNoPay) ...[
+                      const SizedBox(height: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isRtsWithPay
+                              ? Colors.teal.shade50
+                              : Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isRtsWithPay
+                                ? Colors.teal.shade200
+                                : Colors.red.shade200,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: isRtsWithPay
+                                    ? Colors.green.shade500
+                                    : Colors.red.shade400,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isRtsWithPay ? 'WITH PAY' : 'NO PAY',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: isRtsWithPay
+                                    ? Colors.teal.shade700
+                                    : Colors.red.shade600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

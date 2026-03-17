@@ -10,30 +10,30 @@ const int kMaxRecipientLength = 255;
 const int kMaxRelationshipLength = 100;
 const int kMaxPlacementTypeLength = 100;
 
-const List<String> kUpdateStatuses = ['delivered', 'rts', 'osa'];
+const List<String> kUpdateStatuses = ['DELIVERED', 'RTS', 'OSA'];
 
 const List<String> kAllDeliveryStatuses = [
-  'pending',
-  'delivered',
-  'failed_attempt',
-  'rts',
-  'osa',
-  'roll-back',
-  'lost',
-  'undelivered',
+  'PENDING',
+  'DELIVERED',
+  'FAILED_ATTEMPT',
+  'RTS',
+  'OSA',
+  'ROLL-BACK',
+  'LOST',
+  'UNDELIVERED',
 ];
 
 const List<String> kImageTypes = [
-  'package',
-  'recipient',
-  'location',
-  'damage',
-  'other',
+  'PACKAGE',
+  'RECIPIENT',
+  'LOCATION',
+  'DAMAGE',
+  'OTHER',
 ];
 
 /// Pre-defined photo types for delivered POD capture.
 /// Exactly two slots: one for the package (POD) and one for the courier selfie.
-const List<String> kPodDeliveredTypes = ['pod', 'selfie'];
+const List<String> kPodDeliveredTypes = ['POD', 'SELFIE'];
 
 const List<String> kReasons = [
   'Refused',
@@ -85,10 +85,10 @@ const List<Map<String, String>> kRelationshipOptions = [
 ];
 
 const List<Map<String, String>> kPlacementOptions = [
-  {'value': 'received', 'label': 'Received'},
-  {'value': 'mailbox', 'label': 'Mailbox'},
-  {'value': 'inserted_door', 'label': 'Inserted - Door'},
-  {'value': 'inserted_window', 'label': 'Inserted - Window'},
+  {'value': 'RECEIVED', 'label': 'Received'},
+  {'value': 'MAILBOX', 'label': 'Mailbox'},
+  {'value': 'INSERTED_DOOR', 'label': 'Inserted - Door'},
+  {'value': 'INSERTED_WINDOW', 'label': 'Inserted - Window'},
 ];
 
 const String kDeviceTypeLogin = 'flutter';
@@ -96,17 +96,29 @@ const String kDeviceTypeLogin = 'flutter';
 /// Number of days that successfully synchronised delivery records are kept in
 /// SQLite before the cleanup service removes them.
 /// Adjust this value to balance local storage usage against review window.
+///
+/// mar-note: Unpaid delivered items are visible on the dashboard/list for up
+/// to 3 days so the courier can verify and request payout. Once paid, the
+/// record switches to the shorter [kPaidDeliveryRetentionDays] window.
 const int kLocalDataRetentionDays = 3;
 
 /// Number of days a **paid** delivery record is retained in SQLite after its
 /// payout is marked as paid, before the cleanup service permanently deletes it.
 ///
-/// Privacy rule: once a courier's payout is paid, the associated delivered
-/// records no longer need a long review window. They are purged after 1 day
-/// to minimise the personal data stored on the device.
+/// mar-note: SECURITY / ANTI-FRAUD RULE — once a courier's payout is marked
+/// paid by the server the associated delivered records are kept for exactly
+/// 1 day then permanently deleted from the device.
+///
+/// The intent is to prevent couriers from manipulating or re-submitting already
+/// paid records (e.g. to claim double payout). After the 1-day window:
+///   • The record no longer appears on dashboard, delivery list, or search.
+///   • Scanning the barcode or opening it via payout/wallet shows nothing —
+///     the app treats it as if the delivery never existed locally.
+///   • Any attempt to retrieve it (barcode scan, wallet history, payout
+///     request) will find no local row; the server is the final source of truth.
 ///
 /// This value intentionally overrides [kLocalDataRetentionDays] for records
-/// where [local_deliveries.paid_at] is non-null.
+/// where [local_deliveries.paid_at] is non-null (≥ 1).
 const int kPaidDeliveryRetentionDays = 1;
 
 /// Default number of days to keep synced delivery-update queue entries.

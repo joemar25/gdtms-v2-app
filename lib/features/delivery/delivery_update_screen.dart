@@ -80,7 +80,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   String _status = 'delivered';
   String? _relationship;
   bool _recipientIsOwner = false;
-  String _placement = 'received';
+  String _placement = 'RECEIVED';
   String? _reason;
   bool _loading = false;
 
@@ -223,16 +223,25 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     String slotType, {
     ImageSource source = ImageSource.camera,
   }) async {
-    final picked = await _picker.pickImage(source: source);
+    final isSelfie = slotType == 'selfie';
+    final picked = await _picker.pickImage(
+      source: source,
+      preferredCameraDevice:
+          isSelfie ? CameraDevice.front : CameraDevice.rear,
+    );
     if (picked == null || !mounted) return;
 
-    final bytes = await FlutterImageCompress.compressWithFile(
-      picked.path,
+    // Read via XFile.readAsBytes() so content:// URIs (Android) work correctly.
+    // compressWithFile fails silently when image_picker returns a content URI
+    // instead of a real file path, causing the photo slot to stay empty.
+    final rawBytes = await picked.readAsBytes();
+    final bytes = await FlutterImageCompress.compressWithList(
+      rawBytes,
       minWidth: 600,
       quality: 70,
       format: CompressFormat.jpeg,
     );
-    if (bytes == null || !mounted) return;
+    if (bytes.isEmpty || !mounted) return;
 
     final apiType = slotType == 'pod' ? 'pod' : 'selfie';
     final dir = await getApplicationDocumentsDirectory();
@@ -331,7 +340,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   bool _validate() {
     _errors.clear();
 
-    if (!kUpdateStatuses.contains(_status)) {
+    if (!kUpdateStatuses.map((s) => s.toLowerCase()).contains(_status)) {
       _errors['delivery_status'] = 'Invalid status.';
     }
 
@@ -380,7 +389,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     final isOnline = ref.read(isOnlineProvider);
 
     final payload = <String, dynamic>{
-      'delivery_status': _status,
+      // Server requires UPPERCASE status values (DELIVERED / RTS / OSA / PENDING).
+      // The app stores lowercase internally; uppercase only for the outbound payload.
+      'delivery_status': _status.toUpperCase(),
       if (_note.text.trim().isNotEmpty) 'note': _note.text.trim(),
     };
 
@@ -406,7 +417,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       payload['relationship'] = _relationship;
       payload['placement_type'] = _placement;
     } else {
-      payload['reason'] = _reason;
+      payload['reason'] = _reason?.toUpperCase();
       if (_selfiePhoto != null) {
         pendingMediaPaths['selfie'] = _selfiePhoto!.file;
       }
@@ -447,7 +458,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _recipient.clear();
     _relationship = null;
     _recipientIsOwner = false;
-    _placement = 'received';
+    _placement = 'RECEIVED';
     _podPhoto = null;
     _selfiePhoto = null;
     _signaturePath = null;
@@ -871,7 +882,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       const DeliverySectionHeader(label: 'SELECT STATUS'),
                       _kInnerGap,
                       Row(
-                        children: kUpdateStatuses.map((s) {
+                        children: kUpdateStatuses.map((rawStatus) {
+                          final s = rawStatus.toLowerCase();
                           final meta = _kStatusMeta[s]!;
                           final selected = _status == s;
                           return Expanded(

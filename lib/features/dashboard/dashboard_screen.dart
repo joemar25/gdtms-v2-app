@@ -10,6 +10,7 @@ import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
+import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
@@ -46,6 +47,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return 'Good evening';
   }
 
+  /// Pull-to-refresh handler.
+  /// When online: runs a full server sync first so counts reflect fresh data.
+  /// When offline: skips sync and just reloads from SQLite.
+  Future<void> _onRefresh() async {
+    final isOnline = ref.read(isOnlineProvider);
+    if (isOnline) {
+      await DeliveryBootstrapService.instance.syncFromApi(
+        ref.read(apiClientProvider),
+      );
+    }
+    await _loadInitial();
+  }
+
   Future<void> _loadInitial() async {
     if (!mounted) return;
     setState(() => _loading = true);
@@ -57,6 +71,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final delivered = await dao.countVisibleDelivered();
     final rts = await dao.countVisibleRts();
     final osa = await dao.countVisibleOsa();
+    debugPrint('[DASH] _loadInitial: pending=$pending delivered=$delivered rts=$rts osa=$osa');
 
     // pending_dispatches cannot be derived from SQLite — try API when online.
     int pendingDispatches = 0;
@@ -89,7 +104,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<int>(deliveryRefreshProvider, (_, __) => _loadInitial());
+    ref.listen<int>(deliveryRefreshProvider, (prev, next) {
+      debugPrint('[DASH] deliveryRefreshProvider changed $prev → $next');
+      _loadInitial();
+    });
     final auth = ref.watch(authProvider);
     final fullName = auth.courier?['name']?.toString() ?? 'Courier';
     final firstName = _extractFirstName(fullName);
@@ -129,7 +147,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _loadInitial,
+              onRefresh: _onRefresh,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 children: [

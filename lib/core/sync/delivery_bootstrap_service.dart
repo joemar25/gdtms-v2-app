@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
@@ -46,6 +47,44 @@ class DeliveryBootstrapService {
 
   // ── Public API ────────────────────────────────────────────────────────────
 
+  /// Full sync with progress callbacks. Used by [InitialSyncScreen] to show
+  /// live status messages during the first-time data pull.
+  Future<void> syncFromApiWithProgress(
+    ApiClient client, {
+    void Function(String message)? onProgress,
+  }) async {
+    debugPrint('[SYNC] syncFromApiWithProgress — start');
+    onProgress?.call('Reconciling local data...');
+    await _priorityPendingReconciliation(client);
+
+    final serverBarcodesPerStatus = <String, Set<String>>{};
+    const statusLabels = {
+      'pending': 'Fetching pending deliveries...',
+      'rts': 'Fetching RTS orders...',
+      'osa': 'Fetching OSA orders...',
+      'delivered': 'Fetching delivered orders...',
+    };
+
+    for (final status in _statuses) {
+      onProgress?.call(statusLabels[status] ?? 'Syncing $status...');
+      final barcodes = await _syncStatus(client, status);
+      debugPrint('[SYNC] $status — fetched ${barcodes.length} barcodes');
+      serverBarcodesPerStatus[status] = barcodes;
+    }
+
+    onProgress?.call('Cleaning up stale data...');
+    try {
+      final allServerBarcodes = <String>{
+        for (final barcodes in serverBarcodesPerStatus.values) ...barcodes,
+      };
+      await LocalDeliveryDao.instance.removeStaleLocalPending(allServerBarcodes);
+      debugPrint('[SYNC] cleanup done — total server barcodes: ${allServerBarcodes.length}');
+    } catch (e) {
+      debugPrint('[SYNC] cleanup error: $e');
+    }
+    debugPrint('[SYNC] syncFromApiWithProgress — complete');
+  }
+
   /// Clears the local delivery table and re-fetches all deliveries from the
   /// server. Used for the "Reload from Server" action on the Sync screen.
   Future<void> clearAndSyncFromApi(ApiClient client) async {
@@ -53,30 +92,42 @@ class DeliveryBootstrapService {
     await syncFromApi(client);
   }
 
+  /// Wipes local data first, then runs a full sync with progress callbacks.
+  /// Used by [InitialSyncScreen] to guarantee a clean slate on every first load.
+  Future<void> clearAndSyncFromApiWithProgress(
+    ApiClient client, {
+    void Function(String message)? onProgress,
+  }) async {
+    onProgress?.call('Clearing local data...');
+    await LocalDeliveryDao.instance.deleteAll();
+    await syncFromApiWithProgress(client, onProgress: onProgress);
+  }
+
   /// Full sync: reconcile local pending items FIRST, then sweep all statuses.
   Future<void> syncFromApi(ApiClient client) async {
+    debugPrint('[SYNC] syncFromApi — start');
     // ── Phase 0 (PRIORITY): Reconcile local pending vs server ────────────────
-    // Done before the full sweep so the user sees corrected data immediately.
     await _priorityPendingReconciliation(client);
 
     // ── Phase 1: Full status sweep ────────────────────────────────────────────
-    // Collect all barcodes returned by the server for cleanup in Phase 2.
     final serverBarcodesPerStatus = <String, Set<String>>{};
     for (final status in _statuses) {
       final barcodes = await _syncStatus(client, status);
+      debugPrint('[SYNC] $status — fetched ${barcodes.length} barcodes');
       serverBarcodesPerStatus[status] = barcodes;
     }
 
     // ── Phase 2: Remove stale local pending items ─────────────────────────────
-    // Any locally-pending barcode not found in any server status list is gone.
     try {
       final allServerBarcodes = <String>{
         for (final barcodes in serverBarcodesPerStatus.values) ...barcodes,
       };
       await LocalDeliveryDao.instance.removeStaleLocalPending(allServerBarcodes);
-    } catch (_) {
-      // Best-effort — do not crash the app.
+      debugPrint('[SYNC] cleanup done — total server barcodes: ${allServerBarcodes.length}');
+    } catch (e) {
+      debugPrint('[SYNC] cleanup error: $e');
     }
+    debugPrint('[SYNC] syncFromApi — complete');
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
@@ -96,6 +147,7 @@ class DeliveryBootstrapService {
       // Step 1: Get all locally-pending barcodes.
       final localPendingBarcodes =
           await LocalDeliveryDao.instance.getPendingBarcodes();
+      debugPrint('[SYNC] priority reconciliation — local pending: ${localPendingBarcodes.length}');
       if (localPendingBarcodes.isEmpty) return;
 
       // Step 2: Fetch server's pending list (all pages).
@@ -109,6 +161,7 @@ class DeliveryBootstrapService {
           .where((b) => !serverPendingBarcodes.contains(b))
           .toList();
 
+      debugPrint('[SYNC] server pending: ${serverPendingBarcodes.length}, missing from pending: ${missingFromPending.length}');
       if (missingFromPending.isEmpty) return;
 
       // For each missing barcode, fetch its individual detail from the server.
@@ -178,11 +231,11 @@ class DeliveryBootstrapService {
         if (rawList is List) {
           for (final item in rawList) {
             if (item is! Map) continue;
-            final b =
-                item['barcode_value']?.toString() ??
-                item['barcode']?.toString() ??
-                item['tracking_number']?.toString() ??
-                '';
+            final b = (item['barcode_value']?.toString() ??
+                    item['barcode']?.toString() ??
+                    item['tracking_number']?.toString() ??
+                    '')
+                .trim();
             if (b.isNotEmpty) allBarcodes.add(b);
           }
         }
@@ -216,7 +269,10 @@ class DeliveryBootstrapService {
           parser: parseApiMap,
         );
 
-        if (result is! ApiSuccess<Map<String, dynamic>>) break;
+        if (result is! ApiSuccess<Map<String, dynamic>>) {
+          debugPrint('[SYNC] _syncStatus($status) page=$page non-success: $result');
+          break;
+        }
 
         final data = result.data;
         final rawList = data['data'];
@@ -230,8 +286,11 @@ class DeliveryBootstrapService {
             }
           }
         } else {
+          debugPrint('[SYNC] _syncStatus($status) page=$page — data.data is not a List: ${rawList.runtimeType}');
           break;
         }
+
+        debugPrint('[SYNC] _syncStatus($status) page=$page — ${items.length} items');
 
         if (items.isNotEmpty) {
           await LocalDeliveryDao.instance.insertAllFromApiItems(
@@ -239,11 +298,11 @@ class DeliveryBootstrapService {
             serverStatus: status,
           );
           for (final item in items) {
-            final b =
-                item['barcode_value']?.toString() ??
-                item['barcode']?.toString() ??
-                item['tracking_number']?.toString() ??
-                '';
+            final b = (item['barcode_value']?.toString() ??
+                    item['barcode']?.toString() ??
+                    item['tracking_number']?.toString() ??
+                    '')
+                .trim();
             if (b.isNotEmpty) allBarcodes.add(b);
           }
         }
@@ -251,11 +310,14 @@ class DeliveryBootstrapService {
         final meta = data['pagination'] ?? data['meta'];
         if (meta is Map<String, dynamic>) {
           lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
+          debugPrint('[SYNC] _syncStatus($status) page=$page/$lastPage');
         } else {
+          debugPrint('[SYNC] _syncStatus($status) — no pagination meta, stopping');
           break;
         }
         page++;
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[SYNC] _syncStatus($status) page=$page EXCEPTION: $e');
         break;
       }
     } while (page <= lastPage);

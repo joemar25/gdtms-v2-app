@@ -302,9 +302,13 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   bool get _isRtsLocked {
     final status = _str('delivery_status').toLowerCase();
     if (status != 'rts') return false;
-    final rtsStatus = _delivery['rts_verification_status']?.toString() ?? 'unvalidated';
+    final rtsStatus =
+        _delivery['rts_verification_status']?.toString() ?? 'unvalidated';
     return rtsStatus == 'verified_with_pay' || rtsStatus == 'verified_no_pay';
   }
+
+  String get _rtsVerifStatus =>
+      _delivery['rts_verification_status']?.toString() ?? 'unvalidated';
 
   @override
   Widget build(BuildContext context) {
@@ -339,15 +343,34 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       color: Colors.grey.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      status.isEmpty ? 'PENDING' : status.toDisplayStatus(),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: status == 'delivered'
-                            ? ColorStyles.grabGreen
-                            : Colors.grey.shade700,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Pay-status dot for validated RTS
+                        if (status == 'rts' && _isRtsLocked) ...[
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: _rtsVerifStatus == 'verified_with_pay'
+                                  ? Colors.green.shade500
+                                  : Colors.red.shade400,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                        ],
+                        Text(
+                          status.isEmpty ? 'PENDING' : status.toDisplayStatus(),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: status == 'delivered'
+                                ? ColorStyles.grabGreen
+                                : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -542,6 +565,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
 
   Widget _buildDeliveredDetails() {
+    // Proof of Delivery is only meaningful for delivered items — RTS/OSA were
+    // never physically delivered so there is nothing to prove.
+    if (_str('delivery_status').toLowerCase() != 'delivered') {
+      return const SizedBox.shrink();
+    }
+
     final authRep = _str('authorized_rep');
     final contactRep = _str('contact_rep');
     final recipient = _str('recipient');
@@ -634,24 +663,94 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     if (typedAttempts.isEmpty) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rtsVerifStatus =
+        _delivery['rts_verification_status']?.toString() ?? 'unvalidated';
+    final isWithPay = rtsVerifStatus == 'verified_with_pay';
+    final isNoPay = rtsVerifStatus == 'verified_no_pay';
+    final isValidated = isWithPay || isNoPay;
 
     return Column(
       children: [
         const SizedBox(height: 12),
         _DetailCard(
           children: [
-            _DetailHeader(
-              icon: Icons.keyboard_return_rounded,
-              title: 'Return Attempts (${typedAttempts.length})',
+            // Header row: title + optional pay-status badge
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.keyboard_return_rounded,
+                      size: 16, color: ColorStyles.grabGreen),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Return Attempts (${typedAttempts.length})',
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                  if (isValidated) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isWithPay
+                            ? Colors.teal.shade50
+                            : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isWithPay
+                              ? Colors.teal.shade200
+                              : Colors.red.shade200,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: isWithPay
+                                  ? Colors.green.shade500
+                                  : Colors.red.shade400,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isWithPay ? 'WITH PAY' : 'NO PAY',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: isWithPay
+                                  ? Colors.teal.shade700
+                                  : Colors.red.shade600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
             ...typedAttempts.asMap().entries.map((entry) {
               final idx = entry.key;
               final attempt = Map<String, dynamic>.from(entry.value);
+              // Payload uses 'attempt' (1-indexed) and 'timestamp'
               final attemptNum =
-                  (attempt['attempt_number'] as num?)?.toInt() ?? (idx + 1);
+                  (attempt['attempt'] as num?)?.toInt() ?? (idx + 1);
               final label = _ordinal(attemptNum);
               final reason = attempt['reason']?.toString() ?? '';
-              final attemptedAt = attempt['attempted_at']?.toString() ?? '';
+              final timestamp =
+                  (attempt['timestamp'] ?? attempt['attempted_at'])
+                      ?.toString() ??
+                  '';
+              final images = attempt['images'];
+              final imageList = images is List
+                  ? images.whereType<Map>().toList()
+                  : <Map>[];
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -668,9 +767,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
@@ -685,13 +782,16 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                             ),
                           ),
                         ),
-                        if (attemptedAt.isNotEmpty) ...[
+                        if (timestamp.isNotEmpty) ...[
                           const SizedBox(width: 8),
-                          Text(
-                            formatDate(attemptedAt, includeTime: true),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isDark ? Colors.white54 : Colors.black45,
+                          Expanded(
+                            child: Text(
+                              formatDate(timestamp, includeTime: true),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color:
+                                    isDark ? Colors.white54 : Colors.black45,
+                              ),
                             ),
                           ),
                         ],
@@ -700,12 +800,53 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   ),
                   if (reason.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
                       child: Text(
                         reason,
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  // Attempt images (selfie / proof)
+                  if (imageList.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                      child: SizedBox(
+                        height: 80,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: imageList.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 8),
+                          itemBuilder: (_, i) {
+                            final img = imageList[i];
+                            final url =
+                                (img['signed_url'] ?? img['url'])
+                                    ?.toString() ??
+                                '';
+                            if (url.isEmpty) return const SizedBox.shrink();
+                            return ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                url,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: isDark
+                                      ? Colors.white10
+                                      : Colors.grey.shade200,
+                                  child: Icon(Icons.broken_image_rounded,
+                                      size: 24,
+                                      color: Colors.grey.shade400),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),

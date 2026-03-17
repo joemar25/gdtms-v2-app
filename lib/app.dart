@@ -184,23 +184,29 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       // Step 1: Flush dirty queue → server.
       await ref.read(syncManagerProvider.notifier).processQueue();
 
+      debugPrint('[SYNC] _runFullSync: after processQueue, mounted=$mounted');
       if (!mounted) return;
 
       // Step 2: Pull server → SQLite (full reconcile across all statuses).
       await DeliveryBootstrapService.instance
           .syncFromApi(ref.read(apiClientProvider));
 
+      debugPrint('[SYNC] _runFullSync: after syncFromApi, mounted=$mounted');
       if (mounted) {
         final now = DateTime.now();
         ref.read(lastSyncTimeProvider.notifier).state = now;
         ref.read(authStorageProvider).setLastSyncTime(now.millisecondsSinceEpoch);
-        
+
         // Notify all listening screens (dashboard, delivery lists) to reload.
+        final prev = ref.read(deliveryRefreshProvider);
         ref.read(deliveryRefreshProvider.notifier).state++;
+        debugPrint('[SYNC] deliveryRefreshProvider: $prev → ${prev + 1}');
       }
 
       // Automatically clean up old data after successful sync
       await CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
+    } catch (e) {
+      debugPrint('[SYNC] _runFullSync ERROR: $e');
     } finally {
       if (mounted) _isSyncing = false;
     }

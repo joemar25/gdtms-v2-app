@@ -25,8 +25,8 @@ const String packageId = 'com.fsi.courier';
 /// - Note: This will not work for web builds.
 /// - Run:  flutter run --dart-define-from-file=dart_defines.json
 const String apiBaseUrl = String.fromEnvironment(
-  // 'API_BASE_URL',
-  'API_BASE_URL_PROD',
+  'API_BASE_URL',
+  // 'API_BASE_URL_PROD',
   defaultValue: 'http://YOUR_API_BASE_URL/api/mbl',
 );
 

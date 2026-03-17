@@ -41,12 +41,28 @@ class CleanupService {
   /// [kLocalDataRetentionDays], except for records that have been paid —
   /// those use the shorter [kPaidDeliveryRetentionDays] window for privacy.
   ///
+  /// mar-note: TWO retention windows apply to delivered records:
+  ///   • Unpaid delivered → kLocalDataRetentionDays (3 days). Gives the courier
+  ///     time to review and request payout before the record is auto-removed.
+  ///   • Paid delivered → kPaidDeliveryRetentionDays (1 day). After a payout is
+  ///     confirmed the record is a liability: it contains personal data (name,
+  ///     address, contact) and could be used by a dishonest courier to fake a
+  ///     re-claim. Deleting it after 1 day closes that window.
+  ///     After deletion, getByBarcode returns null — the record effectively
+  ///     does not exist on the device. Any scan or wallet lookup by the courier
+  ///     yields nothing, which is intentional.
+  ///
   /// It is safe to call this at any time; pending data is never touched.
   Future<void> run({int? syncRetentionDays}) async {
     final syncMs =
         (syncRetentionDays ?? kDefaultSyncRetentionDays) *
         Duration.millisecondsPerDay;
     final deliveryMs = kLocalDataRetentionDays * Duration.millisecondsPerDay;
+    debugPrint(
+      '[CleanupService] run: retentionDays=${syncRetentionDays ?? kDefaultSyncRetentionDays}, '
+      'deliveryMs=$deliveryMs (${kLocalDataRetentionDays}d), '
+      'cutoff=${DateTime.now().subtract(Duration(milliseconds: deliveryMs))}',
+    );
     const paidDeliveryMs =
         kPaidDeliveryRetentionDays * Duration.millisecondsPerDay;
     final results = await Future.wait([

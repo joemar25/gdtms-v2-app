@@ -20,6 +20,7 @@ import 'package:fsi_courier_app/features/wallet/payout_detail_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_request_screen.dart';
 import 'package:fsi_courier_app/features/sync/sync_screen.dart';
 import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
+import 'package:fsi_courier_app/features/initial_sync/initial_sync_screen.dart';
 import 'package:fsi_courier_app/features/notifications/notifications_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
@@ -80,11 +81,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/dashboard';
       }
 
+      // ── INITIAL SYNC GUARD ──
+      // After the first successful login the user must wait for the initial
+      // data pull before they can use the app. Once completed the flag is
+      // persisted in secure storage so subsequent cold starts skip this screen.
+      if (!auth.initialSyncCompleted && path != '/initial-sync') {
+        return '/initial-sync';
+      }
+      if (auth.initialSyncCompleted && path == '/initial-sync') {
+        return '/dashboard';
+      }
+
       if (path == '/') return '/dashboard';
       return null;
     },
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
+      GoRoute(path: '/initial-sync', builder: (_, __) => const InitialSyncScreen()),
       GoRoute(path: '/location-required', builder: (_, __) => const LocationRequiredScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
