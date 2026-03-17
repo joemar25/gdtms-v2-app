@@ -247,18 +247,31 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     if (!mounted) return;
 
     if (matches.length == 1) {
-      // Exactly one hit — navigate directly.
-      // Use push to allow back navigation
-      await context.push('/deliveries/${matches.first.barcode}');
+      final match = matches.first;
+      if (match.deliveryStatus.toLowerCase() == 'osa') {
+        setState(() => _inlineError = '"${match.barcode}" is marked OSA and cannot be opened.');
+        if (_hasPermission) await _scannerController.start();
+        return;
+      }
+      await context.push('/deliveries/${match.barcode}');
       if (mounted && _hasPermission) await _scannerController.start();
       return;
     }
 
     if (matches.length > 1) {
       // Multiple hits — let the courier pick the correct one.
+      // Filter out OSA entries before showing the picker.
+      final nonOsa = matches.where(
+        (m) => m.deliveryStatus.toLowerCase() != 'osa',
+      ).toList();
+      if (nonOsa.isEmpty) {
+        setState(() => _inlineError = '"$code" is marked OSA and cannot be opened.');
+        if (_hasPermission) await _scannerController.start();
+        return;
+      }
       final chosen = await _showSearchResults(
         code,
-        matches.map((m) => m.toDeliveryMap()).toList(),
+        nonOsa.map((m) => m.toDeliveryMap()).toList(),
       );
       if (!mounted) return;
       if (chosen != null) {
@@ -278,7 +291,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     if (!mounted) return;
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
-      // Use push to allow back navigation
+      final deliveryStatus =
+          result.data['delivery_status']?.toString().toLowerCase() ?? '';
+      if (deliveryStatus == 'osa') {
+        setState(() => _inlineError = '"$code" is marked OSA and cannot be opened.');
+        if (_hasPermission) await _scannerController.start();
+        return;
+      }
       await context.push('/deliveries/$code');
       if (mounted && _hasPermission) await _scannerController.start();
     } else {

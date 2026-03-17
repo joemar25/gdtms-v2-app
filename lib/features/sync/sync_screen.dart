@@ -19,6 +19,7 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart'
     show showSuccessNotification, showAppSnackbar, SnackbarType;
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
+import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
 
 class SyncScreen extends ConsumerStatefulWidget {
   const SyncScreen({super.key});
@@ -123,7 +124,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
       ),
       body: Column(
         children: [
-          _SyncHeader(syncState: syncState, isOnline: isOnline),
+          _SyncHeader(isOnline: isOnline),
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
@@ -144,100 +145,61 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
 // ── Header ────────────────────────────────────────────────────────────────────
 
 class _SyncHeader extends ConsumerWidget {
-  const _SyncHeader({required this.syncState, required this.isOnline});
+  const _SyncHeader({required this.isOnline});
 
-  final SyncState syncState;
   final bool isOnline;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final lastSyncTime = ref.watch(lastSyncTimeProvider);
-    final synced = syncState.entries
-        .where((e) => e.status == 'synced')
-        .length;
-    final total = syncState.entries.length;
-    final pending = syncState.entries
-        .where((e) => e.status == 'pending' || e.status == 'processing')
-        .length;
-    final failed = syncState.entries
-        .where((e) => e.status == 'error' || e.status == 'failed' || e.status == 'conflict')
-        .length;
 
-    return Container(
-      width: double.infinity,
-      color: theme.colorScheme.surfaceContainerHighest,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Online / offline indicator
+        Container(
+          width: double.infinity,
+          color: theme.colorScheme.surfaceContainerHighest,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
-                size: 16,
-                color: isOnline ? Colors.green : Colors.orange,
+              Row(
+                children: [
+                  Icon(
+                    isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                    size: 16,
+                    color: isOnline ? Colors.green : Colors.orange,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isOnline ? 'Online' : 'Offline',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isOnline ? Colors.green : Colors.orange,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 6),
-              Text(
-                isOnline ? 'Online' : 'Offline',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isOnline ? Colors.green : Colors.orange,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          if (syncState.isSyncing) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    syncState.lastMessage ?? 'Syncing…',
-                    style: theme.textTheme.bodySmall,
-                    overflow: TextOverflow.ellipsis,
+              if (lastSyncTime != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Last sync: ${DateFormat('MMM d, yyyy · h:mm a').format(lastSyncTime)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 6),
-            LinearProgressIndicator(
-              value: syncState.total > 0
-                  ? syncState.processed / syncState.total
-                  : null,
-              minHeight: 4,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ],
-          if (total > 0) ...[
-            const SizedBox(height: 8),
-            Text(
-              '$synced of $total synced'
-              '${pending > 0 ? ' · $pending pending' : ''}'
-              '${failed > 0 ? ' · $failed failed' : ''}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-          if (lastSyncTime != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Last sync: ${DateFormat('MMM d, yyyy · h:mm a').format(lastSyncTime)}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ],
-      ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+        // Shared sync progress bar (spinner + progress or pending/failed count)
+        const SyncProgressBar(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+      ],
     );
   }
 }
@@ -419,7 +381,7 @@ class _EntryTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Barcode + chevron
+                  // Barcode + chevron (hidden for OSA — detail is not accessible)
                   Row(
                     children: [
                       Expanded(
@@ -432,11 +394,12 @@ class _EntryTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        size: 18,
-                        color: Colors.grey,
-                      ),
+                      if (!isOsa)
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
                     ],
                   ),
 

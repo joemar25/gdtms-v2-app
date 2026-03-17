@@ -32,7 +32,7 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
-import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
+import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 // ─── Consistent spacing constants ───────────────────────────────────────────
@@ -83,7 +83,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   String _placement = 'received';
   String? _reason;
   bool _loading = false;
-  bool _success = false;
 
   // Delivered-specific: two fixed photo slots (POD + SELFIE)
   PhotoEntry? _podPhoto;
@@ -439,13 +438,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     if (!mounted) return;
     ref.read(deliveryRefreshProvider.notifier).state++;
-    setState(() {
-      _loading = false;
-      _success = true;
-    });
-    return;
-
-    if (mounted) setState(() => _loading = false);
+    setState(() => _loading = false);
+    showSuccessNotification(context, 'Delivery status updated successfully.');
+    context.go('/dashboard');
   }
 
   void _clearDeliveredFields() {
@@ -785,7 +780,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     return PopScope(
       // Allow the system to pop naturally when nothing has been filled in.
       // Only intercept pops (to show the discard dialog) when the form is dirty.
-      canPop: !_isDirty || _success,
+      canPop: !_isDirty,
       onPopInvokedWithResult: (didPop, _) async {
         // didPop is true when canPop allowed the pop — nothing to do.
         if (didPop) return;
@@ -854,7 +849,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               child: Stack(
                 children: [
                   _loadingDelivery
-                ? const Center(child: CircularProgressIndicator())
+                ? const Column(
+                    children: [
+                      SyncProgressBar(),
+                      Expanded(child: Center(child: CircularProgressIndicator())),
+                    ],
+                  )
                 : ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                     children: [
@@ -1162,7 +1162,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                           maxLength: kMaxNoteLength,
                           minLines: 3,
                           maxLines: 6,
-                          textCapitalization: TextCapitalization.characters,
+                          textCapitalization: TextCapitalization.sentences,
                           decoration:
                               deliveryFieldDecoration(
                                 context,
@@ -1231,18 +1231,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     ],
                   ),
             if (_loading) const LoadingOverlay(),
-            if (_success)
-              SuccessOverlay(
-                onDone: () {
-                  if (!mounted) return;
-                  showAppSnackbar(
-                    context,
-                    'Delivery status updated successfully.',
-                    type: SnackbarType.success,
-                  );
-                  context.go('/dashboard');
-                },
-              ),
             ],
           ),
         ),

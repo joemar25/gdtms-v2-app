@@ -80,6 +80,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
   Timer? _periodicTimer;
   bool _isSyncing = false;
   DateTime? _lastSyncAt;
+  OverlayEntry? _syncPillEntry;
 
   // Minimum gap between syncs to prevent overlapping calls.
   static const _kSyncDebounce = Duration(seconds: 30);
@@ -89,11 +90,24 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // Trigger 1: App startup — run after first frame so providers are ready.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkOnStartup());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkOnStartup();
+      _insertSyncPill();
+    });
+  }
+
+  void _insertSyncPill() {
+    if (_syncPillEntry != null) return;
+    _syncPillEntry = OverlayEntry(
+      builder: (_) => const _SyncFloatingPill(),
+    );
+    rootNavigatorKey.currentState?.overlay?.insert(_syncPillEntry!);
   }
 
   @override
   void dispose() {
+    _syncPillEntry?.remove();
+    _syncPillEntry = null;
     _periodicTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -223,5 +237,178 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     });
 
     return widget.child;
+  }
+}
+
+// ── Global Sync Floating Pill ─────────────────────────────────────────────────
+//
+// Inserted as a root OverlayEntry so it floats above all screens without
+// affecting any layout. Returns an invisible widget when nothing is pending.
+
+// Routes on which the pill should never appear.
+const _kPillHiddenRoutes = {
+  '/sync',
+  '/splash',
+  '/login',
+  '/reset-password',
+  '/location-required',
+};
+
+class _SyncFloatingPill extends ConsumerWidget {
+  const _SyncFloatingPill();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(authProvider).isAuthenticated) return const SizedBox.shrink();
+
+    final router = ref.watch(appRouterProvider);
+    return ListenableBuilder(
+      listenable: router.routeInformationProvider,
+      builder: (context, _) {
+        final path = router.routeInformationProvider.value.uri.path;
+        if (_kPillHiddenRoutes.contains(path)) return const SizedBox.shrink();
+        return const _SyncPillContent();
+      },
+    );
+  }
+}
+
+class _SyncPillContent extends ConsumerWidget {
+  const _SyncPillContent();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final syncState = ref.watch(syncManagerProvider);
+    final isOnline = ref.watch(isOnlineProvider);
+
+    final pending = syncState.entries
+        .where((e) => e.status == 'pending' || e.status == 'processing')
+        .length;
+    final failed = syncState.entries
+        .where(
+          (e) =>
+              e.status == 'error' ||
+              e.status == 'failed' ||
+              e.status == 'conflict',
+        )
+        .length;
+
+    final hasActivity = syncState.isSyncing || pending > 0 || failed > 0;
+    final top = MediaQuery.of(context).padding.top;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnimatedOpacity(
+      opacity: hasActivity ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 280),
+      child: IgnorePointer(
+        ignoring: !hasActivity,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, top + 6, 16, 0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.85,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF2C2C2E).withValues(alpha: 0.97)
+                        : Colors.white.withValues(alpha: 0.97),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.35 : 0.10,
+                        ),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (syncState.isSyncing) ...[
+                        const SizedBox(
+                          width: 13,
+                          height: 13,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _trimMessage(syncState.lastMessage ?? 'Syncing…'),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        if (syncState.total > 0) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '${syncState.processed}/${syncState.total}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: isDark
+                                      ? Colors.white38
+                                      : Colors.grey.shade500,
+                                ),
+                          ),
+                        ],
+                      ] else ...[
+                        Icon(
+                          isOnline
+                              ? Icons.cloud_sync_outlined
+                              : Icons.cloud_off_outlined,
+                          size: 14,
+                          color: failed > 0
+                              ? Colors.red.shade600
+                              : (isDark
+                                  ? Colors.white54
+                                  : Colors.grey.shade600),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          [
+                            if (pending > 0) '$pending pending',
+                            if (failed > 0) '$failed failed',
+                          ].join(' · '),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: failed > 0 ? Colors.red.shade700 : null,
+                              ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Strips the barcode from long sync messages so the pill stays compact.
+  /// e.g. "Updating delivery B132256VI150 to server…" → "Updating delivery…"
+  static String _trimMessage(String msg) {
+    // Remove anything that looks like a barcode (all-caps alphanumeric 8+ chars)
+    return msg.replaceAll(RegExp(r'\b[A-Z0-9]{8,}\b'), '').replaceAll(RegExp(r'\s{2,}'), ' ').trim();
   }
 }

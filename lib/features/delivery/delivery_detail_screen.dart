@@ -13,7 +13,6 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
-import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 
 /// Shows a bottom action sheet listing available communication apps for a phone number.
@@ -541,88 +540,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     );
   }
 
-  void _showFullscreenImage(String url, {String? mediaType}) {
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (_) => Dialog.fullscreen(
-        backgroundColor: Colors.black,
-        child: Stack(
-          children: [
-            Center(
-              child: InteractiveViewer(
-                child: Image.network(
-                  url,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Center(
-                    child: Text(
-                      mediaType ?? 'Image',
-                      style: TextStyle(
-                        color: Colors.grey.shade400,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // Top overlay for media type and Online only
-            Positioned(
-              top: 24,
-              left: 24,
-              child: SafeArea(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (mediaType != null && mediaType.isNotEmpty) ...[
-                        Text(
-                          mediaType,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                      ],
-                      const Text(
-                        'Online only',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: SafeArea(
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildDeliveredDetails() {
     final authRep = _str('authorized_rep');
@@ -634,13 +551,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     final transactionAt = _str('transaction_at');
     final deliveredDate = _str('delivered_date');
     final signature = _str('signature');
-    final media = _delivery['media'];
-    final hasMedia = media is List && (media).isNotEmpty;
-    final hasSignature = signature.isNotEmpty;
-    final isOffline = _isOfflineMode;
-    // Privacy: Hide images if delivered and not in debug mode
-    final isDelivered = _str('delivery_status').toLowerCase() == 'delivered';
-    final showMedia = !isDelivered || kAppDebugMode;
 
     // Relationship transformation: resolve stored value to its display label.
     if (relationship.isNotEmpty) {
@@ -680,9 +590,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
         placementType.isNotEmpty ||
         note.isNotEmpty ||
         transactionDateToShow.isNotEmpty ||
-        deliveredDateToShow.isNotEmpty ||
-        hasMedia ||
-        hasSignature;
+        deliveredDateToShow.isNotEmpty;
 
     if (!hasAny) return const SizedBox.shrink();
 
@@ -714,215 +622,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           _DetailRow(label: 'Transaction', value: transactionDateToShow),
         if (deliveredDateToShow.isNotEmpty)
           _DetailRow(label: 'Delivered', value: deliveredDateToShow),
-        if (hasMedia && showMedia) ...[
-          _DetailHeader(icon: Icons.photo_library_outlined, title: 'Photos'),
-          if (isDelivered && kAppDebugMode)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                'DEBUG MODE: Images are visible for privacy review.',
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          SizedBox(
-            height: 108,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              scrollDirection: Axis.horizontal,
-              itemCount: (media).length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final item = media[i];
-                final String url;
-                final String label;
-                if (item is Map) {
-                  final signedUrl = item['signed_url']?.toString() ?? '';
-                  final rawUrl = item['url']?.toString() ?? '';
-                  url = signedUrl.isNotEmpty ? signedUrl : rawUrl;
-                  label = item['type']?.toString().toUpperCase() ?? 'Photo';
-                } else {
-                  url = item?.toString() ?? '';
-                  label = 'Photo';
-                }
-                if (url.isEmpty) return const SizedBox(width: 100, height: 100);
-                return GestureDetector(
-                  onTap: isOffline
-                      ? null
-                      : () => _showFullscreenImage(url, mediaType: label),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: isOffline
-                        ? Container(
-                            width: 100,
-                            height: 100,
-                            color: Colors.grey.shade200,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.wifi_off_rounded,
-                                  color: Colors.grey.shade400,
-                                  size: 22,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  label,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : Image.network(
-                            url,
-                            width: 100,
-                            height: 100,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 100,
-                              height: 100,
-                              color: Colors.grey.shade200,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.cloud_off_rounded,
-                                    color: Colors.grey.shade400,
-                                    size: 22,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    label,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                    ),
-                                    child: Text(
-                                      'Online only',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.grey.shade400,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-        if (hasMedia && !showMedia)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text(
-              'Images are hidden for privacy after delivery.',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        if (hasSignature && showMedia) ...[
-          _DetailHeader(icon: Icons.draw_outlined, title: 'Signature'),
-          if (isDelivered && kAppDebugMode)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                'DEBUG MODE: Images are visible for privacy review.',
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: GestureDetector(
-              onTap: isOffline ? null : () => _showFullscreenImage(signature),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: isOffline
-                    ? Container(
-                        height: 100,
-                        color: Colors.grey.shade200,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.wifi_off_rounded,
-                                color: Colors.grey.shade400,
-                                size: 22,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Signature',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : Image.network(
-                        signature,
-                        height: 100,
-                        fit: BoxFit.contain,
-                        alignment: Alignment.centerLeft,
-                        errorBuilder: (_, __, ___) => GestureDetector(
-                          onTap: () => _showFullscreenImage(signature),
-                          child: Container(
-                            height: 100,
-                            color: Colors.grey.shade200,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.image_outlined,
-                                    color: Colors.grey.shade400,
-                                    size: 22,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Signature',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -935,7 +634,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     if (typedAttempts.isEmpty) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isOffline = _isOfflineMode;
 
     return Column(
       children: [
@@ -954,8 +652,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               final label = _ordinal(attemptNum);
               final reason = attempt['reason']?.toString() ?? '';
               final attemptedAt = attempt['attempted_at']?.toString() ?? '';
-              final images = attempt['images'];
-              final hasImages = images is List && images.isNotEmpty;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1013,73 +709,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         ),
                       ),
                     ),
-                  if (hasImages) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 0, 8),
-                      child: SizedBox(
-                        height: 90,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: (images).length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 6),
-                          itemBuilder: (context, i) {
-                            final img = images[i];
-                            final String url;
-                            if (img is Map) {
-                              final signed =
-                                  img['signed_url']?.toString() ?? '';
-                              final raw =
-                                  img['url']?.toString() ??
-                                  img['file']?.toString() ??
-                                  '';
-                              url = signed.isNotEmpty ? signed : raw;
-                            } else {
-                              url = img?.toString() ?? '';
-                            }
-                            if (url.isEmpty) {
-                              return const SizedBox(width: 90, height: 90);
-                            }
-                            return GestureDetector(
-                              onTap: isOffline
-                                  ? null
-                                  : () => _showFullscreenImage(
-                                      url,
-                                      mediaType: 'SELFIE',
-                                    ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: isOffline
-                                    ? Container(
-                                        width: 90,
-                                        height: 90,
-                                        color: Colors.grey.shade200,
-                                        child: Icon(
-                                          Icons.wifi_off_rounded,
-                                          color: Colors.grey.shade400,
-                                        ),
-                                      )
-                                    : Image.network(
-                                        url,
-                                        width: 90,
-                                        height: 90,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
-                                          width: 90,
-                                          height: 90,
-                                          color: Colors.grey.shade200,
-                                          child: Icon(
-                                            Icons.broken_image_outlined,
-                                            color: Colors.grey.shade400,
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               );
             }),
