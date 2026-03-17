@@ -83,16 +83,16 @@ class LocalDelivery {
       recipientName: _str(json, 'name'),
       // 'address' is the delivery address in the eligibility response.
       deliveryAddress: _str(json, 'address'),
-      deliveryStatus: _str(json, 'delivery_status') ?? 'pending',
+      deliveryStatus: (_str(json, 'delivery_status') ?? 'PENDING').toUpperCase(),
       // 'product' carries the mail/product type in the eligibility response.
       mailType: _str(json, 'product') ?? _str(json, 'mail_type'),
       dispatchCode: dispatchCode,
       rawJson: jsonEncode(json),
       createdAt: now,
       updatedAt: now,
-      completedAt: (json['delivery_status'] == 'delivered' ||
-              json['delivery_status'] == 'rts' ||
-              json['delivery_status'] == 'osa')
+      completedAt: (json['delivery_status']?.toString().toUpperCase() == 'DELIVERED' ||
+              json['delivery_status']?.toString().toUpperCase() == 'RTS' ||
+              json['delivery_status']?.toString().toUpperCase() == 'OSA')
           ? now
           : null,
       syncStatus: 'clean',
@@ -124,16 +124,15 @@ class LocalDelivery {
         _str(json, 'tracking_number') ??
         '';
 
-    // serverStatus is the endpoint bucket we fetched from ('pending', 'delivered',
-    // 'rts', 'osa'). Use it as the primary status — the API sometimes returns an
+    // serverStatus is the endpoint bucket we fetched from ('PENDING', 'DELIVERED',
+    // 'RTS', 'OSA'). Use it as the primary status — the API sometimes returns an
     // internal delivery_status value that differs from our local taxonomy (e.g.
     // 'for_delivery', 'completed'). Fall back to the JSON field only when no
     // serverStatus is provided (e.g. the per-barcode reconciliation path).
-    final status = serverStatus.isNotEmpty
+    final status = (serverStatus.isNotEmpty
         ? serverStatus
-        : (_str(json, 'delivery_status') ?? 'pending');
-    debugPrint('[fromApiItem] barcode=${_str(json, 'barcode_value') ?? _str(json, 'barcode')} '
-        'json.delivery_status=${json['delivery_status']} → status=$status serverStatus=$serverStatus');
+        : (_str(json, 'delivery_status') ?? 'PENDING')).toUpperCase();
+    debugPrint('[API-STATUS] barcode=$barcode raw_json_status=${json['delivery_status']} bucket=$serverStatus → final=$status');
 
     // Derive deliveredAt from server-provided date fields when available.
     // Only use delivered_date — transaction_at is the package creation date
@@ -141,7 +140,7 @@ class LocalDelivery {
     // it would set delivered_at to a past date, causing the today-filter in
     // countVisibleDelivered / getVisibleDeliveredPaged to exclude the item.
     int? deliveredAt;
-    if (status == 'delivered') {
+    if (status == 'DELIVERED') {
       final dateStr = _str(json, 'delivered_date');
       if (dateStr != null) {
         try {
@@ -154,10 +153,10 @@ class LocalDelivery {
       }
     }
 
-    // completedAt is essentially the same as deliveredAt for 'delivered',
-    // but also covers 'rts' and 'osa'.
+    // completedAt is essentially the same as deliveredAt for 'DELIVERED',
+    // but also covers 'RTS' and 'OSA'.
     int? completedAt = deliveredAt;
-    if (completedAt == null && (status == 'rts' || status == 'osa')) {
+    if (completedAt == null && (status == 'RTS' || status == 'OSA')) {
       completedAt = now;
     }
 
@@ -199,7 +198,7 @@ class LocalDelivery {
       trackingNumber: row['tracking_number'] as String?,
       recipientName: row['recipient_name'] as String?,
       deliveryAddress: row['delivery_address'] as String?,
-      deliveryStatus: row['delivery_status'] as String? ?? 'pending',
+      deliveryStatus: row['delivery_status'] as String? ?? 'PENDING',
       mailType: row['mail_type'] as String?,
       dispatchCode: row['dispatch_code'] as String?,
       rawJson: row['raw_json'] as String,

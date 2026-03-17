@@ -82,10 +82,10 @@ class _DeliveryStatusListScreenState
     setState(() => _loading = true);
     final offset = _currentPage * _kPageSize;
     final rows = await _fetchPage(offset: offset);
-    final total = switch (widget.status) {
-      'delivered' => await LocalDeliveryDao.instance.countVisibleDelivered(),
-      'rts' => await LocalDeliveryDao.instance.countVisibleRts(),
-      'osa' => await LocalDeliveryDao.instance.countVisibleOsa(),
+    final total = switch (widget.status.toUpperCase()) {
+      'DELIVERED' => await LocalDeliveryDao.instance.countVisibleDelivered(),
+      'RTS' => await LocalDeliveryDao.instance.countVisibleRts(),
+      'OSA' => await LocalDeliveryDao.instance.countVisibleOsa(),
       _ => await LocalDeliveryDao.instance.countByStatus(widget.status),
     };
     if (!mounted) return;
@@ -107,21 +107,22 @@ class _DeliveryStatusListScreenState
   }
 
   Future<List<LocalDelivery>> _fetchPage({required int offset}) {
-    return switch (widget.status) {
-      'delivered' => LocalDeliveryDao.instance.getVisibleDeliveredPaged(
+    final status = widget.status.toUpperCase();
+    return switch (status) {
+      'DELIVERED' => LocalDeliveryDao.instance.getVisibleDeliveredPaged(
         limit: _kPageSize,
         offset: offset,
       ),
-      'rts' => LocalDeliveryDao.instance.getVisibleRtsPaged(
+      'RTS' => LocalDeliveryDao.instance.getVisibleRtsPaged(
         limit: _kPageSize,
         offset: offset,
       ),
-      'osa' => LocalDeliveryDao.instance.getVisibleOsaPaged(
+      'OSA' => LocalDeliveryDao.instance.getVisibleOsaPaged(
         limit: _kPageSize,
         offset: offset,
       ),
       _ => LocalDeliveryDao.instance.getByStatusPaged(
-        widget.status,
+        status,
         limit: _kPageSize,
         offset: offset,
       ),
@@ -194,8 +195,9 @@ class _DeliveryStatusListScreenState
         });
       },
     );
-    return switch (widget.status) {
-      'pending' => [
+    final status = widget.status.toUpperCase();
+    return switch (status) {
+      'PENDING' => [
         searchBtn,
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -203,7 +205,7 @@ class _DeliveryStatusListScreenState
           onPressed: () => context.push('/scan', extra: {'mode': 'pod'}),
         ),
       ],
-      'rts' => [
+      'RTS' => [
         searchBtn,
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -215,11 +217,11 @@ class _DeliveryStatusListScreenState
     };
   }
 
-  String _emptyMessage() => switch (widget.status) {
-    'pending' => 'No active deliveries.',
-    'delivered' => "No delivered items today.",
-    'rts' => "No RTS mailpacks today.",
-    'osa' => "No OSA mailpacks today.",
+  String _emptyMessage() => switch (widget.status.toUpperCase()) {
+    'PENDING' => 'No active deliveries.',
+    'DELIVERED' => "No delivered items today.",
+    'RTS' => "No RTS mailpacks today.",
+    'OSA' => "No OSA mailpacks today.",
     _ => 'No items found.',
   };
 
@@ -309,12 +311,13 @@ class _DeliveryStatusListScreenState
                         }
                         final d = displayed[index - banners];
                         final identifier = resolveDeliveryIdentifier(d);
-                        final isOsa = widget.status == 'osa';
+                        final status = widget.status.toUpperCase();
+                        final isOsa = status == 'OSA';
                         final rtsVerifStatus =
-                            d['_rts_verification_status']?.toString() ??
+                            (d['_rts_verification_status']?.toString() ??
                             d['rts_verification_status']?.toString() ??
-                            'unvalidated';
-                        final isValidatedRts = widget.status == 'rts' &&
+                            'unvalidated').toLowerCase();
+                        final isValidatedRts = status == 'RTS' &&
                             (rtsVerifStatus == 'verified_with_pay' ||
                                 rtsVerifStatus == 'verified_no_pay');
                         final isLocked = isOsa || isValidatedRts;
@@ -347,22 +350,24 @@ class _DeliveryStatusListScreenState
   }
 
   int _bannerCount(bool isOnline) {
+    final status = widget.status.toUpperCase();
     int count = 0;
     if (!isOnline) count++;
-    if (widget.status == 'osa') count++;
-    if (widget.status == 'rts') count++;
-    if (widget.status == 'delivered') count++;
+    if (status == 'OSA') count++;
+    if (status == 'RTS') count++;
+    if (status == 'DELIVERED') count++;
     return count;
   }
 
   Widget _buildBanner(int index, bool isOnline) {
+    final status = widget.status.toUpperCase();
     final widgets = <Widget>[
       if (!isOnline) const OfflineBanner(isMinimal: true),
-      if (widget.status == 'osa')
+      if (status == 'OSA')
         const StatusNoticeBanner(type: StatusNoticeType.osa),
-      if (widget.status == 'rts')
+      if (status == 'RTS')
         const StatusNoticeBanner(type: StatusNoticeType.rts),
-      if (widget.status == 'delivered')
+      if (status == 'DELIVERED')
         const StatusNoticeBanner(type: StatusNoticeType.deliveredToday),
     ];
     return widgets[index];

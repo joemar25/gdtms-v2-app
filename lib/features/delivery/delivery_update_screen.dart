@@ -44,17 +44,17 @@ const _kSignatureHeight = 144.0; // signature slot height (was 130)
 
 // ─── Status metadata ────────────────────────────────────────────────────────
 const _kStatusMeta = {
-  'delivered': (
+  'DELIVERED': (
     label: 'DELIVERED',
     icon: Icons.check_circle_rounded,
     color: Color(0xFF00B14F),
   ),
-  'rts': (
+  'RTS': (
     label: 'RTS',
     icon: Icons.keyboard_return_rounded,
     color: Colors.purple,
   ),
-  'osa': (label: 'OSA', icon: Icons.inbox_rounded, color: Colors.amber),
+  'OSA': (label: 'OSA', icon: Icons.inbox_rounded, color: Colors.amber),
 };
 
 class DeliveryUpdateScreen extends ConsumerStatefulWidget {
@@ -77,7 +77,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   final _picker = ImagePicker();
 
-  String _status = 'delivered';
+  String _status = 'DELIVERED';
   String? _relationship;
   bool _recipientIsOwner = false;
   String _placement = 'RECEIVED';
@@ -340,7 +340,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   bool _validate() {
     _errors.clear();
 
-    if (!kUpdateStatuses.map((s) => s.toLowerCase()).contains(_status)) {
+    if (!kUpdateStatuses.contains(_status.toUpperCase())) {
       _errors['delivery_status'] = 'Invalid status.';
     }
 
@@ -348,7 +348,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       _errors['note'] = 'Note must not exceed $kMaxNoteLength characters.';
     }
 
-    if (_status == 'delivered') {
+    if (_status == 'DELIVERED') {
       if (_recipient.text.trim().isEmpty) {
         _errors['recipient'] = 'This field is required.';
       }
@@ -366,7 +366,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
     }
 
-    if (_status == 'rts' || _status == 'osa') {
+    if (_status == 'RTS' || _status == 'OSA') {
       if (_reason == null || _reason!.isEmpty) {
         _errors['reason'] = 'Reason is required.';
       }
@@ -403,7 +403,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     final pendingMediaPaths = <String, String>{};
 
-    if (_status == 'delivered') {
+    if (_status == 'DELIVERED') {
       if (_podPhoto != null) {
         pendingMediaPaths['pod'] = _podPhoto!.file;
       }
@@ -466,6 +466,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _errors.clear();
   }
 
+  void _clearNonDeliveredFields() {
+    _reason = null;
+    _selfiePhoto = null;
+    _photos.clear();
+    _errors.clear();
+  }
+
   Future<void> _onStatusTap(String newStatus) async {
     if (newStatus == _status) return;
 
@@ -476,41 +483,71 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         _selfiePhoto != null ||
         _signaturePath != null;
 
-    if (_status == 'delivered' && hasDeliveredData) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text(
-            'SWITCH STATUS?',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-          ),
-          content: Text(
-            'You have filled in delivery details (recipient, photos, signature). '
-            'Switching to ${newStatus.toUpperCase()} will clear all of that data.\n\n'
-            'Are you sure you want to continue?',
-            style: const TextStyle(fontSize: 13),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('CANCEL'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('YES, SWITCH'),
-            ),
-          ],
-        ),
+    final bool hasNonDeliveredData =
+        _reason != null ||
+        _selfiePhoto != null ||
+        _photos.isNotEmpty;
+
+    // Guard: switching away from DELIVERED
+    if (_status == 'DELIVERED' && hasDeliveredData) {
+      final confirmed = await _showSwitchConfirmDialog(
+        context,
+        from: 'DELIVERED',
+        to: newStatus,
+        detail: 'recipient info, photos, and signature',
       );
-      if (confirmed != true) return;
+      if (confirmed != true || !mounted) return;
       _clearDeliveredFields();
+    }
+    // Guard: switching away from RTS or OSA
+    else if ((_status == 'RTS' || _status == 'OSA') && hasNonDeliveredData) {
+      final confirmed = await _showSwitchConfirmDialog(
+        context,
+        from: _status,
+        to: newStatus,
+        detail: 'reason and selfie photo',
+      );
+      if (confirmed != true || !mounted) return;
+      _clearNonDeliveredFields();
     }
 
     setState(() {
       _status = newStatus;
-      _reason = null;
     });
+  }
+
+  Future<bool?> _showSwitchConfirmDialog(
+    BuildContext context, {
+    required String from,
+    required String to,
+    required String detail,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'SWITCH STATUS?',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+        ),
+        content: Text(
+          'You have already filled in $detail for $from. '
+          'Switching to $to will clear all of that data.\n\n'
+          'Are you sure you want to continue?',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('YES, SWITCH'),
+          ),
+        ],
+      ),
+    );
   }
 
   // ─── Build helpers ────────────────────────────────────────────────────────
@@ -772,7 +809,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   // ─────────────────────────────────────────────────────────────────────────
   bool get _isDirty =>
-      _status != 'delivered' ||
+      _status != 'DELIVERED' ||
       _recipient.text.isNotEmpty ||
       _note.text.isNotEmpty ||
       _relationship != null ||
@@ -784,7 +821,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool needsReason = _status == 'rts' || _status == 'osa';
+    final bool needsReason = _status == 'RTS' || _status == 'OSA';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isOnline = ref.read(isOnlineProvider);
 
@@ -826,6 +863,40 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         backgroundColor: isDark
             ? ColorStyles.grabCardDark
             : ColorStyles.grabCardLight,
+        floatingActionButtonLocation:
+            FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: FilledButton.icon(
+            icon: _loading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.check_circle_outline_rounded),
+            label: const Text(
+              'SUBMIT UPDATE',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorStyles.grabGreen,
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 6,
+              shadowColor: ColorStyles.grabGreen.withValues(alpha: 0.4),
+            ),
+            onPressed: _loading ? null : _submit,
+          ),
+        ),
         appBar: AppBar(
           backgroundColor: isDark ? ColorStyles.grabCardDark : Colors.white,
           elevation: 0,
@@ -867,7 +938,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     ],
                   )
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     children: [
                       // ── Offline Banner ────────────────────────────────────────
                       if (!isOnline)
@@ -883,16 +954,15 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       _kInnerGap,
                       Row(
                         children: kUpdateStatuses.map((rawStatus) {
-                          final s = rawStatus.toLowerCase();
-                          final meta = _kStatusMeta[s]!;
-                          final selected = _status == s;
+                          final meta = _kStatusMeta[rawStatus]!;
+                          final selected = _status == rawStatus;
                           return Expanded(
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 4.0,
                               ),
                               child: GestureDetector(
-                                onTap: () => _onStatusTap(s),
+                                onTap: () => _onStatusTap(rawStatus),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),
                                   decoration: BoxDecoration(
@@ -967,7 +1037,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         ),
 
                       // ── RECIPIENT INFO (delivered only) ───────────────────────
-                      if (_status == 'delivered') ...[
+                      if (_status == 'DELIVERED') ...[
                         _kSectionGap,
                         const DeliverySectionHeader(label: 'RECIPIENT INFO'),
                         _kInnerGap,
@@ -1112,7 +1182,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       ],
 
                       // ── PROOF OF DELIVERY: two fixed slots + signature ────────
-                      if (_status == 'delivered') ...[
+                      if (_status == 'DELIVERED') ...[
                         _kSectionGap,
                         const DeliverySectionHeader(
                           label: 'PROOF OF DELIVERY PHOTOS',
@@ -1144,7 +1214,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       ],
 
                       // ── SELFIE PHOTO (rts / osa) ──────────────────────────────
-                      if (_status != 'delivered') ...[
+                      if (_status != 'DELIVERED') ...[
                         _kSectionGap,
                         const DeliverySectionHeader(label: 'SELFIE PHOTO'),
                         _kInnerGap,
@@ -1246,29 +1316,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             ],
           ),
         ),
-      SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: FilledButton.icon(
-            icon: const Icon(Icons.check_circle_outline_rounded),
-            label: const Text(
-              'SUBMIT UPDATE',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-              ),
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: ColorStyles.grabGreen,
-              minimumSize: const Size.fromHeight(56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            onPressed: _loading ? null : _submit,
-          ),
-        ),
-      ),
           ],
         ),
       ),

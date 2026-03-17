@@ -39,10 +39,10 @@ class DeliveryBootstrapService {
   static const DeliveryBootstrapService instance = DeliveryBootstrapService._();
 
   static const List<String> _statuses = [
-    'pending',
-    'rts',
-    'osa',
-    'delivered',
+    'PENDING',
+    'RTS',
+    'OSA',
+    'DELIVERED',
   ];
 
   // ── Public API ────────────────────────────────────────────────────────────
@@ -59,10 +59,10 @@ class DeliveryBootstrapService {
 
     final serverBarcodesPerStatus = <String, Set<String>>{};
     const statusLabels = {
-      'pending': 'Fetching pending deliveries...',
-      'rts': 'Fetching RTS orders...',
-      'osa': 'Fetching OSA orders...',
-      'delivered': 'Fetching delivered orders...',
+      'PENDING': 'Fetching pending deliveries...',
+      'RTS': 'Fetching RTS orders...',
+      'OSA': 'Fetching OSA orders...',
+      'DELIVERED': 'Fetching delivered orders...',
     };
 
     for (final status in _statuses) {

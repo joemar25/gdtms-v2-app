@@ -67,7 +67,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Always derive delivery counts from SQLite — same source as list screens.
     // This guarantees dashboard numbers always match what clicking a card shows.
     final dao = LocalDeliveryDao.instance;
-    final pending = await dao.countByStatus('pending');
+    final pending = await dao.countByStatus('PENDING');
     final delivered = await dao.countVisibleDelivered();
     final rts = await dao.countVisibleRts();
     final osa = await dao.countVisibleOsa();

@@ -40,7 +40,7 @@ class SyncOperationsDao {
           "  END"
           ") <= ?)",
       whereArgs: [courierId, now],
-      orderBy: 'created_at ASC',
+      orderBy: 'created_at DESC',
       limit: limit,
     );
     return rows.map(SyncOperation.fromDb).toList();

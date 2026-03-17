@@ -247,7 +247,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
           } else {
             // Payload stores UPPERCASE status (server format); normalise to
             // lowercase before writing to local DB (internal app format).
-            final status = payload['delivery_status']?.toString().toLowerCase();
+            final status = payload['delivery_status']?.toString().toUpperCase();
             if (status != null) {
               await LocalDeliveryDao.instance.updateStatus(
                 entry.barcode,
@@ -273,7 +273,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
                                    errorMsg.toLowerCase().contains('immutable');
           // Compare case-insensitively — payload uses UPPERCASE server format.
           final wasIntendingToDeliver =
-              payload['delivery_status']?.toString().toLowerCase() == 'delivered';
+              payload['delivery_status']?.toString().toUpperCase() == 'DELIVERED';
 
           if (isDeliveredError && wasIntendingToDeliver) {
             await SyncOperationsDao.instance.updateStatus(entry.id, 'synced', lastError: 'Resolved: $errorMsg');

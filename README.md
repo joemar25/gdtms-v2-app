@@ -158,7 +158,17 @@ adb -s emulator-5554 logcat -d | tail -n 300
 flutter clean
 dart run flutter_launcher_icons
 dart run flutter_native_splash:create
+flutter build apk --dart-define-from-file=dart_defines.json
+
 ```
+
+### Icon & Asset Troubleshooting
+
+If icons fail to load or assets are outdated:
+
+1.  **Rebuild Icons**: Run `dart run flutter_launcher_icons`.
+2.  **Clear Cache**: Run `flutter clean` then `flutter pub get`.
+3.  **Full Rebuild**: For Android, delete `android/app/build` then run `flutter build apk`.
 
 ### Wireless Pairing
 

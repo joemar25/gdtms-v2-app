@@ -248,7 +248,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     if (matches.length == 1) {
       final match = matches.first;
-      if (match.deliveryStatus.toLowerCase() == 'osa') {
+      if (match.deliveryStatus.toUpperCase() == 'OSA') {
         setState(() => _inlineError = '"${match.barcode}" is marked OSA and cannot be opened.');
         if (_hasPermission) await _scannerController.start();
         return;
@@ -262,7 +262,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       // Multiple hits — let the courier pick the correct one.
       // Filter out OSA entries before showing the picker.
       final nonOsa = matches.where(
-        (m) => m.deliveryStatus.toLowerCase() != 'osa',
+        (m) => m.deliveryStatus.toUpperCase() != 'OSA',
       ).toList();
       if (nonOsa.isEmpty) {
         setState(() => _inlineError = '"$code" is marked OSA and cannot be opened.');
@@ -292,8 +292,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
       final deliveryStatus =
-          result.data['delivery_status']?.toString().toLowerCase() ?? '';
-      if (deliveryStatus == 'osa') {
+          result.data['delivery_status']?.toString().toUpperCase() ?? '';
+      if (deliveryStatus == 'OSA') {
         setState(() => _inlineError = '"$code" is marked OSA and cannot be opened.');
         if (_hasPermission) await _scannerController.start();
         return;

@@ -219,9 +219,25 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           (day['deliveries'] as List?)
               ?.whereType<Map<String, dynamic>>()
               .map(
-                (d) => <String, dynamic>{
-                  ...d,
-                  'delivery_status': d['delivery_status'] ?? 'delivered',
+                (d) {
+                  final status = (d['delivery_status']?.toString() ?? 'DELIVERED').toUpperCase();
+                  // In the context of a payout preview, RTS items are implicitly
+                  // verified with pay unless explicitly stated otherwise.
+                  final defaultRtsVerif = status == 'RTS' ? 'verified_with_pay' : 'unvalidated';
+                  
+                  return <String, dynamic>{
+                    ...d,
+                    'delivery_status': status,
+                    'barcode_value': d['barcode_value'] ?? d['barcode'],
+                    'sequence_number': d['sequence_number'] ?? d['sequence'],
+                    'product': d['product'] ?? d['mail_type'],
+                    'transaction_at': d['transaction_at'] ?? d['delivered_date'] ?? d['payout_date'],
+                    'rts_verification_status': d['rts_verification_status'] ?? 
+                                             d['verification_status'] ?? 
+                                             d['rts_verification'] ?? 
+                                             d['status_verification'] ??
+                                             defaultRtsVerif,
+                  };
                 },
               )
               .toList() ??
@@ -313,7 +329,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                       color: ColorStyles.white,
                     ),
                   )
-                : const Icon(Icons.send_rounded),
+                : const Icon(Icons.payments_rounded),
             label: Text(
               widget.isConsolidation ? 'SUBMIT CONSOLIDATED REQUEST' : 'SUBMIT REQUEST',
               style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
@@ -441,15 +457,15 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         ),
         const SizedBox(height: 16),
 
-        // ── Coverage Period ───────────────────────────────────────────
-        if (toDate.isNotEmpty) ...[
-          _CoveragePeriodBar(
-            fromDate: fromDate,
-            toDate: toDate,
-            fmtShort: _fmtShort,
-          ),
-          const SizedBox(height: 20),
-        ],
+        // // ── Coverage Period ───────────────────────────────────────────
+        // if (toDate.isNotEmpty) ...[
+        //   _CoveragePeriodBar(
+        //     fromDate: fromDate,
+        //     toDate: toDate,
+        //     fmtShort: _fmtShort,
+        //   ),
+        //   const SizedBox(height: 20),
+        // ],
 
         // ── Date Strip + Deliveries ───────────────────────────────────
         if (dailyBreakdown.isNotEmpty) ...[
@@ -464,9 +480,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           ),
           const SizedBox(height: 8),
           DateStripWithDeliveries(
-            key: ValueKey(_refreshKey),
             dailyBreakdown: dailyBreakdown,
             initialSelectedDate: _initialSelectedDate,
+            enableHoldToReveal: false,
           ),
         ],
 
@@ -553,87 +569,88 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   }
 }
 
-// ─── Coverage Period Bar ──────────────────────────────────────────────────────
+// // ─── Coverage Period Bar ──────────────────────────────────────────────────────
+// // mar-note: do not remove this, since this can be useful someday
 
-class _CoveragePeriodBar extends StatelessWidget {
-  const _CoveragePeriodBar({
-    required this.fromDate,
-    required this.toDate,
-    required this.fmtShort,
-  });
+// class _CoveragePeriodBar extends StatelessWidget {
+//   const _CoveragePeriodBar({
+//     required this.fromDate,
+//     required this.toDate,
+//     required this.fmtShort,
+//   });
 
-  final String fromDate;
-  final String toDate;
-  final String Function(String) fmtShort;
+//   final String fromDate;
+//   final String toDate;
+//   final String Function(String) fmtShort;
 
-  @override
-  Widget build(BuildContext context) {
-    // If from == to (single day), just say "Up to [date]"
-    final isSingleDay = fromDate == toDate || fromDate.isEmpty;
-    final label = isSingleDay
-        ? 'Up to ${fmtShort(toDate)}'
-        : '${fmtShort(fromDate)}  –  ${fmtShort(toDate)}';
+//   @override
+//   Widget build(BuildContext context) {
+//     // If from == to (single day), just say "Up to [date]"
+//     final isSingleDay = fromDate == toDate || fromDate.isEmpty;
+//     final label = isSingleDay
+//         ? 'Up to ${fmtShort(toDate)}'
+//         : '${fmtShort(fromDate)}  –  ${fmtShort(toDate)}';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: ColorStyles.grabGreen.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ColorStyles.grabGreen.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.date_range_rounded,
-            size: 18,
-            color: ColorStyles.grabGreen,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'COVERAGE PERIOD',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                    color: ColorStyles.grabGreen,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (!isSingleDay)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: ColorStyles.grabGreen.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '7 DAYS',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: ColorStyles.grabGreen,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
+//     return Container(
+//       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+//       decoration: BoxDecoration(
+//         color: ColorStyles.grabGreen.withValues(alpha: 0.08),
+//         borderRadius: BorderRadius.circular(12),
+//         border: Border.all(color: ColorStyles.grabGreen.withValues(alpha: 0.3)),
+//       ),
+//       child: Row(
+//         children: [
+//           Icon(
+//             Icons.date_range_rounded,
+//             size: 18,
+//             color: ColorStyles.grabGreen,
+//           ),
+//           const SizedBox(width: 10),
+//           Expanded(
+//             child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 Text(
+//                   'COVERAGE PERIOD',
+//                   style: TextStyle(
+//                     fontSize: 10,
+//                     fontWeight: FontWeight.w700,
+//                     letterSpacing: 1.0,
+//                     color: ColorStyles.grabGreen,
+//                   ),
+//                 ),
+//                 const SizedBox(height: 2),
+//                 Text(
+//                   label,
+//                   style: const TextStyle(
+//                     fontSize: 15,
+//                     fontWeight: FontWeight.w800,
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//           if (!isSingleDay)
+//             Container(
+//               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+//               decoration: BoxDecoration(
+//                 color: ColorStyles.grabGreen.withValues(alpha: 0.15),
+//                 borderRadius: BorderRadius.circular(20),
+//               ),
+//               child: Text(
+//                 '7 DAYS',
+//                 style: TextStyle(
+//                   fontSize: 10,
+//                   fontWeight: FontWeight.w800,
+//                   color: ColorStyles.grabGreen,
+//                 ),
+//               ),
+//             ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 // ─── Summary Card ─────────────────────────────────────────────────────────────
 

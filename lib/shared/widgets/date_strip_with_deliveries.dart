@@ -29,6 +29,7 @@ class DateStripWithDeliveries extends StatefulWidget {
     this.hasMorePages = false,
     this.onLoadMore,
     this.itemCountLabelBuilder,
+    this.enableHoldToReveal = true,
   });
 
   /// Flat list of day objects. Each entry should have:
@@ -71,10 +72,11 @@ class DateStripWithDeliveries extends StatefulWidget {
   /// Pass `null` while a load is in flight to suppress duplicate calls.
   final VoidCallback? onLoadMore;
 
-  /// Override the count badge text in the day header.
-  /// E.g. `(n) => n == 1 ? '1 request' : '$n requests'`.
   /// Defaults to "N delivery / N deliveries".
   final String Function(int count)? itemCountLabelBuilder;
+
+  /// Whether to enable the "Hold-to-Reveal" feature in [DeliveryCard].
+  final bool enableHoldToReveal;
 
   @override
   State<DateStripWithDeliveries> createState() =>
@@ -447,11 +449,20 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
             return widget.itemBuilder!(context, d);
           }
           final barcode = resolveDeliveryIdentifier(d);
+          final status = (d['delivery_status']?.toString() ?? 'PENDING').toUpperCase();
+          final rtsVerifStatus =
+              (d['_rts_verification_status']?.toString() ??
+              d['rts_verification_status']?.toString() ??
+              'unvalidated').toLowerCase();
+          final isLocked = (status == 'OSA') || 
+                           (status == 'RTS' && (rtsVerifStatus == 'verified_with_pay' || rtsVerifStatus == 'verified_no_pay'));
+
           return DeliveryCard(
             delivery: d,
             compact: isCompact,
-            showChevron: barcode.isNotEmpty,
-            onTap: barcode.isNotEmpty
+            showChevron: barcode.isNotEmpty && !isLocked,
+            enableHoldToReveal: widget.enableHoldToReveal,
+            onTap: (barcode.isNotEmpty && !isLocked)
                 ? () => context.push('/deliveries/$barcode')
                 : () {},
           );

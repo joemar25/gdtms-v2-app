@@ -362,10 +362,14 @@ class _EntryTile extends StatelessWidget {
     final dispatchCode = delivery?.dispatchCode;
     final payloadStatus = _payloadStatus;
     final dates = _dates;
+    final rtsVerif = (delivery?.rtsVerificationStatus ?? '').toLowerCase();
+    final isRtsVerified = payloadStatus.toLowerCase() == 'rts' &&
+        (rtsVerif == 'verified_with_pay' || rtsVerif == 'verified_no_pay');
     final isOsa = payloadStatus.toLowerCase() == 'osa';
+    final isLocked = isOsa || isRtsVerified;
 
     return InkWell(
-      onTap: isOsa ? null : () => context.push('/deliveries/${entry.barcode}'),
+      onTap: isLocked ? null : () => context.push('/deliveries/${entry.barcode}'),
       onLongPress: onDelete,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -400,7 +404,7 @@ class _EntryTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (!isOsa)
+                      if (!isLocked)
                         const Icon(
                           Icons.chevron_right_rounded,
                           size: 18,

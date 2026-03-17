@@ -78,7 +78,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
       // Privacy rule: if payout is paid, mark all associated delivered records
       // with paid_at so the cleanup service applies the shorter 1-day retention
       // (kPaidDeliveryRetentionDays) instead of the standard window.
-      if ((_data['status'] as String?)?.toLowerCase() == 'paid') {
+      if ((_data['status'] as String?)?.toUpperCase() == 'PAID') {
         _markLocalDeliveriesAsPaid(_data);
       }
       // Initialise breakdown + pagination
@@ -164,33 +164,19 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   const SizedBox(height: 12),
 
                   // ── Status History ───────────────────────────────────────
-                  _SectionCard(
+                 _SectionCard(
                     title: 'Status History',
                     trailing: transactionHistory.isNotEmpty
                         ? TextButton(
-                            onPressed: () => _showTransactionHistory(
-                              context,
-                              transactionHistory,
+                            onPressed: () => _showTransactionHistory(context, transactionHistory),
+                            style: TextButton.styleFrom(
+                              foregroundColor: ColorStyles.grabGreen,
+                              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                             ),
-                            child: const Text('View all'),
+                            child: const Text('View All'),
                           )
                         : null,
-                    children: [
-                      // User feedback: "it should be dynamic or just remove it"
-                      // Removing the horizontal stepper to simplify the UI.
-                      if (transactionHistory.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Text(
-                            'Click "View all" for full transition history.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ),
-                    ],
+                    children: const [], 
                   ),
 
                   // ── Daily breakdown ──────────────────────────────────────
@@ -222,9 +208,27 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
           (day['deliveries'] as List?)
               ?.whereType<Map<String, dynamic>>()
               .map(
-                (d) => <String, dynamic>{
-                  ...d,
-                  'delivery_status': d['delivery_status'] ?? 'delivered',
+                (d) {
+                  final status =
+                      (d['delivery_status'] ?? 'DELIVERED').toString().toUpperCase();
+                  // RTS deliveries included in a payout are implicitly verified
+                  // with pay — no chevron, no navigation (same as status list).
+                  final defaultRtsVerif =
+                      status == 'RTS' ? 'verified_with_pay' : 'unvalidated';
+                  return <String, dynamic>{
+                    ...d,
+                    'delivery_status': status,
+                    'barcode_value': d['barcode_value'] ?? d['barcode'],
+                    'sequence_number': d['sequence_number'] ?? d['sequence'],
+                    'product': d['product'] ?? d['mail_type'],
+                    'transaction_at':
+                        d['transaction_at'] ?? d['delivered_date'] ?? d['paid_at'],
+                    'rts_verification_status': d['rts_verification_status'] ??
+                        d['verification_status'] ??
+                        d['rts_verification'] ??
+                        d['status_verification'] ??
+                        defaultRtsVerif,
+                  };
                 },
               )
               .toList() ??
@@ -300,6 +304,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
             dataMode: false,
             hasMorePages: _hasMoreBreakdownPages,
             onLoadMore: _loadingMoreDays ? null : _loadMoreBreakdown,
+            enableHoldToReveal: false,
           ),
         ],
       ),
@@ -679,10 +684,10 @@ class _StatusBadgeLight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (bg, fg) = switch (status.toLowerCase()) {
-      'approved' => (Colors.white.withValues(alpha: 0.25), Colors.white),
-      'rejected' => (Colors.red.shade400.withValues(alpha: 0.3), Colors.white),
-      'processing' => (
+    final (bg, fg) = switch (status.toUpperCase()) {
+      'PAID' => (Colors.white.withValues(alpha: 0.25), Colors.white),
+      'REJECTED' => (Colors.red.shade400.withValues(alpha: 0.3), Colors.white),
+      'PROCESSING' => (
         Colors.orange.shade300.withValues(alpha: 0.3),
         Colors.white,
       ),
