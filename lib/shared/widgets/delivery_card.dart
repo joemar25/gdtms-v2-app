@@ -71,6 +71,28 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
 
+    // Synchronous visibility evaluation mirroring LocalDeliveryDao.isVisibleToRider
+    final isArchived = delivery['_is_archived'] == true;
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+
+    bool isVisible = false;
+    if (!isArchived) {
+      if (status == 'PENDING') {
+        isVisible = true;
+      } else if (status == 'DELIVERED') {
+        final deliveredAt = delivery['_delivered_at'] as int? ?? 0;
+        isVisible = deliveredAt >= todayStart && deliveredAt < tomorrowStart;
+      } else if (status == 'RTS') {
+        final completedAt = delivery['_completed_at'] as int? ?? 0;
+        isVisible = completedAt >= todayStart && completedAt < tomorrowStart && !isRtsWithPay && !isRtsNoPay;
+      } else if (status == 'OSA') {
+        final completedAt = delivery['_completed_at'] as int? ?? 0;
+        isVisible = completedAt >= todayStart && completedAt < tomorrowStart;
+      }
+    }
+
     if (widget.compact) {
       return _buildCompactCard(
         context: context,
@@ -83,6 +105,7 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
         isRtsWithPay: isRtsWithPay,
         isRtsNoPay: isRtsNoPay,
         isLocked: isLocked,
+        isVisible: isVisible,
       );
     }
 
@@ -186,9 +209,17 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                             ),
                           ),
                         )
-                      else if (isLocked)
-                        const SizedBox(width: 8)
-                      else if (widget.showChevron) ...[
+                      else if (!isVisible) ...[
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: 'LOCKED (Failed visibility rules)',
+                          child: Icon(
+                            Icons.bug_report_rounded,
+                            color: Colors.red.shade300,
+                            size: 16,
+                          ),
+                        ),
+                      ] else if (widget.showChevron) ...[
                         const SizedBox(width: 8),
                         Icon(
                           Icons.chevron_right_rounded,
@@ -368,6 +399,7 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
     required bool isRtsWithPay,
     required bool isRtsNoPay,
     required bool isLocked,
+    required bool isVisible,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -477,8 +509,14 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                     ),
                   ),
                 )
-              else if (isLocked) 
-                const SizedBox(width: 8)
+              else if (!isVisible)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Tooltip(
+                    message: 'LOCKED (Failed visibility rules)',
+                    child: Icon(Icons.bug_report_rounded, color: Colors.red.shade300, size: 14),
+                  ),
+                )
               else if (widget.showChevron)
                 Padding(
                   padding: const EdgeInsets.only(left: 4),

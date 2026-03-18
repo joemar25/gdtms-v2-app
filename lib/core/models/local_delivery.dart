@@ -239,10 +239,21 @@ class LocalDelivery {
 
   /// Decodes [rawJson] back into the delivery map consumed by UI widgets
   /// such as [DeliveryCard] and detail screens.
+  ///
+  /// Injects internal state prefixed with '_' so the UI can synchronously
+  /// evaluate visibility/locked rules.
   Map<String, dynamic> toDeliveryMap() {
     try {
       final decoded = jsonDecode(rawJson);
-      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map<String, dynamic>) {
+        decoded['_sync_status'] = syncStatus;
+        decoded['_paid_at'] = paidAt;
+        decoded['_rts_verification_status'] = rtsVerificationStatus;
+        decoded['_is_archived'] = isArchived;
+        decoded['_completed_at'] = completedAt;
+        decoded['_delivered_at'] = deliveredAt;
+        return decoded;
+      }
       return {};
     } catch (_) {
       return {};

@@ -355,6 +355,9 @@ class LocalDeliveryDao {
       where:
           "delivery_status COLLATE NOCASE = 'RTS' "
           'AND completed_at >= ? AND completed_at < ? '
+          // Exclude all verified RTS items — once verified the courier has no
+          // further action to take, so they only clutter the list.
+          "AND COALESCE(rts_verification_status, 'unvalidated') NOT IN ('verified_with_pay', 'verified_no_pay') "
           'AND COALESCE(is_archived, 0) = 0',
       whereArgs: [todayStart, tomorrowStart],
       orderBy: 'updated_at DESC',
@@ -462,6 +465,8 @@ class LocalDeliveryDao {
           "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
           "AND delivery_status COLLATE NOCASE = ? "
           'AND completed_at >= ? AND completed_at < ? '
+          // Exclude all verified RTS items — once verified the courier can no longer act on them.
+          "AND (delivery_status COLLATE NOCASE != 'RTS' OR COALESCE(rts_verification_status, 'unvalidated') NOT IN ('verified_with_pay', 'verified_no_pay')) "
           'AND COALESCE(is_archived, 0) = 0';
       whereArgs = [q, q, status.toUpperCase(), todayStart, tomorrowStart];
     } else {
@@ -510,6 +515,66 @@ class LocalDeliveryDao {
       whereArgs: [q, q],
       orderBy: 'updated_at DESC',
       limit: limit,
+    );
+    return rows.map(LocalDelivery.fromDb).toList();
+  }
+
+  /// Variant of [searchByQuery] restricted to deliveries that are currently
+  /// visible in one of the courier's active list screens.
+  ///
+  /// Used by the scan (POD) screen as a UX pre-filter. The single SQL query
+  /// mirrors the four buckets of [isVisibleToRider] exactly:
+  ///
+  ///   • PENDING   — any non-archived pending record
+  ///   • DELIVERED — delivered_at is today AND paid_at = 0 (unpaid)
+  ///   • RTS       — completed_at is today AND rts_verification_status NOT IN
+  ///                 ('verified_with_pay', 'verified_no_pay')
+  ///   • OSA       — completed_at is today
+  ///
+  /// [DeliveryDetailScreen._load] still calls [isVisibleToRider] as the
+  /// canonical hard gate — this method is purely a performance and UX
+  /// optimisation that avoids an N+1 per-match check in the scan screen.
+  Future<List<LocalDelivery>> searchVisibleByQuery(
+    String query, {
+    int limit = 30,
+  }) async {
+    if (query.trim().isEmpty) return [];
+    final db = await _db;
+    final q = '%${query.trim()}%';
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    // NOTE: if you update isVisibleToRider, update this query too — they must
+    // stay in sync or the scan pre-filter will diverge from the hard gate.
+    final rows = await db.rawQuery(
+      '''
+      SELECT * FROM local_deliveries
+      WHERE (barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE)
+        AND COALESCE(is_archived, 0) = 0
+        AND (
+          -- PENDING: any non-archived pending record
+          (delivery_status COLLATE NOCASE = 'PENDING')
+
+          -- DELIVERED: today only (paid status does not restrict viewing)
+          OR (delivery_status COLLATE NOCASE = 'DELIVERED'
+              AND delivered_at  >= $todayStart AND delivered_at  < $tomorrowStart)
+
+          -- RTS: today only, unverified
+          OR (delivery_status COLLATE NOCASE = 'RTS'
+              AND completed_at >= $todayStart AND completed_at < $tomorrowStart
+              AND COALESCE(rts_verification_status, 'unvalidated')
+                  NOT IN ('verified_with_pay', 'verified_no_pay'))
+
+          -- OSA: today only
+          OR (delivery_status COLLATE NOCASE = 'OSA'
+              AND completed_at >= $todayStart AND completed_at < $tomorrowStart)
+        )
+      ORDER BY updated_at DESC
+      LIMIT $limit
+      ''',
+      [q, q],
     );
     return rows.map(LocalDelivery.fromDb).toList();
   }
@@ -593,6 +658,8 @@ class LocalDeliveryDao {
       'SELECT COUNT(*) FROM local_deliveries '
       'WHERE delivery_status COLLATE NOCASE = "RTS" '
       'AND completed_at >= ? AND completed_at < ? '
+      // Exclude all verified RTS items (with or without pay).
+      "AND COALESCE(rts_verification_status, 'unvalidated') NOT IN ('verified_with_pay', 'verified_no_pay') "
       'AND COALESCE(is_archived, 0) = 0',
       [todayStart, tomorrowStart],
     );
@@ -615,6 +682,78 @@ class LocalDeliveryDao {
       [todayStart, tomorrowStart],
     );
     return Sqflite.firstIntValue(res) ?? 0;
+  }
+
+  /// Returns `true` when [barcode] would appear in one of the courier's active
+  /// list screens (pending, today-delivered, today-RTS, today-OSA).
+  ///
+  /// This mirrors the visibility rules of every list query exactly:
+  ///
+  /// | Status    | Visible when                                                      |
+  /// |-----------|-------------------------------------------------------------------|
+  /// | PENDING   | Not archived                                                      |
+  /// | DELIVERED | delivered_at is today AND paid_at = 0 (unpaid)                    |
+  /// | RTS       | completed_at is today AND rts_verification_status is NOT verified |
+  /// | OSA       | completed_at is today                                             |
+  /// | other     | never visible                                                     |
+  ///
+  /// Used by the scan screen to gate navigation — a courier must not be able
+  /// to open a delivery that is not in their active list.
+  Future<bool> isVisibleToRider(String barcode) async {
+    final db = await _db;
+    final rows = await db.query(
+      'local_deliveries',
+      columns: [
+        'delivery_status',
+        'delivered_at',
+        'completed_at',
+        'paid_at',
+        'rts_verification_status',
+        'is_archived',
+      ],
+      where: 'barcode = ?',
+      whereArgs: [barcode],
+      limit: 1,
+    );
+    if (rows.isEmpty) return false;
+
+    final row = rows.first;
+    final status =
+        (row['delivery_status'] as String? ?? '').toUpperCase();
+    final isArchived = (row['is_archived'] as int? ?? 0) != 0;
+    if (isArchived) return false;
+
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+
+    switch (status) {
+      case 'PENDING':
+        return true;
+
+      case 'DELIVERED':
+        final deliveredAt = row['delivered_at'] as int? ?? 0;
+        return deliveredAt >= todayStart && deliveredAt < tomorrowStart;
+
+      case 'RTS':
+        final completedAt = row['completed_at'] as int? ?? 0;
+        final rtsVerif =
+            (row['rts_verification_status'] as String? ?? 'unvalidated')
+                .toLowerCase();
+        return completedAt >= todayStart &&
+            completedAt < tomorrowStart &&
+            rtsVerif != 'verified_with_pay' &&
+            rtsVerif != 'verified_no_pay';
+
+      case 'OSA':
+        final completedAt = row['completed_at'] as int? ?? 0;
+        return completedAt >= todayStart && completedAt < tomorrowStart;
+
+      default:
+        return false;
+    }
   }
 
   /// Deletes ALL rows from [local_deliveries].

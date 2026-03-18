@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
@@ -242,14 +243,28 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   }
 
   Future<void> _handlePod(String code) async {
-    // Search locally first — barcode substring OR recipient name substring.
-    final matches = await LocalDeliveryDao.instance.searchByQuery(code);
+    // ── SCAN GATE (pre-filter) ────────────────────────────────────────────────
+    // We use searchVisibleByQuery instead of the broad searchByQuery so that
+    // only deliveries currently active in one of the courier's list screens are
+    // even considered. This mirrors the rules in LocalDeliveryDao.isVisibleToRider:
+    //
+    //   • PENDING   — any non-archived pending record
+    //   • DELIVERED — today's unpaid delivered items
+    //   • RTS       — today's RTS items that are NOT yet verified
+    //   • OSA       — today's OSA items
+    //
+    // DeliveryDetailScreen._load() runs isVisibleToRider again as the canonical
+    // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
+    // message before ever navigating, and avoids N+1 per-row checks.
+    final matches =
+        await LocalDeliveryDao.instance.searchVisibleByQuery(code);
     if (!mounted) return;
 
     if (matches.length == 1) {
       final match = matches.first;
+      // OSA items surface in the list but cannot be opened individually.
       if (match.deliveryStatus.toUpperCase() == 'OSA') {
-        setState(() => _inlineError = '"${match.barcode}" is marked OSA and cannot be opened.');
+        setState(() => _inlineError = _blockedMessage(match.deliveryStatus, match.rtsVerificationStatus));
         if (_hasPermission) await _scannerController.start();
         return;
       }
@@ -259,19 +274,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     }
 
     if (matches.length > 1) {
-      // Multiple hits — let the courier pick the correct one.
-      // Filter out OSA entries before showing the picker.
-      final nonOsa = matches.where(
-        (m) => m.deliveryStatus.toUpperCase() != 'OSA',
-      ).toList();
-      if (nonOsa.isEmpty) {
-        setState(() => _inlineError = '"$code" is marked OSA and cannot be opened.');
+      // Multiple visible hits — let the courier pick the correct one.
+      // OSA items are visible in the list but cannot be tapped individually,
+      // so filter them out from the picker just like the list screen does.
+      final actionable = matches
+          .where((m) => m.deliveryStatus.toUpperCase() != 'OSA')
+          .toList();
+      if (actionable.isEmpty) {
+        setState(() => _inlineError = 'No active deliveries found for "$code".');
         if (_hasPermission) await _scannerController.start();
         return;
       }
       final chosen = await _showSearchResults(
         code,
-        nonOsa.map((m) => m.toDeliveryMap()).toList(),
+        actionable.map((m) => m.toDeliveryMap()).toList(),
       );
       if (!mounted) return;
       if (chosen != null) {
@@ -283,7 +299,24 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       return;
     }
 
-    // 0 local results — fall back to exact API lookup.
+    // 0 visible local results.
+    // Before giving up, check if the barcode exists locally but is non-visible
+    // (e.g. verified RTS, paid delivered, old window) so we can give a better
+    // error message than just "not found".
+    final anyLocal =
+        await LocalDeliveryDao.instance.getByBarcode(code);
+    if (!mounted) return;
+    if (anyLocal != null) {
+      // Item exists locally but is blocked — show status-specific reason.
+      setState(() => _inlineError =
+          _blockedMessage(anyLocal.deliveryStatus, anyLocal.rtsVerificationStatus));
+      if (_hasPermission) await _scannerController.start();
+      return;
+    }
+
+    // Genuinely not in local DB — try the API as a last resort.
+    // If the API returns data it still means the item was not assigned to this
+    // courier for today, so we block it regardless.
     final result = await ref
         .read(apiClientProvider)
         .get<Map<String, dynamic>>('/deliveries/$code', parser: parseApiMap);
@@ -291,20 +324,37 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     if (!mounted) return;
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
-      final deliveryStatus =
-          result.data['delivery_status']?.toString().toUpperCase() ?? '';
-      if (deliveryStatus == 'OSA') {
-        setState(() => _inlineError = '"$code" is marked OSA and cannot be opened.');
-        if (_hasPermission) await _scannerController.start();
-        return;
-      }
-      await context.push('/deliveries/$code');
-      if (mounted && _hasPermission) await _scannerController.start();
+      // Item exists on server but is not in the courier's active local list.
+      // The hard gate in DeliveryDetailScreen would catch it anyway, but we
+      // block here to avoid a confusing navigation + immediate pop experience.
+      setState(() => _inlineError = 'No active delivery found for "$code".');
+      if (_hasPermission) await _scannerController.start();
     } else {
       setState(() => _inlineError = 'No delivery found for "$code".');
       if (_hasPermission) await _scannerController.start();
     }
   }
+
+  /// Returns a human-readable error message for a delivery that failed the
+  /// visibility check, based on its [status] and [rtsVerifStatus].
+  ///
+  /// Rule mapping (mirrors isVisibleToRider):
+  ///   OSA                          → locked, never tappable
+  ///   RTS + verified (any)         → fully settled, no action needed
+  ///   anything else / out-of-date  → not in today's active window
+  String _blockedMessage(String status, String? rtsVerifStatus) {
+    final s = status.toUpperCase();
+    final v = (rtsVerifStatus ?? 'unvalidated').toLowerCase();
+    if (s == 'OSA') {
+      return 'This item is marked OSA and cannot be opened.';
+    }
+    if (s == 'RTS' &&
+        (v == 'verified_with_pay' || v == 'verified_no_pay')) {
+      return 'This RTS item has already been verified and is no longer actionable.';
+    }
+    return 'This delivery is not in your active list.';
+  }
+
 
   Future<Map<String, dynamic>?> _showSearchResults(
     String query,

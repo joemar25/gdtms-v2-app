@@ -350,6 +350,71 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       _isOfflineMode = false;
     });
 
+    // ── VISIBILITY GATE ──────────────────────────────────────────────────────
+    // Rule: A courier may only view a delivery that is currently visible in one
+    // of their active list screens. The visibility rules (defined in
+    // LocalDeliveryDao.isVisibleToRider) are:
+    //
+    //   • PENDING   — any non-archived pending record
+    //   • DELIVERED — delivered_at is today (paid status does not lock details)
+    //   • RTS       — completed_at is today AND rts_verification_status is
+    //                 NOT 'verified_with_pay' OR 'verified_no_pay'
+    //   • OSA       — completed_at is today
+    //
+    // This check MUST run before the API call so that:
+    //   (a) a smart user who knows a barcode cannot reach it by scanning or
+    //       typing it directly into the scan input.
+    //   (b) items that have fallen out of the active window (yesterday's RTS,
+    //       verified RTS) are never accessible, even if the API still returns data.
+    //
+    // The scan screen also runs this check as a UX pre-filter, but the gate
+    // HERE is the canonical, tamper-proof enforcement point.
+    final isVisible =
+        await LocalDeliveryDao.instance.isVisibleToRider(widget.barcode);
+    if (!mounted) return;
+    if (!isVisible) {
+      // Determine a helpful message based on the local record's status.
+      final local =
+          await LocalDeliveryDao.instance.getByBarcode(widget.barcode);
+      if (!mounted) return;
+      final status =
+          (local?.deliveryStatus ?? '').toUpperCase();
+      final rtsVerif =
+          (local?.rtsVerificationStatus ?? 'unvalidated').toLowerCase();
+
+      String reason;
+      if (status == 'OSA') {
+        reason = 'OSA items cannot be opened.';
+      } else if (status == 'RTS' &&
+          (rtsVerif == 'verified_with_pay' ||
+              rtsVerif == 'verified_no_pay')) {
+        // RULE: Verified RTS items are fully settled — no further action needed.
+        reason = 'This RTS item has already been verified and is no longer actionable.';
+      } else {
+        // RULE: Item not in today's active window (e.g. yesterday's DELIVERED/RTS/OSA).
+        reason = 'This delivery is not in your active list.';
+      }
+
+      // Pop back gracefully — the user should not see a blank/broken screen.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(reason),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        // Use go('/dashboard') if nothing is beneath us in the stack.
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/dashboard');
+        }
+      }
+      return;
+    }
+    // ── END VISIBILITY GATE ───────────────────────────────────────────────────
+
     final isOnline = ref.read(isOnlineProvider);
 
     if (isOnline) {
@@ -986,7 +1051,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
     void addRow(String label, String raw, {bool includeTime = false}) {
       final v = raw.isNotEmpty
-          ? (label == 'Job Order' ||
+          ? (label == 'Product' ||
                   label == 'Transmittal' ||
                   label == 'TAT'
               ? formatDate(raw)
@@ -997,7 +1062,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       rows.add(_IosRow(label: label, value: v, isDark: isDark));
     }
 
-    if (_str('job_order').isNotEmpty) addRow('Job Order', _str('job_order'));
+    if (_str('product').isNotEmpty) addRow('Product', _str('product'));
     // dispatch_code intentionally hidden from delivery views (ENH-005)
     if (_str('special_instruction').isNotEmpty) {
       if (rows.isNotEmpty) rows.add(_IosRowDivider(isDark: isDark));
