@@ -11,7 +11,6 @@ import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/constants.dart';
-import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -114,7 +113,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() => _loading = true);
     final api = ref.read(apiClientProvider);
-    final device = ref.read(deviceInfoProvider);
     final authStorage = ref.read(authStorageProvider);
 
     final result = await api.post<Map<String, dynamic>>(

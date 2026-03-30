@@ -21,6 +21,7 @@ import 'package:fsi_courier_app/features/wallet/payout_request_screen.dart';
 import 'package:fsi_courier_app/features/sync/sync_screen.dart';
 import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
 import 'package:fsi_courier_app/features/initial_sync/initial_sync_screen.dart';
+import 'package:fsi_courier_app/features/error_logs/error_logs_screen.dart';
 import 'package:fsi_courier_app/features/notifications/notifications_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
@@ -102,7 +103,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
         path: '/reset-password',
-        builder: (_, __) => const ResetPasswordScreen(),
+        builder: (_, __) => const ResetPasswordScreen(authenticatedMode: false),
+      ),
+      GoRoute(
+        path: '/change-password',
+        builder: (_, __) => const ResetPasswordScreen(authenticatedMode: true),
       ),
       GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
 
@@ -207,6 +212,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+      GoRoute(path: '/error-logs', builder: (_, __) => const ErrorLogsScreen()),
     ],
   );
 });

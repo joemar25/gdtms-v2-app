@@ -44,7 +44,6 @@ class BackgroundSyncSetup {
   static Future<void> init() async {
     await Workmanager().initialize(
       callbackDispatcher,
-      isInDebugMode: false,
     );
 
     await Workmanager().registerPeriodicTask(

@@ -1,10 +1,13 @@
 {
   "_comment": "Copy this file to dart_defines.json and fill in your values. dart_defines.json is git-ignored — never commit real credentials.",
 
+  "API_BASE_PROD": "",
+  "API_BASE_DEMO": "",
   "API_BASE_URL": "http://YOUR_API_BASE_URL/api/mbl",
 
   "USE_S3_UPLOAD": false,
-
+  "S3_STRICT_MODE": false,
+  
   "AWS_ACCESS_KEY_ID": "",
   "AWS_SECRET_ACCESS_KEY": "",
   "AWS_REGION": "ap-southeast-1",

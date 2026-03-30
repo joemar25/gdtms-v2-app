@@ -1,11 +1,11 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/services/error_log_service.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
@@ -170,7 +170,7 @@ class ApiClient {
           error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.receiveTimeout ||
           error.type == DioExceptionType.unknown) {
-        return ApiNetworkError<T>('No connection. Please check your internet.');
+        return ApiNetworkError<T>('Network error. Check connection.');
       }
 
       final response = error.response;
@@ -181,19 +181,19 @@ class ApiClient {
         }
         if (status == 429) {
           return ApiRateLimited<T>(
-            'Too many attempts, please wait.',
+            'Rate limited. Please wait.',
             retryAfterSeconds: _parseRetryAfterSeconds(response),
           );
         }
         if (status == 409) {
           return ApiConflict<T>(
-            _extractMessage(response.data, fallback: 'Request conflict.'),
+            _extractMessage(response.data, fallback: 'Conflict error.'),
           );
         }
         if (status == 422) {
           return ApiValidationError<T>(
             _extractValidationErrors(response.data),
-            message: _extractMessage(response.data, fallback: ''),
+            message: _extractMessage(response.data, fallback: 'Validation failed.'),
           );
         }
         if (status == 400) {
@@ -202,11 +202,11 @@ class ApiClient {
           );
         }
 
-        return ApiServerError<T>(_extractMessage(response.data));
+        return ApiServerError<T>(_extractMessage(response.data, fallback: 'Server error.'));
       }
     }
 
-    return ApiServerError<T>('Something went wrong.');
+    return ApiServerError<T>('An unexpected error occurred.');
   }
 
   Future<ApiResult<T>> get<T>(
@@ -250,12 +250,11 @@ class ApiClient {
   }) async {
     try {
       debugPrint('[API] PATCH ${_dio.options.baseUrl}$path');
-      debugPrint('[API] payload: $data');
       final options = extraHeaders != null
           ? Options(headers: extraHeaders)
           : null;
       final response = await _dio.patch<dynamic>(path, data: data, options: options);
-      debugPrint('[API] response ${response.statusCode}: ${response.data}');
+      debugPrint('[API] PATCH $path → ${response.statusCode}');
       return _mapResponse<T>(response, parser);
     } catch (e) {
       debugPrint('[API] PATCH error: $e');
@@ -288,23 +287,16 @@ class ApiClient {
   }) async {
     final mimeType = filename.endsWith('.png') ? 'image/png' : 'image/jpeg';
 
-    // When USE_S3_UPLOAD=false, ALL types go through the API upload endpoint
-    // (/deliveries/:barcode/media accepts: pod, selfie, recipient_signature, other).
-    // When USE_S3_UPLOAD=true, skip the API endpoint entirely and push directly to S3.
+    // When kUseS3Upload=true AND credentials are present, try S3 first.
+    // If S3 fails for any reason, fall through to the API upload endpoint.
+    // Only mark as fully failed when both paths are exhausted.
     final needsS3 =
         kUseS3Upload &&
         awsAccessKeyId.isNotEmpty &&
         awsSecretAccessKey.isNotEmpty;
 
-    // ── S3 direct upload ────────────────────────────────────────────────────
+    // ── S3 direct upload (primary, when enabled) ────────────────────────────
     if (needsS3) {
-      if (awsAccessKeyId.isEmpty || awsSecretAccessKey.isEmpty) {
-        debugPrint('[UPLOAD] S3 required but credentials are empty.');
-        return ApiServerError<T>(
-          'AWS credentials are required to upload "$type" media. '
-          'Add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY via --dart-define-from-file.',
-        );
-      }
       // Derive barcode from path: '/deliveries/BARCODE/media' → BARCODE
       final segments = path.split('/').where((s) => s.isNotEmpty).toList();
       final barcode = segments.length >= 2 ? segments[1] : 'unknown';
@@ -315,40 +307,69 @@ class ApiClient {
       debugPrint(
         '[UPLOAD] S3 upload: type=$type s3Key=$s3Key (${bytes.length}b)',
       );
-      final url = await S3UploadService.upload(
+      final s3Result = await S3UploadService.upload(
         bytes: bytes,
         mimeType: mimeType,
         s3Key: s3Key,
       );
-      if (url != null) {
-        debugPrint('[UPLOAD] S3 success: $url');
+      if (s3Result.url != null) {
+        debugPrint('[UPLOAD] S3 success: ${s3Result.url}');
         return ApiSuccess<T>(
-          parser({
-            'data': {'url': url},
-          }),
+          parser({'data': {'url': s3Result.url}}),
         );
       }
-      debugPrint('[UPLOAD] S3 failed for type=$type s3Key=$s3Key');
-      return ApiServerError<T>(
-        'S3 upload failed. Check AWS credentials and bucket permissions.',
+      // S3 failed.
+      final s3Err = s3Result.error ?? 'unknown';
+      if (kS3StrictMode) {
+        // Strict mode: no API fallback — surface S3 failure immediately.
+        debugPrint('[UPLOAD] S3 failed ($type) — strict mode, not falling back. $s3Err');
+        await ErrorLogService.log(
+          context: 'api',
+          message: 'S3 upload failed (strict mode, no API fallback) ($type)',
+          detail: 'key=$s3Key\n$s3Err',
+          barcode: barcode,
+        );
+        return ApiServerError<T>('S3 upload failed: $s3Err');
+      }
+      debugPrint(
+        '[UPLOAD] S3 failed ($type) — $s3Err. Falling back to API upload…',
       );
+      await ErrorLogService.warning(
+        context: 'api',
+        message: 'S3 upload failed, falling back to API ($type)',
+        detail: 'key=$s3Key\n$s3Err',
+        barcode: barcode,
+      );
+      // Do NOT return — fall through to API upload below.
     }
 
-    // ── API upload (pod / selfie only) ──────────────────────────────────────
+    // ── API upload (fallback when S3 fails, or primary when kUseS3Upload=false)
+    // Endpoint: POST /deliveries/:barcode/media
+    // Expects multipart/form-data with fields: file (binary), type (string).
     debugPrint('[UPLOAD] API upload: type=$type path=$path (${bytes.length}b)');
+    final segments = path.split('/').where((s) => s.isNotEmpty).toList();
+    final barcode = segments.length >= 2 ? segments[1] : null;
     try {
-      final response = await _dio.post<dynamic>(
-        path,
-        data: {
-          'file_data': base64Encode(bytes),
-          'mime_type': mimeType,
-          'type': type,
-        },
-      );
-      debugPrint('[UPLOAD] API response status=${response.statusCode} body=${response.data.toString().substring(0, response.data.toString().length.clamp(0, 300))}');
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: filename,
+          contentType: MediaType.parse(mimeType),
+        ),
+        'type': type,
+      });
+      final response = await _dio.post<dynamic>(path, data: formData);
+      debugPrint('[UPLOAD] API upload $type → ${response.statusCode}');
       return _mapResponse<T>(response, parser);
     } catch (e) {
+      // Both S3 (if attempted) and API failed — log as a full error.
       debugPrint('[UPLOAD] API upload exception: $e');
+      await ErrorLogService.log(
+        context: 'api',
+        message: 'All upload attempts failed ($type)',
+        detail: e.toString(),
+        barcode: barcode,
+      );
       return _mapError<T>(e);
     }
   }

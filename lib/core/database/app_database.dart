@@ -26,7 +26,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     return openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -84,6 +84,18 @@ class AppDatabase {
         last_error       TEXT,
         created_at       INTEGER NOT NULL,
         last_attempt_at  INTEGER
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE error_logs (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        level      TEXT    NOT NULL DEFAULT 'error',
+        context    TEXT    NOT NULL,
+        message    TEXT    NOT NULL,
+        detail     TEXT,
+        barcode    TEXT,
+        created_at INTEGER NOT NULL
       )
     ''');
   }
@@ -184,6 +196,20 @@ class AppDatabase {
           "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
         );
       }
+    }
+    if (oldVersion < 9) {
+      // v9: add error_logs table for on-device diagnostic logging.
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS error_logs (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          level      TEXT    NOT NULL DEFAULT 'error',
+          context    TEXT    NOT NULL,
+          message    TEXT    NOT NULL,
+          detail     TEXT,
+          barcode    TEXT,
+          created_at INTEGER NOT NULL
+        )
+      ''');
     }
   }
 

@@ -3,19 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/search_bar.dart';
-import 'package:fsi_courier_app/shared/widgets/status_notice_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 
 const int _kPageSize = 10;
 
@@ -62,6 +65,13 @@ class _DeliveryStatusListScreenState
   // ── Scroll ─────────────────────────────────────────────────────────────────
   final _scrollController = ScrollController();
 
+  // ── Sync-lock ──────────────────────────────────────────────────────────────
+  // Barcodes that have an active sync operation (pending/processing/failed/
+  // conflict). Cards for these deliveries show a "PENDING SYNC" badge and
+  // cannot be re-updated until the operation resolves. Loaded alongside every
+  // page fetch in a single DB round-trip via getSyncQueuedBarcodes().
+  Set<String> _queuedBarcodes = {};
+
   List<Map<String, dynamic>> get _displayed =>
       _searchQuery.trim().isNotEmpty ? _searchResults : _items;
 
@@ -88,6 +98,9 @@ class _DeliveryStatusListScreenState
       'OSA' => await LocalDeliveryDao.instance.countVisibleOsa(),
       _ => await LocalDeliveryDao.instance.countByStatus(widget.status),
     };
+    if (!mounted) return;
+    final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
+    _queuedBarcodes = await SyncOperationsDao.instance.getSyncQueuedBarcodes(courierId);
     if (!mounted) return;
     // If page is out of range (e.g. after a refresh), clamp to last page.
     final totalPages = (total / _kPageSize).ceil().clamp(1, 999999);
@@ -177,6 +190,7 @@ class _DeliveryStatusListScreenState
     // Always stamp from the model field — raw JSON may lag behind local updates.
     base['_rts_verification_status'] = row.rtsVerificationStatus;
     base['_sync_status'] = row.syncStatus;
+    base['_in_sync_queue'] = _queuedBarcodes.contains(row.barcode);
     return base;
   }
 
@@ -311,23 +325,20 @@ class _DeliveryStatusListScreenState
                         }
                         final d = displayed[index - banners];
                         final identifier = resolveDeliveryIdentifier(d);
-                        final status = widget.status.toUpperCase();
-                        final isOsa = status == 'OSA';
-                        final rtsVerifStatus =
-                            (d['_rts_verification_status']?.toString() ??
-                            d['rts_verification_status']?.toString() ??
-                            'unvalidated').toLowerCase();
-                        final isValidatedRts = status == 'RTS' &&
-                            (rtsVerifStatus == 'verified_with_pay' ||
-                                rtsVerifStatus == 'verified_no_pay');
-                        final isLocked = isOsa || isValidatedRts;
+                        final deliveryStatus = d['delivery_status']?.toString() ?? widget.status;
+                        final isLocked = checkIsLockedFromMap(d);
                         return DeliveryCard(
                           delivery: d,
                           compact: isCompact,
                           showChevron: !isLocked,
-                          onTap: (isLocked || identifier.isEmpty)
+                          onTap: (identifier.isEmpty)
                               ? () {}
-                              : () => context.push('/deliveries/$identifier'),
+                              : (isLocked)
+                                  ? () => showInfoNotification(
+                                        context,
+                                        'This delivery is ${deliveryStatus.toLowerCase()} and cannot be opened for further details.',
+                                      )
+                                  : () => context.push('/deliveries/$identifier'),
                         );
                       },
                     ),
@@ -359,18 +370,88 @@ class _DeliveryStatusListScreenState
     return count;
   }
 
+  /// Builds a banner widget for the given [index] slot.
+  /// Banner order mirrors [_bannerCount]: offline → OSA/RTS/DELIVERED info.
   Widget _buildBanner(int index, bool isOnline) {
     final status = widget.status.toUpperCase();
-    final widgets = <Widget>[
-      if (!isOnline) const OfflineBanner(isMinimal: true),
-      if (status == 'OSA')
-        const StatusNoticeBanner(type: StatusNoticeType.osa),
-      if (status == 'RTS')
-        const StatusNoticeBanner(type: StatusNoticeType.rts),
-      if (status == 'DELIVERED')
-        const StatusNoticeBanner(type: StatusNoticeType.deliveredToday),
-    ];
-    return widgets[index];
+    int slot = 0;
+
+    // Slot 0 (when offline): offline notice
+    if (!isOnline) {
+      if (index == slot) {
+        return const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: OfflineBanner(isMinimal: true),
+        );
+      }
+      slot++;
+    }
+
+    // Status-specific informational banners
+    if (status == 'OSA' && index == slot) {
+      return _InfoBanner(
+        icon: Icons.info_outline_rounded,
+        message: 'OSA items can`t be opened. Return to FSI for verification.',
+      );
+    }
+    if (status == 'RTS' && index == slot) {
+      return _InfoBanner(
+        icon: Icons.assignment_return_rounded,
+        message: 'RTS items can be re-delivered if still with you, unless already verified on-site.',
+      );
+    }
+    if (status == 'DELIVERED' && index == slot) {
+      return _InfoBanner(
+        icon: Icons.check_circle_outline_rounded,
+        message: 'Delivered items are final and can`t be reopened.',
+        color: Colors.green,
+      );
+    }
+
+    // Fallback (should not normally be reached)
+    return const SizedBox.shrink();
+  }
+}
+
+// ─── Small informational banner used inside delivery list ─────────────────────
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({
+    required this.icon,
+    required this.message,
+    this.color,
+  });
+
+  final IconData icon;
+  final String message;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = color ?? Colors.blueGrey;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: effectiveColor.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: effectiveColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                color: effectiveColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -1,8 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retry/retry.dart';
 
@@ -16,6 +15,7 @@ import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
+import 'package:fsi_courier_app/core/services/error_log_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -146,15 +146,27 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
             final api = _ref.read(apiClientProvider);
             final uploadPath = '/deliveries/${entry.barcode}/media';
 
+            debugPrint('[SYNC] media queue for ${entry.barcode}: ${pendingMedia.keys.join(', ')}');
             for (final kv in pendingMedia.entries) {
               final uploadType = kv.key; // e.g., 'pod', 'selfie', 'recipient_signature'
               final filePath = kv.value.toString();
-              
+
               final file = File(filePath);
-              if (!await file.exists()) continue; // Skip if file was deleted
+              if (!await file.exists()) {
+                debugPrint('[SYNC] media file missing for $uploadType — skipping: $filePath');
+                await ErrorLogService.warning(
+                  context: 'sync',
+                  message: 'Media file missing for ${entry.barcode} ($uploadType)',
+                  detail: 'Path not found: $filePath',
+                  barcode: entry.barcode,
+                );
+                continue;
+              }
 
               final bytes = await file.readAsBytes();
-              final filename = '${uploadType}.jpg'; // Or png if signature? Backend handles it.
+              debugPrint('[SYNC] uploading $uploadType (${bytes.length}b) for ${entry.barcode}');
+              final ext = filePath.endsWith('.png') ? 'png' : 'jpg';
+              final filename = '$uploadType.$ext';
 
               final result = await api.uploadMedia<Map<String, dynamic>>(
                 uploadPath,
@@ -173,8 +185,9 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
                 final url = (inner is Map
                         ? inner['url'] ?? inner['signed_url'] ?? inner['file'] ?? inner['path']
                         : result.data['url'] ?? result.data['signed_url'])?.toString();
-                
+
                 if (url != null && url.isNotEmpty) {
+                  debugPrint('[SYNC] $uploadType uploaded → $url');
                   if (uploadType == 'recipient_signature') {
                     payload['recipient_signature'] = url;
                   } else {
@@ -184,9 +197,26 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
                       'captured_at': DateTime.now().toUtc().toIso8601String(),
                     });
                   }
+                } else {
+                  debugPrint('[SYNC] $uploadType upload succeeded but URL was null/empty — dropped');
+                  await ErrorLogService.warning(
+                    context: 'sync',
+                    message: 'Upload URL missing for ${entry.barcode} ($uploadType)',
+                    detail: 'ApiSuccess returned null/empty URL. data=${result.data}',
+                    barcode: entry.barcode,
+                  );
                 }
+              } else {
+                debugPrint('[SYNC] $uploadType upload failed: $result');
+                await ErrorLogService.warning(
+                  context: 'sync',
+                  message: 'Upload failed for ${entry.barcode} ($uploadType)',
+                  detail: result.toString(),
+                  barcode: entry.barcode,
+                );
               }
             }
+            debugPrint('[SYNC] uploadedImages after loop: ${uploadedImages.map((e) => e['type']).join(', ')}');
 
             if (uploadedImages.isNotEmpty) {
               final existing = payload['delivery_images'];
@@ -200,11 +230,18 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
             final hasSignature = payload.containsKey('recipient_signature');
             if (pendingMedia.isNotEmpty && uploadedImages.isEmpty && !hasSignature) {
               final newRetryCount = entry.retryCount + 1;
+              const mediaError = 'Media upload failed — no proof photos could be uploaded.';
               await SyncOperationsDao.instance.updateStatus(
                 entry.id,
                 'failed',
-                lastError: 'Media upload failed — no proof photos could be uploaded.',
+                lastError: mediaError,
                 retryCount: newRetryCount,
+              );
+              await ErrorLogService.warning(
+                context: 'sync',
+                message: 'Media upload failed for ${entry.barcode}',
+                detail: mediaError,
+                barcode: entry.barcode,
               );
               state = state.copyWith(
                 processed: state.processed + 1,
@@ -266,24 +303,40 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
           // Terminal conflicts/errors from server -> abandon retry, mark as conflict or resolve automatically
           final errorMsg = _errorMessage(result);
           
-          // Special case: "cannot change status of delivered items"
-          // If the courier intended to deliver, and the server says it's already delivered (immutable),
-          // we treat this as a success to clear the queue, as the end state is what the courier wanted.
-          final isDeliveredError = errorMsg.toLowerCase().contains('delivered') && 
-                                   errorMsg.toLowerCase().contains('immutable');
-          // Compare case-insensitively — payload uses UPPERCASE server format.
+          // Auto-resolve cases where the server already reflects what the courier wanted:
+          //
+          // Case 1 — Immutable DELIVERED: server says item is already DELIVERED and
+          //   cannot be changed. If the courier intended DELIVERED, end-state matches.
+          final isDeliveredImmutable = errorMsg.toLowerCase().contains('delivered') &&
+                                       errorMsg.toLowerCase().contains('immutable');
           final wasIntendingToDeliver =
               payload['delivery_status']?.toString().toUpperCase() == 'DELIVERED';
 
-          if (isDeliveredError && wasIntendingToDeliver) {
+          // Case 2 — Same-status transition: server rejected because status is
+          //   already what the courier wanted (e.g. "Invalid status transition
+          //   from 'RTS' to 'RTS'"). Safe to mark as synced.
+          final targetStatus =
+              payload['delivery_status']?.toString().toLowerCase() ?? '';
+          final isSameStatusTransition =
+              targetStatus.isNotEmpty &&
+              errorMsg.toLowerCase().contains('invalid status transition') &&
+              errorMsg.toLowerCase().contains("to '$targetStatus'");
+
+          if ((isDeliveredImmutable && wasIntendingToDeliver) || isSameStatusTransition) {
             await SyncOperationsDao.instance.updateStatus(entry.id, 'synced', lastError: 'Resolved: $errorMsg');
             successCount++;
             state = state.copyWith(
               processed: state.processed + 1,
-              lastMessage: 'Delivery ${entry.barcode} already delivered on server.',
+              lastMessage: 'Delivery ${entry.barcode} already updated on server.',
             );
           } else {
             await SyncOperationsDao.instance.updateStatus(entry.id, 'conflict', lastError: errorMsg);
+            await ErrorLogService.warning(
+              context: 'sync',
+              message: 'Conflict on ${entry.barcode}',
+              detail: errorMsg,
+              barcode: entry.barcode,
+            );
             state = state.copyWith(
               processed: state.processed + 1,
               lastMessage: 'Conflict on ${entry.barcode}: $errorMsg',
@@ -293,6 +346,12 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
           final errorMsg = _errorMessage(result);
           final newRetryCount = entry.retryCount + 1;
           await SyncOperationsDao.instance.updateStatus(entry.id, 'failed', lastError: errorMsg, retryCount: newRetryCount);
+          await ErrorLogService.log(
+            context: 'sync',
+            message: 'Failed to sync ${entry.barcode}',
+            detail: errorMsg,
+            barcode: entry.barcode,
+          );
           state = state.copyWith(
             processed: state.processed + 1,
             lastMessage: 'Failed to sync ${entry.barcode}: $errorMsg',
@@ -301,6 +360,12 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
       } catch (e) {
         final newRetryCount = entry.retryCount + 1;
         await SyncOperationsDao.instance.updateStatus(entry.id, 'failed', lastError: e.toString(), retryCount: newRetryCount);
+        await ErrorLogService.log(
+          context: 'sync',
+          message: 'Exception syncing ${entry.barcode}',
+          detail: e.toString(),
+          barcode: entry.barcode,
+        );
         state = state.copyWith(
           processed: state.processed + 1,
           lastMessage: 'Error syncing ${entry.barcode}.',
@@ -328,6 +393,20 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
             ? 'Sync complete. Some updates may have failed.'
             : 'Nothing to sync.',
       );
+    }
+  }
+
+  /// Waits until [isSyncing] is false, polling at short intervals.
+  ///
+  /// Call this in [_runFullSync] after [processQueue] returns to ensure any
+  /// concurrent fire-and-forget [processQueue] invocation has fully drained
+  /// before starting `syncFromApi`. Without this guard the two operations can
+  /// overlap: `syncFromApi` overwrites the local DB while `processQueue` is
+  /// still mid-flight, causing the PATCH to arrive after the server has
+  /// already applied the status — producing spurious 400 errors.
+  Future<void> waitUntilIdle() async {
+    while (state.isSyncing) {
+      await Future.delayed(const Duration(milliseconds: 150));
     }
   }
 
@@ -367,6 +446,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
       ApiNetworkError<Map<String, dynamic>>(:final message) => message,
       ApiValidationError<Map<String, dynamic>>(:final message) =>
         message ?? 'Validation error',
+      ApiBadRequest<Map<String, dynamic>>(:final message) => message,
       ApiConflict<Map<String, dynamic>>(:final message) => message,
       ApiRateLimited<Map<String, dynamic>>(:final message) => message,
       ApiServerError<Map<String, dynamic>>(:final message) => message,

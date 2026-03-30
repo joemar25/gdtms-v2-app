@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,11 +16,13 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart'
-    show showSuccessNotification, showAppSnackbar, SnackbarType;
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 
 class SyncScreen extends ConsumerStatefulWidget {
   const SyncScreen({super.key});
@@ -31,6 +34,8 @@ class SyncScreen extends ConsumerStatefulWidget {
 class _SyncScreenState extends ConsumerState<SyncScreen> {
   bool _reloading = false;
   Map<String, LocalDelivery> _deliveries = {};
+  int _currentPage = 1;
+  static const int _pageSize = 5;
 
   @override
   void initState() {
@@ -108,6 +113,27 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
         title: 'Sync',
         pageIcon: Icons.sync_rounded,
         actions: [
+          // ── Sync Now (online only) ────────────────────────────────────
+          if (isOnline && syncState.entries.any(
+            (e) => e.status == 'pending' || e.status == 'error' || e.status == 'failed' || e.status == 'processing',
+          ))
+            TextButton.icon(
+              onPressed: syncState.isSyncing
+                  ? null
+                  : () => ref.read(syncManagerProvider.notifier).processQueue(),
+              icon: syncState.isSyncing
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync_rounded, size: 18),
+              label: Text(
+                syncState.isSyncing ? 'Syncing…' : 'Sync Now',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          // ── Reload from server (online only) ─────────────────────────
           if (isOnline)
             TextButton.icon(
               onPressed: canReload ? _reloadFromServer : null,
@@ -128,9 +154,6 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                // When online: push pending queue entries to server first,
-                // then reload the list so statuses reflect the latest state.
-                // When offline: just reload from local SQLite.
                 if (ref.read(isOnlineProvider)) {
                   await ref.read(syncManagerProvider.notifier).processQueue();
                 }
@@ -138,12 +161,31 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
               },
               child: syncState.entries.isEmpty
                   ? _EmptyState(isSyncing: syncState.isSyncing)
-                  : _EntryList(syncState: syncState, deliveries: _deliveries),
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: _EntryList(
+                            syncState: syncState,
+                            deliveries: _deliveries,
+                            page: _currentPage,
+                            pageSize: _pageSize,
+                          ),
+                        ),
+                        if (syncState.entries.length > _pageSize)
+                          PaginationBar(
+                            currentPage: _currentPage - 1,
+                            totalPages: (syncState.entries.length / _pageSize).ceil(),
+                            firstItem: ((_currentPage - 1) * _pageSize) + 1,
+                            lastItem: math.min(_currentPage * _pageSize, syncState.entries.length),
+                            totalCount: syncState.entries.length,
+                            onPageChanged: (p) => setState(() => _currentPage = p + 1),
+                          ),
+                      ],
+                    ),
             ),
           ),
         ],
       ),
-      floatingActionButton: _SyncFab(syncState: syncState, isOnline: isOnline),
     );
   }
 }
@@ -213,14 +255,25 @@ class _SyncHeader extends ConsumerWidget {
 // ── Entry List ────────────────────────────────────────────────────────────────
 
 class _EntryList extends ConsumerWidget {
-  const _EntryList({required this.syncState, required this.deliveries});
+  const _EntryList({
+    required this.syncState,
+    required this.deliveries,
+    required this.page,
+    required this.pageSize,
+  });
 
   final SyncState syncState;
   final Map<String, LocalDelivery> deliveries;
+  final int page;
+  final int pageSize;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entries = syncState.entries;
+    final allEntries = syncState.entries;
+    final startIndex = (page - 1) * pageSize;
+    final endIndex = math.min(startIndex + pageSize, allEntries.length);
+    final entries = allEntries.sublist(startIndex, endIndex);
+
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(top: 8, bottom: 100),
@@ -366,10 +419,18 @@ class _EntryTile extends StatelessWidget {
     final isRtsVerified = payloadStatus.toLowerCase() == 'rts' &&
         (rtsVerif == 'verified_with_pay' || rtsVerif == 'verified_no_pay');
     final isOsa = payloadStatus.toLowerCase() == 'osa';
-    final isLocked = isOsa || isRtsVerified;
+    final isLocked = checkIsLocked(
+      status: payloadStatus,
+      rtsVerificationStatus: rtsVerif,
+    );
 
     return InkWell(
-      onTap: isLocked ? null : () => context.push('/deliveries/${entry.barcode}'),
+      onTap: isLocked 
+          ? () => showInfoNotification(
+                context,
+                'This delivery is ${payloadStatus.toLowerCase()} and cannot be opened for details.',
+              )
+          : () => context.push('/deliveries/${entry.barcode}'),
       onLongPress: onDelete,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -414,7 +475,7 @@ class _EntryTile extends StatelessWidget {
                   ),
 
                   // Recipient name
-                  if (recipientName != null && recipientName.isNotEmpty) ...[
+                  if (recipientName != null && recipientName.isNotEmpty && !isLocked) ...[
                     const SizedBox(height: 2),
                     Text(
                       recipientName,

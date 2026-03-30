@@ -137,4 +137,21 @@ class SyncOperationsDao {
     );
     return (rows.first['has_pending'] as int) == 1;
   }
+
+  /// Returns the set of barcodes that have at least one unfinished sync
+  /// operation (pending / processing / failed / conflict) for [courierId].
+  ///
+  /// Used by list screens to batch-inject `_in_sync_queue` into delivery maps
+  /// in a single DB round-trip instead of N individual [hasPendingSync] calls.
+  /// A delivery in this set must not be re-updated until its operation resolves.
+  Future<Set<String>> getSyncQueuedBarcodes(String courierId) async {
+    final db = await _db;
+    final rows = await db.rawQuery(
+      "SELECT DISTINCT barcode FROM sync_operations "
+      "WHERE courier_id = ? "
+      "  AND status IN ('pending','processing','failed','conflict')",
+      [courierId],
+    );
+    return {for (final r in rows) r['barcode'] as String};
+  }
 }

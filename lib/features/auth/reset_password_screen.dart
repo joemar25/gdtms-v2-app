@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
-  const ResetPasswordScreen({super.key});
+  const ResetPasswordScreen({super.key, this.authenticatedMode = false});
+
+  /// When [true], the screen is accessed by an authenticated courier from the
+  /// profile page. The courier code is auto-filled and read-only, a
+  /// "Current Password" field is shown, and on success the user is sent back
+  /// to the dashboard instead of the login screen.
+  final bool authenticatedMode;
 
   @override
   ConsumerState<ResetPasswordScreen> createState() =>
@@ -16,16 +23,35 @@ class ResetPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
-  final _code = TextEditingController();
+  late final TextEditingController _code;
+  final _currentPassword = TextEditingController();
   final _newPassword = TextEditingController();
   final _confirmPassword = TextEditingController();
   final _errors = <String, String>{};
 
   bool _loading = false;
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill courier code for authenticated users (read-only).
+    if (widget.authenticatedMode) {
+      final courier = ref.read(authProvider).courier ?? {};
+      _code = TextEditingController(
+        text: courier['courier_code']?.toString() ?? '',
+      );
+    } else {
+      _code = TextEditingController();
+    }
+  }
 
   @override
   void dispose() {
     _code.dispose();
+    _currentPassword.dispose();
     _newPassword.dispose();
     _confirmPassword.dispose();
     super.dispose();
@@ -33,8 +59,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   Future<void> _submit() async {
     _errors.clear();
-    if (_code.text.trim().isEmpty) {
+
+    if (!widget.authenticatedMode && _code.text.trim().isEmpty) {
       _errors['courier_code'] = 'This field is required.';
+    }
+    if (widget.authenticatedMode && _currentPassword.text.isEmpty) {
+      _errors['current_password'] = 'This field is required.';
     }
     if (_newPassword.text.isEmpty) {
       _errors['new_password'] = 'This field is required.';
@@ -42,7 +72,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     if (_confirmPassword.text.isEmpty) {
       _errors['new_password_confirmation'] = 'This field is required.';
     }
-    if (_newPassword.text != _confirmPassword.text) {
+    if (_newPassword.text.isNotEmpty &&
+        _confirmPassword.text.isNotEmpty &&
+        _newPassword.text != _confirmPassword.text) {
       _errors['new_password_confirmation'] = 'Passwords do not match.';
     }
     if (_errors.isNotEmpty) {
@@ -52,15 +84,30 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
     setState(() => _loading = true);
     final api = ref.read(apiClientProvider);
-    final result = await api.post<Map<String, dynamic>>(
-      '/reset-password',
-      data: {
-        'courier_code': _code.text.trim(),
-        'new_password': _newPassword.text,
-        'new_password_confirmation': _confirmPassword.text,
-      },
-      parser: parseApiMap,
-    );
+
+    final ApiResult<Map<String, dynamic>> result;
+
+    if (widget.authenticatedMode) {
+      result = await api.post<Map<String, dynamic>>(
+        '/change-password',
+        data: {
+          'current_password': _currentPassword.text,
+          'new_password': _newPassword.text,
+          'new_password_confirmation': _confirmPassword.text,
+        },
+        parser: parseApiMap,
+      );
+    } else {
+      result = await api.post<Map<String, dynamic>>(
+        '/reset-password',
+        data: {
+          'courier_code': _code.text.trim(),
+          'new_password': _newPassword.text,
+          'new_password_confirmation': _confirmPassword.text,
+        },
+        parser: parseApiMap,
+      );
+    }
 
     if (!mounted) return;
 
@@ -68,12 +115,19 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       case ApiSuccess<Map<String, dynamic>>():
         showAppSnackbar(
           context,
-          'Password reset successful.',
+          widget.authenticatedMode
+              ? 'Password changed successfully.'
+              : 'Password reset successful.',
           type: SnackbarType.success,
         );
-        context.go('/login');
+        if (widget.authenticatedMode) {
+          context.go('/dashboard');
+        } else {
+          context.go('/login');
+        }
       case ApiValidationError<Map<String, dynamic>>(:final errors):
         errors.forEach((key, value) => _errors[key] = value.first);
+        setState(() {});
       case ApiServerError<Map<String, dynamic>>(:final message):
         showAppSnackbar(context, message, type: SnackbarType.error);
       case ApiNetworkError<Map<String, dynamic>>(:final message):
@@ -81,7 +135,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       default:
         showAppSnackbar(
           context,
-          'Unable to reset password.',
+          widget.authenticatedMode
+              ? 'Unable to change password.'
+              : 'Unable to reset password.',
           type: SnackbarType.error,
         );
     }
@@ -92,8 +148,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final title =
+        widget.authenticatedMode ? 'Change Password' : 'Reset Password';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Reset Password')),
+      appBar: AppBar(title: Text(title)),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -117,7 +176,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.25 : 0.06,
+                              ),
                               blurRadius: 16,
                               offset: const Offset(0, 4),
                             ),
@@ -127,21 +188,64 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            // ── Courier Code ───────────────────────────────
                             TextField(
                               controller: _code,
+                              readOnly: widget.authenticatedMode,
                               decoration: InputDecoration(
                                 labelText: 'Courier Code',
                                 prefixIcon: const Icon(Icons.badge_outlined),
                                 errorText: _errors['courier_code'],
+                                // Muted style when read-only to signal it's locked
+                                filled: widget.authenticatedMode,
+                                fillColor: isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : Colors.grey.shade100,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                suffixIcon: widget.authenticatedMode
+                                    ? const Icon(
+                                        Icons.lock_outline,
+                                        size: 16,
+                                        color: Colors.grey,
+                                      )
+                                    : null,
                               ),
                             ),
                             const SizedBox(height: 14),
+
+                            // ── Current Password (auth mode only) ──────────
+                            if (widget.authenticatedMode) ...[
+                              TextField(
+                                controller: _currentPassword,
+                                obscureText: _obscureCurrent,
+                                decoration: InputDecoration(
+                                  labelText: 'Current Password',
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  errorText: _errors['current_password'],
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscureCurrent
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                    ),
+                                    onPressed: () => setState(
+                                      () => _obscureCurrent = !_obscureCurrent,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+
+                            // ── New Password ───────────────────────────────
                             TextField(
                               controller: _newPassword,
-                              obscureText: true,
+                              obscureText: _obscureNew,
                               decoration: InputDecoration(
                                 labelText: 'New Password',
                                 prefixIcon: const Icon(Icons.lock_outline),
@@ -149,12 +253,24 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureNew
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _obscureNew = !_obscureNew,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 14),
+
+                            // ── Confirm New Password ───────────────────────
                             TextField(
                               controller: _confirmPassword,
-                              obscureText: true,
+                              obscureText: _obscureConfirm,
                               decoration: InputDecoration(
                                 labelText: 'Confirm New Password',
                                 prefixIcon: const Icon(Icons.lock_outline),
@@ -162,12 +278,24 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureConfirm
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _obscureConfirm = !_obscureConfirm,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 20),
+
                             FilledButton(
                               style: FilledButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(double.infinity, 52),
                                 shape: RoundedRectangleBorder(
@@ -175,9 +303,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 ),
                               ),
                               onPressed: _loading ? null : _submit,
-                              child: const Text(
-                                'Submit',
-                                style: TextStyle(
+                              child: Text(
+                                widget.authenticatedMode
+                                    ? 'Change Password'
+                                    : 'Submit',
+                                style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),

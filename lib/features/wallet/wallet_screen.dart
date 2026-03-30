@@ -18,6 +18,7 @@ import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/core/config.dart';
 
 class WalletScreen extends ConsumerStatefulWidget {
   const WalletScreen({super.key});
@@ -229,16 +230,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         margin: EdgeInsets.only(bottom: 14),
                       ),
 
-                    // ── Earnings card (always shown, pending hidden offline) ─
-                    _EarningsCard(
-                      earnings: earnings,
-                      tentativePayout: tentativePayout,
-                      pendingRequestAmt: pendingRequestAmt,
-                      isLatestPending: isLatestPending,
-                      showPending: isOnline,
-                      onTap: () =>
-                          _showEarningsDetail(context, earnings, tentativePayout, pendingRequestAmt, isLatestPending),
-                    ),
+                    // ── Earnings card (show when there's something actionable) ─
+                    if (tentativePayout > 0 || isLatestPending)
+                      _EarningsCard(
+                        tentativePayout: tentativePayout,
+                        pendingRequestAmt: pendingRequestAmt,
+                        isLatestPending: isLatestPending,
+                        showPending: isOnline,
+                      ),
 
                     const SizedBox(height: 20),
 
@@ -450,20 +449,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
 class _EarningsCard extends StatelessWidget {
   const _EarningsCard({
-    required this.earnings,
     required this.tentativePayout,
     this.pendingRequestAmt = 0.0,
     this.isLatestPending = false,
     this.showPending = true,
-    this.onTap,
   });
 
-  final dynamic earnings;
   final dynamic tentativePayout;
   final dynamic pendingRequestAmt;
   final bool isLatestPending;
   final bool showPending;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -471,85 +466,63 @@ class _EarningsCard extends StatelessWidget {
     final pendingAmt = double.tryParse('$pendingRequestAmt') ?? 0.0;
     final displayAmt = isLatestPending ? pendingAmt : tentativeAmt;
     final displayLabel = isLatestPending ? 'Pending Payment Request' : 'Available for Request';
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF007A36), Color(0xFF00B14F)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF007A36), Color(0xFF00B14F)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: ColorStyles.grabGreen.withValues(alpha: 0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: ColorStyles.grabGreen.withValues(alpha: 0.35),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  isLatestPending
-                      ? Icons.schedule_rounded
-                      : Icons.account_balance_wallet_rounded,
-                  color: Colors.white70,
-                  size: 18,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  displayLabel,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '₱ ${_fmt(displayAmt)}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 34,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isLatestPending
+                    ? Icons.schedule_rounded
+                    : Icons.account_balance_wallet_rounded,
+                color: Colors.white70,
+                size: 18,
               ),
-            ),
-            // Total earnings demoted to a subtle secondary line
-            const SizedBox(height: 4),
-            Text(
-              'Total earned: ₱ ${_fmt(earnings)}',
-              style: const TextStyle(color: Colors.white54, fontSize: 12),
-            ),
-
-            // ── Pending payout rows — online only ─────────────────────────
-            if (showPending && isLatestPending && tentativeAmt > 0) ...[
-              const SizedBox(height: 14),
-              _payoutRow(
-                icon: Icons.arrow_circle_up_rounded,
-                label: 'Accumulated for next request',
-                amount: _fmt(tentativeAmt),
+              const SizedBox(width: 6),
+              Text(
+                displayLabel,
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '₱ ${_fmt(displayAmt)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
+          ),
 
-            if (onTap != null) ...[
-              const SizedBox(height: 14),
-              Center(
-                child: Text(
-                  'Tap for details',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-            ],
+          // ── If pending: also show accumulated available for next request ──
+          if (showPending && isLatestPending && tentativeAmt > 0) ...[
+            const SizedBox(height: 14),
+            _payoutRow(
+              icon: Icons.arrow_circle_up_rounded,
+              label: 'Accumulated for next request',
+              amount: _fmt(tentativeAmt),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

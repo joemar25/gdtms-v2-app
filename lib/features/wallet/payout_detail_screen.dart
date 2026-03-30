@@ -305,6 +305,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
             hasMorePages: _hasMoreBreakdownPages,
             onLoadMore: _loadingMoreDays ? null : _loadMoreBreakdown,
             enableHoldToReveal: false,
+            lockDeliveryNavigation: true,
           ),
         ],
       ),
@@ -475,156 +476,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     );
   }
 
-  Widget _buildHorizontalStepper(
-    BuildContext context,
-    String status,
-    String req,
-    String app,
-    String paid,
-  ) {
-    bool isDone(String val) =>
-        val.isNotEmpty &&
-        val.toLowerCase() != 'null' &&
-        val != '—' &&
-        val != '-';
-
-    final s = status.toLowerCase();
-    
-    // Extract real timestamps from transaction history if top-level fields are missing
-    final history = (_data['transaction_history'] as List?)
-        ?.whereType<Map<String, dynamic>>()
-        .toList() ?? [];
-
-    String? findTs(String event) {
-      final item = history.lastWhere(
-        (e) => e['event']?.toString() == event,
-        orElse: () => {},
-      );
-      return item['timestamp']?.toString();
-    }
-
-    final reqTs = formatDate(findTs('submitted') ?? req, includeTime: true);
-    final opsTs = formatDate(findTs('ops_approved') ?? findTs('approved') ?? app, includeTime: true);
-    final paidTs = formatDate(findTs('paid') ?? findTs('payment_released') ?? paid, includeTime: true);
-
-    // Status Lifecycle: Submitted (Pending) -> Operations Approved -> HR Processing -> Paid
-    final steps = [
-      {'title': 'Submitted', 'date': reqTs, 'done': true},
-      {
-        'title': 'Ops Approved', 
-        'date': (opsTs != '—') ? opsTs : '', 
-        'done': s == 'ops_approved' || s == 'hr_approved' || s == 'paid' || s == 'processing'
-      },
-      {
-        'title': 'HR Processing', 
-        'date': '', 
-        'done': s == 'hr_approved' || s == 'paid'
-      },
-      {'title': 'Paid', 'date': paidTs, 'done': s == 'paid'},
-    ];
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : Colors.black87;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        children: [
-          // Row 1: circles + connector lines, centered vertically
-          Row(
-            children: List.generate(steps.length, (index) {
-              final isDone = steps[index]['done'] as bool;
-              final isFirst = index == 0;
-              final isLast = index == steps.length - 1;
-              final isNextDone = !isLast && (steps[index + 1]['done'] as bool);
-
-              return Expanded(
-                child: Row(
-                  children: [
-                    // Leading connector line (all steps except first)
-                    if (!isFirst)
-                      Expanded(
-                        child: Container(
-                          height: 2,
-                          color: isDone
-                              ? ColorStyles.grabGreen
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                    // Step circle (centered)
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isDone
-                            ? ColorStyles.grabGreen
-                            : Colors.grey.shade300,
-                      ),
-                      child: isDone
-                          ? const Icon(
-                              Icons.check,
-                              size: 12,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                    // Trailing connector line (all steps except last)
-                    if (!isLast)
-                      Expanded(
-                        child: Container(
-                          height: 2,
-                          color: isNextDone
-                              ? ColorStyles.grabGreen
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 8),
-          // Row 2: labels centered under each circle
-          Row(
-            children: List.generate(steps.length, (index) {
-              final step = steps[index];
-              final title = step['title'] as String;
-              final date = step['date'] as String;
-              final isDone = step['done'] as bool;
-
-              return Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDone ? textColor : Colors.grey.shade500,
-                      ),
-                    ),
-                    if (date.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        date,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ─── Shared widgets ───────────────────────────────────────────────────────────
@@ -905,28 +756,44 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
             final val = double.tryParse('${e.value}') ?? 0.0;
             final isDeduction = val < 0;
             final isDark = Theme.of(context).brightness == Brightness.dark;
+            final isCoordinator = e.key == 'coordinator_incentive';
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 12.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                    Text(
-                      _formatKey(e.key),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isCoordinator ? '⚠ ${_formatKey(e.key)}' : _formatKey(e.key),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isCoordinator
+                              ? Colors.red.shade700
+                              : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                          fontWeight: isCoordinator ? FontWeight.w700 : FontWeight.w500,
+                        ),
                       ),
-                    ),
+                      if (isCoordinator)
+                        Text(
+                          'DEBUG ONLY',
+                          style: TextStyle(fontSize: 9, color: Colors.red.shade400, letterSpacing: 0.4),
+                        ),
+                    ],
+                  ),
                   Text(
                     '${isDeduction ? '-' : ''}₱ ${val.abs().toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: isDeduction
-                          ? Colors.red.shade400
-                          : (isDark ? Colors.white : Colors.black87),
+                      color: isCoordinator
+                          ? Colors.red.shade700
+                          : (isDeduction
+                              ? Colors.red.shade400
+                              : (isDark ? Colors.white : Colors.black87)),
                     ),
                   ),
                 ],

@@ -33,12 +33,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
       exportBackgroundColor: Colors.white,
       onDrawEnd: () => setState(() {}),
     );
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    SystemChrome.setPreferredOrientations([]);
   }
 
   @override

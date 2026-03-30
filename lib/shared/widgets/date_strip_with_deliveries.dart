@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -30,6 +32,7 @@ class DateStripWithDeliveries extends StatefulWidget {
     this.onLoadMore,
     this.itemCountLabelBuilder,
     this.enableHoldToReveal = true,
+    this.lockDeliveryNavigation = false,
   });
 
   /// Flat list of day objects. Each entry should have:
@@ -77,6 +80,11 @@ class DateStripWithDeliveries extends StatefulWidget {
 
   /// Whether to enable the "Hold-to-Reveal" feature in [DeliveryCard].
   final bool enableHoldToReveal;
+
+  /// When true, ALL delivery cards show a toast instead of navigating to the
+  /// detail screen. Use this in payout-detail context where every delivery
+  /// belongs to a settled payout request.
+  final bool lockDeliveryNavigation;
 
   @override
   State<DateStripWithDeliveries> createState() =>
@@ -450,21 +458,21 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
           }
           final barcode = resolveDeliveryIdentifier(d);
           final status = (d['delivery_status']?.toString() ?? 'PENDING').toUpperCase();
-          final rtsVerifStatus =
-              (d['_rts_verification_status']?.toString() ??
-              d['rts_verification_status']?.toString() ??
-              'unvalidated').toLowerCase();
-          final isLocked = (status == 'OSA') || 
-                           (status == 'RTS' && (rtsVerifStatus == 'verified_with_pay' || rtsVerifStatus == 'verified_no_pay'));
+          final isLocked = checkIsLockedFromMap(d);
+
+          final isPayoutLocked = widget.lockDeliveryNavigation || isLocked;
 
           return DeliveryCard(
             delivery: d,
             compact: isCompact,
-            showChevron: barcode.isNotEmpty && !isLocked,
+            showChevron: barcode.isNotEmpty && !isPayoutLocked,
             enableHoldToReveal: widget.enableHoldToReveal,
-            onTap: (barcode.isNotEmpty && !isLocked)
+            onTap: (barcode.isNotEmpty && !isPayoutLocked)
                 ? () => context.push('/deliveries/$barcode')
-                : () {},
+                : () => showInfoNotification(
+                      context,
+                      'This delivery is ${status.toLowerCase()} and cannot be opened for details.',
+                    ),
           );
         }),
       ],

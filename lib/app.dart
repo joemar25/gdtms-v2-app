@@ -182,7 +182,11 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
   Future<void> _runFullSync() async {
     try {
       // Step 1: Flush dirty queue → server.
+      // processQueue() skips immediately when isSyncing=true (a fire-and-forget
+      // call from delivery_update_screen may already be running). Wait for it
+      // to finish so syncFromApi always sees a fully drained queue.
       await ref.read(syncManagerProvider.notifier).processQueue();
+      await ref.read(syncManagerProvider.notifier).waitUntilIdle();
 
       debugPrint('[SYNC] _runFullSync: after processQueue, mounted=$mounted');
       if (!mounted) return;

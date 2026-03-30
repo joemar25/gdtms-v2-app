@@ -91,11 +91,16 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
           },
         );
       } else {
-        showAppSnackbar(
-          context,
-          'Could not check eligibility. Please try again.',
-          type: SnackbarType.error,
-        );
+        final errorMessage = switch (result) {
+          ApiBadRequest(:final message) => message,
+          ApiValidationError(:final message) => message ?? 'Validation error',
+          ApiNetworkError(:final message) => message,
+          ApiRateLimited(:final message) => message,
+          ApiConflict(:final message) => message,
+          ApiServerError(:final message) => message,
+          _ => 'Could not check eligibility. Please try again.',
+        };
+        showErrorNotification(context, errorMessage);
       }
     } finally {
       if (mounted) setState(() => _checkingIndex = null);

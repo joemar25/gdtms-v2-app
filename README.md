@@ -79,7 +79,7 @@ flutter run -d emulator-5554
 
 ## Environment Configuration
 
-All environment values live in `lib/core/config.dart` and are injected at
+All environment values live in `lib/core/config.dart` and are injected atq
 build/run time via `--dart-define` or `--dart-define-from-file`.
 
 > **Flutter does NOT support `.env` files natively.**
@@ -104,14 +104,14 @@ build/run time via `--dart-define` or `--dart-define-from-file`.
 
 ### Available keys
 
-| Key                     | Default                           | Description                                                  |
-| ----------------------- | --------------------------------- | ------------------------------------------------------------ |
+| Key                     | Default                              | Description                                                  |
+| ----------------------- | ------------------------------------ | ------------------------------------------------------------ |
 | `API_BASE_URL`          | `http://YOUR_API_BASE_URL/api/mbl` | Backend API base URL                                         |
-| `USE_S3_UPLOAD`         | `false`                           | `true` to upload media directly to S3 instead of via the API |
-| `AWS_ACCESS_KEY_ID`     | _(empty)_                         | AWS IAM key ID — required when `USE_S3_UPLOAD=true`          |
-| `AWS_SECRET_ACCESS_KEY` | _(empty)_                         | AWS IAM secret — required when `USE_S3_UPLOAD=true`          |
-| `AWS_REGION`            | `ap-southeast-1`                  | S3 bucket region                                             |
-| `AWS_BUCKET`            | `REDACTED_BUCKET_NAME`        | S3 bucket name                                               |
+| `USE_S3_UPLOAD`         | `false`                              | `true` to upload media directly to S3 instead of via the API |
+| `AWS_ACCESS_KEY_ID`     | _(empty)_                            | AWS IAM key ID — required when `USE_S3_UPLOAD=true`          |
+| `AWS_SECRET_ACCESS_KEY` | _(empty)_                            | AWS IAM secret — required when `USE_S3_UPLOAD=true`          |
+| `AWS_REGION`            | `ap-southeast-1`                     | S3 bucket region                                             |
+| `AWS_BUCKET`            | `REDACTED_BUCKET_NAME`           | S3 bucket name                                               |
 
 ### Media upload modes
 
@@ -138,7 +138,7 @@ flutter run --dart-define=API_BASE_URL=http://YOUR_API_BASE_URL/api/mbl
 
 # S3 direct upload, staging API
 flutter run \
-  --dart-define=API_BASE_URL=https://staging-gdtms-v2.skyward.com.ph/api/mbl \
+  --dart-define=API_BASE_URL=http://YOUR_API_BASE_URL/api/mbl \
   --dart-define=USE_S3_UPLOAD=true \
   --dart-define=AWS_ACCESS_KEY_ID=<key_id> \
   --dart-define=AWS_SECRET_ACCESS_KEY=<secret>
@@ -254,4 +254,8 @@ Possible future improvements:
 - [ ] Make signature optional for certain scenarios.
 - [ ] DFAMCI special case: include courier reference number upon updating submission status.
 
-<!-- check connection:  curl -v https://staging-gdtms-v2.skyward.com.ph -->
+<!-- check connection:  curl -v http://YOUR_API_BASE_URL -->
+
+in the sync page, the connect o sync should not hinder the pagination since it does not need to ,  i think 1 button there is good which is in the header to serve its function right?
+
+and in the delivery details no need to show a button that it is pending sync. instead just show a ready for sync so this delivery details should not be inreacted with.

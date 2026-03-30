@@ -55,6 +55,132 @@ void showSuccessNotification(
   });
 }
 
+/// Show a top info/warning notification with a lock icon.
+/// Same overlay style as [showSuccessNotification] but with an amber accent.
+void showInfoNotification(
+  BuildContext? context,
+  String message, {
+  IconData icon = Icons.lock_outline_rounded,
+  Color color = const Color(0xFFF59E0B), // amber-500
+}) {
+  final ctx = context ?? appScaffoldMessengerKey.currentContext;
+  if (ctx == null || !ctx.mounted) return;
+
+  final overlay = Overlay.maybeOf(ctx, rootOverlay: true);
+  if (overlay == null) return;
+
+  late OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (_) => _InfoBanner(
+      message: message,
+      icon: icon,
+      color: color,
+      onClose: () { if (entry.mounted) entry.remove(); },
+    ),
+  );
+
+  overlay.insert(entry);
+  Future.delayed(const Duration(seconds: 3), () {
+    if (entry.mounted) entry.remove();
+  });
+}
+
+/// Show a top error notification matching the NotificationWidget card style.
+/// Uses Overlay so the screen behind remains fully scrollable/interactive.
+void showErrorNotification(
+  BuildContext? context,
+  String message, {
+  IconData icon = Icons.error_outline_rounded,
+}) {
+  showInfoNotification(
+    context,
+    message,
+    icon: icon,
+    color: Colors.red.shade600,
+  );
+}
+
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({
+    required this.message,
+    required this.icon,
+    required this.color,
+    required this.onClose,
+  });
+
+  final String message;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+    return IgnorePointer(
+      ignoring: false,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, top + 8, 16, 0),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 24,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: onClose,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    style: IconButton.styleFrom(
+                      foregroundColor: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SuccessBanner extends StatelessWidget {
   const _SuccessBanner({required this.message, required this.onClose});
 

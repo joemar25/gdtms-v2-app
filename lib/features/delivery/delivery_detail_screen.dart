@@ -12,6 +12,7 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 import 'package:fsi_courier_app/core/constants.dart';
@@ -25,11 +26,7 @@ class _DS {
   static const double radiusSheet = 28;
   static const double radiusCard = 20;
   static const double radiusBadge = 10;
-  static const double radiusButton = 16;
-  static const double radiusIcon = 14;
-
   // Spacing
-  static const double spacingXS = 4;
   static const double spacingSM = 8;
   static const double spacingMD = 16;
   static const double spacingLG = 24;
@@ -58,17 +55,6 @@ class _DS {
     fontWeight: FontWeight.w500,
   );
 
-  static const TextStyle bodyBold = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w700,
-  );
-
-  static const TextStyle title = TextStyle(
-    fontSize: 17,
-    fontWeight: FontWeight.w700,
-    letterSpacing: -0.4,
-  );
-
   static const TextStyle headline = TextStyle(
     fontSize: 22,
     fontWeight: FontWeight.w800,
@@ -81,15 +67,11 @@ class _DS {
   static const Color separator = Color(0xFFE5E5EA);
   static const Color labelPrimary = Color(0xFF1C1C1E);
   static const Color labelSecondary = Color(0xFF8E8E93);
-  static const Color labelTertiary = Color(0xFFC7C7CC);
   static const Color accent = Color(0xFF00C853); // FSI green
   static const Color accentBlue = Color(0xFF007AFF);
-  static const Color destructive = Color(0xFFFF3B30);
-
   // Colors (dark)
   static const Color bgDark = Color(0xFF000000);
   static const Color surfaceDark = Color(0xFF1C1C1E);
-  static const Color surfaceDark2 = Color(0xFF2C2C2E);
   static const Color separatorDark = Color(0xFF38383A);
   static const Color labelPrimaryDark = Color(0xFFFFFFFF);
   static const Color labelSecondaryDark = Color(0xFF8E8E93);
@@ -460,12 +442,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
   // ─── Actions (logic unchanged) ────────────────────────────────────────────
 
-  Future<void> _onPhoneTap(String? phone) async {
+  Future<void> _onPhoneTap(String? phone, {String? targetName}) async {
     if (!mounted) return;
     final barcode = widget.barcode;
-    final name = _str('name');
+    final resolvedName = targetName ?? _str('name');
     final template =
-        'Hi${name.isNotEmpty ? ' ${name.split(' ').first}' : ''}! '
+        'Hi${resolvedName.isNotEmpty ? ' $resolvedName' : ''}! '
         "I'm your FSI courier "
         '${barcode.isNotEmpty ? 'with tracking number $barcode' : 'with your delivery'}. '
         'Please be ready or contact me for re-scheduling. Thank you!';
@@ -483,6 +465,16 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   // ─── Helpers (unchanged) ──────────────────────────────────────────────────
 
   String _str(String key) => _delivery[key]?.toString().trim() ?? '';
+
+  /// Parses the piece count from a barcode that uses the `BASE/N` convention.
+  /// e.g. "FSI123456/3" → 3 pieces total, "FSI123456/2" → 2 pieces.
+  /// Returns 0 if the barcode has no slash or the part after is not a number.
+  int get _pieceCountFromBarcode {
+    final b = widget.barcode;
+    final slashIdx = b.lastIndexOf('/');
+    if (slashIdx < 0 || slashIdx == b.length - 1) return 0;
+    return int.tryParse(b.substring(slashIdx + 1).trim()) ?? 0;
+  }
 
   bool get _isRtsLocked {
     final status = _str('delivery_status').toUpperCase();
@@ -575,21 +567,31 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       ),
                       children: [
                         // ── Account details card ──────────────────────────
-                        _IosCard(
-                          isDark: isDark,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _CardSectionHeader(
-                                label: 'Account Details',
-                                isDark: isDark,
-                              ),
-                              _IosRow(
-                                label: 'Name',
-                                value: _str('name'),
-                                bold: true,
-                                isDark: isDark,
-                              ),
+                        if (!checkIsLockedFromMap(_delivery))
+                          _IosCard(
+                            isDark: isDark,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _CardSectionHeader(
+                                  label: 'Account Details',
+                                  isDark: isDark,
+                                ),
+                                _IosRow(
+                                  label: 'Name',
+                                  value: _str('name'),
+                                  bold: true,
+                                  isDark: isDark,
+                                ),
+                              // ── Piece count badge (barcode with "/") ─────
+                              if (_pieceCountFromBarcode > 0) ...[
+                                _IosRowDivider(isDark: isDark),
+                                _IosRow(
+                                  label: 'Pieces',
+                                  value: '${_pieceCountFromBarcode} piece${_pieceCountFromBarcode > 1 ? 's' : ''} in this bundle',
+                                  isDark: isDark,
+                                ),
+                              ],
                               // Address and contact are only shown when delivery
                               // is still actionable (PENDING or unverified RTS).
                               if (_canShowContactInfo) ...[
@@ -605,10 +607,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                 _IosRowDivider(isDark: isDark),
                                 _IosTappableRow(
                                   label: 'Contact',
-                                  value: _str('contact'),
+                                  value: _str('contact').cleanContactNumber(),
                                   icon: Icons.phone_rounded,
                                   accentColor: _DS.accent,
-                                  onTap: () => _onPhoneTap(_str('contact')),
+                                  onTap: () => _onPhoneTap(_str('contact').cleanContactNumber()),
                                   isDark: isDark,
                                 ),
                               ],
@@ -827,10 +829,13 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
             _IosRowDivider(isDark: isDark),
             _IosTappableRow(
               label: 'Contact',
-              value: contactRep,
+              value: contactRep.cleanContactNumber(),
               icon: Icons.phone_rounded,
               accentColor: _DS.accent,
-              onTap: () => _onPhoneTap(contactRep),
+              onTap: () => _onPhoneTap(
+                contactRep.cleanContactNumber(),
+                targetName: authRep,
+              ),
               isDark: isDark,
             ),
           ],

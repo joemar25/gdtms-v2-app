@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
@@ -29,7 +28,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   String? _error;
   Map<String, dynamic>? _previewData;
   String? _initialSelectedDate;
-  int _refreshKey = 0;
 
   @override
   void initState() {
@@ -56,7 +54,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       setState(() {
         _previewData = preview;
         _initialSelectedDate = null;
-        _refreshKey++;
         _loading = false;
       });
     } else {
@@ -198,14 +195,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     }
 
     if (mounted) setState(() => _submitting = false);
-  }
-
-  String _fmtShort(String dateStr) {
-    try {
-      return DateFormat('MMM d').format(DateTime.parse(dateStr));
-    } catch (_) {
-      return dateStr;
-    }
   }
 
   /// Ensures each delivery map has a [delivery_status] field so [DeliveryCard]
@@ -403,10 +392,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     final dailyBreakdown = _normalisedBreakdown(
       (preview['daily_breakdown'] as List?)?.cast<Map<String, dynamic>>() ?? [],
     );
-    final coverage = preview['coverage_period'] as Map<String, dynamic>?;
-    final fromDate = coverage?['from_date'] as String? ?? '';
-    final toDate = coverage?['to_date'] as String? ?? '';
-
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
@@ -749,9 +734,10 @@ class _SummaryCard extends StatelessWidget {
                   // production couriers; visible only in debug builds.
                   if (kAppDebugMode && estimatedIncentive != 0)
                     _AmountRow(
-                      label: 'Coordinator Incentive ‹debug›',
+                      label: '⚠ Coordinator Incentive',
                       amount: estimatedIncentive,
                       isDeduction: true,
+                      isDebug: true,
                     ),
                   const SizedBox(height: 6),
                   const Divider(height: 1),
@@ -795,21 +781,36 @@ class _AmountRow extends StatelessWidget {
     required this.label,
     required this.amount,
     this.isDeduction = false,
+    this.isDebug = false,
   });
 
   final String label;
   final double amount;
   final bool isDeduction;
+  final bool isDebug;
 
   @override
   Widget build(BuildContext context) {
-    final color = isDeduction ? ColorStyles.red : ColorStyles.secondary;
+    final color = isDebug
+        ? Colors.red.shade700
+        : (isDeduction ? ColorStyles.red : ColorStyles.secondary);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: color)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: isDebug ? FontWeight.w700 : FontWeight.normal)),
+              if (isDebug)
+                Text(
+                  'DEBUG ONLY — not visible in production',
+                  style: TextStyle(fontSize: 9, color: Colors.red.shade400, letterSpacing: 0.3),
+                ),
+            ],
+          ),
           Text(
             '${isDeduction ? '-' : ''}₱ ${amount.abs().toStringAsFixed(2)}',
             style: TextStyle(

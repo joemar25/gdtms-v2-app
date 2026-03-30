@@ -132,7 +132,7 @@ class _IOSNotificationBellState extends State<_IOSNotificationBell>
               size: 24,
               color: hasUnread
                   ? colorScheme.onSurface
-                  : colorScheme.onSurface.withOpacity(0.6),
+                  : colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             if (hasUnread)
               Positioned(
@@ -234,7 +234,7 @@ class _BadgePill extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.35),
+            color: color.withValues(alpha: 0.35),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),

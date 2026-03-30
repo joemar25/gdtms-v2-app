@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
@@ -36,12 +37,6 @@ class DeliveryCard extends StatefulWidget {
 class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
 
-  void _setExpanded(bool value) {
-    if (widget.compact || !widget.enableHoldToReveal) return;
-    if (_isExpanded == value) return;
-    setState(() => _isExpanded = value);
-  }
-
   @override
   Widget build(BuildContext context) {
     final delivery = widget.delivery;
@@ -49,6 +44,7 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
     final rawStatus = delivery['delivery_status']?.toString() ?? 'PENDING';
     final status = rawStatus.toUpperCase();
     final jobOrder = (delivery['job_order'] ?? delivery['tracking_number'] ?? '').toString();
+    final product = (delivery['product'] ?? delivery['mail_type'] ?? '').toString();
     final address = (delivery['address'] ?? delivery['delivery_address'] ?? '').toString();
     final name = (delivery['name'] ??
             delivery['recipient'] ??
@@ -57,16 +53,16 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
         .toString();
     final syncStatus = delivery['_sync_status']?.toString() ?? 'clean';
     final isDirty = syncStatus == 'dirty';
+    final inSyncQueue = delivery['_in_sync_queue'] == true;
     final color = isDirty ? Colors.amber.shade700 : DeliveryCard.statusColor(status);
-    final isPaid = delivery['_paid_at'] != null;
     final rtsVerifStatus =
         (delivery['_rts_verification_status']?.toString() ??
         delivery['rts_verification_status']?.toString() ??
         'unvalidated').toLowerCase();
     final isRtsWithPay = status == 'RTS' && (rtsVerifStatus == 'verified_with_pay');
     final isRtsNoPay = status == 'RTS' && (rtsVerifStatus == 'verified_no_pay');
-    final isOsa = status == 'OSA';
-    final isLocked = isOsa || isRtsWithPay || isRtsNoPay;
+    final isPaid = delivery['_paid_at'] != null;
+    final isLocked = checkIsLockedFromMap(delivery);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
@@ -86,6 +82,7 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
         isVisible = deliveredAt >= todayStart && deliveredAt < tomorrowStart;
       } else if (status == 'RTS') {
         final completedAt = delivery['_completed_at'] as int? ?? 0;
+        // RTS items in the list are only those not yet verified into a payout.
         isVisible = completedAt >= todayStart && completedAt < tomorrowStart && !isRtsWithPay && !isRtsNoPay;
       } else if (status == 'OSA') {
         final completedAt = delivery['_completed_at'] as int? ?? 0;
@@ -106,6 +103,7 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
         isRtsNoPay: isRtsNoPay,
         isLocked: isLocked,
         isVisible: isVisible,
+        inSyncQueue: inSyncQueue,
       );
     }
 
@@ -133,9 +131,10 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
           borderRadius: BorderRadius.circular(14),
           onTap: widget.onTap,
           child: GestureDetector(
-            onLongPressStart: (_) => _setExpanded(true),
-            onLongPressEnd: (_) => _setExpanded(false),
-            onLongPressCancel: () => _setExpanded(false),
+            onLongPress: () {
+              if (widget.compact || !widget.enableHoldToReveal || isLocked) return;
+              setState(() => _isExpanded = !_isExpanded);
+            },
             behavior: HitTestBehavior.translucent,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
@@ -160,18 +159,28 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                                     ),
                                   ),
                                 ),
-                                if (jobOrder.isNotEmpty)
+                                // Locked: show product type instead of internal job-order ID
+                                if (isLocked && product.isNotEmpty)
+                                  Text(
+                                    product,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  )
+                                else if (!isLocked && jobOrder.isNotEmpty)
                                   Text(
                                     jobOrder,
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
-                                    color: Colors.grey.shade500,
+                                      color: Colors.grey.shade500,
                                     ),
                                   ),
                               ],
                             ),
-                            if (name.isNotEmpty) ...[
+                            if (name.isNotEmpty && !isLocked) ...[
                               const SizedBox(height: 3),
                               Text(
                                 name,
@@ -182,12 +191,12 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                                 ),
                               ),
                             ],
-                            if (address.isNotEmpty) ...[
+                            if (address.isNotEmpty && !isLocked) ...[
                               const SizedBox(height: 2),
                               Text(
                                 address,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                maxLines: _isExpanded ? null : 1,
+                                overflow: _isExpanded ? null : TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey.shade500,
@@ -197,39 +206,28 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                           ],
                         ),
                       ),
-                      if (isRtsWithPay || isRtsNoPay)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: isRtsWithPay ? Colors.green : Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        )
-                      else if (!isVisible) ...[
+                      if (isLocked) ...[
                         const SizedBox(width: 8),
-                        Tooltip(
-                          message: 'LOCKED (Failed visibility rules)',
-                          child: Icon(
-                            Icons.bug_report_rounded,
-                            color: Colors.red.shade300,
-                            size: 16,
-                          ),
-                        ),
+                        Icon(Icons.lock_outline_rounded, color: Colors.grey.shade400, size: 16),
+                      ] else if (!isVisible) ...[
+                        const SizedBox(width: 8),
+                        Icon(Icons.lock_outline_rounded, color: Colors.red.shade300, size: 16),
                       ] else if (widget.showChevron) ...[
                         const SizedBox(width: 8),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: Colors.grey.shade400,
-                          size: 20,
+                        AnimatedRotation(
+                          turns: _isExpanded ? 0.25 : 0.0, // 90 degrees when expanded
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          child: Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.grey.shade400,
+                            size: 20,
+                          ),
                         ),
                       ],
                     ],
                   ),
-                  if (isDirty || isPaid) ...[
+                  if (isDirty || isPaid || inSyncQueue) ...[
                     const SizedBox(height: 6),
                     Row(
                       children: [
@@ -285,6 +283,32 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                                 color: Colors.green.shade700,
                                 letterSpacing: 0.5,
                               ),
+                            ),
+                          ),
+                        if ((isDirty || isPaid) && inSyncQueue) const SizedBox(width: 6),
+                        if (inSyncQueue)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.blue.shade200),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.sync_lock_rounded, size: 10, color: Colors.blue.shade700),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'PENDING SYNC',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.blue.shade800,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                       ],
@@ -382,6 +406,15 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
               ),
             ),
           ],
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.center,
+            child: TextButton.icon(
+              onPressed: () => setState(() => _isExpanded = false),
+              icon: const Icon(Icons.expand_less_rounded, size: 18),
+              label: const Text('COLLAPSE', style: TextStyle(fontSize: 12, letterSpacing: 1)),
+            ),
+          ),
           const SizedBox(height: 4),
         ],
       ),
@@ -400,6 +433,7 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
     required bool isRtsNoPay,
     required bool isLocked,
     required bool isVisible,
+    required bool inSyncQueue,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -430,7 +464,7 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                         fontSize: 13,
                       ),
                     ),
-                    if (name.isNotEmpty) ...[
+                    if (name.isNotEmpty && !isLocked) ...[
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -467,6 +501,33 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                   ),
                 ),
               ],
+              if (inSyncQueue) ...[
+                const SizedBox(width: 5),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.sync_lock_rounded, size: 8, color: Colors.blue.shade700),
+                      const SizedBox(width: 2),
+                      Text(
+                        'PENDING SYNC',
+                        style: TextStyle(
+                          fontSize: 7,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.blue.shade800,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               // Compact mode indicator
               Container(
                 margin: const EdgeInsets.only(left: 6),
@@ -497,30 +558,25 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                   ),
                 ),
               ],
-              if (isRtsWithPay || isRtsNoPay)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: isRtsWithPay ? Colors.green : Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                )
-              else if (!isVisible)
+              if (isLocked)
                 Padding(
                   padding: const EdgeInsets.only(left: 4),
-                  child: Tooltip(
-                    message: 'LOCKED (Failed visibility rules)',
-                    child: Icon(Icons.bug_report_rounded, color: Colors.red.shade300, size: 14),
-                  ),
+                  child: Icon(Icons.lock_outline_rounded, color: Colors.grey.shade400, size: 14),
                 )
-              else if (widget.showChevron)
+              else if (!isVisible) ...[
                 Padding(
                   padding: const EdgeInsets.only(left: 4),
-                  child: Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey.shade400),
+                  child: Icon(Icons.lock_outline_rounded, color: Colors.red.shade300, size: 14),
+                ),
+              ] else if (widget.showChevron)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: AnimatedRotation(
+                    turns: _isExpanded ? 0.25 : 0.0, // 90 degrees when expanded
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    child: Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey.shade400),
+                  ),
                 ),
             ],
           ),

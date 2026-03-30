@@ -163,13 +163,13 @@ class _DispatchEligibilityScreenState
     setState(() {
       _loading = false;
       _error = switch (result) {
-        ApiServerError<Map<String, dynamic>>(:final message) => message,
-        ApiValidationError<Map<String, dynamic>>(:final message) =>
-          (message != null && message.isNotEmpty)
-              ? message
-              : 'Unable to accept dispatch.',
-        ApiNetworkError<Map<String, dynamic>>(:final message) => message,
-        ApiRateLimited<Map<String, dynamic>>(:final message) => message,
+        ApiBadRequest(:final message) => message,
+        ApiConflict(:final message) => message,
+        ApiServerError(:final message) => message,
+        ApiValidationError(:final message) =>
+          (message != null && message.isNotEmpty) ? message : 'Unable to accept dispatch.',
+        ApiNetworkError(:final message) => message,
+        ApiRateLimited(:final message) => message,
         _ => 'Unable to accept dispatch.',
       };
     });
@@ -227,18 +227,22 @@ class _DispatchEligibilityScreenState
     setState(() => _rejecting = false);
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
-      showAppSnackbar(
+      showSuccessNotification(
         context,
         'Dispatch rejected.',
-        type: SnackbarType.success,
       );
       context.go('/dispatches');
     } else {
-      showAppSnackbar(
-        context,
-        'Failed to reject dispatch. Please try again.',
-        type: SnackbarType.error,
-      );
+      final errorMessage = switch (result) {
+        ApiBadRequest(:final message) => message,
+        ApiValidationError(:final message) => message ?? 'Validation error',
+        ApiNetworkError(:final message) => message,
+        ApiRateLimited(:final message) => message,
+        ApiConflict(:final message) => message,
+        ApiServerError(:final message) => message,
+        _ => 'Failed to reject dispatch. Please try again.',
+      };
+      showErrorNotification(context, errorMessage);
     }
   }
 

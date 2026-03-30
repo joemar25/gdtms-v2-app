@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/database/error_log_dao.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
@@ -46,15 +47,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _specsLoaded = false;
   double _freeStorageGb = -1.0;
 
+  // Error log count badge
+  int _errorLogCount = 0;
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _loadDeviceSpecs();
+    _loadErrorLogCount();
   }
 
   Future<void> _refresh() async {
-    await Future.wait([_loadSettings(), _loadDeviceSpecs()]);
+    await Future.wait([
+      _loadSettings(),
+      _loadDeviceSpecs(),
+      _loadErrorLogCount(),
+    ]);
+  }
+
+  Future<void> _loadErrorLogCount() async {
+    final count = await ErrorLogDao.instance.getCount();
+    if (mounted) setState(() => _errorLogCount = count);
   }
 
   Future<void> _loadSettings() async {
@@ -101,6 +115,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _logout() async {
     final pendingCount = await SyncOperationsDao.instance.getPendingCount();
+    if (!mounted) return;
     if (pendingCount > 0) {
       final forceLogout = await ConfirmationDialog.show(
         context,
@@ -190,7 +205,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const SizedBox(height: 16),
 
-          // ── Logout ────────────────────────────────────────────────────────────────
+          // ── Change Password & Logout ────────────────────────────────────────────────────────────────
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.blueGrey.shade600,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            onPressed: () => context.push('/change-password'),
+            icon: const Icon(Icons.lock_reset_rounded),
+            label: const Text(
+              'Change Password',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(height: 12),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Colors.red.shade600,
@@ -499,44 +531,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 8),
           _InfoCard(
             children: [
-              _InfoTile(
-                icon: Icons.cloud_outlined,
-                label: 'Backend',
-                value: _backendLabel,
-              ),
-              const Divider(height: 1, indent: 56),
-              _InfoTile(
-                icon: Icons.smartphone_outlined,
-                label: 'Device Model',
-                value: _specsLoaded ? _deviceModel : '…',
-              ),
-              const Divider(height: 1, indent: 56),
-              _InfoTile(
-                icon: Platform.isAndroid
-                    ? Icons.android_outlined
-                    : Icons.phone_iphone_outlined,
-                label: 'Operating System',
-                value: _specsLoaded ? _osVersion : '…',
-              ),
-              const Divider(height: 1, indent: 56),
-              _InfoTile(
-                icon: Icons.fingerprint_outlined,
-                label: 'Device ID',
-                value: _specsLoaded ? _deviceId : '…',
-              ),
-              const Divider(height: 1, indent: 56),
+              if (kAppDebugMode) ...[
+                _InfoTile(
+                  icon: Icons.cloud_outlined,
+                  label: 'Backend',
+                  value: _backendLabel,
+                ),
+                const Divider(height: 1, indent: 56),
+                _InfoTile(
+                  icon: Icons.smartphone_outlined,
+                  label: 'Device Model',
+                  value: _specsLoaded ? _deviceModel : '…',
+                ),
+                const Divider(height: 1, indent: 56),
+                _InfoTile(
+                  icon: Platform.isAndroid
+                      ? Icons.android_outlined
+                      : Icons.phone_iphone_outlined,
+                  label: 'Operating System',
+                  value: _specsLoaded ? _osVersion : '…',
+                ),
+                const Divider(height: 1, indent: 56),
+                _InfoTile(
+                  icon: Icons.fingerprint_outlined,
+                  label: 'Device ID',
+                  value: _specsLoaded ? _deviceId : '…',
+                ),
+                const Divider(height: 1, indent: 56),
+              ],
               _InfoTile(
                 icon: Icons.info_outline_rounded,
                 label: 'App Version',
                 value: 'v$appVersion',
               ),
               const Divider(height: 1, indent: 56),
-              _InfoTile(
-                icon: Icons.code_rounded,
-                label: 'SDK Version',
-                value: _specsLoaded ? _sdkVersion : '…',
-              ),
-              const Divider(height: 1, indent: 56),
+              if (kAppDebugMode) ...[
+                _InfoTile(
+                  icon: Icons.code_rounded,
+                  label: 'SDK Version',
+                  value: _specsLoaded ? _sdkVersion : '…',
+                ),
+                const Divider(height: 1, indent: 56),
+              ],
               _InfoTile(
                 icon: Icons.sd_storage_outlined,
                 label: 'Available Storage',
@@ -552,6 +588,85 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ? Colors.orange
                           : null)
                     : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // ── Diagnostics ──────────────────────────────────────────────────
+          _SectionHeader('Diagnostics'),
+          _InfoCard(
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () async {
+                  await context.push('/error-logs');
+                  _loadErrorLogCount();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.bug_report_outlined,
+                          color: Colors.red,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Error Logs',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              'View errors and warnings recorded on this device.',
+                              style: TextStyle(fontSize: 12, height: 1.4, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_errorLogCount > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade600,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$_errorLogCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: Colors.grey.shade400,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

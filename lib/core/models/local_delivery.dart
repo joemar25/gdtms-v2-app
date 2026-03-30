@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 
 /// A delivery record stored locally in SQLite after dispatch acceptance.
 ///
@@ -55,6 +56,12 @@ class LocalDelivery {
   final bool isArchived;
   /// RTS verification: 'unvalidated', 'verified_with_pay', 'verified_no_pay'
   final String rtsVerificationStatus;
+
+  /// Whether this delivery is in a non-actionable "locked" state.
+  bool get isLocked => checkIsLocked(
+    status: deliveryStatus,
+    rtsVerificationStatus: rtsVerificationStatus,
+  );
 
   // ── Factories ─────────────────────────────────────────────────────────────
 

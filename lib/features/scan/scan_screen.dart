@@ -9,9 +9,9 @@ import 'package:uuid/uuid.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
-import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -79,11 +79,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // landscape gives a wider viewfinder.  Portrait is restored on dispose.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
+      await SystemChrome.setPreferredOrientations([]);
       if (mounted) _requestPermission();
     });
   }
@@ -178,12 +174,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           ref.read(deliveryRefreshProvider.notifier).state++;
           if (mounted) setState(() => _showAutoAcceptSuccess = true);
         } else {
-          setState(() => _inlineError = 'Unable to accept dispatch. Please try again.');
-          showAppSnackbar(
-            context,
-            'Unable to accept dispatch.',
-            type: SnackbarType.error,
-          );
+          final acceptErrorMessage = switch (acceptResult) {
+            ApiBadRequest(:final message) => message,
+            ApiValidationError(:final message) => message ?? 'Validation error',
+            ApiNetworkError(:final message) => message,
+            ApiRateLimited(:final message) => message,
+            ApiConflict(:final message) => message,
+            ApiServerError(:final message) => message,
+            _ => 'Unable to accept dispatch. Please try again.',
+          };
+          setState(() => _inlineError = acceptErrorMessage);
+          showErrorNotification(context, acceptErrorMessage);
           await _scannerController.start();
         }
         return;
@@ -203,14 +204,18 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       );
       if (mounted && _hasPermission) await _scannerController.start();
     } else {
-      setState(
-        () => _inlineError = 'Unable to check eligibility. Please try again.',
-      );
-      showAppSnackbar(
-        context,
-        'Unable to check eligibility.',
-        type: SnackbarType.error,
-      );
+      final errorMessage = switch (result) {
+        ApiBadRequest(:final message) => message,
+        ApiValidationError(:final message) => message ?? 'Validation error',
+        ApiNetworkError(:final message) => message,
+        ApiRateLimited(:final message) => message,
+        ApiConflict(:final message) => message,
+        ApiServerError(:final message) => message,
+        _ => 'Unable to check eligibility. Please try again.',
+      };
+
+      setState(() => _inlineError = errorMessage);
+      showErrorNotification(context, errorMessage);
       await _scannerController.start();
     }
   }
@@ -262,8 +267,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     if (matches.length == 1) {
       final match = matches.first;
-      // OSA items surface in the list but cannot be opened individually.
-      if (match.deliveryStatus.toUpperCase() == 'OSA') {
+      final isLocked = checkIsLocked(
+        status: match.deliveryStatus,
+        rtsVerificationStatus: match.rtsVerificationStatus ?? 'unvalidated',
+      );
+
+      if (isLocked) {
         setState(() => _inlineError = _blockedMessage(match.deliveryStatus, match.rtsVerificationStatus));
         if (_hasPermission) await _scannerController.start();
         return;
@@ -347,6 +356,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     final v = (rtsVerifStatus ?? 'unvalidated').toLowerCase();
     if (s == 'OSA') {
       return 'This item is marked OSA and cannot be opened.';
+    }
+    if (s == 'DELIVERED') {
+      return 'This item has already been delivered and is sealed.';
     }
     if (s == 'RTS' &&
         (v == 'verified_with_pay' || v == 'verified_no_pay')) {

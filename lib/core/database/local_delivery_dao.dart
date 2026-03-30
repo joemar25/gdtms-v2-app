@@ -181,12 +181,8 @@ class LocalDeliveryDao {
     // Collect all local records so we can decide what to do per-item.
     final existingRows = await db.query(
       'local_deliveries',
-      columns: ['barcode', 'delivery_status', 'sync_status'],
+      columns: ['barcode', 'sync_status'],
     );
-    final localStatusByBarcode = <String, String>{
-      for (final row in existingRows)
-        row['barcode'] as String: row['delivery_status'] as String,
-    };
     final syncStatusByBarcode = <String, String?>{
       for (final row in existingRows)
         row['barcode'] as String: row['sync_status'] as String?,
@@ -204,11 +200,8 @@ class LocalDeliveryDao {
       );
       if (delivery.barcode.isEmpty) continue;
 
-      final localStatus = localStatusByBarcode[delivery.barcode];
       final syncStatus = syncStatusByBarcode[delivery.barcode];
       final isDirty = syncStatus == 'dirty';
-      final isLocalTerminal =
-          localStatus != null && terminalStatuses.contains(localStatus);
       final isServerTerminal = terminalStatuses.contains(serverStatusUpper);
 
       if (isDirty) {

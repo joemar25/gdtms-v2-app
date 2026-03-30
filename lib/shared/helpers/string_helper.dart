@@ -4,3 +4,18 @@ extension StatusStringFormat on String {
     return replaceAll('_', ' ').toUpperCase();
   }
 }
+
+extension ContactStringFormat on String {
+  /// Extracts the first phone number if multiple are separated by '/' or ','.
+  String cleanContactNumber() {
+    if (isEmpty) return '';
+    final parts = split(RegExp(r'[/,]'));
+    for (var part in parts) {
+      final trimmed = part.trim();
+      if (trimmed.isNotEmpty) {
+        return trimmed;
+      }
+    }
+    return '';
+  }
+}
