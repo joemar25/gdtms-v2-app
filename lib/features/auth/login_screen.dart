@@ -210,7 +210,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         children: [
           // ─ Background ─────────────────────────────────────────────
           ColoredBox(
-            color: isDark ? const Color(0xFF121212) : const Color(0xFFF0F4F0),
+            color: isDark ? ColorStyles.scaffoldDark : ColorStyles.scaffoldLight,
           ),
           SafeArea(
             child: Center(
@@ -283,8 +283,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Container(
                         decoration: BoxDecoration(
                           color: isDark
-                              ? const Color(0xFF1E1E2E)
-                              : Colors.white,
+                              ? ColorStyles.grabCardDark
+                              : ColorStyles.white,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(

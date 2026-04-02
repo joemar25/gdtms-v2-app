@@ -239,10 +239,12 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark
-        ? const Color(0xFF121212)
-        : ColorStyles.grabCardLight;
-    final appBarBg = isDark ? ColorStyles.grabCardDark : ColorStyles.white;
+    // Use the canonical theme tokens so this screen matches every other screen.
+    // Do NOT hardcode raw Color() values here — use ColorStyles constants.
+    final scaffoldBg =
+        isDark ? ColorStyles.scaffoldDark : ColorStyles.scaffoldLight;
+    final appBarBg =
+        isDark ? ColorStyles.appBarDark : ColorStyles.appBarLight;
 
     if (!isOnline) {
       return Scaffold(
@@ -660,7 +662,8 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardBg = isDark ? const Color(0xFF1E1E2E) : ColorStyles.white;
+    // Cards sit one layer above the scaffold — use grabCardDark / white.
+    final cardBg = isDark ? ColorStyles.grabCardDark : ColorStyles.white;
     final cardBorder = isDark
         ? Colors.white.withValues(alpha: 0.10)
         : ColorStyles.tertiary;

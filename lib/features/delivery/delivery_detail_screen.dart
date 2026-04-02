@@ -19,7 +19,9 @@ import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/config.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Design tokens
+// Local design tokens for DeliveryDetailScreen.
+// Typography, spacing, and radii are screen-local.
+// Background/surface constants delegate to ColorStyles — do NOT duplicate.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DS {
@@ -62,20 +64,28 @@ class _DS {
     letterSpacing: -0.6,
   );
 
-  // Colors (light)
-  static const Color bg = Color(0xFFF2F2F7);
-  static const Color surface = Colors.white;
+  // ── Colors ────────────────────────────────────────────────────────────────
+  // Background: use [ColorStyles] tokens — do NOT hardcode raw Color() values.
+  // These aliases keep existing references compiling while pointing to the
+  // single source of truth.
+  static const Color bg = ColorStyles.scaffoldLight;      // light mode page bg
+  static const Color bgDark = ColorStyles.scaffoldDark;   // dark mode page bg
+  static const Color surface = ColorStyles.white;          // light card surface
+  static const Color surfaceDark = ColorStyles.grabCardDark; // dark card surface
+
+  // Dividers / separators
   static const Color separator = Color(0xFFE5E5EA);
+  static const Color separatorDark = Color(0xFF38383A);
+
+  // Text labels — these are intentional iOS-style greys, kept local.
   static const Color labelPrimary = Color(0xFF1C1C1E);
   static const Color labelSecondary = Color(0xFF8E8E93);
-  static const Color accent = Color(0xFF00C853); // FSI green
-  static const Color accentBlue = Color(0xFF007AFF);
-  // Colors (dark)
-  static const Color bgDark = Color(0xFF000000);
-  static const Color surfaceDark = Color(0xFF1C1C1E);
-  static const Color separatorDark = Color(0xFF38383A);
   static const Color labelPrimaryDark = Color(0xFFFFFFFF);
   static const Color labelSecondaryDark = Color(0xFF8E8E93);
+
+  // FSI brand accent (green CTA) and action blue — local aliases.
+  static const Color accent = ColorStyles.grabGreen;
+  static const Color accentBlue = Color(0xFF007AFF);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -508,14 +518,16 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     final status = _str('delivery_status').toUpperCase();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final bgColor = isDark ? _DS.bgDark : _DS.bg;
+    // Scaffold background is inherited from the global ThemeData set in app.dart.
+    // Do NOT override it here — use the theme token so this screen stays consistent.
+    // (bgColor kept for in-screen Card/surface use only)
+    // final bgColor = isDark ? _DS.bgDark : _DS.bg; // <- removed scaffold override
 
     // RULE: If status is 'OSA', do not ever show update status button here.
     // NEW RULE: If status is 'RTS' and already verified, hide the button.
     final showFab = (status == 'PENDING' || status == 'RTS') && !_isRtsLocked;
 
     return Scaffold(
-      backgroundColor: bgColor,
       appBar: _buildAppBar(context, status, isDark),
       floatingActionButton: showFab
           ? FloatingActionButton.extended(

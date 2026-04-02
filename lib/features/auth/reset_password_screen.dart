@@ -7,6 +7,7 @@ import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key, this.authenticatedMode = false});
@@ -157,7 +158,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         fit: StackFit.expand,
         children: [
           ColoredBox(
-            color: isDark ? const Color(0xFF121212) : const Color(0xFFF0F4F0),
+            color: isDark ? ColorStyles.scaffoldDark : ColorStyles.scaffoldLight,
           ),
           SafeArea(
             child: Center(
@@ -171,8 +172,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       Container(
                         decoration: BoxDecoration(
                           color: isDark
-                              ? const Color(0xFF1E1E2E)
-                              : Colors.white,
+                              ? ColorStyles.grabCardDark
+                              : ColorStyles.white,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
@@ -199,7 +200,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 // Muted style when read-only to signal it's locked
                                 filled: widget.authenticatedMode,
                                 fillColor: isDark
-                                    ? Colors.white.withValues(alpha: 0.05)
+                                    ? ColorStyles.white.withValues(alpha: 0.05)
                                     : Colors.grey.shade100,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),

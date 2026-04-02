@@ -13,6 +13,7 @@ import 'core/providers/sync_provider.dart';
 import 'core/settings/app_settings.dart';
 import 'core/sync/delivery_bootstrap_service.dart';
 import 'core/database/cleanup_service.dart';
+import 'styles/color_styles.dart';
 import 'shared/router/app_router.dart';
 import 'shared/router/router_keys.dart';
 
@@ -35,8 +36,16 @@ class FsiCourierApp extends ConsumerWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00B14F)),
         useMaterial3: true,
+        scaffoldBackgroundColor: ColorStyles.scaffoldLight,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: ColorStyles.appBarLight,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
         actionIconTheme: ActionIconThemeData(
-          backButtonIconBuilder: (BuildContext context) => const Icon(Icons.arrow_back_ios_new_rounded),
+          backButtonIconBuilder: (BuildContext context) =>
+              const Icon(Icons.arrow_back_ios_new_rounded),
         ),
       ),
       darkTheme: ThemeData(
@@ -45,8 +54,16 @@ class FsiCourierApp extends ConsumerWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        scaffoldBackgroundColor: ColorStyles.scaffoldDark,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: ColorStyles.appBarDark,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
         actionIconTheme: ActionIconThemeData(
-          backButtonIconBuilder: (BuildContext context) => const Icon(Icons.arrow_back_ios_new_rounded),
+          backButtonIconBuilder: (BuildContext context) =>
+              const Icon(Icons.arrow_back_ios_new_rounded),
         ),
       ),
       routerConfig: router,

@@ -58,9 +58,9 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
     final hasStrokes = _controller.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? ColorStyles.scaffoldDark : ColorStyles.scaffoldLight,
       appBar: AppBar(
-        backgroundColor: isDark ? ColorStyles.grabCardDark : Colors.white,
+        backgroundColor: isDark ? ColorStyles.appBarDark : ColorStyles.appBarLight,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),

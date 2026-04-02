@@ -34,6 +34,7 @@ import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/styles/color_styles.dart';
 
 // ─── Consistent spacing constants ───────────────────────────────────────────
 const _kSectionGap = SizedBox(height: 24); // between major sections
@@ -907,9 +908,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         if (leave == true && mounted) context.pop();
       },
       child: Scaffold(
-        backgroundColor: isDark
-            ? ColorStyles.grabCardDark
-            : ColorStyles.grabCardLight,
+        // Inherits scaffoldBackgroundColor from global theme.
+        // We only override if it needs to be different from the page default.
         floatingActionButtonLocation:
             FloatingActionButtonLocation.centerFloat,
         floatingActionButton: Padding(
@@ -946,7 +946,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         ),
         appBar: AppBar(
           backgroundColor:
-              isDark ? ColorStyles.grabCardDark : Colors.white,
+              isDark ? ColorStyles.appBarDark : ColorStyles.appBarLight,
           elevation: 0,
           titleSpacing: 0,
           title: Column(

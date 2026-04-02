@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
@@ -145,6 +146,12 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: widget.isChecking ? null : widget.onTap,
+              onLongPress: widget.isChecking
+                  ? null
+                  : () {
+                      HapticFeedback.heavyImpact();
+                      setState(() => _isExpanded = !_isExpanded);
+                    },
               child: AnimatedOpacity(
                 opacity: widget.isChecking ? 0.6 : 1.0,
                 duration: const Duration(milliseconds: 200),
@@ -555,6 +562,12 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
           bottomRight: Radius.circular(10),
         ),
         onTap: widget.onTap,
+        onLongPress: widget.isChecking
+            ? null
+            : () {
+                HapticFeedback.heavyImpact();
+                setState(() => _isExpanded = !_isExpanded);
+              },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
