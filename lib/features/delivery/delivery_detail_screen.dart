@@ -35,7 +35,6 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
@@ -98,8 +97,6 @@ class _DS {
   // Background: use [ColorStyles] tokens — do NOT hardcode raw Color() values.
   // These aliases keep existing references compiling while pointing to the
   // single source of truth.
-  static const Color bg = ColorStyles.scaffoldLight; // light mode page bg
-  static const Color bgDark = ColorStyles.scaffoldDark; // dark mode page bg
   static const Color surface = ColorStyles.white; // light card surface
   static const Color surfaceDark =
       ColorStyles.grabCardDark; // dark card surface

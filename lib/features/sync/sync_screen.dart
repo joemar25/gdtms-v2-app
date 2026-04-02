@@ -85,6 +85,7 @@ import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
+import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
@@ -183,7 +184,6 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
     return Scaffold(
       appBar: AppHeaderBar(
         title: 'Sync',
-        pageIcon: Icons.sync_rounded,
         actions: [
           // ── Sync Now (online only) ────────────────────────────────────
           if (isOnline &&
@@ -300,6 +300,7 @@ class _SyncHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final lastSyncTime = ref.watch(lastSyncTimeProvider);
+    final syncState = ref.watch(syncManagerProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,12 +333,95 @@ class _SyncHeader extends ConsumerWidget {
               if (lastSyncTime != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Last sync: ${DateFormat('MMM d, yyyy · h:mm a').format(lastSyncTime)}',
+                  'Last sync: ${DateFormat('MMM d, yyyy · h:mm a').format(lastSyncTime.toUtc().add(const Duration(hours: 8)))}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
+
+              // Retention countdown: show time remaining until the oldest
+              // synced operation becomes eligible for auto-deletion based on
+              // the user's configured sync retention days.
+              Builder(builder: (ctx) {
+                // Find the earliest synced operation (createdAt ms)
+                final synced = syncState.entries
+                    .where((e) => e.status == 'synced')
+                    .map((e) => e.createdAt)
+                    .toList();
+                final int? earliestSynced = synced.isEmpty
+                    ? null
+                    : synced.reduce((a, b) => a < b ? a : b);
+
+                return FutureBuilder<int>(
+                  future: ref.read(appSettingsProvider).getSyncRetentionDays(),
+                  builder: (context, snap) {
+                    final int? days = snap.data;
+                    if (days == null) {
+                      return const SizedBox.shrink();
+                    }
+                    final int retentionMs = days * Duration.millisecondsPerDay;
+
+                    if (earliestSynced == null) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'Sync history retention: ${days} day${days == 1 ? '' : 's'}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return StreamBuilder<int>(
+                      stream: Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now().millisecondsSinceEpoch),
+                      builder: (context, nowSnap) {
+                        final nowMs = nowSnap.data ?? DateTime.now().millisecondsSinceEpoch;
+                        final expiryMs = earliestSynced + retentionMs;
+                        final remaining = expiryMs - nowMs;
+
+                        String label;
+                        if (remaining <= 0) {
+                          label = 'History eligible for deletion';
+                        } else {
+                          final d = Duration(milliseconds: remaining);
+                          final dd = d.inDays;
+                          final hh = d.inHours % 24;
+                          final mm = d.inMinutes % 60;
+                          final ss = d.inSeconds % 60;
+                          if (dd > 0) {
+                            label = '${dd}d ${hh}h ${mm}m';
+                          } else if (hh > 0) {
+                            label = '${hh}h ${mm}m ${ss}s';
+                          } else if (mm > 0) {
+                            label = '${mm}m ${ss}s';
+                          } else {
+                            label = '${ss}s';
+                          }
+                          label = 'History deletes in $label';
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(
+                            children: [
+                              Icon(Icons.timer, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                              const SizedBox(width: 8),
+                              Text(
+                                label,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              }),
               const SizedBox(height: 12),
             ],
           ),
@@ -479,36 +563,54 @@ class _EntryTile extends StatelessWidget {
     final transactionAt = raw['transaction_at']?.toString() ?? '';
     final deliveredDate = raw['delivered_date']?.toString() ?? '';
     final dispatchedAt = raw['dispatched_at']?.toString() ?? '';
-
     // Use deliveredAt epoch ms for local-timezone display (same approach as
     // Queued/Synced rows). Falls back to the server ISO string only when the
     // local column is absent (e.g. records seeded purely from server bootstrap).
     final deliveredAtMs = delivery!.deliveredAt;
     final String dlDateResolved;
     if (deliveredAtMs != null) {
-      dlDateResolved = DateFormat(
-        'MMM d, yyyy · h:mm a',
-      ).format(DateTime.fromMillisecondsSinceEpoch(deliveredAtMs));
+      dlDateResolved = DateFormat('MMM d, yyyy · h:mm a').format(
+        DateTime.fromMillisecondsSinceEpoch(
+          deliveredAtMs,
+        ).toUtc().add(const Duration(hours: 8)),
+      );
     } else if (deliveredDate.isNotEmpty) {
       dlDateResolved = formatDate(deliveredDate, includeTime: true);
     } else {
       dlDateResolved = '';
     }
 
-    // If both dates exist and are the same, show only delivery date.
-    final String txDate;
-    final String dlDate;
-    if (transactionAt.isNotEmpty &&
-        deliveredDate.isNotEmpty &&
-        transactionAt == deliveredDate) {
-      dlDate = dlDateResolved;
-      txDate = '';
-    } else {
-      dlDate = dlDateResolved;
-      txDate = transactionAt.isNotEmpty
-          ? formatDate(transactionAt, includeTime: true)
-          : '';
+    // Parse transaction and delivered strings to datetimes when possible so
+    // we can compare instants rather than raw strings (server may emit the
+    // same instant in different timezone formats).
+    final DateTime? txDt = transactionAt.isNotEmpty
+        ? parseServerDate(transactionAt)
+        : null;
+    final DateTime? dlDtFromServer = deliveredDate.isNotEmpty
+        ? parseServerDate(deliveredDate)
+        : null;
+
+    // Determine if the transaction instant matches the resolved delivered
+    // instant. Prefer the local epoch ms if available because it's authoritative
+    // for local-day filtering. We now treat the sync operation creation time
+    // (`entry.createdAt`) as the authoritative "transaction" time so the
+    // user always sees the actual time they performed the action.
+    bool isSameInstant = false;
+    if (deliveredAtMs != null) {
+      isSameInstant = entry.createdAt == deliveredAtMs;
+    } else if (txDt != null && dlDtFromServer != null) {
+      isSameInstant =
+          txDt.millisecondsSinceEpoch == dlDtFromServer.millisecondsSinceEpoch;
     }
+
+    final String dlDate = dlDateResolved;
+    final String txDate = isSameInstant
+        ? ''
+        : DateFormat('MMM d, yyyy · h:mm a').format(
+            DateTime.fromMillisecondsSinceEpoch(
+              entry.createdAt,
+            ).toUtc().add(const Duration(hours: 8)),
+          );
 
     return (
       deliveryDate: dlDate,
@@ -522,13 +624,17 @@ class _EntryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final queuedStr = DateFormat(
-      'MMM d, yyyy · h:mm a',
-    ).format(DateTime.fromMillisecondsSinceEpoch(entry.createdAt));
+    final queuedStr = DateFormat('MMM d, yyyy · h:mm a').format(
+      DateTime.fromMillisecondsSinceEpoch(
+        entry.createdAt,
+      ).toUtc().add(const Duration(hours: 8)),
+    );
     final syncedStr = (entry.status == 'synced' && entry.lastAttemptAt != null)
-        ? DateFormat(
-            'MMM d, yyyy · h:mm a',
-          ).format(DateTime.fromMillisecondsSinceEpoch(entry.lastAttemptAt!))
+        ? DateFormat('MMM d, yyyy · h:mm a').format(
+            DateTime.fromMillisecondsSinceEpoch(
+              entry.lastAttemptAt!,
+            ).toUtc().add(const Duration(hours: 8)),
+          )
         : null;
 
     final recipientName = delivery?.recipientName;
@@ -536,21 +642,29 @@ class _EntryTile extends StatelessWidget {
     final dispatchCode = delivery?.dispatchCode;
     final payloadStatus = _payloadStatus;
     final dates = _dates;
-    final rtsVerif = (delivery?.rtsVerificationStatus ?? '').toLowerCase();
+    // Prefer the current delivery status from LocalDelivery (if available)
+    // when deciding whether this entry should be locked / non-navigable.
+    final String? delStatus = delivery?.deliveryStatus;
+    final currentStatus = (delStatus != null && delStatus.isNotEmpty)
+        ? delStatus
+        : payloadStatus;
+    final currentRtsVerif = (delivery?.rtsVerificationStatus ?? '')
+        .toLowerCase();
     final isRtsVerified =
-        payloadStatus.toLowerCase() == 'rts' &&
-        (rtsVerif == 'verified_with_pay' || rtsVerif == 'verified_no_pay');
-    final isOsa = payloadStatus.toLowerCase() == 'osa';
+        currentStatus.toLowerCase() == 'rts' &&
+        (currentRtsVerif == 'verified_with_pay' ||
+            currentRtsVerif == 'verified_no_pay');
+    final isOsa = currentStatus.toLowerCase() == 'osa';
     final isLocked = checkIsLocked(
-      status: payloadStatus,
-      rtsVerificationStatus: rtsVerif,
+      status: currentStatus,
+      rtsVerificationStatus: currentRtsVerif,
     );
 
     return InkWell(
       onTap: isLocked
           ? () {
-              final s = payloadStatus.toUpperCase();
-              final v = rtsVerif.toLowerCase();
+              final s = currentStatus.toUpperCase();
+              final v = currentRtsVerif;
               String msg =
                   'This delivery is ${s.toLowerCase()} and cannot be opened.';
               if (s == 'OSA') {
@@ -564,6 +678,11 @@ class _EntryTile extends StatelessWidget {
               }
               showInfoNotification(context, msg);
             }
+          : (entry.operationType == 'UPDATE_PROFILE')
+          ? () => showInfoNotification(
+              context,
+              'This entry is a profile update and has no delivery details.',
+            )
           : () => context.push('/deliveries/${entry.barcode}'),
       onLongPress: onDelete,
       child: Padding(
@@ -596,7 +715,7 @@ class _EntryTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (!isLocked)
+                      if (!isLocked && entry.operationType != 'UPDATE_PROFILE')
                         const Icon(
                           Icons.chevron_right_rounded,
                           size: 18,

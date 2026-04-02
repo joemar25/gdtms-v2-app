@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retry/retry.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
@@ -16,6 +15,7 @@ import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/services/error_log_service.dart';
+import 'package:fsi_courier_app/core/services/profile_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -188,18 +188,32 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               final ext = filePath.endsWith('.png') ? 'png' : 'jpg';
               final filename = '$uploadType.$ext';
 
-              final result = await api.uploadMedia<Map<String, dynamic>>(
-                uploadPath,
-                bytes: bytes,
-                filename: filename,
-                type: uploadType,
-                parser: (d) {
-                  if (d is Map<String, dynamic>) return d;
-                  if (d is Map)
-                    return d.map((k, v) => MapEntry(k.toString(), v));
-                  return <String, dynamic>{};
-                },
-              );
+              ApiResult<Map<String, dynamic>> result;
+              if (isProfileUpdate) {
+                // Use dedicated profile media upload to ensure the backend
+                // receives `type=profile_picture` and the correct endpoint.
+                result = await ProfileService.instance.uploadProfileMedia(
+                  api,
+                  bytes: bytes,
+                  filename: filename,
+                );
+              } else {
+                result = await api.uploadMedia<Map<String, dynamic>>(
+                  uploadPath,
+                  bytes: bytes,
+                  filename: filename,
+                  type: uploadType,
+                  parser: (d) {
+                    if (d is Map<String, dynamic>) {
+                      return d;
+                    }
+                    if (d is Map) {
+                      return d.map((k, v) => MapEntry(k.toString(), v));
+                    }
+                    return <String, dynamic>{};
+                  },
+                );
+              }
 
               if (result is ApiSuccess<Map<String, dynamic>>) {
                 final inner = result.data['data'];
@@ -266,9 +280,17 @@ class SyncManagerNotifier extends Notifier<SyncState> {
             }
 
             final hasSignature = payload.containsKey('recipient_signature');
-            if (pendingMedia.isNotEmpty &&
-                uploadedImages.isEmpty &&
-                !hasSignature) {
+            final hasProfilePicture = payload.containsKey(
+              'profile_picture_url',
+            );
+            final hasUploadedImages = uploadedImages.isNotEmpty;
+            final anyUploaded =
+                hasSignature || hasProfilePicture || hasUploadedImages;
+
+            // If there were pending media items but none of them produced an
+            // uploaded result (no delivery_images, no signature, and no
+            // profile picture URL), mark the operation as failed and retry.
+            if (pendingMedia.isNotEmpty && !anyUploaded) {
               final newRetryCount = entry.retryCount + 1;
               const mediaError =
                   'Media upload failed — no proof photos could be uploaded.';

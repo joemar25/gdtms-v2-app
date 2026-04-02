@@ -142,7 +142,6 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
     return Scaffold(
       appBar: AppHeaderBar(
         title: 'DISPATCH',
-        pageIcon: Icons.list_alt_rounded,
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded),

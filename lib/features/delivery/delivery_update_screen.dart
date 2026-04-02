@@ -48,7 +48,6 @@ import 'package:uuid/uuid.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
@@ -67,7 +66,6 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 // ─── Consistent spacing constants ───────────────────────────────────────────
@@ -444,24 +442,38 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         : _relationship;
 
     final now = DateTime.now();
+
+    // Format delivered_date as Philippine Standard Time with explicit +08:00
+    // offset to avoid server-side timezone misinterpretation.
+    final pst = now.toUtc().add(const Duration(hours: 8));
+    String two(int n) => n.toString().padLeft(2, '0');
+    String three(int n) => n.toString().padLeft(3, '0');
+    final deliveredDatePst =
+        '${pst.year.toString().padLeft(4, '0')}-${two(pst.month)}-${two(pst.day)}T${two(pst.hour)}:${two(pst.minute)}:${two(pst.second)}.${three(pst.millisecond)}+08:00';
+
     final payload = <String, dynamic>{
       'delivery_status': _status.toUpperCase(),
-      'delivered_date': now.toUtc().toIso8601String(),
+      'delivered_date': deliveredDatePst,
       if (_note.text.trim().isNotEmpty) 'note': _note.text.trim(),
     };
 
     if (_latitude != null && _longitude != null) {
       payload['latitude'] = _latitude;
       payload['longitude'] = _longitude;
-      if (_geoAccuracy != null) payload['geo_accuracy'] = _geoAccuracy;
+      if (_geoAccuracy != null) {
+        payload['geo_accuracy'] = _geoAccuracy;
+      }
     }
 
     final pendingMediaPaths = <String, String>{};
 
     if (_status == 'DELIVERED') {
-      if (_podPhoto != null) pendingMediaPaths['pod'] = _podPhoto!.file;
-      if (_selfiePhoto != null)
+      if (_podPhoto != null) {
+        pendingMediaPaths['pod'] = _podPhoto!.file;
+      }
+      if (_selfiePhoto != null) {
         pendingMediaPaths['selfie'] = _selfiePhoto!.file;
+      }
       if (_signaturePath != null) {
         pendingMediaPaths['recipient_signature'] = _signaturePath!;
       }
@@ -470,8 +482,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       payload['placement_type'] = _placement;
     } else {
       payload['reason'] = resolvedReason;
-      if (_selfiePhoto != null)
+      if (_selfiePhoto != null) {
         pendingMediaPaths['selfie'] = _selfiePhoto!.file;
+      }
     }
 
     final opId = const Uuid().v4();

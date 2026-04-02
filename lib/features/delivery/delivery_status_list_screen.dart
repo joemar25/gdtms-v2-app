@@ -271,13 +271,6 @@ class _DeliveryStatusListScreenState
     _ => 'No items found.',
   };
 
-  // ── Derived unsynced count from current page items ─────────────────────────
-  int get _unsyncedCount =>
-      _items.where((d) => d['_sync_status']?.toString() == 'dirty').length;
-
-  int get _inQueueCount =>
-      _items.where((d) => d['_in_sync_queue'] == true).length;
-
   @override
   Widget build(BuildContext context) {
     ref.listen<int>(deliveryRefreshProvider, (_, __) {
@@ -348,16 +341,6 @@ class _DeliveryStatusListScreenState
                     )
                   : const SizedBox.shrink(),
             ),
-
-            // ── Status summary strip ───────────────────────────────────────────
-            if (!_loading && !isSearching && _totalCount > 0)
-              _StatusSummaryStrip(
-                totalCount: _totalCount,
-                unsyncedCount: _unsyncedCount,
-                inQueueCount: _inQueueCount,
-                status: widget.status,
-                isDark: isDark,
-              ),
 
             // ── List ───────────────────────────────────────────────────────────
             Expanded(
@@ -511,127 +494,6 @@ class _DeliveryStatusListScreenState
   }
 }
 
-// ── Status summary strip ───────────────────────────────────────────────────────
-class _StatusSummaryStrip extends StatelessWidget {
-  const _StatusSummaryStrip({
-    required this.totalCount,
-    required this.unsyncedCount,
-    required this.inQueueCount,
-    required this.status,
-    required this.isDark,
-  });
-
-  final int totalCount;
-  final int unsyncedCount;
-  final int inQueueCount;
-  final String status;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final subtextColor = isDark
-        ? const Color(0xFF6B7280)
-        : const Color(0xFF9CA3AF);
-
-    final bgColor = isDark ? const Color(0xFF161625) : Colors.white;
-
-    final borderColor = isDark
-        ? const Color(0xFF2A2A40)
-        : const Color(0xFFE8EAF0);
-
-    // Only show the strip if there's something meaningful to display
-    if (unsyncedCount == 0 && inQueueCount == 0) {
-      return const SizedBox.shrink(); // Don't show empty strip
-    }
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        children: [
-          // Status text (always visible when strip is shown)
-          Expanded(
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: DeliveryCard.statusColor(status),
-              ),
-            ),
-          ),
-
-          const Spacer(),
-
-          // Pills on the right
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (unsyncedCount > 0) ...[
-                _StripPill(
-                  label: '$unsyncedCount unsynced',
-                  fg: Colors.amber.shade700,
-                  bg: Colors.amber.shade50,
-                  border: Colors.amber.shade200,
-                ),
-                const SizedBox(width: 6),
-              ],
-              if (inQueueCount > 0)
-                _StripPill(
-                  label: '$inQueueCount syncing',
-                  fg: ColorStyles.blue,
-                  bg: const Color(0xFFE3F2FD),
-                  border: const Color(0xFF90CAF9),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StripPill extends StatelessWidget {
-  const _StripPill({
-    required this.label,
-    required this.fg,
-    required this.bg,
-    required this.border,
-  });
-
-  final String label;
-  final Color fg;
-  final Color bg;
-  final Color border;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: border),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: fg,
-          letterSpacing: 0.2,
-        ),
-      ),
-    );
-  }
-}
-
 // ── Styled empty state ─────────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   const _EmptyState({
@@ -716,12 +578,14 @@ class _StatusInfoBanner extends StatelessWidget {
     required this.message,
     required this.statusColor,
     required this.isDark,
+    this.trailing,
   });
 
   final IconData icon;
   final String message;
   final Color statusColor;
   final bool isDark;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -758,6 +622,10 @@ class _StatusInfoBanner extends StatelessWidget {
               ),
             ),
           ),
+          if (trailing != null) ...[
+            const SizedBox(width: 10),
+            trailing!,
+          ],
         ],
       ),
     );
