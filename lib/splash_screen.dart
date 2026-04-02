@@ -26,11 +26,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 800),
     );
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _scaleAnim = Tween<double>(
-      begin: 0.88,
+      begin: 0.92,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _controller.forward();
@@ -38,10 +38,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _initAndNavigate() async {
-    // Run initialization and the minimum splash delay concurrently.
     await Future.wait([
       _initialize(),
-      Future.delayed(const Duration(milliseconds: 2400)),
+      Future.delayed(const Duration(milliseconds: 2200)),
     ]);
     if (!mounted) return;
     final auth = ref.read(authProvider);
@@ -52,8 +51,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     try {
       await ref.read(authProvider.notifier).initialize();
       final compactMode = await ref.read(appSettingsProvider).getCompactMode();
-      if (mounted) ref.read(compactModeProvider.notifier).state = compactMode;
-      // Run cleanup at most once per day — safe to fire-and-forget.
+      if (mounted) ref.read(compactModeProvider.notifier).setValue(compactMode);
       // ignore: discarded_futures
       CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
     } catch (_) {
@@ -71,27 +69,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ColorStyles.grabSurfaceDark,
-      body: FadeTransition(
-        opacity: _fadeAnim,
-        child: ScaleTransition(
-          scale: _scaleAnim,
-          child: _buildContent(context),
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: ScaleTransition(
+            scale: _scaleAnim,
+            child: _buildContent(context),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildContent(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final cardHorizontalPadding = screenWidth < 360 ? 20.0 : 28.0;
+
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ── Brand Card (wallet-style) ──────────────────────────────
+            // ── Brand Card ───────────────────────────────────────────────
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(28),
+              padding: EdgeInsets.all(cardHorizontalPadding),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF00B14F), Color(0xFF007A36)],
@@ -114,81 +117,88 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   Row(
                     children: [
                       Container(
-                        width: 52,
-                        height: 52,
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(13),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(13),
                           child: Image.asset(
                             'assets/icon.png',
-                            width: 40,
-                            height: 40,
+                            width: 36,
+                            height: 36,
                             fit: BoxFit.cover,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'FSI COURIER',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.5,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'FSI COURIER',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.75),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.5,
+                              ),
                             ),
-                          ),
-                          const Text(
-                            'Delivery Management',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
+                            const Text(
+                              'Delivery Management',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 28),
-                  // Sub-feature chips (mimicking wallet sub-cards)
-                  Row(
-                    children: [
-                      _SplashChip(
-                        icon: Icons.local_shipping_rounded,
-                        label: 'Dispatch',
-                      ),
-                      const SizedBox(width: 10),
-                      _SplashChip(
-                        icon: Icons.inventory_2_rounded,
-                        label: 'Delivery',
-                      ),
-                      const SizedBox(width: 10),
-                      _SplashChip(
-                        icon: Icons.account_balance_wallet_rounded,
-                        label: 'Wallet',
-                      ),
-                    ],
+                  const SizedBox(height: 24),
+                  // Feature chips — vertical layout avoids overflow on any screen
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _SplashChip(
+                          icon: Icons.local_shipping_rounded,
+                          label: 'Dispatch',
+                        ),
+                        const SizedBox(width: 8),
+                        _SplashChip(
+                          icon: Icons.inventory_2_rounded,
+                          label: 'Delivery',
+                        ),
+                        const SizedBox(width: 8),
+                        _SplashChip(
+                          icon: Icons.account_balance_wallet_rounded,
+                          label: 'Wallet',
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
-            // ── Loading indicator ──────────────────────────────────────
+            const SizedBox(height: 44),
+            // ── Loading indicator ────────────────────────────────────────
             SizedBox(
-              width: 24,
-              height: 24,
+              width: 22,
+              height: 22,
               child: CircularProgressIndicator(
                 color: ColorStyles.grabGreen,
-                strokeWidth: 2.5,
+                strokeWidth: 2.0,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             Text(
               'Fastrak Services Inc.',
               style: TextStyle(
@@ -204,7 +214,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 }
 
-// ── Chip widget ─────────────────────────────────────────────────────────────
+// ── Chip widget ───────────────────────────────────────────────────────────────
+
 class _SplashChip extends StatelessWidget {
   const _SplashChip({required this.icon, required this.label});
 
@@ -215,21 +226,25 @@ class _SplashChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white, size: 15),
-            const SizedBox(width: 6),
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(height: 5),
             Text(
               label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
             ),

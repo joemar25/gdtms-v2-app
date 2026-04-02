@@ -16,6 +16,7 @@ import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/config.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design tokens
@@ -438,6 +439,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       _hasPendingSync = pendingSync;
       _loading = false;
     });
+
+    if (kAppDebugMode) {
+      debugPrint('[DEBUG-DET] delivery keys: ${_delivery.keys}');
+    }
   }
 
   // ─── Actions (logic unchanged) ────────────────────────────────────────────
@@ -559,11 +564,15 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     color: _DS.accent,
                     onRefresh: _load,
                     child: ListView(
-                      padding: const EdgeInsets.fromLTRB(
+                      padding: EdgeInsets.fromLTRB(
                         _DS.spacingMD,
                         _DS.spacingSM,
                         _DS.spacingMD,
-                        _DS.spacingXL,
+                        showFab
+                            ? _DS.spacingXL +
+                                88.0 +
+                                MediaQuery.of(context).padding.bottom
+                            : _DS.spacingXL,
                       ),
                       children: [
                         // ── Account details card ──────────────────────────
@@ -943,19 +952,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
               ...typedAttempts.asMap().entries.map((entry) {
                 final idx = entry.key;
-                final attempt =
-                    Map<String, dynamic>.from(entry.value);
-                final attemptNum =
-                    (attempt['attempt'] as num?)?.toInt() ??
-                        (idx + 1);
+                final attempt = Map<String, dynamic>.from(entry.value);
+                final attemptNum = (attempt['attempt'] as num?)?.toInt() ?? (idx + 1);
                 final label = _ordinal(attemptNum);
-                final reason =
-                    attempt['reason']?.toString() ?? '';
-                final timestamp =
-                    (attempt['timestamp'] ?? attempt['attempted_at'])
-                            ?.toString() ??
-                        '';
-                // Attempt images hidden for privacy (ENH-006)
+                final reason = attempt['reason']?.toString() ?? '';
+                final timestamp = (attempt['timestamp'] ?? attempt['attempted_at'])?.toString() ?? '';
+
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -977,11 +979,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.orange
-                                  .withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(
-                                _DS.radiusBadge,
-                              ),
+                              color: Colors.orange.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(_DS.radiusBadge),
                             ),
                             child: Text(
                               label,
@@ -994,19 +993,13 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                           const SizedBox(width: _DS.spacingSM),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (timestamp.isNotEmpty)
                                   Text(
-                                    formatDate(
-                                      timestamp,
-                                      includeTime: true,
-                                    ),
+                                    formatDate(timestamp, includeTime: true),
                                     style: _DS.micro.copyWith(
-                                      color: isDark
-                                          ? _DS.labelSecondaryDark
-                                          : _DS.labelSecondary,
+                                      color: isDark ? _DS.labelSecondaryDark : _DS.labelSecondary,
                                     ),
                                   ),
                                 if (reason.isNotEmpty) ...[
@@ -1014,9 +1007,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                   Text(
                                     reason,
                                     style: _DS.bodyMedium.copyWith(
-                                      color: isDark
-                                          ? _DS.labelPrimaryDark
-                                          : _DS.labelPrimary,
+                                      color: isDark ? _DS.labelPrimaryDark : _DS.labelPrimary,
                                     ),
                                   ),
                                 ],

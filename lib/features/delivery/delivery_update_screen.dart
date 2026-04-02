@@ -74,6 +74,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   final _recipient = TextEditingController();
   final _relationshipSpecify = TextEditingController();
   final _reasonSpecify = TextEditingController(); // for reason == 'Others'
+  final _statusSelectorKey = GlobalKey<_StatusSelectorState>();
   final _errors = <String, String>{};
   final _uuid = const Uuid();
 
@@ -95,7 +96,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     final next = (current + direction).clamp(0, statuses.length - 1);
     if (next == current) return;
     HapticFeedback.selectionClick();
-    _onStatusTap(statuses[next]);
+    _onStatusTap(statuses[next]).then((_) {
+      _statusSelectorKey.currentState?.markInteracted();
+    });
   }
 
   // ── Note preset state ────────────────────────────────────────────────────
@@ -444,7 +447,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     }
 
     if (!mounted) return;
-    ref.read(deliveryRefreshProvider.notifier).state++;
+    ref.read(deliveryRefreshProvider.notifier).increment();
     setState(() => _loading = false);
     showSuccessNotification(context, 'Delivery status updated successfully.');
     context.go('/dashboard');
@@ -1012,6 +1015,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             ),
                             _kInnerGap,
                             _StatusSelector(
+                              key: _statusSelectorKey,
                               currentStatus: _status,
                               onStatusChanged: _onStatusTap,
                             ),
@@ -1521,6 +1525,7 @@ class _NotePresetChip extends StatelessWidget {
 
 class _StatusSelector extends StatefulWidget {
   const _StatusSelector({
+    super.key,
     required this.currentStatus,
     required this.onStatusChanged,
   });
@@ -1533,113 +1538,153 @@ class _StatusSelector extends StatefulWidget {
 }
 
 class _StatusSelectorState extends State<_StatusSelector> {
+  bool _hasInteracted = false;
+
+  void markInteracted() {
+    if (mounted) setState(() => _hasInteracted = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final selectedIndex = kUpdateStatuses.indexOf(widget.currentStatus);
+    final activeStatus =
+        selectedIndex >= 0 ? widget.currentStatus : kUpdateStatuses[0];
+    final activeMeta = _kStatusMeta[activeStatus]!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-            children: kUpdateStatuses.map((rawStatus) {
-              final meta = _kStatusMeta[rawStatus]!;
-              final selected = widget.currentStatus == rawStatus;
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: GestureDetector(
-                    onTap: () => widget.onStatusChanged(rawStatus),
+        Container(
+          height: 80,
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white10 : Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? Colors.white12 : Colors.grey.shade300,
+              width: 1,
+            ),
+          ),
+          child: Stack(
+            children: [
+              AnimatedAlign(
+                alignment: selectedIndex == 0
+                    ? Alignment.centerLeft
+                    : selectedIndex == 1
+                        ? Alignment.center
+                        : Alignment.centerRight,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                child: FractionallySizedBox(
+                  widthFactor: 1 / 3,
+                  heightFactor: 1.0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOutCubic,
+                      duration: const Duration(milliseconds: 300),
                       decoration: BoxDecoration(
-                        color: selected
-                            ? meta.color
-                            : meta.color.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: selected
-                              ? meta.color
-                              : meta.color.withValues(alpha: 0.35),
-                          width: selected ? 2 : 1.2,
-                        ),
-                        boxShadow: selected
-                            ? [
-                                BoxShadow(
-                                  color: meta.color.withValues(alpha: 0.25),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : [],
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 16,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedScale(
-                            scale: selected ? 1.18 : 1.0,
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOutBack,
-                            child: Icon(
-                              meta.icon,
-                              color: selected ? Colors.white : meta.color,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 220),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: selected ? 12 : 11,
-                              color: selected ? Colors.white : meta.color,
-                              letterSpacing: 0.5,
-                            ),
-                            child: Text(
-                              meta.label,
-                              textAlign: TextAlign.center,
-                            ),
+                        color: activeMeta.color,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: activeMeta.color.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-              );
-            }).toList(),
+              ),
+              Row(
+                children: kUpdateStatuses.map((rawStatus) {
+                  final meta = _kStatusMeta[rawStatus]!;
+                  final selected = widget.currentStatus == rawStatus;
+
+                  return Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () async {
+                        markInteracted();
+                        await widget.onStatusChanged(rawStatus);
+                      },
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedScale(
+                              scale: selected ? 1.15 : 1.0,
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOutBack,
+                              child: Icon(
+                                meta.icon,
+                                color: selected
+                                    ? Colors.white
+                                    : (isDark
+                                        ? Colors.white54
+                                        : Colors.grey.shade600),
+                                size: selected ? 24 : 22,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 250),
+                              style: TextStyle(
+                                fontWeight: selected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                fontSize: selected ? 11 : 10,
+                                color: selected
+                                    ? Colors.white
+                                    : (isDark
+                                        ? Colors.white54
+                                        : Colors.grey.shade600),
+                                letterSpacing: 0.5,
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  meta.label,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           ),
-          // Swipe hint
+        ),
+        if (!_hasInteracted)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.only(top: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.swipe_rounded,
+                  Icons.touch_app_rounded,
                   size: 12,
-                  color: isDark
-                      ? Colors.white30
-                      : Colors.grey.shade400,
+                  color: isDark ? Colors.white30 : Colors.grey.shade500,
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Swipe to change',
+                  'Tap or Swipe below to change status',
                   style: TextStyle(
                     fontSize: 10,
-                    color: isDark
-                        ? Colors.white30
-                        : Colors.grey.shade400,
+                    color: isDark ? Colors.white30 : Colors.grey.shade500,
                     letterSpacing: 0.3,
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      );
+      ],
+    );
   }
 }

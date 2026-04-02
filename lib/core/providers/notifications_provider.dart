@@ -106,21 +106,24 @@ class NotificationsState {
 
 // ─── Notifier ─────────────────────────────────────────────────────────────────
 
-class NotificationsNotifier extends StateNotifier<NotificationsState> {
-  NotificationsNotifier(this._ref) : super(const NotificationsState()) {
-    _initOfflineCount();
-  }
-
-  final Ref _ref;
-
-  ApiClient get _api => _ref.read(apiClientProvider);
+class NotificationsNotifier extends Notifier<NotificationsState> {
+  bool _disposed = false;
 
   static const _unreadCountKey = 'offline_unread_count';
+
+  ApiClient get _api => ref.read(apiClientProvider);
+
+  @override
+  NotificationsState build() {
+    ref.onDispose(() => _disposed = true);
+    _initOfflineCount();
+    return const NotificationsState();
+  }
 
   Future<void> _initOfflineCount() async {
     final prefs = await SharedPreferences.getInstance();
     final cachedCount = prefs.getInt(_unreadCountKey);
-    if (cachedCount != null && state.unreadCount == 0 && mounted) {
+    if (cachedCount != null && state.unreadCount == 0 && !_disposed) {
       state = state.copyWith(unreadCount: cachedCount);
     }
   }
@@ -140,7 +143,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
       parser: parseApiMap,
     );
 
-    if (!mounted) return;
+    if (_disposed) return;
 
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       final rawList = data['data'];
@@ -180,7 +183,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
       parser: parseApiMap,
     );
 
-    if (!mounted) return;
+    if (_disposed) return;
 
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       final rawList = data['data'];
@@ -210,7 +213,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
       '/notifications/unread-count',
       parser: parseApiMap,
     );
-    if (!mounted) return;
+    if (_disposed) return;
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       final count = (data['count'] as num?)?.toInt() ?? state.unreadCount;
       state = state.copyWith(unreadCount: count);
@@ -260,8 +263,8 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
 // ─── Providers ────────────────────────────────────────────────────────────────
 
 final notificationsProvider =
-    StateNotifierProvider<NotificationsNotifier, NotificationsState>(
-      (ref) => NotificationsNotifier(ref),
+    NotifierProvider<NotificationsNotifier, NotificationsState>(
+      NotificationsNotifier.new,
     );
 
 /// Derived provider — exposes only the unread count for badge display.

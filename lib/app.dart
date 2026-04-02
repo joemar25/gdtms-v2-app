@@ -198,12 +198,12 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       debugPrint('[SYNC] _runFullSync: after syncFromApi, mounted=$mounted');
       if (mounted) {
         final now = DateTime.now();
-        ref.read(lastSyncTimeProvider.notifier).state = now;
+        ref.read(lastSyncTimeProvider.notifier).setValue(now);
         ref.read(authStorageProvider).setLastSyncTime(now.millisecondsSinceEpoch);
 
         // Notify all listening screens (dashboard, delivery lists) to reload.
         final prev = ref.read(deliveryRefreshProvider);
-        ref.read(deliveryRefreshProvider.notifier).state++;
+        ref.read(deliveryRefreshProvider.notifier).increment();
         debugPrint('[SYNC] deliveryRefreshProvider: $prev → ${prev + 1}');
       }
 

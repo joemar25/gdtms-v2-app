@@ -10,9 +10,7 @@ export 'package:fsi_courier_app/core/sync/sync_manager.dart'
 /// Watch [syncManagerProvider] to observe sync state.
 /// Read [syncManagerProvider.notifier] to trigger [processQueue] or [retrySingle].
 final syncManagerProvider =
-    StateNotifierProvider<SyncManagerNotifier, SyncState>(
-      (ref) => SyncManagerNotifier(ref),
-    );
+    NotifierProvider<SyncManagerNotifier, SyncState>(SyncManagerNotifier.new);
 
 /// Number of [pending] entries in the sync queue.
 /// Useful for displaying a badge on the Sync nav item.
@@ -22,4 +20,12 @@ final pendingSyncCountProvider = Provider<int>((ref) {
 });
 
 /// The timestamp of the last successful full sync.
-final lastSyncTimeProvider = StateProvider<DateTime?>((ref) => null);
+class _LastSyncTimeNotifier extends Notifier<DateTime?> {
+  @override
+  DateTime? build() => null;
+
+  void setValue(DateTime? value) => state = value;
+}
+
+final lastSyncTimeProvider =
+    NotifierProvider<_LastSyncTimeNotifier, DateTime?>(_LastSyncTimeNotifier.new);

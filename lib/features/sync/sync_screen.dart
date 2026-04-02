@@ -46,7 +46,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
       final authStorage = ref.read(authStorageProvider);
       final lastSyncMs = await authStorage.getLastSyncTime();
       if (lastSyncMs != null) {
-        ref.read(lastSyncTimeProvider.notifier).state = DateTime.fromMillisecondsSinceEpoch(lastSyncMs);
+        ref.read(lastSyncTimeProvider.notifier).setValue(DateTime.fromMillisecondsSinceEpoch(lastSyncMs));
       }
     });
   }

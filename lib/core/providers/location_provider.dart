@@ -38,20 +38,21 @@ class LocationState {
   }
 }
 
-class LocationProviderNotifier extends StateNotifier<LocationState>
+class LocationProviderNotifier extends Notifier<LocationState>
     with WidgetsBindingObserver {
-  LocationProviderNotifier() : super(const LocationState()) {
-    WidgetsBinding.instance.addObserver(this);
-    _init();
-  }
-
   StreamSubscription<ServiceStatus>? _serviceStatusSubscription;
+  bool _disposed = false;
 
   @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _serviceStatusSubscription?.cancel();
-    super.dispose();
+  LocationState build() {
+    WidgetsBinding.instance.addObserver(this);
+    ref.onDispose(() {
+      _disposed = true;
+      WidgetsBinding.instance.removeObserver(this);
+      _serviceStatusSubscription?.cancel();
+    });
+    _init();
+    return const LocationState();
   }
 
   @override
@@ -88,11 +89,13 @@ class LocationProviderNotifier extends StateNotifier<LocationState>
       currentStatus = LocationStatus.ready;
     }
 
-    state = state.copyWith(
-      status: currentStatus,
-      isServiceEnabled: serviceEnabled,
-      permissionStatus: permission,
-    );
+    if (!_disposed) {
+      state = state.copyWith(
+        status: currentStatus,
+        isServiceEnabled: serviceEnabled,
+        permissionStatus: permission,
+      );
+    }
   }
 
   Future<void> requestPermission() async {
@@ -107,15 +110,15 @@ class LocationProviderNotifier extends StateNotifier<LocationState>
       await openAppSettings();
     }
   }
-  
+
   // Method to manually force a re-check from the UI.
   Future<void> refresh() async {
-    state = state.copyWith(status: LocationStatus.determining);
+    if (!_disposed) state = state.copyWith(status: LocationStatus.determining);
     await _checkStatus();
   }
 }
 
 final locationProvider =
-    StateNotifierProvider<LocationProviderNotifier, LocationState>((ref) {
-  return LocationProviderNotifier();
-});
+    NotifierProvider<LocationProviderNotifier, LocationState>(
+      LocationProviderNotifier.new,
+    );

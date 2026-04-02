@@ -113,7 +113,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
 
     return Scaffold(
       appBar: AppHeaderBar(
-        title: 'PENDING DISPATCH',
+        title: 'DISPATCH',
         pageIcon: Icons.list_alt_rounded,
         actions: [
           IconButton(

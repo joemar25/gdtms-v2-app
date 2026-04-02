@@ -514,7 +514,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   vertical: 4,
                 ),
                 onChanged: (v) async {
-                  ref.read(compactModeProvider.notifier).state = v;
+                  ref.read(compactModeProvider.notifier).setValue(v);
                   await ref.read(appSettingsProvider).setCompactMode(v);
                   _showSettingsUpdated();
                 },

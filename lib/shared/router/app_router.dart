@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -35,6 +35,32 @@ class _RouterNotifier extends ChangeNotifier {
   }
 }
 
+// ── Transition helper ─────────────────────────────────────────────────────────
+
+/// Builds a [CustomTransitionPage] with a smooth fade + subtle upward-slide.
+/// All app routes use this for a consistent, polished feel.
+Page<T> _page<T>({required LocalKey key, required Widget child}) {
+  return CustomTransitionPage<T>(
+    key: key,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 220),
+    reverseTransitionDuration: const Duration(milliseconds: 180),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+      final slide = Tween<Offset>(
+        begin: const Offset(0.0, 0.035),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+      return FadeTransition(
+        opacity: fade,
+        child: SlideTransition(position: slide, child: child),
+      );
+    },
+  );
+}
+
+// ── Router ────────────────────────────────────────────────────────────────────
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
   ref.onDispose(notifier.dispose);
@@ -46,13 +72,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth = ref.read(authProvider);
       final locationState = ref.read(locationProvider);
-      
+
       final path = state.uri.path;
       final isAuthRoute =
           path == '/login' ||
           path == '/reset-password' ||
           path == '/splash';
-      
+
       // Allow unauthenticated users to access auth routes
       if (!auth.isAuthenticated) {
         if (!isAuthRoute) return '/login';
@@ -60,11 +86,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // ── GLOBAL GEOLOCATION GUARD ──
-      // If authenticated, we MUST have a working GPS / permission state.
-      // Exception: Splash screen where initial routing/loading happens.
-      // Exception: /update screens — camera usage briefly pauses the app so
-      //   the GPS provider may report 'not ready'; skipping the redirect here
-      //   keeps the form mounted and prevents losing photos / typed data.
       final isUpdateRoute = path.contains('/update');
       if (path != '/splash' && !isUpdateRoute) {
         if (!locationState.isReady) {
@@ -73,8 +94,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           }
           return null;
         } else if (path == '/location-required' && locationState.isReady) {
-           // If on the block screen but location is fixed, go to dashboard
-           return '/dashboard';
+          return '/dashboard';
         }
       }
 
@@ -83,9 +103,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // ── INITIAL SYNC GUARD ──
-      // After the first successful login the user must wait for the initial
-      // data pull before they can use the app. Once completed the flag is
-      // persisted in secure storage so subsequent cold starts skip this screen.
       if (!auth.initialSyncCompleted && path != '/initial-sync') {
         return '/initial-sync';
       }
@@ -97,122 +114,162 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
-      GoRoute(path: '/initial-sync', builder: (_, __) => const InitialSyncScreen()),
-      GoRoute(path: '/location-required', builder: (_, __) => const LocationRequiredScreen()),
-      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(
+        path: '/splash',
+        pageBuilder: (_, state) => _page(key: state.pageKey, child: const SplashScreen()),
+      ),
+      GoRoute(
+        path: '/initial-sync',
+        pageBuilder: (_, state) => _page(key: state.pageKey, child: const InitialSyncScreen()),
+      ),
+      GoRoute(
+        path: '/location-required',
+        pageBuilder: (_, state) => _page(key: state.pageKey, child: const LocationRequiredScreen()),
+      ),
+      GoRoute(
+        path: '/login',
+        pageBuilder: (_, state) => _page(key: state.pageKey, child: const LoginScreen()),
+      ),
       GoRoute(
         path: '/reset-password',
-        builder: (_, __) => const ResetPasswordScreen(authenticatedMode: false),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const ResetPasswordScreen(authenticatedMode: false),
+        ),
       ),
       GoRoute(
         path: '/change-password',
-        builder: (_, __) => const ResetPasswordScreen(authenticatedMode: true),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const ResetPasswordScreen(authenticatedMode: true),
+        ),
       ),
-      GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+      GoRoute(
+        path: '/dashboard',
+        pageBuilder: (_, state) => _page(key: state.pageKey, child: const DashboardScreen()),
+      ),
 
-      // ── Unified scan (replaces /dispatches/scan and /deliveries/scan) ──
+      // ── Unified scan ──────────────────────────────────────────────────────
       GoRoute(
         path: '/scan',
-        builder: (_, state) {
+        pageBuilder: (_, state) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
           final isDispatch = extra['mode'] == 'dispatch';
           final mode = isDispatch ? ScanMode.dispatch : ScanMode.pod;
-          return ScanScreen(
-            mode: mode,
-          );
+          return _page(key: state.pageKey, child: ScanScreen(mode: mode));
         },
       ),
 
       GoRoute(
         path: '/dispatches',
-        builder: (_, __) => const DispatchListScreen(),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const DispatchListScreen()),
       ),
       GoRoute(
         path: '/dispatches/eligibility',
-        builder: (_, state) {
+        pageBuilder: (_, state) {
           final extra = asStringDynamicMap(state.extra);
-          final parsedResponse = asStringDynamicMap(
-            extra['eligibility_response'],
-          );
+          final parsedResponse = asStringDynamicMap(extra['eligibility_response']);
           final response = parsedResponse.isNotEmpty
               ? parsedResponse
               : {'eligible': false, 'message': 'Eligibility data missing.'};
-          return DispatchEligibilityScreen(
-            dispatchCode:
-                (extra['dispatch_code'] ??
-                        state.uri.queryParameters['dispatch_code'] ??
-                        '')
-                    .toString(),
-            eligibilityResponse: response,
-            autoAccept: extra['auto_accept'] == true,
-            skipPinDialog: extra['skip_accept_modal'] == true,
-            showFullCode: extra['show_full_code'] == true,
+          return _page(
+            key: state.pageKey,
+            child: DispatchEligibilityScreen(
+              dispatchCode: (extra['dispatch_code'] ??
+                      state.uri.queryParameters['dispatch_code'] ??
+                      '')
+                  .toString(),
+              eligibilityResponse: response,
+              autoAccept: extra['auto_accept'] == true,
+              skipPinDialog: extra['skip_accept_modal'] == true,
+              showFullCode: extra['show_full_code'] == true,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/deliveries',
-        builder: (_, __) => const DeliveryStatusListScreen(
-          status: 'pending',
-          title: 'DELIVERIES',
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const DeliveryStatusListScreen(status: 'pending', title: 'DELIVERIES'),
         ),
       ),
       GoRoute(
         path: '/deliveries/:barcode',
-        builder: (_, state) =>
-            DeliveryDetailScreen(barcode: state.pathParameters['barcode']!),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: DeliveryDetailScreen(barcode: state.pathParameters['barcode']!),
+        ),
       ),
       GoRoute(
         path: '/deliveries/:barcode/update',
-        builder: (_, state) =>
-            DeliveryUpdateScreen(barcode: state.pathParameters['barcode']!),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: DeliveryUpdateScreen(barcode: state.pathParameters['barcode']!),
+        ),
       ),
       GoRoute(
         path: '/delivered',
-        builder: (_, __) => const DeliveryStatusListScreen(
-          status: 'delivered',
-          title: 'DELIVERED',
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const DeliveryStatusListScreen(status: 'delivered', title: 'DELIVERED'),
         ),
       ),
       GoRoute(
         path: '/rts',
-        builder: (_, __) => const DeliveryStatusListScreen(
-          status: 'rts',
-          title: 'RTS',
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const DeliveryStatusListScreen(status: 'rts', title: 'RTS'),
         ),
       ),
       GoRoute(
         path: '/osa',
-        builder: (_, __) => const DeliveryStatusListScreen(
-          status: 'osa',
-          title: 'OSA',
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const DeliveryStatusListScreen(status: 'osa', title: 'OSA'),
         ),
       ),
-      GoRoute(path: '/sync', builder: (_, __) => const SyncScreen()),
+      GoRoute(
+        path: '/sync',
+        pageBuilder: (_, state) => _page(key: state.pageKey, child: const SyncScreen()),
+      ),
       GoRoute(
         path: '/notifications',
-        builder: (_, __) => const NotificationsScreen(),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const NotificationsScreen()),
       ),
-      GoRoute(path: '/wallet', builder: (_, __) => const WalletScreen()),
+      GoRoute(
+        path: '/wallet',
+        pageBuilder: (_, state) => _page(key: state.pageKey, child: const WalletScreen()),
+      ),
       GoRoute(
         path: '/wallet/request',
-        builder: (_, state) {
+        pageBuilder: (_, state) {
           final extra = state.extra;
-          return PayoutRequestScreen(
-            isConsolidation:
-                extra is Map && extra['consolidate'] == true,
+          return _page(
+            key: state.pageKey,
+            child: PayoutRequestScreen(
+              isConsolidation: extra is Map && extra['consolidate'] == true,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/wallet/:reference',
-        builder: (_, state) => PayoutDetailScreen(
-          reference: state.pathParameters['reference'] ?? '',
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: PayoutDetailScreen(reference: state.pathParameters['reference'] ?? ''),
         ),
       ),
-      GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
-      GoRoute(path: '/error-logs', builder: (_, __) => const ErrorLogsScreen()),
+      GoRoute(
+        path: '/profile',
+        pageBuilder: (_, state) => _page(key: state.pageKey, child: const ProfileScreen()),
+      ),
+      GoRoute(
+        path: '/error-logs',
+        pageBuilder: (_, state) => _page(key: state.pageKey, child: const ErrorLogsScreen()),
+      ),
     ],
   );
 });

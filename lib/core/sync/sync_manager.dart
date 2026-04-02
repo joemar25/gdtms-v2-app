@@ -79,20 +79,24 @@ class SyncState {
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
-class SyncManagerNotifier extends StateNotifier<SyncState> {
-  SyncManagerNotifier(this._ref) : super(const SyncState.initial());
+class SyncManagerNotifier extends Notifier<SyncState> {
+  bool _disposed = false;
 
-  final Ref _ref;
+  @override
+  SyncState build() {
+    ref.onDispose(() => _disposed = true);
+    return const SyncState.initial();
+  }
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
   /// Loads all queue entries from SQLite and refreshes [state.entries].
   /// Call this when opening the Sync screen.
   Future<void> loadEntries() async {
-    final courier = _ref.read(authProvider).courier ?? {};
+    final courier = ref.read(authProvider).courier ?? {};
     final courierId = courier['id']?.toString() ?? '';
     final entries = await SyncOperationsDao.instance.getAll(courierId);
-    if (mounted) state = state.copyWith(entries: entries);
+    if (!_disposed) state = state.copyWith(entries: entries);
   }
 
   /// Processes every [pending] queue entry sequentially.
@@ -103,7 +107,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
   Future<void> processQueue() async {
     if (state.isSyncing) return;
 
-    final courier = _ref.read(authProvider).courier ?? {};
+    final courier = ref.read(authProvider).courier ?? {};
     final courierId = courier['id']?.toString() ?? '';
     final pending = await SyncOperationsDao.instance.getPending(courierId);
     if (pending.isEmpty) {
@@ -121,7 +125,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
     int successCount = 0;
 
     for (final entry in pending) {
-      if (!mounted) break;
+      if (_disposed) break;
 
       state = state.copyWith(
         currentBarcode: entry.barcode,
@@ -143,7 +147,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
                   'Uploading media for ${entry.barcode} (${pendingMedia.length} file${pendingMedia.length == 1 ? '' : 's'})…',
             );
             final uploadedImages = <Map<String, dynamic>>[];
-            final api = _ref.read(apiClientProvider);
+            final api = ref.read(apiClientProvider);
             final uploadPath = '/deliveries/${entry.barcode}/media';
 
             debugPrint('[SYNC] media queue for ${entry.barcode}: ${pendingMedia.keys.join(', ')}');
@@ -254,7 +258,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
 
         final result = await retry<ApiResult<Map<String, dynamic>>>(
           () async {
-            final res = await _ref
+            final res = await ref
                 .read(apiClientProvider)
                 .patch<Map<String, dynamic>>(
                   '/deliveries/${entry.barcode}',
@@ -271,7 +275,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
           delayFactor: const Duration(milliseconds: 500),
         );
 
-        if (!mounted) break;
+        if (_disposed) break;
 
         if (result is ApiSuccess<Map<String, dynamic>>) {
           await SyncOperationsDao.instance.updateStatus(entry.id, 'synced');
@@ -373,8 +377,8 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
       }
     }
 
-    if (mounted && successCount > 0) {
-      _ref.read(deliveryRefreshProvider.notifier).state++;
+    if (!_disposed && successCount > 0) {
+      ref.read(deliveryRefreshProvider.notifier).increment();
     }
 
     // Run cleanup after every sync cycle (non-blocking concern).
@@ -382,7 +386,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
     _runCleanupSilently();
 
     final allEntries = await SyncOperationsDao.instance.getAll(courierId);
-    if (mounted) {
+    if (!_disposed) {
       state = state.copyWith(
         isSyncing: false,
         currentBarcode: null,
@@ -420,7 +424,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
 
   /// Clears all failed entries and refreshes the list.
   Future<void> clearFailed() async {
-    final auth = _ref.read(authProvider);
+    final auth = ref.read(authProvider);
     if (auth.courier == null) return;
     await SyncOperationsDao.instance.deleteAllFailed(auth.courier!['id'].toString());
     await loadEntries(); // Reload list
@@ -462,7 +466,7 @@ class SyncManagerNotifier extends StateNotifier<SyncState> {
 
   Future<void> _cleanupAsync() async {
     try {
-      final retentionDays = await _ref
+      final retentionDays = await ref
           .read(appSettingsProvider)
           .getSyncRetentionDays();
       final syncMs = retentionDays * Duration.millisecondsPerDay;

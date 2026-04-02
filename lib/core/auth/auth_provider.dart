@@ -33,22 +33,16 @@ class AuthState {
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.read(authStorageProvider), ref.read(appSettingsProvider));
-});
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
 
-class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(
-    this._authStorage,
-    this._settings, {
-    AuthState? initialState,
-  }) : super(
-         initialState ??
-             const AuthState(isAuthenticated: false, themeMode: ThemeMode.light),
-       );
+class AuthNotifier extends Notifier<AuthState> {
+  AuthStorage get _authStorage => ref.read(authStorageProvider);
+  AppSettings get _settings => ref.read(appSettingsProvider);
 
-  final AuthStorage _authStorage;
-  final AppSettings _settings;
+  @override
+  AuthState build() {
+    return const AuthState(isAuthenticated: false, themeMode: ThemeMode.light);
+  }
 
   Future<void> initialize() async {
     // Start all reads concurrently to avoid sequential I/O blocking.

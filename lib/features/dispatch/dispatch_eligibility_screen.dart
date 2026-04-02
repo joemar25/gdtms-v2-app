@@ -141,7 +141,7 @@ class _DispatchEligibilityScreenState
           );
         }
       }
-      ref.read(deliveryRefreshProvider.notifier).state++;
+      ref.read(deliveryRefreshProvider.notifier).increment();
       setState(() {
         _showSuccess = true;
         _loading = false;

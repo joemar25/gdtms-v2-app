@@ -10,17 +10,25 @@ final connectivityStreamProvider = StreamProvider<List<ConnectivityResult>>(
   (ref) => Connectivity().onConnectivityChanged,
 );
 
-class ApiReachabilityNotifier extends StateNotifier<bool> {
-  ApiReachabilityNotifier(this.ref) : super(false) {
-    _init();
-  }
-
-  final Ref ref;
+class ApiReachabilityNotifier extends Notifier<bool> {
   Timer? _timer;
+  bool _disposed = false;
+
   final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 5),
   ));
+
+  @override
+  bool build() {
+    ref.onDispose(() {
+      _disposed = true;
+      _timer?.cancel();
+      _dio.close();
+    });
+    _init();
+    return false;
+  }
 
   void _init() {
     // Ping immediately
@@ -30,42 +38,35 @@ class ApiReachabilityNotifier extends StateNotifier<bool> {
   }
 
   Future<void> _ping() async {
-    final connectivity = ref.read(connectivityStreamProvider).valueOrNull;
+    final connectivity = ref.read(connectivityStreamProvider).asData?.value;
     final hasNetwork = connectivity != null && connectivity.any((r) => r != ConnectivityResult.none);
-    
-    // If device has no network, we can\'t be online
+
+    // If device has no network, we can't be online
     if (!hasNetwork) {
-      if (mounted && state != false) state = false;
+      if (!_disposed && state != false) state = false;
       return;
     }
 
     try {
-      // We append /test if the base url doesn\'t already end with it, just in case
+      // We append /test if the base url doesn't already end with it, just in case
       final url = apiBaseUrl.endsWith('/test') ? apiBaseUrl : '$apiBaseUrl/test';
       await _dio.get(url);
-      if (mounted) state = true;
+      if (!_disposed) state = true;
     } catch (e) {
       if (e is DioException) {
         // As long as we get a response (even 401, 404, 500, etc), the server is reachable
         if (e.response != null) {
-          if (mounted && state != true) state = true;
+          if (!_disposed && state != true) state = true;
           return;
         }
       }
-      if (mounted && state != false) state = false;
+      if (!_disposed && state != false) state = false;
     }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
   }
 }
 
-final apiReachabilityProvider = StateNotifierProvider<ApiReachabilityNotifier, bool>(
-  (ref) => ApiReachabilityNotifier(ref),
-);
+final apiReachabilityProvider =
+    NotifierProvider<ApiReachabilityNotifier, bool>(ApiReachabilityNotifier.new);
 
 /// A simple bool that is `true` when any non-none connectivity exists
 /// AND the API server is reachable.
@@ -75,9 +76,9 @@ final isOnlineProvider = Provider<bool>((ref) {
     loading: () => false,
     error: (_, __) => false,
   );
-  
+
   if (!hasNetwork) return false;
-  
+
   // Also check reachability
   return ref.watch(apiReachabilityProvider);
 });

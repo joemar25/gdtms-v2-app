@@ -162,7 +162,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
       // Signal wallet to reload before navigating back.
-      ref.read(walletRefreshProvider.notifier).state++;
+      ref.read(walletRefreshProvider.notifier).increment();
       showAppSnackbar(
         context,
         'Payout request submitted.',

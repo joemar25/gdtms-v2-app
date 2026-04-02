@@ -171,7 +171,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
               );
             }
           }
-          ref.read(deliveryRefreshProvider.notifier).state++;
+          ref.read(deliveryRefreshProvider.notifier).increment();
           if (mounted) setState(() => _showAutoAcceptSuccess = true);
         } else {
           final acceptErrorMessage = switch (acceptResult) {
