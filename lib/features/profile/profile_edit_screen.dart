@@ -169,10 +169,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     return LoadingOverlay(
       isLoading: _loading,
       child: Scaffold(
-        appBar: const AppHeaderBar(
-          title: 'Edit Profile',
-          pageIcon: Icons.edit_rounded,
-        ),
+        appBar: const AppHeaderBar(title: 'Edit Profile'),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Form(

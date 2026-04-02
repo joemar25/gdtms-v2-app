@@ -26,6 +26,7 @@ import 'package:flutter/services.dart';
 import 'package:signature/signature.dart';
 
 import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 
 /// Full-screen signature capture screen (portrait default, auto-rotate enabled).
 ///
@@ -84,18 +85,14 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
       backgroundColor: isDark
           ? ColorStyles.scaffoldDark
           : ColorStyles.scaffoldLight,
-      appBar: AppBar(
-        backgroundColor: isDark
-            ? ColorStyles.appBarDark
-            : ColorStyles.appBarLight,
-        elevation: 0,
+      appBar: AppHeaderBar(
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           color: isDark ? Colors.white : Colors.black87,
           tooltip: 'Cancel',
           onPressed: () => Navigator.of(context).pop(null),
         ),
-        title: const Text(
+        titleWidget: const Text(
           'RECIPIENT SIGNATURE',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -151,6 +148,10 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
             ),
           ),
         ],
+        backgroundColor: isDark
+            ? ColorStyles.appBarDark
+            : ColorStyles.appBarLight,
+        showNotificationBell: false,
       ),
       body: Stack(
         children: [

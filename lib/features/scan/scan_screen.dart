@@ -38,6 +38,7 @@ import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -295,7 +296,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       final match = matches.first;
       final isLocked = checkIsLocked(
         status: match.deliveryStatus,
-        rtsVerificationStatus: match.rtsVerificationStatus ?? 'unvalidated',
+        rtsVerificationStatus: match.rtsVerificationStatus,
       );
 
       if (isLocked) {
@@ -426,11 +427,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       child: Scaffold(
         backgroundColor: Colors.black,
         extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: Text(
+        appBar: AppHeaderBar(
+          titleWidget: Text(
             _title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -439,7 +437,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
               fontWeight: FontWeight.w700,
             ),
           ),
-          iconTheme: const IconThemeData(color: Colors.white),
+          backgroundColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
           actions: [
             ValueListenableBuilder<MobileScannerState>(
               valueListenable: _scannerController,
@@ -458,6 +460,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             ),
             const SizedBox(width: 8),
           ],
+          showNotificationBell: false,
         ),
         body: LoadingOverlay(
           isLoading: _processing,
@@ -486,7 +489,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
               if (_hasPermission)
                 AnimatedBuilder(
                   animation: _lineAnim,
-                  builder: (_, __) => Positioned(
+                  builder: (_, _) => Positioned(
                     top: vfTop + _lineAnim.value * (viewfinderH - 4),
                     left: viewfinderMargin + 4,
                     right: viewfinderMargin + 4,
@@ -585,7 +588,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Consumer(
-                                  builder: (_, ref, __) {
+                                  builder: (_, ref, _) {
                                     final isOnline = ref.watch(
                                       isOnlineProvider,
                                     );
@@ -1009,7 +1012,7 @@ class _SearchResultsSheet extends StatelessWidget {
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: results.length,
-                separatorBuilder: (_, __) =>
+                separatorBuilder: (_, _) =>
                     const Divider(height: 1, indent: 16, endIndent: 16),
                 itemBuilder: (_, i) {
                   final d = results[i];

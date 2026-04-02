@@ -46,6 +46,7 @@ import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Local design tokens for DeliveryDetailScreen.
@@ -543,7 +544,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<int>(deliveryRefreshProvider, (_, __) => _load());
+    ref.listen<int>(deliveryRefreshProvider, (_, _) => _load());
 
     final status = _str('delivery_status').toUpperCase();
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -554,11 +555,15 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     // final bgColor = isDark ? _DS.bgDark : _DS.bg; // <- removed scaffold override
 
     // RULE: If status is 'OSA', do not ever show update status button here.
-    // NEW RULE: If status is 'RTS' and already verified, hide the button.
-    final showFab = (status == 'PENDING' || status == 'RTS') && !_isRtsLocked;
+    // NEW RULE: If status is 'RTS' and already verified OR attempts >= 3, hide the button.
+    final isLockedGlobal = checkIsLockedFromMap(_delivery);
+    final showFab = (status == 'PENDING' || status == 'RTS') && !isLockedGlobal;
 
     return Scaffold(
-      appBar: _buildAppBar(context, status, isDark),
+      appBar: AppHeaderBar(
+        titleWidget: _buildAppBarTitle(context, status, isDark),
+        backgroundColor: Colors.transparent,
+      ),
       floatingActionButton: showFab
           ? FloatingActionButton.extended(
               onPressed: _hasPendingSync
@@ -641,7 +646,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                   _IosRow(
                                     label: 'Pieces',
                                     value:
-                                        '${_pieceCountFromBarcode} piece${_pieceCountFromBarcode > 1 ? 's' : ''} in this bundle',
+                                        '$_pieceCountFromBarcode piece${_pieceCountFromBarcode > 1 ? 's' : ''} in this bundle',
                                     isDark: isDark,
                                   ),
                                 ],
@@ -693,110 +698,98 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(
-    BuildContext context,
-    String status,
-    bool isDark,
-  ) {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      title: !_loading
-          ? Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    widget.barcode,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
+  Widget _buildAppBarTitle(BuildContext context, String status, bool isDark) {
+    return !_loading
+        ? Row(
+            children: [
+              Flexible(
+                child: Text(
+                  widget.barcode,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
                   ),
                 ),
-                const SizedBox(width: 10),
-                // Status badge
-                Container(
+              ),
+              const SizedBox(width: 10),
+              // Status badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Pay-status dot for validated RTS
+                    if (status == 'RTS' && _isRtsLocked) ...[
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: _rtsVerifStatus == 'verified_with_pay'
+                              ? Colors.green.shade500
+                              : Colors.red.shade400,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                    ],
+                    Flexible(
+                      child: Text(
+                        status.isEmpty ? 'PENDING' : status.toDisplayStatus(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: status == 'DELIVERED'
+                              ? ColorStyles.grabGreen
+                              : Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Mail type badge
+              Flexible(
+                child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.08),
+                    color: Colors.blueGrey.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Pay-status dot for validated RTS
-                      if (status == 'RTS' && _isRtsLocked) ...[
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: _rtsVerifStatus == 'verified_with_pay'
-                                ? Colors.green.shade500
-                                : Colors.red.shade400,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                      ],
-                      Flexible(
-                        child: Text(
-                          status.isEmpty ? 'PENDING' : status.toDisplayStatus(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: status == 'DELIVERED'
-                                ? ColorStyles.grabGreen
-                                : Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Mail type badge
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blueGrey.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _str('mail_type'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blueGrey,
-                      ),
+                  child: Text(
+                    _str('mail_type'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blueGrey,
                     ),
                   ),
                 ),
-              ],
-            )
-          : Text(
-              widget.barcode,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
               ),
+            ],
+          )
+        : Text(
+            widget.barcode,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
             ),
-    );
+          );
   }
 
   // ─── Proof of delivery (all conditions preserved) ─────────────────────────

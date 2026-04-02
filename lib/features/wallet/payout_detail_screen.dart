@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 
 class PayoutDetailScreen extends ConsumerStatefulWidget {
   const PayoutDetailScreen({super.key, required this.reference});
@@ -120,12 +120,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         [];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(reference),
-        titleTextStyle: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-      ),
+      appBar: AppHeaderBar(title: reference),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _notFound != null
@@ -496,6 +491,7 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final trailingWidget = trailing;
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -521,7 +517,8 @@ class _SectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (trailing != null) trailing!,
+                if (trailingWidget != null)
+                  trailingWidget, // ignore: use_null_aware_elements
               ],
             ),
             const SizedBox(height: 10),

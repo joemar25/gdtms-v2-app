@@ -88,7 +88,6 @@ import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
@@ -343,85 +342,99 @@ class _SyncHeader extends ConsumerWidget {
               // Retention countdown: show time remaining until the oldest
               // synced operation becomes eligible for auto-deletion based on
               // the user's configured sync retention days.
-              Builder(builder: (ctx) {
-                // Find the earliest synced operation (createdAt ms)
-                final synced = syncState.entries
-                    .where((e) => e.status == 'synced')
-                    .map((e) => e.createdAt)
-                    .toList();
-                final int? earliestSynced = synced.isEmpty
-                    ? null
-                    : synced.reduce((a, b) => a < b ? a : b);
+              Builder(
+                builder: (ctx) {
+                  // Find the earliest synced operation (createdAt ms)
+                  final synced = syncState.entries
+                      .where((e) => e.status == 'synced')
+                      .map((e) => e.createdAt)
+                      .toList();
+                  final int? earliestSynced = synced.isEmpty
+                      ? null
+                      : synced.reduce((a, b) => a < b ? a : b);
 
-                return FutureBuilder<int>(
-                  future: ref.read(appSettingsProvider).getSyncRetentionDays(),
-                  builder: (context, snap) {
-                    final int? days = snap.data;
-                    if (days == null) {
-                      return const SizedBox.shrink();
-                    }
-                    final int retentionMs = days * Duration.millisecondsPerDay;
+                  return FutureBuilder<int>(
+                    future: ref
+                        .read(appSettingsProvider)
+                        .getSyncRetentionDays(),
+                    builder: (context, snap) {
+                      final int? days = snap.data;
+                      if (days == null) {
+                        return const SizedBox.shrink();
+                      }
+                      final int retentionMs =
+                          days * Duration.millisecondsPerDay;
 
-                    if (earliestSynced == null) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          'Sync history retention: ${days} day${days == 1 ? '' : 's'}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      );
-                    }
-
-                    return StreamBuilder<int>(
-                      stream: Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now().millisecondsSinceEpoch),
-                      builder: (context, nowSnap) {
-                        final nowMs = nowSnap.data ?? DateTime.now().millisecondsSinceEpoch;
-                        final expiryMs = earliestSynced + retentionMs;
-                        final remaining = expiryMs - nowMs;
-
-                        String label;
-                        if (remaining <= 0) {
-                          label = 'History eligible for deletion';
-                        } else {
-                          final d = Duration(milliseconds: remaining);
-                          final dd = d.inDays;
-                          final hh = d.inHours % 24;
-                          final mm = d.inMinutes % 60;
-                          final ss = d.inSeconds % 60;
-                          if (dd > 0) {
-                            label = '${dd}d ${hh}h ${mm}m';
-                          } else if (hh > 0) {
-                            label = '${hh}h ${mm}m ${ss}s';
-                          } else if (mm > 0) {
-                            label = '${mm}m ${ss}s';
-                          } else {
-                            label = '${ss}s';
-                          }
-                          label = 'History deletes in $label';
-                        }
-
+                      if (earliestSynced == null) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 6),
-                          child: Row(
-                            children: [
-                              Icon(Icons.timer, size: 14, color: theme.colorScheme.onSurfaceVariant),
-                              const SizedBox(width: 8),
-                              Text(
-                                label,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'Sync history retention: $days day${days == 1 ? '' : 's'}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         );
-                      },
-                    );
-                  },
-                );
-              }),
+                      }
+
+                      return StreamBuilder<int>(
+                        stream: Stream.periodic(
+                          const Duration(seconds: 1),
+                          (_) => DateTime.now().millisecondsSinceEpoch,
+                        ),
+                        builder: (context, nowSnap) {
+                          final nowMs =
+                              nowSnap.data ??
+                              DateTime.now().millisecondsSinceEpoch;
+                          final expiryMs = earliestSynced + retentionMs;
+                          final remaining = expiryMs - nowMs;
+
+                          String label;
+                          if (remaining <= 0) {
+                            label = 'History eligible for deletion';
+                          } else {
+                            final d = Duration(milliseconds: remaining);
+                            final dd = d.inDays;
+                            final hh = d.inHours % 24;
+                            final mm = d.inMinutes % 60;
+                            final ss = d.inSeconds % 60;
+                            if (dd > 0) {
+                              label = '${dd}d ${hh}h ${mm}m';
+                            } else if (hh > 0) {
+                              label = '${hh}h ${mm}m ${ss}s';
+                            } else if (mm > 0) {
+                              label = '${mm}m ${ss}s';
+                            } else {
+                              label = '${ss}s';
+                            }
+                            label = 'History deletes in $label';
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.timer,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  label,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
               const SizedBox(height: 12),
             ],
           ),
@@ -461,7 +474,7 @@ class _EntryList extends ConsumerWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(top: 8, bottom: 100),
       itemCount: entries.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final entry = entries[index];
         return _EntryTile(
@@ -650,11 +663,6 @@ class _EntryTile extends StatelessWidget {
         : payloadStatus;
     final currentRtsVerif = (delivery?.rtsVerificationStatus ?? '')
         .toLowerCase();
-    final isRtsVerified =
-        currentStatus.toLowerCase() == 'rts' &&
-        (currentRtsVerif == 'verified_with_pay' ||
-            currentRtsVerif == 'verified_no_pay');
-    final isOsa = currentStatus.toLowerCase() == 'osa';
     final isLocked = checkIsLocked(
       status: currentStatus,
       rtsVerificationStatus: currentRtsVerif,
@@ -1138,44 +1146,3 @@ class _EmptyStateState extends State<_EmptyState>
 }
 
 // ── FAB ───────────────────────────────────────────────────────────────────────
-
-class _SyncFab extends ConsumerWidget {
-  const _SyncFab({required this.syncState, required this.isOnline});
-
-  final SyncState syncState;
-  final bool isOnline;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hasPending = syncState.entries.any(
-      (e) =>
-          e.status == 'pending' ||
-          e.status == 'error' ||
-          e.status == 'failed' ||
-          e.status == 'processing',
-    );
-    final canSync = isOnline && !syncState.isSyncing && hasPending;
-
-    return FloatingActionButton.extended(
-      onPressed: canSync
-          ? () => ref.read(syncManagerProvider.notifier).processQueue()
-          : null,
-      icon: syncState.isSyncing
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : const Icon(Icons.sync_rounded),
-      label: Text(
-        syncState.isSyncing
-            ? 'Syncing…'
-            : (isOnline ? 'Sync Now' : 'Connect to sync'),
-      ),
-      backgroundColor: canSync ? null : Colors.grey.shade400,
-    );
-  }
-}

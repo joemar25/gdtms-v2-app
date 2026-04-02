@@ -54,6 +54,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _loading = true;
   Map<String, dynamic> _summary = {};
+  double _horizontalDrag = 0.0;
 
   @override
   void initState() {
@@ -166,171 +167,191 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
         if (shouldExit == true && mounted) SystemNavigator.pop();
       },
-      child: Scaffold(
-        extendBody: true,
-        appBar: const AppHeaderBar(
-          title: 'Dashboard',
-          pageIcon: Icons.dashboard_rounded,
-        ),
-        bottomNavigationBar: const FloatingBottomNavBar(
-          currentPath: '/dashboard',
-        ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _onRefresh,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                  children: [
-                    // ── Greeting ─────────────────────────────────────────────
-                    Text(
-                      '$greeting, $firstName!',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    Text(
-                      courierCode,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade500,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragUpdate: (details) =>
+            _horizontalDrag += details.delta.dx,
+        onHorizontalDragEnd: (details) {
+          final dx = _horizontalDrag;
+          _horizontalDrag = 0.0;
+          final velocity = details.primaryVelocity ?? 0.0;
+          if (dx.abs() > 60 || velocity.abs() > 300) {
+            if (dx < 0 || velocity < 0) {
+              // swipe left → Wallet
+              context.go('/wallet', extra: {'_swipe': 'left'});
+            } else {
+              // swipe right → Profile (wrap-around)
+              context.go('/profile', extra: {'_swipe': 'right'});
+            }
+          }
+        },
+        child: Scaffold(
+          extendBody: true,
+          appBar: const AppHeaderBar(
+            title: 'Dashboard',
+            pageIcon: Icons.dashboard_rounded,
+          ),
+          bottomNavigationBar: const FloatingBottomNavBar(
+            currentPath: '/dashboard',
+          ),
+          body: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    children: [
+                      // ── Greeting ─────────────────────────────────────────────
+                      Text(
+                        '$greeting, $firstName!',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
-                    ),
-                    const SizedBox(height: 20),
+                      Text(
+                        courierCode,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
 
-                    // ── 4 Summary Boxes ───────────────────────────────────────
-                    Row(
-                      children: [
-                        Expanded(
-                          child: StatCard(
-                            label: 'DISPATCH',
-                            count: '$pendingDispatchCount',
-                            icon: Icons.qr_code_rounded,
-                            color: ColorStyles.grabOrange,
-                            onTap: pendingDispatchCount == 0
-                                ? null
-                                : () => context.push('/dispatches'),
-                            details: 'Waiting for acceptance.',
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: StatCard(
-                            label: 'DELIVERIES',
-                            count: '$deliveriesCount',
-                            icon: Icons.local_shipping_outlined,
-                            color: ColorStyles.grabGreen,
-                            onTap: deliveriesCount == 0
-                                ? null
-                                : () => context.push('/deliveries'),
-                            details: "Today's for deliveries.",
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: StatCard(
-                            label: 'DELIVERED',
-                            count: '$deliveredCount',
-                            icon: Icons.check_circle_outline_rounded,
-                            color: ColorStyles.grabGreen,
-                            onTap: deliveredCount == 0
-                                ? null
-                                : () => context.push('/delivered'),
-                            details: "Today's delivered.",
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: StatCard(
-                            label: 'RTS',
-                            count: '$rtsCount',
-                            icon: Icons.assignment_return_outlined,
-                            color: Colors.red,
-                            onTap: rtsCount == 0
-                                ? null
-                                : () => context.push('/rts'),
-                            subdued: true,
-                            details: "Today's return to sender items.",
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: StatCard(
-                            label: 'OSA',
-                            count: '$osaCount',
-                            icon: Icons.lock_outline_rounded,
-                            color: Colors.grey,
-                            onTap: osaCount == 0
-                                ? null
-                                : () => context.push('/osa'),
-                            subdued: true,
-                            details: "Today's out of service area.",
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: StatCard(
-                            label: 'SYNC',
-                            count:
-                                '$syncedTodayCount / ${pendingSyncCount + syncedTodayCount}',
-                            icon: Icons.sync_rounded,
-                            color: pendingSyncCount > 0
-                                ? Colors.blueAccent
-                                : Colors.blueGrey,
-                            onTap: () => context.push('/sync'),
-                            subdued:
-                                pendingSyncCount == 0 && syncedTodayCount == 0,
-                            details: pendingSyncCount > 0
-                                ? '$pendingSyncCount pending updates.'
-                                : (syncedTodayCount > 0
-                                      ? '$syncedTodayCount synced today.'
-                                      : 'All caught up.'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ── Scan Action Buttons ────────────────────────────────────
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ScanButton(
-                            label: 'SCAN DISPATCH',
-                            icon: Icons.qr_code_scanner_rounded,
-                            color: ColorStyles.grabOrange,
-                            onTap: () => context.push(
-                              '/scan',
-                              extra: {'mode': 'dispatch'},
+                      // ── 4 Summary Boxes ───────────────────────────────────────
+                      Row(
+                        children: [
+                          Expanded(
+                            child: StatCard(
+                              label: 'DISPATCH',
+                              count: '$pendingDispatchCount',
+                              icon: Icons.qr_code_rounded,
+                              color: ColorStyles.grabOrange,
+                              onTap: pendingDispatchCount == 0
+                                  ? null
+                                  : () => context.push('/dispatches'),
+                              details: 'Waiting for acceptance.',
                             ),
-                            details:
-                                'Scan a dispatch barcode\nto check eligibility.',
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ScanButton(
-                            label: 'SCAN POD',
-                            icon: Icons.qr_code_scanner_rounded,
-                            color: ColorStyles.grabGreen,
-                            onTap: () =>
-                                context.push('/scan', extra: {'mode': 'pod'}),
-                            details:
-                                'Scan a delivery barcode to\nfind and update POD.',
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: StatCard(
+                              label: 'DELIVERIES',
+                              count: '$deliveriesCount',
+                              icon: Icons.local_shipping_outlined,
+                              color: ColorStyles.grabGreen,
+                              onTap: deliveriesCount == 0
+                                  ? null
+                                  : () => context.push('/deliveries'),
+                              details: "Today's for deliveries.",
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: StatCard(
+                              label: 'DELIVERED',
+                              count: '$deliveredCount',
+                              icon: Icons.check_circle_outline_rounded,
+                              color: ColorStyles.grabGreen,
+                              onTap: deliveredCount == 0
+                                  ? null
+                                  : () => context.push('/delivered'),
+                              details: "Today's delivered.",
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: StatCard(
+                              label: 'RTS',
+                              count: '$rtsCount',
+                              icon: Icons.assignment_return_outlined,
+                              color: Colors.red,
+                              onTap: rtsCount == 0
+                                  ? null
+                                  : () => context.push('/rts'),
+                              subdued: true,
+                              details: "Today's return to sender items.",
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: StatCard(
+                              label: 'OSA',
+                              count: '$osaCount',
+                              icon: Icons.lock_outline_rounded,
+                              color: Colors.grey,
+                              onTap: osaCount == 0
+                                  ? null
+                                  : () => context.push('/osa'),
+                              subdued: true,
+                              details: "Today's out of service area.",
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: StatCard(
+                              label: 'SYNC',
+                              count:
+                                  '$syncedTodayCount / ${pendingSyncCount + syncedTodayCount}',
+                              icon: Icons.sync_rounded,
+                              color: pendingSyncCount > 0
+                                  ? Colors.blueAccent
+                                  : Colors.blueGrey,
+                              onTap: () => context.push('/sync'),
+                              subdued:
+                                  pendingSyncCount == 0 &&
+                                  syncedTodayCount == 0,
+                              details: pendingSyncCount > 0
+                                  ? '$pendingSyncCount pending updates.'
+                                  : (syncedTodayCount > 0
+                                        ? '$syncedTodayCount synced today.'
+                                        : 'All caught up.'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Scan Action Buttons ────────────────────────────────────
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ScanButton(
+                              label: 'SCAN DISPATCH',
+                              icon: Icons.qr_code_scanner_rounded,
+                              color: ColorStyles.grabOrange,
+                              onTap: () => context.push(
+                                '/scan',
+                                extra: {'mode': 'dispatch'},
+                              ),
+                              details:
+                                  'Scan a dispatch barcode\nto check eligibility.',
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ScanButton(
+                              label: 'SCAN POD',
+                              icon: Icons.qr_code_scanner_rounded,
+                              color: ColorStyles.grabGreen,
+                              onTap: () =>
+                                  context.push('/scan', extra: {'mode': 'pod'}),
+                              details:
+                                  'Scan a delivery barcode to\nfind and update POD.',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }

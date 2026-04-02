@@ -63,6 +63,9 @@ class DeliveryCard extends StatelessWidget {
         (delivery['job_order'] ?? delivery['tracking_number'] ?? '').toString();
     final product = (delivery['product'] ?? delivery['mail_type'] ?? '')
         .toString();
+    final mailType = (delivery['mail_type'] ?? '').toString();
+
+    // Prefer mail type for delivered items in the header (handled below).
     final address = (delivery['address'] ?? delivery['delivery_address'] ?? '')
         .toString();
     final name =
@@ -71,6 +74,20 @@ class DeliveryCard extends StatelessWidget {
                 delivery['recipient_name'] ??
                 '')
             .toString();
+
+    // Attempts count (RTS attempts list preferred, fall back to numeric fields)
+    final attemptsRaw = delivery['rts_attempts'];
+    final attemptsCount = attemptsRaw is List
+        ? attemptsRaw.whereType<Map<String, dynamic>>().length
+        : int.tryParse(
+                (delivery['attempts'] ??
+                        delivery['attempt_count'] ??
+                        delivery['attempts_count'] ??
+                        delivery['delivery_attempts'] ??
+                        '')
+                    .toString(),
+              ) ??
+              0;
 
     final syncStatus = delivery['_sync_status']?.toString() ?? 'clean';
     final isDirty = syncStatus == 'dirty';
@@ -144,6 +161,7 @@ class DeliveryCard extends StatelessWidget {
         inSyncQueue: inSyncQueue,
         product: product,
         address: address,
+        attemptsCount: attemptsCount,
       );
     }
 
@@ -229,7 +247,38 @@ class DeliveryCard extends StatelessWidget {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
+                                // For delivered items prefer showing the mail type
+                                // in the header to avoid duplicating the product
+                                // which is already shown in the details below.
                                 if (!isPrivacyMode &&
+                                    status == 'DELIVERED' &&
+                                    mailType.isNotEmpty)
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFF2196F3,
+                                        ).withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        mailType,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF2196F3),
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else if (!isPrivacyMode &&
                                     !isLocked &&
                                     jobOrder.isNotEmpty)
                                   Flexible(
@@ -270,6 +319,24 @@ class DeliveryCard extends StatelessWidget {
                                         fontWeight: FontWeight.w600,
                                         color: subtextColor,
                                       ),
+                                    ),
+                                  ),
+                                // Attempts pill for RTS items
+                                if (attemptsCount > 0)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 6),
+                                    child: _MiniPill(
+                                      label: 'ATTEMPTS: $attemptsCount',
+                                      icon: Icons.autorenew_rounded,
+                                      bg: attemptsCount >= 3
+                                          ? Colors.red.shade50
+                                          : Colors.orange.shade50,
+                                      border: attemptsCount >= 3
+                                          ? Colors.red.shade300
+                                          : Colors.orange.shade300,
+                                      fg: attemptsCount >= 3
+                                          ? Colors.red.shade700
+                                          : Colors.orange.shade800,
                                     ),
                                   ),
                                 // Lock icon
@@ -537,18 +604,25 @@ class DeliveryCard extends StatelessWidget {
     bool isDark,
     Color subtextColor,
   ) {
-    final seqNum = delivery['sequence_number']?.toString();
-    final product = delivery['product']?.toString();
-    final mailType = delivery['mail_type']?.toString();
-    final specialInstr = delivery['special_instruction']?.toString();
-    final transactionAt = delivery['transaction_at']?.toString();
+    // Normalize strings with safe defaults to simplify checks below.
+    final seqNum = delivery['sequence_number']?.toString() ?? '';
+    final product = delivery['product']?.toString() ?? '';
+    final mailType = delivery['mail_type']?.toString() ?? '';
+    final specialInstr = delivery['special_instruction']?.toString() ?? '';
+    final transactionAt = delivery['transaction_at']?.toString() ?? '';
+
+    final rawStatus = delivery['delivery_status']?.toString() ?? '';
+    final status = rawStatus.toUpperCase().trim();
+
+    // If the header already shows the mail type for delivered items,
+    // don't repeat it in the detail grid to avoid redundancy.
+    final showProductMailType = !(status == 'DELIVERED' && mailType.isNotEmpty);
 
     final hasDetails =
-        (seqNum != null && seqNum.isNotEmpty) ||
-        (transactionAt != null && transactionAt.isNotEmpty) ||
-        (product != null && product.isNotEmpty) ||
-        (mailType != null && mailType.isNotEmpty) ||
-        (specialInstr != null && specialInstr.isNotEmpty);
+        seqNum.isNotEmpty ||
+        transactionAt.isNotEmpty ||
+        (showProductMailType && (product.isNotEmpty || mailType.isNotEmpty)) ||
+        specialInstr.isNotEmpty;
 
     if (!hasDetails) return const SizedBox.shrink();
 
@@ -566,7 +640,7 @@ class DeliveryCard extends StatelessWidget {
         // Detail grid
         Row(
           children: [
-            if (seqNum != null && seqNum.isNotEmpty)
+            if (seqNum.isNotEmpty)
               Expanded(
                 child: _DetailCell(
                   label: 'SEQUENCE',
@@ -575,7 +649,7 @@ class DeliveryCard extends StatelessWidget {
                   subtextColor: subtextColor,
                 ),
               ),
-            if (transactionAt != null && transactionAt.isNotEmpty)
+            if (transactionAt.isNotEmpty)
               Expanded(
                 child: _DetailCell(
                   label: 'TRANSACTION',
@@ -587,21 +661,18 @@ class DeliveryCard extends StatelessWidget {
           ],
         ),
 
-        if ((product != null && product.isNotEmpty) ||
-            (mailType != null && mailType.isNotEmpty)) ...[
+        if (showProductMailType &&
+            (product.isNotEmpty || mailType.isNotEmpty)) ...[
           const SizedBox(height: 12),
           _DetailCell(
             label: 'PRODUCT / MAIL TYPE',
-            value: [
-              product,
-              mailType,
-            ].where((e) => e != null && e.isNotEmpty).join(' · '),
+            value: [product, mailType].where((e) => e.isNotEmpty).join(' · '),
             isDark: isDark,
             subtextColor: subtextColor,
           ),
         ],
 
-        if (specialInstr != null && specialInstr.isNotEmpty) ...[
+        if (specialInstr.isNotEmpty) ...[
           const SizedBox(height: 12),
           _DetailCell(
             label: 'SPECIAL INSTRUCTIONS',
@@ -633,6 +704,7 @@ class DeliveryCard extends StatelessWidget {
     required bool inSyncQueue,
     required String product,
     required String address,
+    required int attemptsCount,
   }) {
     final cardBg = isDark ? const Color(0xFF161625) : Colors.white;
     final subtextColor = isDark
@@ -747,6 +819,13 @@ class DeliveryCard extends StatelessWidget {
                               _TinyPill(
                                 label: 'PAID',
                                 color: Colors.green.shade600,
+                              ),
+                            if (attemptsCount > 0)
+                              _TinyPill(
+                                label: 'A:$attemptsCount',
+                                color: attemptsCount >= 3
+                                    ? Colors.red.shade600
+                                    : Colors.orange.shade600,
                               ),
                           ],
                         ),

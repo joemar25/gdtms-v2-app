@@ -28,10 +28,10 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
@@ -179,9 +179,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         : 'Reset Password';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      ),
+      appBar: AppHeaderBar(title: title),
       body: Stack(
         fit: StackFit.expand,
         children: [

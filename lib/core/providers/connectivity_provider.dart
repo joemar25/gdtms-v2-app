@@ -80,7 +80,7 @@ final isOnlineProvider = Provider<bool>((ref) {
       .when(
         data: (results) => results.any((r) => r != ConnectivityResult.none),
         loading: () => false,
-        error: (_, __) => false,
+        error: (_, _) => false,
       );
 
   if (!hasNetwork) return false;

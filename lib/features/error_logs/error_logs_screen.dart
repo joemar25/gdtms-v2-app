@@ -138,7 +138,7 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                         : ListView.separated(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                             itemCount: _filtered.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const SizedBox(height: 8),
                             itemBuilder: (context, i) =>
                                 _LogCard(entry: _filtered[i], isDark: isDark),

@@ -29,7 +29,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+// 'services' types are provided by material.dart; remove explicit import
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -97,6 +97,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   double _freeStorageGb = -1.0;
 
   int _errorLogCount = 0;
+  double _horizontalDrag = 0.0;
 
   @override
   void initState() {
@@ -236,306 +237,320 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final shouldExit = await ConfirmationDialog.show(
-          context,
-          title: 'Exit App',
-          subtitle: 'Are you sure you want to exit?',
-          confirmLabel: 'Exit',
-          cancelLabel: 'Stay',
-          isDestructive: true,
-        );
-        if (shouldExit == true && mounted) SystemNavigator.pop();
+        // When on Profile, navigate back to Dashboard instead of exiting.
+        context.go('/dashboard');
       },
-      child: Scaffold(
-        extendBody: true,
-        backgroundColor: isDark ? _Tokens.surfaceDark : const Color(0xFFF5F6FA),
-        appBar: AppHeaderBar(
-          title: 'Profile',
-          pageIcon: Icons.person_rounded,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit_rounded, size: 20),
-              tooltip: 'Edit Profile',
-              onPressed: () => context.push('/profile/edit'),
-            ),
-          ],
-        ),
-        bottomNavigationBar: const FloatingBottomNavBar(
-          currentPath: '/profile',
-        ),
-        body: RefreshIndicator(
-          onRefresh: _refresh,
-          color: _Tokens.accentGreen,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            children: [
-              // ── Status banners ─────────────────────────────────────────
-              if (!isOnline) const OfflineBanner(),
-              if (!isOnline) const SizedBox(height: 12),
-              if (!isActive) _AccountInactiveBanner(),
-              if (!isActive) const SizedBox(height: 12),
-
-              // ── Hero profile card ──────────────────────────────────────
-              _ProfileHeroCard(courier: courier, isDark: isDark),
-              const SizedBox(height: 20),
-
-              // ── Quick stats row ────────────────────────────────────────
-              _QuickStatsRow(
-                courier: courier,
-                branchName: branchName,
-                isDark: isDark,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragUpdate: (details) =>
+            _horizontalDrag += details.delta.dx,
+        onHorizontalDragEnd: (details) {
+          final dx = _horizontalDrag;
+          _horizontalDrag = 0.0;
+          final velocity = details.primaryVelocity ?? 0.0;
+          if (dx.abs() > 60 || velocity.abs() > 300) {
+            if (dx < 0 || velocity < 0) {
+              // swipe left → Dashboard (wrap-around)
+              context.go('/dashboard', extra: {'_swipe': 'left'});
+            } else {
+              // swipe right → Wallet
+              context.go('/wallet', extra: {'_swipe': 'right'});
+            }
+          }
+        },
+        child: Scaffold(
+          extendBody: true,
+          backgroundColor: isDark
+              ? _Tokens.surfaceDark
+              : const Color(0xFFF5F6FA),
+          appBar: AppHeaderBar(
+            title: 'Profile',
+            pageIcon: Icons.person_rounded,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_rounded, size: 20),
+                tooltip: 'Edit Profile',
+                onPressed: () => context.push('/profile/edit'),
               ),
-              const SizedBox(height: 24),
+            ],
+          ),
+          bottomNavigationBar: const FloatingBottomNavBar(
+            currentPath: '/profile',
+          ),
+          body: RefreshIndicator(
+            onRefresh: _refresh,
+            color: _Tokens.accentGreen,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+              children: [
+                // ── Status banners ─────────────────────────────────────────
+                if (!isOnline) const OfflineBanner(),
+                if (!isOnline) const SizedBox(height: 12),
+                if (!isActive) _AccountInactiveBanner(),
+                if (!isActive) const SizedBox(height: 12),
 
-              // ── Account actions ────────────────────────────────────────
-              _SectionLabel('Account'),
-              _ModernCard(
-                isDark: isDark,
-                children: [
-                  _ActionTile(
-                    icon: Icons.lock_reset_rounded,
-                    iconColor: _Tokens.accentBlue,
-                    label: 'Change Password',
-                    subtitle: 'Update your login credentials',
-                    isDark: isDark,
-                    onTap: () => context.push('/change-password'),
-                  ),
-                  _CardDivider(isDark: isDark),
-                  _ActionTile(
-                    icon: Icons.person_outline_rounded,
-                    iconColor: _Tokens.accentGreen,
-                    label: 'Edit Profile',
-                    subtitle: 'Update your personal details',
-                    isDark: isDark,
-                    onTap: () => context.push('/profile/edit'),
-                  ),
-                  _CardDivider(isDark: isDark),
-                  _ActionTile(
-                    icon: Icons.logout_rounded,
-                    iconColor: Colors.red.shade400,
-                    label: 'Sign Out',
-                    subtitle: 'End your current session',
-                    isDark: isDark,
-                    isDestructive: true,
-                    onTap: () async {
-                      final confirmed = await ConfirmationDialog.show(
-                        context,
-                        title: 'Sign out',
-                        subtitle:
-                            'Are you sure you want to sign out? You will need to log in again to access the app.',
-                        confirmLabel: 'Sign out',
-                        cancelLabel: 'Cancel',
-                        isDestructive: true,
-                      );
-                      if (confirmed == true && mounted) await _logout();
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
+                // ── Hero profile card ──────────────────────────────────────
+                _ProfileHeroCard(courier: courier, isDark: isDark),
+                const SizedBox(height: 20),
 
-              // ── Preferences ────────────────────────────────────────────
-              _SectionLabel('Preferences'),
-              _ModernCard(
-                isDark: isDark,
-                children: [
-                  _ModernSwitchTile(
-                    icon: Icons.flash_on_rounded,
-                    iconColor: _Tokens.accentAmber,
-                    label: 'Auto-accept Dispatch',
-                    subtitle:
-                        'Automatically accept new dispatches after a successful barcode scan. Recommended for high-volume days.',
-                    value: _autoAccept,
-                    isDark: isDark,
-                    onChanged: isOnline
-                        ? (v) async {
-                            if (v) {
-                              final ok = await ConfirmationDialog.show(
-                                context,
-                                title: 'Enable Auto-Accept?',
-                                subtitle:
-                                    'Dispatches will be automatically accepted after scanning without manual confirmation. Only enable this if you are ready to receive all incoming dispatches.',
-                                confirmLabel: 'Enable',
-                                cancelLabel: 'Cancel',
-                                isDestructive: false,
-                              );
-                              if (ok != true || !mounted) return;
-                            }
-                            await ref
-                                .read(appSettingsProvider)
-                                .setAutoAcceptDispatch(v);
-                            setState(() => _autoAccept = v);
-                            _showSettingsUpdated();
-                          }
-                        : null,
-                  ),
+                // ── Quick stats row ────────────────────────────────────────
+                _QuickStatsRow(
+                  courier: courier,
+                  branchName: branchName,
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 24),
 
-                  // Debug-only: Sync Retention
-                  if (kDebugMode) ...[
-                    _CardDivider(isDark: isDark),
-                    _SyncRetentionTile(
-                      syncRetentionDays: _syncRetentionDays,
+                // ── Account actions ────────────────────────────────────────
+                _SectionLabel('Account'),
+                _ModernCard(
+                  isDark: isDark,
+                  children: [
+                    _ActionTile(
+                      icon: Icons.lock_reset_rounded,
+                      iconColor: _Tokens.accentBlue,
+                      label: 'Change Password',
+                      subtitle: 'Update your login credentials',
                       isDark: isDark,
-                      onChanged: (val) async {
+                      onTap: () => context.push('/change-password'),
+                    ),
+                    _CardDivider(isDark: isDark),
+                    _ActionTile(
+                      icon: Icons.person_outline_rounded,
+                      iconColor: _Tokens.accentGreen,
+                      label: 'Edit Profile',
+                      subtitle: 'Update your personal details',
+                      isDark: isDark,
+                      onTap: () => context.push('/profile/edit'),
+                    ),
+                    _CardDivider(isDark: isDark),
+                    _ActionTile(
+                      icon: Icons.logout_rounded,
+                      iconColor: Colors.red.shade400,
+                      label: 'Sign Out',
+                      subtitle: 'End your current session',
+                      isDark: isDark,
+                      isDestructive: true,
+                      onTap: () async {
                         final confirmed = await ConfirmationDialog.show(
                           context,
-                          title: 'Update Retention Period?',
+                          title: 'Sign out',
                           subtitle:
-                              'This changes how long offline sync history is kept on this device. Are you sure you want to change it?',
-                          confirmLabel: 'Update',
+                              'Are you sure you want to sign out? You will need to log in again to access the app.',
+                          confirmLabel: 'Sign out',
                           cancelLabel: 'Cancel',
+                          isDestructive: true,
                         );
-                        if (confirmed != true || !mounted) return;
+                        if (confirmed == true && mounted) await _logout();
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // ── Preferences ────────────────────────────────────────────
+                _SectionLabel('Preferences'),
+                _ModernCard(
+                  isDark: isDark,
+                  children: [
+                    _ModernSwitchTile(
+                      icon: Icons.flash_on_rounded,
+                      iconColor: _Tokens.accentAmber,
+                      label: 'Auto-accept Dispatch',
+                      subtitle:
+                          'Automatically accept new dispatches after a successful barcode scan. Recommended for high-volume days.',
+                      value: _autoAccept,
+                      isDark: isDark,
+                      onChanged: isOnline
+                          ? (v) async {
+                              if (v) {
+                                final ok = await ConfirmationDialog.show(
+                                  context,
+                                  title: 'Enable Auto-Accept?',
+                                  subtitle:
+                                      'Dispatches will be automatically accepted after scanning without manual confirmation. Only enable this if you are ready to receive all incoming dispatches.',
+                                  confirmLabel: 'Enable',
+                                  cancelLabel: 'Cancel',
+                                  isDestructive: false,
+                                );
+                                if (ok != true || !mounted) return;
+                              }
+                              await ref
+                                  .read(appSettingsProvider)
+                                  .setAutoAcceptDispatch(v);
+                              setState(() => _autoAccept = v);
+                              _showSettingsUpdated();
+                            }
+                          : null,
+                    ),
+
+                    // Debug-only: Sync Retention
+                    if (kDebugMode) ...[
+                      _CardDivider(isDark: isDark),
+                      _SyncRetentionTile(
+                        syncRetentionDays: _syncRetentionDays,
+                        isDark: isDark,
+                        onChanged: (val) async {
+                          final confirmed = await ConfirmationDialog.show(
+                            context,
+                            title: 'Update Retention Period?',
+                            subtitle:
+                                'This changes how long offline sync history is kept on this device. Are you sure you want to change it?',
+                            confirmLabel: 'Update',
+                            cancelLabel: 'Cancel',
+                          );
+                          if (confirmed != true || !mounted) return;
+                          await ref
+                              .read(appSettingsProvider)
+                              .setSyncRetentionDays(val.first);
+                          setState(() => _syncRetentionDays = val.first);
+                          _showSettingsUpdated();
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // ── Appearance ─────────────────────────────────────────────
+                _SectionLabel('Appearance'),
+                _ModernCard(
+                  isDark: isDark,
+                  children: [
+                    _ThemeSegmentedTile(
+                      isDark: isDark,
+                      themeMode: authState.themeMode,
+                      onChanged: (val) async {
                         await ref
-                            .read(appSettingsProvider)
-                            .setSyncRetentionDays(val.first);
-                        setState(() => _syncRetentionDays = val.first);
+                            .read(authProvider.notifier)
+                            .setThemeMode(val.first);
+                        _showSettingsUpdated();
+                      },
+                    ),
+                    _CardDivider(isDark: isDark),
+                    _ModernSwitchTile(
+                      icon: Icons.density_small_rounded,
+                      iconColor: _Tokens.accentPurple,
+                      label: 'Compact Mode',
+                      subtitle:
+                          'Shrinks delivery cards to show more items on screen at once.',
+                      value: isCompact,
+                      isDark: isDark,
+                      onChanged: (v) async {
+                        ref.read(compactModeProvider.notifier).setValue(v);
+                        await ref.read(appSettingsProvider).setCompactMode(v);
                         _showSettingsUpdated();
                       },
                     ),
                   ],
-                ],
-              ),
-              const SizedBox(height: 24),
+                ),
+                const SizedBox(height: 24),
 
-              // ── Appearance ─────────────────────────────────────────────
-              _SectionLabel('Appearance'),
-              _ModernCard(
-                isDark: isDark,
-                children: [
-                  _ThemeSegmentedTile(
-                    isDark: isDark,
-                    themeMode: authState.themeMode,
-                    onChanged: (val) async {
-                      await ref
-                          .read(authProvider.notifier)
-                          .setThemeMode(val.first);
-                      _showSettingsUpdated();
-                    },
-                  ),
-                  _CardDivider(isDark: isDark),
-                  _ModernSwitchTile(
-                    icon: Icons.density_small_rounded,
-                    iconColor: _Tokens.accentPurple,
-                    label: 'Compact Mode',
-                    subtitle:
-                        'Shrinks delivery cards to show more items on screen at once.',
-                    value: isCompact,
-                    isDark: isDark,
-                    onChanged: (v) async {
-                      ref.read(compactModeProvider.notifier).setValue(v);
-                      await ref.read(appSettingsProvider).setCompactMode(v);
-                      _showSettingsUpdated();
-                    },
-                  ),
+                // ── Device Specifications ──────────────────────────────────
+                _SectionLabel('Device'),
+                if (_specsLoaded &&
+                    _freeStorageGb >= 0 &&
+                    _freeStorageGb < 2.0) ...[
+                  _StorageBanner(freeStorageGb: _freeStorageGb),
+                  const SizedBox(height: 10),
                 ],
-              ),
-              const SizedBox(height: 24),
-
-              // ── Device Specifications ──────────────────────────────────
-              _SectionLabel('Device'),
-              if (_specsLoaded &&
-                  _freeStorageGb >= 0 &&
-                  _freeStorageGb < 2.0) ...[
-                _StorageBanner(freeStorageGb: _freeStorageGb),
-                const SizedBox(height: 10),
-              ],
-              _ModernCard(
-                isDark: isDark,
-                children: [
-                  if (kAppDebugMode) ...[
+                _ModernCard(
+                  isDark: isDark,
+                  children: [
+                    if (kAppDebugMode) ...[
+                      _DetailTile(
+                        icon: Icons.cloud_outlined,
+                        iconColor: _Tokens.accentTeal,
+                        label: 'Backend',
+                        value: _backendLabel,
+                        isDark: isDark,
+                      ),
+                      _CardDivider(isDark: isDark),
+                      _DetailTile(
+                        icon: Icons.smartphone_outlined,
+                        iconColor: _Tokens.accentBlue,
+                        label: 'Device Model',
+                        value: _specsLoaded ? _deviceModel : '…',
+                        isDark: isDark,
+                      ),
+                      _CardDivider(isDark: isDark),
+                      _DetailTile(
+                        icon: Platform.isAndroid
+                            ? Icons.android_outlined
+                            : Icons.phone_iphone_outlined,
+                        iconColor: _Tokens.accentGreen,
+                        label: 'Operating System',
+                        value: _specsLoaded ? _osVersion : '…',
+                        isDark: isDark,
+                      ),
+                      _CardDivider(isDark: isDark),
+                      _DetailTile(
+                        icon: Icons.fingerprint_outlined,
+                        iconColor: _Tokens.accentPurple,
+                        label: 'Device ID',
+                        value: _specsLoaded ? _deviceId : '…',
+                        isDark: isDark,
+                      ),
+                      _CardDivider(isDark: isDark),
+                    ],
                     _DetailTile(
-                      icon: Icons.cloud_outlined,
-                      iconColor: _Tokens.accentTeal,
-                      label: 'Backend',
-                      value: _backendLabel,
-                      isDark: isDark,
-                    ),
-                    _CardDivider(isDark: isDark),
-                    _DetailTile(
-                      icon: Icons.smartphone_outlined,
+                      icon: Icons.info_outline_rounded,
                       iconColor: _Tokens.accentBlue,
-                      label: 'Device Model',
-                      value: _specsLoaded ? _deviceModel : '…',
+                      label: 'App Version',
+                      value: 'v$appVersion',
                       isDark: isDark,
                     ),
+                    if (kAppDebugMode) ...[
+                      _CardDivider(isDark: isDark),
+                      _DetailTile(
+                        icon: Icons.code_rounded,
+                        iconColor: _Tokens.accentAmber,
+                        label: 'SDK Version',
+                        value: _specsLoaded ? _sdkVersion : '…',
+                        isDark: isDark,
+                      ),
+                    ],
                     _CardDivider(isDark: isDark),
                     _DetailTile(
-                      icon: Platform.isAndroid
-                          ? Icons.android_outlined
-                          : Icons.phone_iphone_outlined,
-                      iconColor: _Tokens.accentGreen,
-                      label: 'Operating System',
-                      value: _specsLoaded ? _osVersion : '…',
-                      isDark: isDark,
-                    ),
-                    _CardDivider(isDark: isDark),
-                    _DetailTile(
-                      icon: Icons.fingerprint_outlined,
-                      iconColor: _Tokens.accentPurple,
-                      label: 'Device ID',
-                      value: _specsLoaded ? _deviceId : '…',
-                      isDark: isDark,
-                    ),
-                    _CardDivider(isDark: isDark),
-                  ],
-                  _DetailTile(
-                    icon: Icons.info_outline_rounded,
-                    iconColor: _Tokens.accentBlue,
-                    label: 'App Version',
-                    value: 'v$appVersion',
-                    isDark: isDark,
-                  ),
-                  if (kAppDebugMode) ...[
-                    _CardDivider(isDark: isDark),
-                    _DetailTile(
-                      icon: Icons.code_rounded,
-                      iconColor: _Tokens.accentAmber,
-                      label: 'SDK Version',
-                      value: _specsLoaded ? _sdkVersion : '…',
+                      icon: Icons.sd_storage_outlined,
+                      iconColor: _storageIconColor,
+                      label: 'Available Storage',
+                      value: _specsLoaded
+                          ? (_freeStorageGb >= 0
+                                ? '${_freeStorageGb.toStringAsFixed(1)} GB free'
+                                : 'Unavailable')
+                          : '…',
+                      valueColor: _specsLoaded && _freeStorageGb >= 0
+                          ? (_freeStorageGb < 0.5
+                                ? Colors.red
+                                : _freeStorageGb < 2.0
+                                ? Colors.orange
+                                : null)
+                          : null,
                       isDark: isDark,
                     ),
                   ],
-                  _CardDivider(isDark: isDark),
-                  _DetailTile(
-                    icon: Icons.sd_storage_outlined,
-                    iconColor: _storageIconColor,
-                    label: 'Available Storage',
-                    value: _specsLoaded
-                        ? (_freeStorageGb >= 0
-                              ? '${_freeStorageGb.toStringAsFixed(1)} GB free'
-                              : 'Unavailable')
-                        : '…',
-                    valueColor: _specsLoaded && _freeStorageGb >= 0
-                        ? (_freeStorageGb < 0.5
-                              ? Colors.red
-                              : _freeStorageGb < 2.0
-                              ? Colors.orange
-                              : null)
-                        : null,
-                    isDark: isDark,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
+                ),
+                const SizedBox(height: 24),
 
-              // ── Diagnostics ────────────────────────────────────────────
-              _SectionLabel('Diagnostics'),
-              _ModernCard(
-                isDark: isDark,
-                children: [
-                  _ErrorLogsTile(
-                    isDark: isDark,
-                    errorLogCount: _errorLogCount,
-                    onTap: () async {
-                      await context.push('/error-logs');
-                      _loadErrorLogCount();
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 36),
-            ],
+                // ── Diagnostics ────────────────────────────────────────────
+                _SectionLabel('Diagnostics'),
+                _ModernCard(
+                  isDark: isDark,
+                  children: [
+                    _ErrorLogsTile(
+                      isDark: isDark,
+                      errorLogCount: _errorLogCount,
+                      onTap: () async {
+                        await context.push('/error-logs');
+                        _loadErrorLogCount();
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 36),
+              ],
+            ),
           ),
         ),
       ),
@@ -1071,7 +1086,7 @@ class _ModernSwitchTile extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: ColorStyles.grabGreen,
+            activeThumbColor: ColorStyles.grabGreen,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],

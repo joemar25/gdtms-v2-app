@@ -30,6 +30,7 @@ import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -59,15 +60,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
+      appBar: AppHeaderBar(
+        titleWidget: Text(
           'Notifications',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
-        titleTextStyle: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        showNotificationBell: false,
         actions: [
           if (state.unreadCount > 0)
             TextButton(
@@ -129,7 +131,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: state.entries.length + (state.hasMore ? 1 : 0),
-          separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+          separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
           itemBuilder: (context, index) {
             if (index == state.entries.length) {
               return _LoadMoreButton(

@@ -31,8 +31,8 @@ final initialLocationProvider = Provider<String>((ref) => '/splash');
 
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(Ref ref) {
-    ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
-    ref.listen<LocationState>(locationProvider, (_, __) => notifyListeners());
+    ref.listen<AuthState>(authProvider, (_, _) => notifyListeners());
+    ref.listen<LocationState>(locationProvider, (_, _) => notifyListeners());
   }
 }
 
@@ -40,14 +40,41 @@ class _RouterNotifier extends ChangeNotifier {
 
 /// Builds a [CustomTransitionPage] with a smooth fade + subtle upward-slide.
 /// All app routes use this for a consistent, polished feel.
-Page<T> _page<T>({required LocalKey key, required Widget child}) {
+Page<T> _page<T>({
+  required LocalKey key,
+  required Widget child,
+  Object? extra,
+}) {
   return CustomTransitionPage<T>(
     key: key,
     child: child,
-    transitionDuration: const Duration(milliseconds: 220),
-    reverseTransitionDuration: const Duration(milliseconds: 180),
+    transitionDuration: const Duration(milliseconds: 260),
+    reverseTransitionDuration: const Duration(milliseconds: 200),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+
+      // If the route was navigated with an extra indicating a swipe direction,
+      // perform a horizontal slide that matches the swipe (left/right).
+      String? swipeDir;
+      if (extra is Map) {
+        final val = extra['_swipe'];
+        if (val is String) swipeDir = val;
+      }
+
+      if (swipeDir == 'left' || swipeDir == 'right') {
+        final begin = swipeDir == 'left'
+            ? const Offset(1.0, 0.0)
+            : const Offset(-1.0, 0.0);
+        final slide = Tween<Offset>(begin: begin, end: Offset.zero).animate(
+          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+        );
+        return SlideTransition(
+          position: slide,
+          child: FadeTransition(opacity: fade, child: child),
+        );
+      }
+
+      // Default: subtle upward slide with fade.
       final slide = Tween<Offset>(
         begin: const Offset(0.0, 0.035),
         end: Offset.zero,
@@ -115,29 +142,42 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/splash',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const SplashScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const SplashScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/initial-sync',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const InitialSyncScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const InitialSyncScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/location-required',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const LocationRequiredScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const LocationRequiredScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/login',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const LoginScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const LoginScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/reset-password',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
           child: const ResetPasswordScreen(authenticatedMode: false),
+          extra: state.extra,
         ),
       ),
       GoRoute(
@@ -145,12 +185,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
           child: const ResetPasswordScreen(authenticatedMode: true),
+          extra: state.extra,
         ),
       ),
       GoRoute(
         path: '/dashboard',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const DashboardScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const DashboardScreen(),
+          extra: state.extra,
+        ),
       ),
 
       // ── Unified scan ──────────────────────────────────────────────────────
@@ -163,14 +207,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return _page(
             key: state.pageKey,
             child: ScanScreen(mode: mode),
+            extra: state.extra,
           );
         },
       ),
 
       GoRoute(
         path: '/dispatches',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const DispatchListScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const DispatchListScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/dispatches/eligibility',
@@ -195,6 +243,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               skipPinDialog: extra['skip_accept_modal'] == true,
               showFullCode: extra['show_full_code'] == true,
             ),
+            extra: state.extra,
           );
         },
       ),
@@ -206,6 +255,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             status: 'pending',
             title: 'DELIVERIES',
           ),
+          extra: state.extra,
         ),
       ),
       GoRoute(
@@ -215,6 +265,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: DeliveryDetailScreen(
             barcode: state.pathParameters['barcode']!,
           ),
+          extra: state.extra,
         ),
       ),
       GoRoute(
@@ -224,6 +275,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: DeliveryUpdateScreen(
             barcode: state.pathParameters['barcode']!,
           ),
+          extra: state.extra,
         ),
       ),
       GoRoute(
@@ -234,6 +286,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             status: 'delivered',
             title: 'DELIVERED',
           ),
+          extra: state.extra,
         ),
       ),
       GoRoute(
@@ -241,6 +294,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
           child: const DeliveryStatusListScreen(status: 'rts', title: 'RTS'),
+          extra: state.extra,
         ),
       ),
       GoRoute(
@@ -248,22 +302,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
           child: const DeliveryStatusListScreen(status: 'osa', title: 'OSA'),
+          extra: state.extra,
         ),
       ),
       GoRoute(
         path: '/sync',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const SyncScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const SyncScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/notifications',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const NotificationsScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const NotificationsScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/wallet',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const WalletScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const WalletScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/wallet/request',
@@ -274,6 +338,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             child: PayoutRequestScreen(
               isConsolidation: extra is Map && extra['consolidate'] == true,
             ),
+            extra: state.extra,
           );
         },
       ),
@@ -284,22 +349,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: PayoutDetailScreen(
             reference: state.pathParameters['reference'] ?? '',
           ),
+          extra: state.extra,
         ),
       ),
       GoRoute(
         path: '/profile',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const ProfileScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const ProfileScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/profile/edit',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const ProfileEditScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const ProfileEditScreen(),
+          extra: state.extra,
+        ),
       ),
       GoRoute(
         path: '/error-logs',
-        pageBuilder: (_, state) =>
-            _page(key: state.pageKey, child: const ErrorLogsScreen()),
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const ErrorLogsScreen(),
+          extra: state.extra,
+        ),
       ),
     ],
   );

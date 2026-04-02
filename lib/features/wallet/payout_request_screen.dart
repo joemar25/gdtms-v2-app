@@ -32,12 +32,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -282,33 +282,12 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     if (!isOnline) {
       return Scaffold(
         backgroundColor: scaffoldBg,
-        appBar: AppBar(
+        appBar: AppHeaderBar(
+          title: widget.isConsolidation
+              ? 'CONSOLIDATE REQUEST'
+              : 'REQUEST PAYOUT',
+          pageIcon: Icons.payments_rounded,
           backgroundColor: appBarBg,
-          elevation: 0,
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.payments_rounded,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  widget.isConsolidation
-                      ? 'CONSOLIDATE REQUEST'
-                      : 'REQUEST PAYOUT',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
         body: Center(
           child: Column(
@@ -338,29 +317,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: appBarBg,
-        elevation: 0,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.payments_rounded,
-              size: 20,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 8),
-            const Flexible(
-              child: Text(
-                'REQUEST PAYOUT',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
-        ),
-      ),
+      appBar: AppHeaderBar(title: 'REQUEST PAYOUT', backgroundColor: appBarBg),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),

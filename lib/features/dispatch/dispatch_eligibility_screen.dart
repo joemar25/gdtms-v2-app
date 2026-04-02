@@ -29,7 +29,6 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
@@ -41,6 +40,7 @@ import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class DispatchEligibilityScreen extends ConsumerStatefulWidget {
@@ -353,13 +353,8 @@ class _DispatchEligibilityScreenState
         : <Map<String, dynamic>>[];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'DISPATCH DETAILS',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
-        ),
+      appBar: AppHeaderBar(
+        title: 'DISPATCH DETAILS',
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -937,35 +932,36 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 4,
-                (i) => Container(
-                  width: 54,
-                  height: 58,
-                  margin: const EdgeInsets.symmetric(horizontal: 5),
-                  child: TextFormField(
-                    controller: _controllers[i],
-                    focusNode: _focusNodes[i],
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    maxLength: 1,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      counterText: '',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                          color: ColorStyles.grabGreen,
-                          width: 2,
+                (i) => Expanded(
+                  child: Container(
+                    height: 58,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    child: TextFormField(
+                      controller: _controllers[i],
+                      focusNode: _focusNodes[i],
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      maxLength: 1,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                            color: ColorStyles.grabGreen,
+                            width: 2,
+                          ),
                         ),
                       ),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      onChanged: (v) => _onDigitChanged(i, v),
                     ),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    onChanged: (v) => _onDigitChanged(i, v),
                   ),
                 ),
               ),

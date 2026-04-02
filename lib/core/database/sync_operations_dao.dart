@@ -60,15 +60,15 @@ class SyncOperationsDao {
     String? payloadJson,
   }) async {
     final db = await _db;
+    final updates = <String, dynamic>{'status': status};
+    if (lastError != null) updates['last_error'] = lastError;
+    if (retryCount != null) updates['retry_count'] = retryCount;
+    if (lastAttemptAt != null) updates['last_attempt_at'] = lastAttemptAt;
+    if (payloadJson != null) updates['payload_json'] = payloadJson;
+
     await db.update(
       'sync_operations',
-      {
-        'status': status,
-        if (lastError != null) 'last_error': lastError,
-        if (retryCount != null) 'retry_count': retryCount,
-        if (lastAttemptAt != null) 'last_attempt_at': lastAttemptAt,
-        if (payloadJson != null) 'payload_json': payloadJson,
-      },
+      updates,
       where: 'id = ?',
       whereArgs: [id],
     );

@@ -329,15 +329,18 @@ class _SyncFloatingPill extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(authProvider).isAuthenticated)
+    if (!ref.watch(authProvider).isAuthenticated) {
       return const SizedBox.shrink();
+    }
 
     final router = ref.watch(appRouterProvider);
     return ListenableBuilder(
       listenable: router.routeInformationProvider,
       builder: (context, _) {
         final path = router.routeInformationProvider.value.uri.path;
-        if (_kPillHiddenRoutes.contains(path)) return const SizedBox.shrink();
+        if (_kPillHiddenRoutes.contains(path)) {
+          return const SizedBox.shrink();
+        }
         return const _SyncPillContent();
       },
     );

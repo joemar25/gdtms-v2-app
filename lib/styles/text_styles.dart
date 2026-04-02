@@ -10,21 +10,27 @@ const double textBody = 14.0;
 const double textCaption = 12.0;
 
 class TextStyles {
-  static title({Color? color, double? fontSize, FontWeight? fontWeight}) =>
-      TextStyle(
-        fontSize: fontSize ?? textTitle,
-        color: color ?? ColorStyles.primary,
-        fontWeight: fontWeight ?? FontWeight.w700,
-      );
+  static TextStyle title({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+  }) => TextStyle(
+    fontSize: fontSize ?? textTitle,
+    color: color ?? ColorStyles.primary,
+    fontWeight: fontWeight ?? FontWeight.w700,
+  );
 
-  static subTitle({Color? color, double? fontSize, FontWeight? fontWeight}) =>
-      TextStyle(
-        fontSize: fontSize ?? textSubtitle,
-        color: color ?? ColorStyles.primary,
-        fontWeight: fontWeight ?? FontWeight.w500,
-      );
+  static TextStyle subTitle({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+  }) => TextStyle(
+    fontSize: fontSize ?? textSubtitle,
+    color: color ?? ColorStyles.primary,
+    fontWeight: fontWeight ?? FontWeight.w500,
+  );
 
-  static caption({Color? color, double? fontSize}) => TextStyle(
+  static TextStyle caption({Color? color, double? fontSize}) => TextStyle(
     fontSize: fontSize ?? textCaption,
     color: color ?? ColorStyles.primary,
   );

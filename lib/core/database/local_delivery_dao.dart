@@ -91,27 +91,31 @@ class LocalDeliveryDao {
         json['rts_verification_status']?.toString() ??
         existing?.rtsVerificationStatus;
 
+    final values = <String, dynamic>{
+      'delivery_status': status,
+      'recipient_name':
+          json['name']?.toString() ??
+          json['recipient_name']?.toString() ??
+          existing?.recipientName,
+      'delivery_address':
+          json['address']?.toString() ??
+          json['delivery_address']?.toString() ??
+          existing?.deliveryAddress,
+      'raw_json': jsonEncode(mergedJson),
+      'updated_at': now,
+      'sync_status': 'clean',
+    };
+
+    if (status == 'DELIVERED' || status == 'RTS' || status == 'OSA') {
+      values['completed_at'] = now;
+    }
+    if (rtsVerifStatus != null) {
+      values['rts_verification_status'] = rtsVerifStatus;
+    }
+
     await db.update(
       'local_deliveries',
-      {
-        'delivery_status': status,
-        'recipient_name':
-            json['name']?.toString() ??
-            json['recipient_name']?.toString() ??
-            existing?.recipientName,
-        'delivery_address':
-            json['address']?.toString() ??
-            json['delivery_address']?.toString() ??
-            existing?.deliveryAddress,
-        'raw_json': jsonEncode(mergedJson),
-        'updated_at': now,
-        if (status == 'DELIVERED' || status == 'RTS' || status == 'OSA')
-          'completed_at': now,
-        // Server confirmed this record — mark clean so insertAllFromApiItems
-        // no longer treats it as a dirty/unsynced courier update.
-        'sync_status': 'clean',
-        if (rtsVerifStatus != null) 'rts_verification_status': rtsVerifStatus,
-      },
+      values,
       where: 'barcode = ?',
       whereArgs: [barcode],
     );

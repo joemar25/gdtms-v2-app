@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 
 /// Service for profile-specific APIs such as uploading the courier's profile
 /// picture. This keeps profile media uploads separate from delivery media

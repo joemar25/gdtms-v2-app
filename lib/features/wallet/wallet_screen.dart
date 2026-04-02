@@ -32,7 +32,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,16 +39,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
 import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
-import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
+// confirmation_dialog not used in this file
 import 'package:fsi_courier_app/styles/color_styles.dart';
-import 'package:fsi_courier_app/core/config.dart';
 
 class WalletScreen extends ConsumerStatefulWidget {
   const WalletScreen({super.key});
@@ -65,6 +62,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   List<Map<String, dynamic>> _historyBreakdown = [];
   String? _initialHistoryDate;
   int _stripKey = 0;
+  double _horizontalDrag = 0.0;
 
   static const _earningsCacheKey = 'wallet_summary_cache';
 
@@ -216,7 +214,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
-    final earnings = _data['total_earnings'] ?? 0;
+
     final tentativePayout = _data['tentative_pending_payout'] ?? 0;
     final latest = _data['latest_request'] ?? {};
     final latestStatus = latest['status']?.toString().toUpperCase() ?? '';
@@ -233,260 +231,177 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final hasExistingRequestToday = _data['has_existing_request_today'] == true;
     final canRequestPayout = !isLatestPending && !hasExistingRequestToday;
 
-    ref.listen<int>(walletRefreshProvider, (_, __) => _load());
+    ref.listen<int>(walletRefreshProvider, (_, _) => _load());
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final shouldExit = await ConfirmationDialog.show(
-          context,
-          title: 'Exit App',
-          subtitle: 'Are you sure you want to exit?',
-          confirmLabel: 'Exit',
-          cancelLabel: 'Stay',
-          isDestructive: true,
-        );
-        if (shouldExit == true && mounted) SystemNavigator.pop();
+        // When on Wallet, prefer navigating back to Dashboard (home)
+        // so that the ultimate back on Dashboard triggers the exit dialog.
+        context.go('/dashboard');
       },
-      child: Scaffold(
-        extendBody: true,
-        appBar: const AppHeaderBar(
-          title: 'Wallet',
-          pageIcon: Icons.account_balance_wallet_rounded,
-        ),
-        bottomNavigationBar: const FloatingBottomNavBar(currentPath: '/wallet'),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                  children: [
-                    // ── Offline banner ─────────────────────────────────────
-                    if (!isOnline)
-                      const OfflineBanner(
-                        isMinimal: true,
-                        customMessage:
-                            'You\'re offline — only total earnings are shown.',
-                        margin: EdgeInsets.only(bottom: 14),
-                      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragUpdate: (details) =>
+            _horizontalDrag += details.delta.dx,
+        onHorizontalDragEnd: (details) {
+          final dx = _horizontalDrag;
+          _horizontalDrag = 0.0;
+          final velocity = details.primaryVelocity ?? 0.0;
+          if (dx.abs() > 60 || velocity.abs() > 300) {
+            if (dx < 0 || velocity < 0) {
+              // swipe left → Profile
+              context.go('/profile', extra: {'_swipe': 'left'});
+            } else {
+              // swipe right → Dashboard
+              context.go('/dashboard', extra: {'_swipe': 'right'});
+            }
+          }
+        },
+        child: Scaffold(
+          extendBody: true,
+          appBar: const AppHeaderBar(
+            title: 'Wallet',
+            pageIcon: Icons.account_balance_wallet_rounded,
+          ),
+          bottomNavigationBar: const FloatingBottomNavBar(
+            currentPath: '/wallet',
+          ),
+          body: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                    children: [
+                      // ── Offline banner ─────────────────────────────────────
+                      if (!isOnline)
+                        const OfflineBanner(
+                          isMinimal: true,
+                          customMessage:
+                              'You\'re offline — only total earnings are shown.',
+                          margin: EdgeInsets.only(bottom: 14),
+                        ),
 
-                    // ── Earnings card (show when there's something actionable) ─
-                    if (tentativePayout > 0 || isLatestPending)
-                      _EarningsCard(
-                        tentativePayout: tentativePayout,
-                        pendingRequestAmt: pendingRequestAmt,
-                        isLatestPending: isLatestPending,
-                        showPending: isOnline,
-                      ),
-
-                    const SizedBox(height: 20),
-
-                    // ── Online-only section ──────────────────────────────
-                    if (isOnline) ...[
-                      // Request payout / consolidate / pending notice
-                      if (canRequestPayout)
-                        FilledButton.icon(
-                          onPressed: () => context.push('/wallet/request'),
-                          // FIX: Icons.currency_peso not available in older Flutter SDK.
-                          // Replaced with Icons.payments_rounded which is universally available.
-                          icon: const Icon(Icons.payments_rounded),
-                          label: const Text('Request Payout'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                        )
-                      else if (isLatestPending &&
-                          _eligible > 0 &&
-                          !hasExistingRequestToday)
-                        FilledButton.icon(
-                          onPressed: () => context.push(
-                            '/wallet/request',
-                            extra: {'consolidate': true},
-                          ),
-                          // FIX: Icons.currency_peso not available in older Flutter SDK.
-                          // Replaced with Icons.payments_rounded which is universally available.
-                          icon: const Icon(Icons.payments_rounded),
-                          label: const Text('Consolidate Payout Request'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Colors.amber.shade700,
-                            minimumSize: const Size.fromHeight(50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.amber.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline_rounded,
-                                color: Colors.amber.shade700,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  hasExistingRequestToday
-                                      ? 'You have already submitted a request today. You can consolidate your deliveries tomorrow.'
-                                      : 'You have a pending payout request',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.amber.shade700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                      // ── Earnings card (show when there's something actionable) ─
+                      if (tentativePayout > 0 || isLatestPending)
+                        _EarningsCard(
+                          tentativePayout: tentativePayout,
+                          pendingRequestAmt: pendingRequestAmt,
+                          isLatestPending: isLatestPending,
+                          showPending: isOnline,
                         ),
 
                       const SizedBox(height: 20),
 
-                      // ── Payout history strip ─────────────────────────────
-                      if (_historyBreakdown.isNotEmpty) ...[
-                        _SectionLabel('Payout History'),
-                        const SizedBox(height: 8),
-                        DateStripWithDeliveries(
-                          key: ValueKey('history_$_stripKey'),
-                          dailyBreakdown: _historyBreakdown,
-                          initialSelectedDate: _initialHistoryDate,
-                          showDayTotal: false,
-                          itemCountLabelBuilder: (n) =>
-                              n == 1 ? '1 request' : '$n requests',
-                          itemBuilder: (ctx, req) => _PayoutRequestHistoryRow(
-                            data: req,
-                            onTap: () {
-                              final ref =
-                                  '${req['reference'] ?? req['payment_reference'] ?? ''}';
-                              if (ref.isNotEmpty) ctx.push('/wallet/$ref');
-                            },
+                      // ── Online-only section ──────────────────────────────
+                      if (isOnline) ...[
+                        // Request payout / consolidate / pending notice
+                        if (canRequestPayout)
+                          FilledButton.icon(
+                            onPressed: () => context.push('/wallet/request'),
+                            // FIX: Icons.currency_peso not available in older Flutter SDK.
+                            // Replaced with Icons.payments_rounded which is universally available.
+                            icon: const Icon(Icons.payments_rounded),
+                            label: const Text('Request Payout'),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          )
+                        else if (isLatestPending &&
+                            _eligible > 0 &&
+                            !hasExistingRequestToday)
+                          FilledButton.icon(
+                            onPressed: () => context.push(
+                              '/wallet/request',
+                              extra: {'consolidate': true},
+                            ),
+                            // FIX: Icons.currency_peso not available in older Flutter SDK.
+                            // Replaced with Icons.payments_rounded which is universally available.
+                            icon: const Icon(Icons.payments_rounded),
+                            label: const Text('Consolidate Payout Request'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.amber.shade700,
+                              minimumSize: const Size.fromHeight(50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.amber.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline_rounded,
+                                  color: Colors.amber.shade700,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    hasExistingRequestToday
+                                        ? 'You have already submitted a request today. You can consolidate your deliveries tomorrow.'
+                                        : 'You have a pending payout request',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.amber.shade700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+
                         const SizedBox(height: 20),
+
+                        // ── Payout history strip ─────────────────────────────
+                        if (_historyBreakdown.isNotEmpty) ...[
+                          _SectionLabel('Payout History'),
+                          const SizedBox(height: 8),
+                          DateStripWithDeliveries(
+                            key: ValueKey('history_$_stripKey'),
+                            dailyBreakdown: _historyBreakdown,
+                            initialSelectedDate: _initialHistoryDate,
+                            showDayTotal: false,
+                            itemCountLabelBuilder: (n) =>
+                                n == 1 ? '1 request' : '$n requests',
+                            itemBuilder: (ctx, req) => _PayoutRequestHistoryRow(
+                              data: req,
+                              onTap: () {
+                                final ref =
+                                    '${req['reference'] ?? req['payment_reference'] ?? ''}';
+                                if (ref.isNotEmpty) ctx.push('/wallet/$ref');
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
                       ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }
 
-  void _showEarningsDetail(
-    BuildContext context,
-    dynamic earnings,
-    dynamic tentativePayout,
-    dynamic pendingRequestAmt,
-    bool isLatestPending,
-  ) {
-    final earningsAmt = double.tryParse('$earnings') ?? 0.0;
-    final tentativeAmt = double.tryParse('$tentativePayout') ?? 0.0;
-    final pendingAmt = double.tryParse('$pendingRequestAmt') ?? 0.0;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: isDark ? ColorStyles.grabCardDark : ColorStyles.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: EdgeInsets.fromLTRB(
-          24,
-          16,
-          24,
-          MediaQuery.paddingOf(ctx).bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Earnings Overview',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: isDark ? ColorStyles.white : ColorStyles.black,
-              ),
-            ),
-            const SizedBox(height: 20),
-            _EarningsDetailRow(
-              icon: Icons.account_balance_wallet_rounded,
-              label: 'Total Earnings',
-              amount: earningsAmt,
-              color: ColorStyles.grabGreen,
-              large: true,
-            ),
-            const SizedBox(height: 12),
-            Container(
-              height: 1,
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : ColorStyles.tertiary,
-            ),
-            const SizedBox(height: 12),
-            if (isLatestPending && pendingAmt > 0) ...[
-              _EarningsDetailRow(
-                icon: Icons.schedule_rounded,
-                label: 'Pending Payment Request',
-                sublabel: 'Submitted, awaiting approval',
-                amount: pendingAmt,
-                color: Colors.orange.shade600,
-              ),
-              const SizedBox(height: 10),
-            ],
-            if (tentativeAmt > 0) ...[
-              _EarningsDetailRow(
-                icon: Icons.arrow_circle_up_rounded,
-                label: 'Available for Request',
-                sublabel: 'Eligible deliveries this period',
-                amount: tentativeAmt,
-                color: ColorStyles.grabGreen,
-              ),
-              const SizedBox(height: 10),
-            ],
-            const SizedBox(height: 4),
-            Text(
-              'Amounts update each time you sync or open this page.',
-              style: TextStyle(fontSize: 11, color: ColorStyles.subSecondary),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // _showEarningsDetail removed — unused helper
 }
 
 // ─── Earnings card ────────────────────────────────────────────────────────────
@@ -789,71 +704,4 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-// ─── Earnings detail row (used in bottom sheet) ──────────────────────────────
-class _EarningsDetailRow extends StatelessWidget {
-  const _EarningsDetailRow({
-    required this.icon,
-    required this.label,
-    required this.amount,
-    required this.color,
-    this.sublabel,
-    this.large = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String? sublabel;
-  final double amount;
-  final Color color;
-  final bool large;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 18, color: color),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: large ? 14 : 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? ColorStyles.white : ColorStyles.black,
-                ),
-              ),
-              if (sublabel != null)
-                Text(
-                  sublabel!,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: ColorStyles.subSecondary,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        Text(
-          '₱ ${amount.toStringAsFixed(2)}',
-          style: TextStyle(
-            fontSize: large ? 18 : 15,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-}
+// Earnings detail row removed — it was unused and triggered analyzer warnings.

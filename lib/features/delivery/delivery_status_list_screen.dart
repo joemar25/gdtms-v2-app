@@ -273,12 +273,12 @@ class _DeliveryStatusListScreenState
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<int>(deliveryRefreshProvider, (_, __) {
+    ref.listen<int>(deliveryRefreshProvider, (_, _) {
       _currentPage = 0;
       _load();
     });
 
-    ref.listen<bool>(compactModeProvider, (_, __) {
+    ref.listen<bool>(compactModeProvider, (_, _) {
       _currentPage = 0;
       _load();
     });
@@ -401,6 +401,16 @@ class _DeliveryStatusListScreenState
                                                 'unvalidated')
                                             .toString()
                                             .toLowerCase();
+                                    // Determine attempts (prefer rts_attempts list)
+                                    final attemptsCount =
+                                        (d['rts_attempts'] as List?)?.length ??
+                                        int.tryParse(
+                                          d['attempts']?.toString() ??
+                                              d['attempt_count']?.toString() ??
+                                              '',
+                                        ) ??
+                                        0;
+
                                     String msg =
                                         'This delivery is ${s.toLowerCase()} and cannot be opened.';
                                     if (s == 'OSA') {
@@ -409,6 +419,10 @@ class _DeliveryStatusListScreenState
                                     } else if (s == 'DELIVERED') {
                                       msg =
                                           'This item has already been delivered and is sealed.';
+                                    } else if (s == 'RTS' &&
+                                        attemptsCount >= 3) {
+                                      msg =
+                                          'This RTS item has reached the maximum number of attempts and is locked.';
                                     } else if (s == 'RTS' &&
                                         (v == 'verified_with_pay' ||
                                             v == 'verified_no_pay')) {
@@ -532,17 +546,17 @@ class _EmptyState extends StatelessWidget {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.08),
+                    color: statusColor.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: statusColor.withOpacity(0.18),
+                      color: statusColor.withValues(alpha: 0.18),
                       width: 1.5,
                     ),
                   ),
                   child: Icon(
                     iconData,
                     size: 28,
-                    color: statusColor.withOpacity(0.45),
+                    color: statusColor.withValues(alpha: 0.45),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -578,26 +592,24 @@ class _StatusInfoBanner extends StatelessWidget {
     required this.message,
     required this.statusColor,
     required this.isDark,
-    this.trailing,
   });
 
   final IconData icon;
   final String message;
   final Color statusColor;
   final bool isDark;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     final bg = isDark
         ? ColorStyles.grabCardDark
-        : statusColor.withOpacity(0.06);
+        : statusColor.withValues(alpha: 0.06);
     final border = isDark
-        ? statusColor.withOpacity(0.25)
-        : statusColor.withOpacity(0.22);
+        ? statusColor.withValues(alpha: 0.25)
+        : statusColor.withValues(alpha: 0.22);
     final textColor = isDark
-        ? statusColor.withOpacity(0.85)
-        : statusColor.withOpacity(0.9);
+        ? statusColor.withValues(alpha: 0.85)
+        : statusColor.withValues(alpha: 0.9);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -622,10 +634,6 @@ class _StatusInfoBanner extends StatelessWidget {
               ),
             ),
           ),
-          if (trailing != null) ...[
-            const SizedBox(width: 10),
-            trailing!,
-          ],
         ],
       ),
     );

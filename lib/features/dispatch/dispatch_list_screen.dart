@@ -135,7 +135,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<bool>(compactModeProvider, (_, __) => _load());
+    ref.listen<bool>(compactModeProvider, (_, _) => _load());
     final isCompact = ref.watch(compactModeProvider);
     final isOnline = ref.watch(isOnlineProvider);
 
@@ -171,7 +171,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemCount: _dispatches.length,
                       itemBuilder: (_, i) {
                         final item = _dispatches[i];

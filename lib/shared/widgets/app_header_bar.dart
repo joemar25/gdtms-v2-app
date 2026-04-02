@@ -8,7 +8,8 @@ import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
 class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   const AppHeaderBar({
     super.key,
-    required this.title,
+    this.title,
+    this.titleWidget,
     this.pageIcon,
     this.leading,
     this.actions,
@@ -16,9 +17,11 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     this.bottom,
     this.backgroundColor,
     this.centerTitle = false,
+    this.showNotificationBell = true,
   });
 
-  final String title;
+  final String? title;
+  final Widget? titleWidget;
   final IconData? pageIcon;
   final Widget? leading;
   final List<Widget>? actions;
@@ -26,6 +29,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   final PreferredSizeWidget? bottom;
   final Color? backgroundColor;
   final bool centerTitle;
+  final bool showNotificationBell;
 
   @override
   Size get preferredSize =>
@@ -47,32 +51,35 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
       leadingWidth: 56,
       title: Padding(
         padding: const EdgeInsets.only(left: 8),
-        child: Row(
-          children: [
-            if (pageIcon != null) ...[
-              Icon(pageIcon, size: 22, color: colorScheme.onSurface),
-              const SizedBox(width: 10),
-            ],
-            Expanded(
-              child: Text(
-                title,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+        child:
+            titleWidget ??
+            Row(
+              children: [
+                if (pageIcon != null) ...[
+                  Icon(pageIcon, size: 22, color: colorScheme.onSurface),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: Text(
+                    title ?? '',
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.4,
                     ),
-              ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
       ),
       bottom: bottom,
       actions: [
         ...(actions ?? []),
-        NotificationBell(
-          unreadCount: unreadCount,
-          onTap: () => context.push('/notifications'),
-        ),
+        if (showNotificationBell)
+          NotificationBell(
+            unreadCount: unreadCount,
+            onTap: () => context.push('/notifications'),
+          ),
         ...(trailingActions ?? []),
         const SizedBox(width: 12),
       ],
@@ -98,7 +105,9 @@ class NotificationBell extends StatelessWidget {
 
     return Semantics(
       label: 'Notifications',
-      value: hasUnread ? '$label unread notifications' : 'No unread notifications',
+      value: hasUnread
+          ? '$label unread notifications'
+          : 'No unread notifications',
       button: true,
       child: IconButton(
         padding: const EdgeInsets.all(8),
@@ -114,10 +123,8 @@ class NotificationBell extends StatelessWidget {
           children: [
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
-              transitionBuilder: (child, anim) => FadeTransition(
-                opacity: anim,
-                child: child,
-              ),
+              transitionBuilder: (child, anim) =>
+                  FadeTransition(opacity: anim, child: child),
               child: Icon(
                 hasUnread
                     ? Icons.notifications_rounded
@@ -133,14 +140,9 @@ class NotificationBell extends StatelessWidget {
                 right: -5,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, anim) => ScaleTransition(
-                    scale: anim,
-                    child: child,
-                  ),
-                  child: _Badge(
-                    key: ValueKey(label),
-                    label: label,
-                  ),
+                  transitionBuilder: (child, anim) =>
+                      ScaleTransition(scale: anim, child: child),
+                  child: _Badge(key: ValueKey(label), label: label),
                 ),
               ),
           ],
@@ -151,10 +153,7 @@ class NotificationBell extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({
-    super.key,
-    required this.label,
-  });
+  const _Badge({super.key, required this.label});
 
   final String label;
 

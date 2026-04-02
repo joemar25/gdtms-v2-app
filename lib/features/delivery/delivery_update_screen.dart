@@ -58,10 +58,12 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/features/delivery/signature_capture_screen.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_geo_location_field.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_recipient_cards.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
@@ -428,6 +430,16 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     setState(() => _loading = true);
 
+    // Prevent submission if the delivery is already locked (including attempts >= 3)
+    if (checkIsLockedFromMap(_delivery)) {
+      setState(() => _loading = false);
+      showInfoNotification(
+        context,
+        'This delivery is locked and cannot be updated.',
+      );
+      return;
+    }
+
     final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
     final isOnline = ref.read(isOnlineProvider);
 
@@ -705,7 +717,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     Image.file(
                       File(photo.file),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         color: isDark ? Colors.white10 : Colors.grey.shade100,
                         child: Icon(
                           Icons.broken_image_rounded,
@@ -1004,13 +1016,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             onPressed: _loading ? null : _submit,
           ),
         ),
-        appBar: AppBar(
-          backgroundColor: isDark
-              ? ColorStyles.appBarDark
-              : ColorStyles.appBarLight,
-          elevation: 0,
-          titleSpacing: 0,
-          title: Column(
+        appBar: AppHeaderBar(
+          titleWidget: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1037,6 +1044,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               ),
             ],
           ),
+          backgroundColor: isDark
+              ? ColorStyles.appBarDark
+              : ColorStyles.appBarLight,
         ),
         body: GestureDetector(
           behavior: HitTestBehavior.opaque,
