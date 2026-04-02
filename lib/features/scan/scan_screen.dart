@@ -404,6 +404,22 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             ),
           ),
           iconTheme: const IconThemeData(color: Colors.white),
+          actions: [
+            ValueListenableBuilder<MobileScannerState>(
+              valueListenable: _scannerController,
+              builder: (context, state, child) {
+                final isTorchOn = state.torchState == TorchState.on;
+                return IconButton(
+                  icon: Icon(
+                    isTorchOn ? Icons.flashlight_on_rounded : Icons.flashlight_off_rounded,
+                    color: isTorchOn ? ColorStyles.grabGreen : Colors.white,
+                  ),
+                  onPressed: () => _scannerController.toggleTorch(),
+                );
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
         body: Stack(
           fit: StackFit.expand,
