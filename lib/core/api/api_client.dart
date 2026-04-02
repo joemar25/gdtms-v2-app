@@ -158,7 +158,7 @@ class ApiClient {
     }
 
     if (status == 401) {
-      return ApiUnauthorized<T>();
+      return ApiUnauthorized<T>(_extractMessage(response.data));
     }
 
     return ApiServerError<T>(_extractMessage(response.data));
@@ -177,7 +177,7 @@ class ApiClient {
       if (response != null) {
         final status = response.statusCode ?? 500;
         if (status == 401) {
-          return ApiUnauthorized<T>();
+          return ApiUnauthorized<T>(_extractMessage(response.data));
         }
         if (status == 429) {
           return ApiRateLimited<T>(

@@ -48,9 +48,8 @@ class ApiReachabilityNotifier extends Notifier<bool> {
     }
 
     try {
-      // We append /test if the base url doesn't already end with it, just in case
-      final url = apiBaseUrl.endsWith('/test') ? apiBaseUrl : '$apiBaseUrl/test';
-      await _dio.get(url);
+      // The updated Welcoming and Health Check API is served at the base url
+      await _dio.get(apiBaseUrl);
       if (!_disposed) state = true;
     } catch (e) {
       if (e is DioException) {

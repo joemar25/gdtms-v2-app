@@ -169,10 +169,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (mounted) context.go('/dashboard');
       case ApiValidationError<Map<String, dynamic>>(:final errors):
         errors.forEach((key, value) => _errors[key] = value.first);
-      case ApiUnauthorized<Map<String, dynamic>>():
+      case ApiUnauthorized<Map<String, dynamic>>(:final message):
         showAppSnackbar(
           context,
-          'Invalid phone number or password.',
+          message ?? 'Invalid phone number or password.',
           type: SnackbarType.error,
         );
       case ApiNetworkError<Map<String, dynamic>>():

@@ -24,7 +24,8 @@ final class ApiNetworkError<T> extends ApiResult<T> {
 }
 
 final class ApiUnauthorized<T> extends ApiResult<T> {
-  const ApiUnauthorized();
+  const ApiUnauthorized([this.message]);
+  final String? message;
 }
 
 final class ApiRateLimited<T> extends ApiResult<T> {
