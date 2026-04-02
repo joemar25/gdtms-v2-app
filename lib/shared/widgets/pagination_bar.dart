@@ -18,13 +18,6 @@ class PaginationBar extends StatelessWidget {
   final int totalCount;
   final ValueChanged<int> onPageChanged;
 
-  /// Returns up to 5 page numbers centred around [currentPage].
-  List<int> get _pageNumbers {
-    if (totalPages <= 7) return List.generate(totalPages, (i) => i);
-    final start = (currentPage - 2).clamp(0, totalPages - 5);
-    return List.generate(5, (i) => start + i);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -32,140 +25,103 @@ class PaginationBar extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A2E) : cs.surface,
+        color: isDark ? const Color(0xFF161625) : cs.surface,
         border: Border(
           top: BorderSide(
-            color: isDark ? Colors.white12 : Colors.grey.shade200,
+            color: isDark ? Colors.white10 : Colors.grey.shade200,
           ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Range label ─────────────────────────────────────────────────
-          Text(
-            '$firstItem–$lastItem of $totalCount',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-              letterSpacing: 0.3,
-            ),
-          ),
-          const SizedBox(height: 6),
-          // ── Page controls ───────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // First page
-              _NavButton(
-                icon: Icons.first_page_rounded,
-                enabled: currentPage > 0,
-                onTap: () => onPageChanged(0),
-              ),
-              // Previous
-              _NavButton(
-                icon: Icons.chevron_left_rounded,
-                enabled: currentPage > 0,
-                onTap: () => onPageChanged(currentPage - 1),
-              ),
-              const SizedBox(width: 4),
-              // Page number chips
-              ..._pageNumbers.map(
-                (page) => _PageChip(
-                  page: page,
-                  isSelected: page == currentPage,
-                  onTap: () => onPageChanged(page),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Left: Range details
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'LISTING $firstItem – $lastItem',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                    letterSpacing: 1.1,
+                  ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  'OF $totalCount ENTRIES',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ],
+            ),
+
+            // Right: Page Indicator + Swipe Prompt
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(20),
               ),
-              const SizedBox(width: 4),
-              // Next
-              _NavButton(
-                icon: Icons.chevron_right_rounded,
-                enabled: currentPage < totalPages - 1,
-                onTap: () => onPageChanged(currentPage + 1),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (currentPage > 0)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => onPageChanged(currentPage - 1),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.keyboard_arrow_left_rounded,
+                          size: 16,
+                          color: cs.onSurface.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      'PAGE ${currentPage + 1} / $totalPages',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: cs.primary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+
+                  if (currentPage < totalPages - 1)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => onPageChanged(currentPage + 1),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.keyboard_arrow_right_rounded,
+                          size: 16,
+                          color: cs.onSurface.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              // Last page
-              _NavButton(
-                icon: Icons.last_page_rounded,
-                enabled: currentPage < totalPages - 1,
-                onTap: () => onPageChanged(totalPages - 1),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavButton extends StatelessWidget {
-  const _NavButton({
-    required this.icon,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Icon(
-          icon,
-          size: 22,
-          color: enabled ? cs.onSurface : cs.onSurface.withValues(alpha: 0.25),
-        ),
-      ),
-    );
-  }
-}
-
-class _PageChip extends StatelessWidget {
-  const _PageChip({
-    required this.page,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final int page;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: isSelected ? null : onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: isSelected ? cs.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: isSelected
-              ? null
-              : Border.all(color: cs.outline.withValues(alpha: 0.3)),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          '${page + 1}',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: isSelected ? cs.onPrimary : cs.onSurface,
-          ),
+            ),
+          ],
         ),
       ),
     );

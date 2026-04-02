@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
 /// A delivery record stored locally in SQLite after dispatch acceptance.
 ///
@@ -41,19 +42,26 @@ class LocalDelivery {
   final String rawJson;
   final int createdAt;
   final int updatedAt;
+
   /// Millisecond timestamp when this delivery was part of a paid payout.
   final int? paidAt;
+
   /// Millisecond timestamp when this delivery transitioned to [delivered] status.
   final int? deliveredAt;
+
   /// Millisecond timestamp when this delivery transitioned to any terminal
   /// status (delivered, rts, osa). used for today-only filtering.
   final int? completedAt;
+
   /// Timestamp of last server-side update.
   final int? serverUpdatedAt;
+
   /// 'clean', 'dirty', or 'conflict'
   final String syncStatus;
+
   /// True if missing from server list
   final bool isArchived;
+
   /// RTS verification: 'unvalidated', 'verified_with_pay', 'verified_no_pay'
   final String rtsVerificationStatus;
 
@@ -90,21 +98,24 @@ class LocalDelivery {
       recipientName: _str(json, 'name'),
       // 'address' is the delivery address in the eligibility response.
       deliveryAddress: _str(json, 'address'),
-      deliveryStatus: (_str(json, 'delivery_status') ?? 'PENDING').toUpperCase(),
+      deliveryStatus: (_str(json, 'delivery_status') ?? 'PENDING')
+          .toUpperCase(),
       // 'product' carries the mail/product type in the eligibility response.
       mailType: _str(json, 'product') ?? _str(json, 'mail_type'),
       dispatchCode: dispatchCode,
       rawJson: jsonEncode(json),
       createdAt: now,
       updatedAt: now,
-      completedAt: (json['delivery_status']?.toString().toUpperCase() == 'DELIVERED' ||
+      completedAt:
+          (json['delivery_status']?.toString().toUpperCase() == 'DELIVERED' ||
               json['delivery_status']?.toString().toUpperCase() == 'RTS' ||
               json['delivery_status']?.toString().toUpperCase() == 'OSA')
           ? now
           : null,
       syncStatus: 'clean',
       isArchived: false,
-      rtsVerificationStatus: _str(json, 'rts_verification_status') ?? 'unvalidated',
+      rtsVerificationStatus:
+          _str(json, 'rts_verification_status') ?? 'unvalidated',
     );
   }
 
@@ -132,14 +143,24 @@ class LocalDelivery {
         '';
 
     // serverStatus is the endpoint bucket we fetched from ('PENDING', 'DELIVERED',
-    // 'RTS', 'OSA'). Use it as the primary status — the API sometimes returns an
-    // internal delivery_status value that differs from our local taxonomy (e.g.
-    // 'for_delivery', 'completed'). Fall back to the JSON field only when no
-    // serverStatus is provided (e.g. the per-barcode reconciliation path).
-    final status = (serverStatus.isNotEmpty
-        ? serverStatus
-        : (_str(json, 'delivery_status') ?? 'PENDING')).toUpperCase();
-    debugPrint('[API-STATUS] barcode=$barcode raw_json_status=${json['delivery_status']} bucket=$serverStatus → final=$status');
+    // 'RTS', 'OSA'). We previously used it as the primary status, which caused
+    // issues when the API item contains a more specific state like 'DISPATCHED'.
+    //
+    // New Rule: If the JSON contains a non-pending status, we trust it over the
+    // bucket status to prevent regressions (e.g. DISPATCHED showing as DELIVERED
+    // if the server inadvertently includes it in the wrong list).
+    final jsonStatus = (_str(json, 'delivery_status') ?? '').toUpperCase();
+    final status =
+        (jsonStatus.isNotEmpty &&
+                    jsonStatus != 'PENDING' &&
+                    jsonStatus != 'FOR_DELIVERY'
+                ? jsonStatus
+                : (serverStatus.isNotEmpty ? serverStatus : 'PENDING'))
+            .toUpperCase();
+
+    debugPrint(
+      '[API-STATUS] barcode=$barcode json=$jsonStatus bucket=$serverStatus → final=$status',
+    );
 
     // Derive deliveredAt from server-provided date fields when available.
     // Only use delivered_date — transaction_at is the package creation date
@@ -150,9 +171,10 @@ class LocalDelivery {
     if (status == 'DELIVERED') {
       final dateStr = _str(json, 'delivered_date');
       if (dateStr != null) {
-        try {
-          deliveredAt = DateTime.parse(dateStr).millisecondsSinceEpoch;
-        } catch (_) {
+        final parsedDate = parseServerDate(dateStr);
+        if (parsedDate != null) {
+          deliveredAt = parsedDate.millisecondsSinceEpoch;
+        } else {
           deliveredAt = now;
         }
       } else {
@@ -193,7 +215,8 @@ class LocalDelivery {
       serverUpdatedAt: _dateMs(json, 'updated_at'),
       syncStatus: 'clean',
       isArchived: false,
-      rtsVerificationStatus: _str(json, 'rts_verification_status') ?? 'unvalidated',
+      rtsVerificationStatus:
+          _str(json, 'rts_verification_status') ?? 'unvalidated',
     );
   }
 
@@ -217,7 +240,8 @@ class LocalDelivery {
       serverUpdatedAt: row['server_updated_at'] as int?,
       syncStatus: row['sync_status'] as String? ?? 'clean',
       isArchived: (row['is_archived'] as int? ?? 0) == 1,
-      rtsVerificationStatus: row['rts_verification_status'] as String? ?? 'unvalidated',
+      rtsVerificationStatus:
+          row['rts_verification_status'] as String? ?? 'unvalidated',
     );
   }
 
@@ -299,7 +323,8 @@ class LocalDelivery {
       serverUpdatedAt: serverUpdatedAt ?? this.serverUpdatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       isArchived: isArchived ?? this.isArchived,
-      rtsVerificationStatus: rtsVerificationStatus ?? this.rtsVerificationStatus,
+      rtsVerificationStatus:
+          rtsVerificationStatus ?? this.rtsVerificationStatus,
     );
   }
 
@@ -315,10 +340,6 @@ class LocalDelivery {
   static int? _dateMs(Map<String, dynamic> json, String key) {
     final str = _str(json, key);
     if (str == null) return null;
-    try {
-      return DateTime.parse(str).millisecondsSinceEpoch;
-    } catch (_) {
-      return null;
-    }
+    return parseServerDate(str)?.millisecondsSinceEpoch;
   }
 }

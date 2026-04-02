@@ -14,10 +14,12 @@ class ApiReachabilityNotifier extends Notifier<bool> {
   Timer? _timer;
   bool _disposed = false;
 
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 5),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+    ),
+  );
 
   @override
   bool build() {
@@ -39,7 +41,9 @@ class ApiReachabilityNotifier extends Notifier<bool> {
 
   Future<void> _ping() async {
     final connectivity = ref.read(connectivityStreamProvider).asData?.value;
-    final hasNetwork = connectivity != null && connectivity.any((r) => r != ConnectivityResult.none);
+    final hasNetwork =
+        connectivity != null &&
+        connectivity.any((r) => r != ConnectivityResult.none);
 
     // If device has no network, we can't be online
     if (!hasNetwork) {
@@ -64,17 +68,20 @@ class ApiReachabilityNotifier extends Notifier<bool> {
   }
 }
 
-final apiReachabilityProvider =
-    NotifierProvider<ApiReachabilityNotifier, bool>(ApiReachabilityNotifier.new);
+final apiReachabilityProvider = NotifierProvider<ApiReachabilityNotifier, bool>(
+  ApiReachabilityNotifier.new,
+);
 
 /// A simple bool that is `true` when any non-none connectivity exists
 /// AND the API server is reachable.
 final isOnlineProvider = Provider<bool>((ref) {
-  final hasNetwork = ref.watch(connectivityStreamProvider).when(
-    data: (results) => results.any((r) => r != ConnectivityResult.none),
-    loading: () => false,
-    error: (_, __) => false,
-  );
+  final hasNetwork = ref
+      .watch(connectivityStreamProvider)
+      .when(
+        data: (results) => results.any((r) => r != ConnectivityResult.none),
+        loading: () => false,
+        error: (_, __) => false,
+      );
 
   if (!hasNetwork) return false;
 

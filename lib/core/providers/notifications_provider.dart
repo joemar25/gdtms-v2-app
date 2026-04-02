@@ -149,9 +149,9 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
       final rawList = data['data'];
       final entries = rawList is List
           ? rawList
-              .whereType<Map<String, dynamic>>()
-              .map(AppNotification.fromJson)
-              .toList()
+                .whereType<Map<String, dynamic>>()
+                .map(AppNotification.fromJson)
+                .toList()
           : <AppNotification>[];
       final meta = asStringDynamicMap(data['meta']);
       final lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
@@ -189,9 +189,9 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
       final rawList = data['data'];
       final more = rawList is List
           ? rawList
-              .whereType<Map<String, dynamic>>()
-              .map(AppNotification.fromJson)
-              .toList()
+                .whereType<Map<String, dynamic>>()
+                .map(AppNotification.fromJson)
+                .toList()
           : <AppNotification>[];
       final meta = asStringDynamicMap(data['meta']);
       final lastPage = (meta['last_page'] as num?)?.toInt() ?? state.lastPage;
@@ -225,17 +225,16 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
   Future<void> markAsRead(String id) async {
     // Optimistic local update.
     final updated = state.entries.map((n) {
-      return n.id == id ? n.copyWith(read: true, readAt: DateTime.now().toIso8601String()) : n;
+      return n.id == id
+          ? n.copyWith(read: true, readAt: DateTime.now().toIso8601String())
+          : n;
     }).toList();
     final wasUnread = state.entries.any((n) => n.id == id && !n.read);
     final newCount = wasUnread
-          ? (state.unreadCount - 1).clamp(0, double.maxFinite.toInt())
-          : state.unreadCount;
+        ? (state.unreadCount - 1).clamp(0, double.maxFinite.toInt())
+        : state.unreadCount;
 
-    state = state.copyWith(
-      entries: updated,
-      unreadCount: newCount,
-    );
+    state = state.copyWith(entries: updated, unreadCount: newCount);
 
     _saveOfflineCount(newCount);
 
@@ -248,7 +247,10 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
   /// Marks all notifications as read locally and persists to the server.
   Future<void> markAllAsRead() async {
     final updated = state.entries
-        .map((n) => n.copyWith(read: true, readAt: DateTime.now().toIso8601String()))
+        .map(
+          (n) =>
+              n.copyWith(read: true, readAt: DateTime.now().toIso8601String()),
+        )
         .toList();
     state = state.copyWith(entries: updated, unreadCount: 0);
     _saveOfflineCount(0);

@@ -1,4 +1,36 @@
+// =============================================================================
+// delivery_status_list_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   A single reusable paginated list screen that displays deliveries filtered
+//   by a specific status (PENDING, DELIVERED, RTS, OSA, DISPATCHED). It is
+//   instantiated once per status tab on the dashboard.
+//
+// Key behaviours:
+//   • Offline-first — all data is read from local SQLite, never directly from
+//     the API during normal list render.
+//   • Sync-lock badges — deliveries with an active sync-queue entry show a blue
+//     "PENDING SYNC" badge and their UPDATE action is disabled on the detail
+//     screen, preventing double-submission.
+//   • Pagination — configurable page size (_kPageSize). Swipe left/right
+//     to navigate pages with haptic feedback.
+//   • Search — full-text search across barcode and recipient name, debounced.
+//   • Status summary strip — shows total, unsynced, and in-queue counts at
+//     the top of the list when results are present.
+//   • Pull-to-refresh — triggers a bootstrap from the server when online.
+//
+// Data:
+//   [LocalDeliveryDao] + [SyncOperationsDao] → SQLite (offline-first).
+//   Refresh is triggered via [deliveryRefreshProvider].
+//
+// Navigation:
+//   Route: /deliveries?status=<STATUS>
+//   Pushed from: DashboardScreen stat cards
+// =============================================================================
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +41,7 @@ import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
@@ -19,11 +52,10 @@ import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/search_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
-
-const int _kPageSize = 10;
+import 'package:fsi_courier_app/styles/color_styles.dart';
 
 /// A single list screen reused for every delivery status filter
-/// (pending, delivered, rts, osa).
+/// (pending, delivered, rts, osa, dispatched).
 ///
 /// Data is always read from local SQLite — the app is offline-first.
 /// The list refreshes whenever [deliveryRefreshProvider] increments (on
@@ -51,6 +83,10 @@ class _DeliveryStatusListScreenState
   int _totalCount = 0;
   List<Map<String, dynamic>> _items = [];
 
+  int get _kPageSize => ref.read(compactModeProvider)
+      ? kCompactDeliveriesPerPage
+      : kDeliveriesPerPage;
+
   int get _totalPages => (_totalCount / _kPageSize).ceil().clamp(1, 999999);
   int get _firstItem => _totalCount == 0 ? 0 : _currentPage * _kPageSize + 1;
   int get _lastItem => (_firstItem + _items.length - 1).clamp(0, _totalCount);
@@ -66,10 +102,6 @@ class _DeliveryStatusListScreenState
   final _scrollController = ScrollController();
 
   // ── Sync-lock ──────────────────────────────────────────────────────────────
-  // Barcodes that have an active sync operation (pending/processing/failed/
-  // conflict). Cards for these deliveries show a "PENDING SYNC" badge and
-  // cannot be re-updated until the operation resolves. Loaded alongside every
-  // page fetch in a single DB round-trip via getSyncQueuedBarcodes().
   Set<String> _queuedBarcodes = {};
 
   List<Map<String, dynamic>> get _displayed =>
@@ -100,9 +132,10 @@ class _DeliveryStatusListScreenState
     };
     if (!mounted) return;
     final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
-    _queuedBarcodes = await SyncOperationsDao.instance.getSyncQueuedBarcodes(courierId);
+    _queuedBarcodes = await SyncOperationsDao.instance.getSyncQueuedBarcodes(
+      courierId,
+    );
     if (!mounted) return;
-    // If page is out of range (e.g. after a refresh), clamp to last page.
     final totalPages = (total / _kPageSize).ceil().clamp(1, 999999);
     if (_currentPage > 0 && _currentPage >= totalPages) {
       _currentPage = totalPages - 1;
@@ -113,7 +146,6 @@ class _DeliveryStatusListScreenState
       _totalCount = total;
       _loading = false;
     });
-    // Scroll back to top on every page change.
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0);
     }
@@ -187,7 +219,6 @@ class _DeliveryStatusListScreenState
       base['barcode_value'] = row.barcode;
     }
     if (row.paidAt != null) base['_paid_at'] = row.paidAt;
-    // Always stamp from the model field — raw JSON may lag behind local updates.
     base['_rts_verification_status'] = row.rtsVerificationStatus;
     base['_sync_status'] = row.syncStatus;
     base['_in_sync_queue'] = _queuedBarcodes.contains(row.barcode);
@@ -233,11 +264,19 @@ class _DeliveryStatusListScreenState
 
   String _emptyMessage() => switch (widget.status.toUpperCase()) {
     'PENDING' => 'No active deliveries.',
-    'DELIVERED' => "No delivered items today.",
-    'RTS' => "No RTS mailpacks today.",
-    'OSA' => "No OSA mailpacks today.",
+    'DELIVERED' => 'No delivered items today.',
+    'DISPATCHED' => 'No dispatched items.',
+    'RTS' => 'No RTS mailpacks today.',
+    'OSA' => 'No OSA mailpacks today.',
     _ => 'No items found.',
   };
+
+  // ── Derived unsynced count from current page items ─────────────────────────
+  int get _unsyncedCount =>
+      _items.where((d) => d['_sync_status']?.toString() == 'dirty').length;
+
+  int get _inQueueCount =>
+      _items.where((d) => d['_in_sync_queue'] == true).length;
 
   @override
   Widget build(BuildContext context) {
@@ -246,116 +285,174 @@ class _DeliveryStatusListScreenState
       _load();
     });
 
+    ref.listen<bool>(compactModeProvider, (_, __) {
+      _currentPage = 0;
+      _load();
+    });
+
     final isCompact = ref.watch(compactModeProvider);
     final isOnline = ref.watch(isOnlineProvider);
     final displayed = _displayed;
     final isSearching = _searchQuery.trim().isNotEmpty;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark
+          ? ColorStyles.scaffoldDark
+          : ColorStyles.scaffoldLight,
       appBar: AppHeaderBar(
         title: widget.title,
         actions: _buildActions(context),
       ),
-      body: Column(
-        children: [
-          // ── Search bar ─────────────────────────────────────────────────────
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeInOut,
-            child: _showSearch
-                ? AppSearchBar(
-                    controller: _searchController,
-                    query: _searchQuery,
-                    hintText: 'BARCODE OR NAME',
-                    isLoading: _searchLoading,
-                    resultCount: isSearching
-                        ? (_searchLoading ? null : _searchResults.length)
-                        : null,
-                    totalCount:
-                        (!isSearching && _searchQuery.isEmpty) ? _totalCount : null,
-                    onChanged: (v) {
-                      setState(() => _searchQuery = v);
-                      _runSearch(v);
-                    },
-                    onClear: () {
-                      setState(() {
-                        _searchQuery = '';
-                        _searchResults = [];
-                        _searchController.clear();
-                      });
-                    },
-                  )
-                : const SizedBox.shrink(),
-          ),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          final velocity = details.primaryVelocity ?? 0;
+          if (velocity < -200 && _currentPage < _totalPages - 1) {
+            HapticFeedback.mediumImpact();
+            _goToPage(_currentPage + 1);
+          } else if (velocity > 200 && _currentPage > 0) {
+            HapticFeedback.mediumImpact();
+            _goToPage(_currentPage - 1);
+          }
+        },
+        child: Column(
+          children: [
+            // ── Search bar ─────────────────────────────────────────────────────
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              child: _showSearch
+                  ? AppSearchBar(
+                      controller: _searchController,
+                      query: _searchQuery,
+                      hintText: 'BARCODE OR NAME',
+                      isLoading: _searchLoading,
+                      resultCount: isSearching
+                          ? (_searchLoading ? null : _searchResults.length)
+                          : null,
+                      totalCount: (!isSearching && _searchQuery.isEmpty)
+                          ? _totalCount
+                          : null,
+                      onChanged: (v) {
+                        setState(() => _searchQuery = v);
+                        _runSearch(v);
+                      },
+                      onClear: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _searchResults = [];
+                          _searchController.clear();
+                        });
+                      },
+                    )
+                  : const SizedBox.shrink(),
+            ),
 
-          // ── List ───────────────────────────────────────────────────────────
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _onRefresh,
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : (_searchLoading && displayed.isEmpty)
-                  ? const Center(child: CircularProgressIndicator())
-                  : displayed.isEmpty
-                  ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        if (!isOnline) const OfflineBanner(isMinimal: true),
-                        SizedBox(
-                          height: 400,
-                          child: Center(
-                            child: Text(
-                              isSearching
-                                  ? 'No results for "$_searchQuery".'
-                                  : _emptyMessage(),
-                            ),
+            // ── Status summary strip ───────────────────────────────────────────
+            if (!_loading && !isSearching && _totalCount > 0)
+              _StatusSummaryStrip(
+                totalCount: _totalCount,
+                unsyncedCount: _unsyncedCount,
+                inQueueCount: _inQueueCount,
+                status: widget.status,
+                isDark: isDark,
+              ),
+
+            // ── List ───────────────────────────────────────────────────────────
+            Expanded(
+              child: RefreshIndicator(
+                color: ColorStyles.grabOrange,
+                onRefresh: _onRefresh,
+                child: _loading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation(
+                            ColorStyles.grabOrange,
                           ),
                         ),
-                      ],
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      itemCount: displayed.length + _bannerCount(isOnline),
-                      itemBuilder: (context, index) {
-                        final banners = _bannerCount(isOnline);
-                        if (index < banners) {
-                          return _buildBanner(index, isOnline);
-                        }
-                        final d = displayed[index - banners];
-                        final identifier = resolveDeliveryIdentifier(d);
-                        final deliveryStatus = d['delivery_status']?.toString() ?? widget.status;
-                        final isLocked = checkIsLockedFromMap(d);
-                        return DeliveryCard(
-                          delivery: d,
-                          compact: isCompact,
-                          showChevron: !isLocked,
-                          onTap: (identifier.isEmpty)
-                              ? () {}
-                              : (isLocked)
-                                  ? () => showInfoNotification(
-                                        context,
-                                        'This delivery is ${deliveryStatus.toLowerCase()} and cannot be opened for further details.',
-                                      )
-                                  : () => context.push('/deliveries/$identifier'),
-                        );
-                      },
-                    ),
+                      )
+                    : (_searchLoading && displayed.isEmpty)
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation(
+                            ColorStyles.grabOrange,
+                          ),
+                        ),
+                      )
+                    : displayed.isEmpty
+                    ? _EmptyState(
+                        message: isSearching
+                            ? 'No results for "$_searchQuery".'
+                            : _emptyMessage(),
+                        status: widget.status,
+                        isSearching: isSearching,
+                        isDark: isDark,
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                        itemCount: displayed.length + _bannerCount(isOnline),
+                        itemBuilder: (context, index) {
+                          final banners = _bannerCount(isOnline);
+                          if (index < banners) {
+                            return _buildBanner(index, isOnline, isDark);
+                          }
+                          final d = displayed[index - banners];
+                          final identifier = resolveDeliveryIdentifier(d);
+                          final deliveryStatus =
+                              d['delivery_status']?.toString() ?? 'PENDING';
+                          final isLocked = checkIsLockedFromMap(d);
+                          return DeliveryCard(
+                            delivery: d,
+                            compact: isCompact,
+                            showChevron: !isLocked,
+                            onTap: (identifier.isEmpty)
+                                ? () {}
+                                : (isLocked)
+                                ? () {
+                                    final s = deliveryStatus.toUpperCase();
+                                    final v =
+                                        (d['_rts_verification_status'] ??
+                                                'unvalidated')
+                                            .toString()
+                                            .toLowerCase();
+                                    String msg =
+                                        'This delivery is ${s.toLowerCase()} and cannot be opened.';
+                                    if (s == 'OSA') {
+                                      msg =
+                                          'This item is marked OSA and cannot be opened.';
+                                    } else if (s == 'DELIVERED') {
+                                      msg =
+                                          'This item has already been delivered and is sealed.';
+                                    } else if (s == 'RTS' &&
+                                        (v == 'verified_with_pay' ||
+                                            v == 'verified_no_pay')) {
+                                      msg =
+                                          'This RTS item has already been verified and is no longer actionable.';
+                                    }
+                                    showInfoNotification(context, msg);
+                                  }
+                                : () => context.push('/deliveries/$identifier'),
+                          );
+                        },
+                      ),
+              ),
             ),
-          ),
 
-          // ── Pagination bar (hidden in search mode) ─────────────────────────
-          if (!isSearching && !_loading && _totalCount > _kPageSize)
-            PaginationBar(
-              currentPage: _currentPage,
-              totalPages: _totalPages,
-              firstItem: _firstItem,
-              lastItem: _lastItem,
-              totalCount: _totalCount,
-              onPageChanged: _goToPage,
-            ),
-        ],
+            // ── Pagination bar ─────────────────────────────────────────────────
+            if (!isSearching && !_loading && _totalCount > _kPageSize)
+              PaginationBar(
+                currentPage: _currentPage,
+                totalPages: _totalPages,
+                firstItem: _firstItem,
+                lastItem: _lastItem,
+                totalCount: _totalCount,
+                onPageChanged: _goToPage,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -370,13 +467,10 @@ class _DeliveryStatusListScreenState
     return count;
   }
 
-  /// Builds a banner widget for the given [index] slot.
-  /// Banner order mirrors [_bannerCount]: offline → OSA/RTS/DELIVERED info.
-  Widget _buildBanner(int index, bool isOnline) {
+  Widget _buildBanner(int index, bool isOnline, bool isDark) {
     final status = widget.status.toUpperCase();
     int slot = 0;
 
-    // Slot 0 (when offline): offline notice
     if (!isOnline) {
       if (index == slot) {
         return const Padding(
@@ -387,65 +481,280 @@ class _DeliveryStatusListScreenState
       slot++;
     }
 
-    // Status-specific informational banners
     if (status == 'OSA' && index == slot) {
-      return _InfoBanner(
-        icon: Icons.info_outline_rounded,
-        message: 'OSA items can`t be opened. Return to FSI for verification.',
+      return _StatusInfoBanner(
+        icon: Icons.inventory_2_rounded,
+        message: 'OSA items can\'t be opened. Return to FSI for verification.',
+        statusColor: DeliveryCard.statusColor('OSA'),
+        isDark: isDark,
       );
     }
     if (status == 'RTS' && index == slot) {
-      return _InfoBanner(
+      return _StatusInfoBanner(
         icon: Icons.assignment_return_rounded,
-        message: 'RTS items can be re-delivered if still with you, unless already verified on-site.',
+        message:
+            'RTS items can be re-delivered if still with you, unless already verified on-site.',
+        statusColor: DeliveryCard.statusColor('RTS'),
+        isDark: isDark,
       );
     }
     if (status == 'DELIVERED' && index == slot) {
-      return _InfoBanner(
-        icon: Icons.check_circle_outline_rounded,
-        message: 'Delivered items are final and can`t be reopened.',
-        color: Colors.green,
+      return _StatusInfoBanner(
+        icon: Icons.check_circle_rounded,
+        message: 'Delivered items are final and can\'t be reopened.',
+        statusColor: DeliveryCard.statusColor('DELIVERED'),
+        isDark: isDark,
       );
     }
 
-    // Fallback (should not normally be reached)
     return const SizedBox.shrink();
   }
 }
 
-// ─── Small informational banner used inside delivery list ─────────────────────
-class _InfoBanner extends StatelessWidget {
-  const _InfoBanner({
+// ── Status summary strip ───────────────────────────────────────────────────────
+class _StatusSummaryStrip extends StatelessWidget {
+  const _StatusSummaryStrip({
+    required this.totalCount,
+    required this.unsyncedCount,
+    required this.inQueueCount,
+    required this.status,
+    required this.isDark,
+  });
+
+  final int totalCount;
+  final int unsyncedCount;
+  final int inQueueCount;
+  final String status;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtextColor = isDark
+        ? const Color(0xFF6B7280)
+        : const Color(0xFF9CA3AF);
+
+    final bgColor = isDark ? const Color(0xFF161625) : Colors.white;
+
+    final borderColor = isDark
+        ? const Color(0xFF2A2A40)
+        : const Color(0xFFE8EAF0);
+
+    // Only show the strip if there's something meaningful to display
+    if (unsyncedCount == 0 && inQueueCount == 0) {
+      return const SizedBox.shrink(); // Don't show empty strip
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          // Status text (always visible when strip is shown)
+          Expanded(
+            child: Text(
+              status,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: DeliveryCard.statusColor(status),
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          // Pills on the right
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (unsyncedCount > 0) ...[
+                _StripPill(
+                  label: '$unsyncedCount unsynced',
+                  fg: Colors.amber.shade700,
+                  bg: Colors.amber.shade50,
+                  border: Colors.amber.shade200,
+                ),
+                const SizedBox(width: 6),
+              ],
+              if (inQueueCount > 0)
+                _StripPill(
+                  label: '$inQueueCount syncing',
+                  fg: ColorStyles.blue,
+                  bg: const Color(0xFFE3F2FD),
+                  border: const Color(0xFF90CAF9),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StripPill extends StatelessWidget {
+  const _StripPill({
+    required this.label,
+    required this.fg,
+    required this.bg,
+    required this.border,
+  });
+
+  final String label;
+  final Color fg;
+  final Color bg;
+  final Color border;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: fg,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Styled empty state ─────────────────────────────────────────────────────────
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.message,
+    required this.status,
+    required this.isSearching,
+    required this.isDark,
+  });
+
+  final String message;
+  final String status;
+  final bool isSearching;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = DeliveryCard.statusColor(status);
+    final iconData = isSearching
+        ? Icons.search_off_rounded
+        : DeliveryCard.statusIcon(status);
+    final subtextColor = isDark
+        ? const Color(0xFF6B7280)
+        : const Color(0xFF9CA3AF);
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(
+          height: 400,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon circle
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.08),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: statusColor.withOpacity(0.18),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Icon(
+                    iconData,
+                    size: 28,
+                    color: statusColor.withOpacity(0.45),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFFCBD5E1)
+                        : const Color(0xFF374151),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Pull down to refresh',
+                  style: TextStyle(fontSize: 11, color: subtextColor),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Status-aware info banner ───────────────────────────────────────────────────
+class _StatusInfoBanner extends StatelessWidget {
+  const _StatusInfoBanner({
     required this.icon,
     required this.message,
-    this.color,
+    required this.statusColor,
+    required this.isDark,
   });
 
   final IconData icon;
   final String message;
-  final Color? color;
+  final Color statusColor;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = color ?? Colors.blueGrey;
+    final bg = isDark
+        ? ColorStyles.grabCardDark
+        : statusColor.withOpacity(0.06);
+    final border = isDark
+        ? statusColor.withOpacity(0.25)
+        : statusColor.withOpacity(0.22);
+    final textColor = isDark
+        ? statusColor.withOpacity(0.85)
+        : statusColor.withOpacity(0.9);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: effectiveColor.withValues(alpha: 0.25)),
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: effectiveColor),
+          Icon(icon, size: 15, color: textColor),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
               style: TextStyle(
                 fontSize: 12,
-                color: effectiveColor,
+                fontWeight: FontWeight.w500,
+                color: textColor,
+                height: 1.4,
               ),
             ),
           ),
@@ -454,4 +763,3 @@ class _InfoBanner extends StatelessWidget {
     );
   }
 }
-

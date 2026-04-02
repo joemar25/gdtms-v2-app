@@ -1,3 +1,26 @@
+// =============================================================================
+// signature_capture_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   Full-screen freehand signature pad used during the DELIVERED update flow.
+//   The courier hands the device to the recipient to sign, then taps DONE.
+//
+// Usage:
+//   Push via Navigator.push and await the result:
+//   ```dart
+//   final bytes = await Navigator.push<Uint8List?>(
+//     context,
+//     MaterialPageRoute(builder: (_) => const SignatureCaptureScreen()),
+//   );
+//   ```
+//   Returns the PNG bytes when the courier taps DONE, or null when cancelled.
+//   The PNG is stored locally and uploaded to S3/API during the next sync.
+//
+// Navigation:
+//   Not a GoRouter route — pushed imperatively from DeliveryUpdateScreen.
+// =============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:signature/signature.dart';
@@ -58,9 +81,13 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
     final hasStrokes = _controller.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: isDark ? ColorStyles.scaffoldDark : ColorStyles.scaffoldLight,
+      backgroundColor: isDark
+          ? ColorStyles.scaffoldDark
+          : ColorStyles.scaffoldLight,
       appBar: AppBar(
-        backgroundColor: isDark ? ColorStyles.appBarDark : ColorStyles.appBarLight,
+        backgroundColor: isDark
+            ? ColorStyles.appBarDark
+            : ColorStyles.appBarLight,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
@@ -70,6 +97,8 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
         ),
         title: const Text(
           'RECIPIENT SIGNATURE',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w800,

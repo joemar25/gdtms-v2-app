@@ -15,7 +15,8 @@ bool checkIsLocked({
 
   final isDelivered = s == 'DELIVERED';
   final isOsa = s == 'OSA';
-  final isRtsVerified = s == 'RTS' && (v == 'verified_with_pay' || v == 'verified_no_pay');
+  final isRtsVerified =
+      s == 'RTS' && (v == 'verified_with_pay' || v == 'verified_no_pay');
 
   return isDelivered || isOsa || isRtsVerified;
 }
@@ -23,14 +24,13 @@ bool checkIsLocked({
 /// Helper to check locking state from a delivery map (rawJson decoded).
 bool checkIsLockedFromMap(Map<String, dynamic> delivery) {
   final status = (delivery['delivery_status'] ?? 'PENDING').toString();
-  final rtsVerif = (delivery['rts_verification_status'] ?? 
-                    delivery['_rts_verification_status'] ?? 
-                    'unvalidated').toString();
-  
-  return checkIsLocked(
-    status: status,
-    rtsVerificationStatus: rtsVerif,
-  );
+  final rtsVerif =
+      (delivery['rts_verification_status'] ??
+              delivery['_rts_verification_status'] ??
+              'unvalidated')
+          .toString();
+
+  return checkIsLocked(status: status, rtsVerificationStatus: rtsVerif);
 }
 
 /// Extension on LocalDelivery for convenient access to locking logic.

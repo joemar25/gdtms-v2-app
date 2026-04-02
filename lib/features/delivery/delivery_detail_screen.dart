@@ -1,3 +1,33 @@
+// =============================================================================
+// delivery_detail_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   Read-only detail view for a single delivery item. Shows all available
+//   metadata (recipient, address, contact, mail type, dispatch info, notes)
+//   and provides the primary action to update the delivery status.
+//
+// Key behaviours:
+//   • UPDATE FAB — disabled (greyed out, "SYNC PENDING…") when the delivery has
+//     an active sync-queue entry, preventing double-submission.
+//   • Delivered lock — when status is DELIVERED, address and contact rows become
+//     non-tappable (no accidental navigation away).
+//   • Timeline — full status history rendered from rawJson, always visible
+//     (not gated by debug mode).
+//   • Tappable rows — delivery address launches Maps; contact number launches
+//     the dialler; both respect null-safety and lock state.
+//   • Online refresh — when online, pulls the latest server record and merges it
+//     into local SQLite before rendering.
+//
+// Data:
+//   Sourced from local SQLite ([LocalDeliveryDao.getByBarcode]). An optional
+//   online refresh is triggered on mount when connectivity is available.
+//
+// Navigation:
+//   Route: /deliveries/:barcode
+//   Pushed from: DeliveryStatusListScreen, SyncScreen, ScanScreen
+// =============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,10 +98,11 @@ class _DS {
   // Background: use [ColorStyles] tokens — do NOT hardcode raw Color() values.
   // These aliases keep existing references compiling while pointing to the
   // single source of truth.
-  static const Color bg = ColorStyles.scaffoldLight;      // light mode page bg
-  static const Color bgDark = ColorStyles.scaffoldDark;   // dark mode page bg
-  static const Color surface = ColorStyles.white;          // light card surface
-  static const Color surfaceDark = ColorStyles.grabCardDark; // dark card surface
+  static const Color bg = ColorStyles.scaffoldLight; // light mode page bg
+  static const Color bgDark = ColorStyles.scaffoldDark; // dark mode page bg
+  static const Color surface = ColorStyles.white; // light card surface
+  static const Color surfaceDark =
+      ColorStyles.grabCardDark; // dark card surface
 
   // Dividers / separators
   static const Color separator = Color(0xFFE5E5EA);
@@ -100,8 +131,9 @@ Future<void> showContactAppSheet(
   final cleaned = phone.trim();
   if (cleaned.isEmpty) return;
 
-  final encodedMsg =
-      messageTemplate != null ? Uri.encodeComponent(messageTemplate) : null;
+  final encodedMsg = messageTemplate != null
+      ? Uri.encodeComponent(messageTemplate)
+      : null;
 
   final apps = <_CommApp>[
     _CommApp(
@@ -362,27 +394,28 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     //
     // The scan screen also runs this check as a UX pre-filter, but the gate
     // HERE is the canonical, tamper-proof enforcement point.
-    final isVisible =
-        await LocalDeliveryDao.instance.isVisibleToRider(widget.barcode);
+    final isVisible = await LocalDeliveryDao.instance.isVisibleToRider(
+      widget.barcode,
+    );
     if (!mounted) return;
     if (!isVisible) {
       // Determine a helpful message based on the local record's status.
-      final local =
-          await LocalDeliveryDao.instance.getByBarcode(widget.barcode);
+      final local = await LocalDeliveryDao.instance.getByBarcode(
+        widget.barcode,
+      );
       if (!mounted) return;
-      final status =
-          (local?.deliveryStatus ?? '').toUpperCase();
-      final rtsVerif =
-          (local?.rtsVerificationStatus ?? 'unvalidated').toLowerCase();
+      final status = (local?.deliveryStatus ?? '').toUpperCase();
+      final rtsVerif = (local?.rtsVerificationStatus ?? 'unvalidated')
+          .toLowerCase();
 
       String reason;
       if (status == 'OSA') {
         reason = 'OSA items cannot be opened.';
       } else if (status == 'RTS' &&
-          (rtsVerif == 'verified_with_pay' ||
-              rtsVerif == 'verified_no_pay')) {
+          (rtsVerif == 'verified_with_pay' || rtsVerif == 'verified_no_pay')) {
         // RULE: Verified RTS items are fully settled — no further action needed.
-        reason = 'This RTS item has already been verified and is no longer actionable.';
+        reason =
+            'This RTS item has already been verified and is no longer actionable.';
       } else {
         // RULE: Item not in today's active window (e.g. yesterday's DELIVERED/RTS/OSA).
         reason = 'This delivery is not in your active list.';
@@ -435,10 +468,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       }
     }
 
-    final local =
-        await LocalDeliveryDao.instance.getByBarcode(widget.barcode);
-    final pendingSync =
-        await SyncOperationsDao.instance.hasPendingSync(widget.barcode);
+    final local = await LocalDeliveryDao.instance.getByBarcode(widget.barcode);
+    final pendingSync = await SyncOperationsDao.instance.hasPendingSync(
+      widget.barcode,
+    );
 
     if (!mounted) return;
     if (local != null) {
@@ -537,8 +570,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       HapticFeedback.mediumImpact();
                       context.push('/deliveries/${widget.barcode}/update');
                     },
-              backgroundColor:
-                  _hasPendingSync ? _DS.labelSecondary : _DS.accent,
+              backgroundColor: _hasPendingSync
+                  ? _DS.labelSecondary
+                  : _DS.accent,
               elevation: _hasPendingSync ? 0 : 6,
               icon: _hasPendingSync
                   ? SizedBox(
@@ -582,8 +616,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         _DS.spacingMD,
                         showFab
                             ? _DS.spacingXL +
-                                88.0 +
-                                MediaQuery.of(context).padding.bottom
+                                  88.0 +
+                                  MediaQuery.of(context).padding.bottom
                             : _DS.spacingXL,
                       ),
                       children: [
@@ -604,40 +638,43 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                   bold: true,
                                   isDark: isDark,
                                 ),
-                              // ── Piece count badge (barcode with "/") ─────
-                              if (_pieceCountFromBarcode > 0) ...[
-                                _IosRowDivider(isDark: isDark),
-                                _IosRow(
-                                  label: 'Pieces',
-                                  value: '${_pieceCountFromBarcode} piece${_pieceCountFromBarcode > 1 ? 's' : ''} in this bundle',
-                                  isDark: isDark,
-                                ),
+                                // ── Piece count badge (barcode with "/") ─────
+                                if (_pieceCountFromBarcode > 0) ...[
+                                  _IosRowDivider(isDark: isDark),
+                                  _IosRow(
+                                    label: 'Pieces',
+                                    value:
+                                        '${_pieceCountFromBarcode} piece${_pieceCountFromBarcode > 1 ? 's' : ''} in this bundle',
+                                    isDark: isDark,
+                                  ),
+                                ],
+                                // Address and contact are only shown when delivery
+                                // is still actionable (PENDING or unverified RTS).
+                                if (_canShowContactInfo) ...[
+                                  _IosRowDivider(isDark: isDark),
+                                  _IosTappableRow(
+                                    label: 'Address',
+                                    value: _str('address'),
+                                    icon: Icons.map_rounded,
+                                    accentColor: _DS.accentBlue,
+                                    onTap: () => _launchMaps(_str('address')),
+                                    isDark: isDark,
+                                  ),
+                                  _IosRowDivider(isDark: isDark),
+                                  _IosTappableRow(
+                                    label: 'Contact',
+                                    value: _str('contact').cleanContactNumber(),
+                                    icon: Icons.phone_rounded,
+                                    accentColor: _DS.accent,
+                                    onTap: () => _onPhoneTap(
+                                      _str('contact').cleanContactNumber(),
+                                    ),
+                                    isDark: isDark,
+                                  ),
+                                ],
                               ],
-                              // Address and contact are only shown when delivery
-                              // is still actionable (PENDING or unverified RTS).
-                              if (_canShowContactInfo) ...[
-                                _IosRowDivider(isDark: isDark),
-                                _IosTappableRow(
-                                  label: 'Address',
-                                  value: _str('address'),
-                                  icon: Icons.map_rounded,
-                                  accentColor: _DS.accentBlue,
-                                  onTap: () => _launchMaps(_str('address')),
-                                  isDark: isDark,
-                                ),
-                                _IosRowDivider(isDark: isDark),
-                                _IosTappableRow(
-                                  label: 'Contact',
-                                  value: _str('contact').cleanContactNumber(),
-                                  icon: Icons.phone_rounded,
-                                  accentColor: _DS.accent,
-                                  onTap: () => _onPhoneTap(_str('contact').cleanContactNumber()),
-                                  isDark: isDark,
-                                ),
-                              ],
-                            ],
+                            ),
                           ),
-                        ),
 
                         // ── Delivery details (most important, always on top) ──
                         _buildDeliveryDetailsCard(isDark),
@@ -671,12 +708,16 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       title: !_loading
           ? Row(
               children: [
-                Text(
-                  widget.barcode,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2,
+                Flexible(
+                  child: Text(
+                    widget.barcode,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -707,14 +748,18 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         ),
                         const SizedBox(width: 5),
                       ],
-                      Text(
-                        status.isEmpty ? 'PENDING' : status.toDisplayStatus(),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: status == 'DELIVERED'
-                              ? ColorStyles.grabGreen
-                              : Colors.grey.shade700,
+                      Flexible(
+                        child: Text(
+                          status.isEmpty ? 'PENDING' : status.toDisplayStatus(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: status == 'DELIVERED'
+                                ? ColorStyles.grabGreen
+                                : Colors.grey.shade700,
+                          ),
                         ),
                       ),
                     ],
@@ -722,21 +767,25 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 ),
                 const SizedBox(width: 10),
                 // Mail type badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blueGrey.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _str('mail_type'),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.blueGrey,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blueGrey.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _str('mail_type'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blueGrey,
+                      ),
                     ),
                   ),
                 ),
@@ -752,7 +801,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
             ),
     );
   }
-
 
   // ─── Proof of delivery (all conditions preserved) ─────────────────────────
 
@@ -801,7 +849,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           : '';
     }
 
-    final hasAny = authRep.isNotEmpty ||
+    final hasAny =
+        authRep.isNotEmpty ||
         contactRep.isNotEmpty ||
         recipient.isNotEmpty ||
         relationship.isNotEmpty ||
@@ -820,78 +869,70 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _CardSectionHeader(label: 'Proof of Delivery', isDark: isDark),
-          if (recipient.isNotEmpty) ...[
-            _IosRow(
-              label: 'Received By',
-              value: recipient,
-              bold: true,
-              isDark: isDark,
-            ),
-          ],
-          if (authRep.isNotEmpty) ...[
-            _IosRowDivider(isDark: isDark),
-            _IosRow(
-              label: 'Authorized Rep',
-              value: authRep,
-              isDark: isDark,
-            ),
-          ],
-          if (relationship.isNotEmpty) ...[
-            _IosRowDivider(isDark: isDark),
-            _IosRow(
-              label: 'Relationship',
-              value: relationship,
-              isDark: isDark,
-            ),
-          ],
-          // Do not expose auth-rep contact number after delivery is complete.
-          if (contactRep.isNotEmpty &&
-              _str('delivery_status').toUpperCase() != 'DELIVERED') ...[
-            _IosRowDivider(isDark: isDark),
-            _IosTappableRow(
-              label: 'Contact',
-              value: contactRep.cleanContactNumber(),
-              icon: Icons.phone_rounded,
-              accentColor: _DS.accent,
-              onTap: () => _onPhoneTap(
-                contactRep.cleanContactNumber(),
-                targetName: authRep,
+            if (recipient.isNotEmpty) ...[
+              _IosRow(
+                label: 'Received By',
+                value: recipient,
+                bold: true,
+                isDark: isDark,
               ),
-              isDark: isDark,
-            ),
+            ],
+            if (authRep.isNotEmpty) ...[
+              _IosRowDivider(isDark: isDark),
+              _IosRow(label: 'Authorized Rep', value: authRep, isDark: isDark),
+            ],
+            if (relationship.isNotEmpty) ...[
+              _IosRowDivider(isDark: isDark),
+              _IosRow(
+                label: 'Relationship',
+                value: relationship,
+                isDark: isDark,
+              ),
+            ],
+            // Do not expose auth-rep contact number after delivery is complete.
+            if (contactRep.isNotEmpty &&
+                _str('delivery_status').toUpperCase() != 'DELIVERED') ...[
+              _IosRowDivider(isDark: isDark),
+              _IosTappableRow(
+                label: 'Contact',
+                value: contactRep.cleanContactNumber(),
+                icon: Icons.phone_rounded,
+                accentColor: _DS.accent,
+                onTap: () => _onPhoneTap(
+                  contactRep.cleanContactNumber(),
+                  targetName: authRep,
+                ),
+                isDark: isDark,
+              ),
+            ],
+            if (placementType.isNotEmpty && relationship.isEmpty) ...[
+              _IosRowDivider(isDark: isDark),
+              _IosRow(label: 'Placement', value: placementType, isDark: isDark),
+            ],
+            if (note.isNotEmpty) ...[
+              _IosRowDivider(isDark: isDark),
+              _IosRow(label: 'Note', value: note, isDark: isDark),
+            ],
+            if (transactionDateToShow.isNotEmpty) ...[
+              _IosRowDivider(isDark: isDark),
+              _IosRow(
+                label: 'Transaction',
+                value: transactionDateToShow,
+                isDark: isDark,
+              ),
+            ],
+            if (deliveredDateToShow.isNotEmpty) ...[
+              _IosRowDivider(isDark: isDark),
+              _IosRow(
+                label: 'Delivered',
+                value: deliveredDateToShow,
+                isDark: isDark,
+              ),
+            ],
           ],
-          if (placementType.isNotEmpty && relationship.isEmpty) ...[
-            _IosRowDivider(isDark: isDark),
-            _IosRow(
-              label: 'Placement',
-              value: placementType,
-              isDark: isDark,
-            ),
-          ],
-          if (note.isNotEmpty) ...[
-            _IosRowDivider(isDark: isDark),
-            _IosRow(label: 'Note', value: note, isDark: isDark),
-          ],
-          if (transactionDateToShow.isNotEmpty) ...[
-            _IosRowDivider(isDark: isDark),
-            _IosRow(
-              label: 'Transaction',
-              value: transactionDateToShow,
-              isDark: isDark,
-            ),
-          ],
-          if (deliveredDateToShow.isNotEmpty) ...[
-            _IosRowDivider(isDark: isDark),
-            _IosRow(
-              label: 'Delivered',
-              value: deliveredDateToShow,
-              isDark: isDark,
-            ),
-          ],
-        ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   // ─── RTS attempts (all conditions preserved) ──────────────────────────────
@@ -924,118 +965,123 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 _DS.spacingSM,
               ),
               child: Row(
-                  children: [
-                    Text(
-                      'RETURN ATTEMPTS',
-                      style: _DS.labelCaps.copyWith(
-                        color: isDark
-                            ? _DS.labelSecondaryDark
-                            : _DS.labelSecondary,
+                children: [
+                  Text(
+                    'RETURN ATTEMPTS',
+                    style: _DS.labelCaps.copyWith(
+                      color: isDark
+                          ? _DS.labelSecondaryDark
+                          : _DS.labelSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: _DS.spacingSM),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.white : _DS.labelPrimary)
+                          .withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(_DS.radiusBadge),
+                    ),
+                    child: Text(
+                      '${typedAttempts.length}',
+                      style: _DS.micro.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? _DS.labelPrimaryDark : _DS.labelPrimary,
                       ),
                     ),
-                    const SizedBox(width: _DS.spacingSM),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (isDark ? Colors.white : _DS.labelPrimary)
-                            .withValues(alpha: 0.08),
-                        borderRadius:
-                            BorderRadius.circular(_DS.radiusBadge),
-                      ),
-                      child: Text(
-                        '${typedAttempts.length}',
-                        style: _DS.micro.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? _DS.labelPrimaryDark
-                              : _DS.labelPrimary,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    if (isValidated)
-                      _PayBadge(isWithPay: isWithPay),
-                  ],
-                ),
+                  ),
+                  const Spacer(),
+                  if (isValidated) _PayBadge(isWithPay: isWithPay),
+                ],
               ),
+            ),
 
-              ...typedAttempts.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final attempt = Map<String, dynamic>.from(entry.value);
-                final attemptNum = (attempt['attempt'] as num?)?.toInt() ?? (idx + 1);
-                final label = _ordinal(attemptNum);
-                final reason = attempt['reason']?.toString() ?? '';
-                final timestamp = (attempt['timestamp'] ?? attempt['attempted_at'])?.toString() ?? '';
+            ...typedAttempts.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final attempt = Map<String, dynamic>.from(entry.value);
+              final attemptNum =
+                  (attempt['attempt'] as num?)?.toInt() ?? (idx + 1);
+              final label = _ordinal(attemptNum);
+              final reason = attempt['reason']?.toString() ?? '';
+              final timestamp =
+                  (attempt['timestamp'] ?? attempt['attempted_at'])
+                      ?.toString() ??
+                  '';
 
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _IosRowDivider(isDark: isDark),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        _DS.spacingMD,
-                        10,
-                        _DS.spacingMD,
-                        10,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(_DS.radiusBadge),
-                            ),
-                            child: Text(
-                              label,
-                              style: _DS.micro.copyWith(
-                                color: Colors.orange.shade700,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: _DS.spacingSM),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (timestamp.isNotEmpty)
-                                  Text(
-                                    formatDate(timestamp, includeTime: true),
-                                    style: _DS.micro.copyWith(
-                                      color: isDark ? _DS.labelSecondaryDark : _DS.labelSecondary,
-                                    ),
-                                  ),
-                                if (reason.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    reason,
-                                    style: _DS.bodyMedium.copyWith(
-                                      color: isDark ? _DS.labelPrimaryDark : _DS.labelPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _IosRowDivider(isDark: isDark),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      _DS.spacingMD,
+                      10,
+                      _DS.spacingMD,
+                      10,
                     ),
-                  ],
-                );
-              }),
-            ],
-          ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(
+                              _DS.radiusBadge,
+                            ),
+                          ),
+                          child: Text(
+                            label,
+                            style: _DS.micro.copyWith(
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: _DS.spacingSM),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (timestamp.isNotEmpty)
+                                Text(
+                                  formatDate(timestamp, includeTime: true),
+                                  style: _DS.micro.copyWith(
+                                    color: isDark
+                                        ? _DS.labelSecondaryDark
+                                        : _DS.labelSecondary,
+                                  ),
+                                ),
+                              if (reason.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  reason,
+                                  style: _DS.bodyMedium.copyWith(
+                                    color: isDark
+                                        ? _DS.labelPrimaryDark
+                                        : _DS.labelPrimary,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   static String _ordinal(int n) {
@@ -1059,11 +1105,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
     void addRow(String label, String raw, {bool includeTime = false}) {
       final v = raw.isNotEmpty
-          ? (label == 'Product' ||
-                  label == 'Transmittal' ||
-                  label == 'TAT'
-              ? formatDate(raw)
-              : raw)
+          ? (label == 'Product' || label == 'Transmittal' || label == 'TAT'
+                ? formatDate(raw)
+                : raw)
           : '';
       if (v.isEmpty) return;
       if (rows.isNotEmpty) rows.add(_IosRowDivider(isDark: isDark));
@@ -1150,7 +1194,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   }
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Pay badge (shared)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1161,18 +1204,10 @@ class _PayBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = isWithPay
-        ? Colors.teal.shade50
-        : Colors.red.shade50;
-    final borderColor = isWithPay
-        ? Colors.teal.shade200
-        : Colors.red.shade200;
-    final dotColor = isWithPay
-        ? Colors.green.shade500
-        : Colors.red.shade400;
-    final textColor = isWithPay
-        ? Colors.teal.shade700
-        : Colors.red.shade600;
+    final bgColor = isWithPay ? Colors.teal.shade50 : Colors.red.shade50;
+    final borderColor = isWithPay ? Colors.teal.shade200 : Colors.red.shade200;
+    final dotColor = isWithPay ? Colors.green.shade500 : Colors.red.shade400;
+    final textColor = isWithPay ? Colors.teal.shade700 : Colors.red.shade600;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -1187,10 +1222,7 @@ class _PayBadge extends StatelessWidget {
           Container(
             width: 6,
             height: 6,
-            decoration: BoxDecoration(
-              color: dotColor,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
           ),
           const SizedBox(width: 4),
           Text(
@@ -1212,10 +1244,7 @@ class _PayBadge extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _IosCard extends StatelessWidget {
-  const _IosCard({
-    required this.child,
-    required this.isDark,
-  });
+  const _IosCard({required this.child, required this.isDark});
   final Widget child;
   final bool isDark;
 
@@ -1227,8 +1256,7 @@ class _IosCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(_DS.radiusCard),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
             blurRadius: 16,
             offset: const Offset(0, 2),
           ),
@@ -1319,8 +1347,7 @@ class _IosRow extends StatelessWidget {
             child: Text(
               label,
               style: _DS.bodyMedium.copyWith(
-                color:
-                    isDark ? _DS.labelSecondaryDark : _DS.labelSecondary,
+                color: isDark ? _DS.labelSecondaryDark : _DS.labelSecondary,
                 fontSize: 13,
               ),
             ),
@@ -1330,11 +1357,8 @@ class _IosRow extends StatelessWidget {
               value,
               style: _DS.bodyMedium.copyWith(
                 fontSize: 14,
-                fontWeight:
-                    bold ? FontWeight.w700 : FontWeight.w500,
-                color: isDark
-                    ? _DS.labelPrimaryDark
-                    : _DS.labelPrimary,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                color: isDark ? _DS.labelPrimaryDark : _DS.labelPrimary,
               ),
             ),
           ),
@@ -1385,9 +1409,7 @@ class _IosTappableRow extends StatelessWidget {
                 child: Text(
                   label,
                   style: _DS.bodyMedium.copyWith(
-                    color: isDark
-                        ? _DS.labelSecondaryDark
-                        : _DS.labelSecondary,
+                    color: isDark ? _DS.labelSecondaryDark : _DS.labelSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -1466,16 +1488,13 @@ class _TimelineItem extends StatelessWidget {
                 Container(
                   width: 32,
                   height: 32,
-                  margin: const EdgeInsets.only(
-                    top: 12,
-                    left: _DS.spacingMD,
-                  ),
+                  margin: const EdgeInsets.only(top: 12, left: _DS.spacingMD),
                   decoration: BoxDecoration(
                     color: isFirst
                         ? _DS.accent
                         : (isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.grey.shade100),
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.grey.shade100),
                     shape: BoxShape.circle,
                     boxShadow: isFirst
                         ? [
@@ -1492,9 +1511,7 @@ class _TimelineItem extends StatelessWidget {
                     size: 15,
                     color: isFirst
                         ? Colors.white
-                        : (isDark
-                            ? Colors.white38
-                            : Colors.grey.shade400),
+                        : (isDark ? Colors.white38 : Colors.grey.shade400),
                   ),
                 ),
                 if (!isLast)
@@ -1502,9 +1519,7 @@ class _TimelineItem extends StatelessWidget {
                     child: Container(
                       width: 1.5,
                       margin: const EdgeInsets.only(left: _DS.spacingMD),
-                      color: isDark
-                          ? Colors.white12
-                          : Colors.grey.shade200,
+                      color: isDark ? Colors.white12 : Colors.grey.shade200,
                     ),
                   ),
               ],
@@ -1534,8 +1549,8 @@ class _TimelineItem extends StatelessWidget {
                             color: isFirst
                                 ? _DS.accent
                                 : (isDark
-                                    ? _DS.labelPrimaryDark
-                                    : _DS.labelPrimary),
+                                      ? _DS.labelPrimaryDark
+                                      : _DS.labelPrimary),
                           ),
                         ),
                       ),
@@ -1612,11 +1627,7 @@ class _OfflineBanner extends StatelessWidget {
       color: Colors.orange.shade700,
       child: Row(
         children: [
-          const Icon(
-            Icons.wifi_off_rounded,
-            size: 13,
-            color: Colors.white,
-          ),
+          const Icon(Icons.wifi_off_rounded, size: 13, color: Colors.white),
           const SizedBox(width: _DS.spacingSM),
           Text(
             'Offline — showing locally saved data',

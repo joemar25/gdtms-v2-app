@@ -43,7 +43,9 @@ class AppNotificationManager {
   static OverlayEntry? _overlayEntry;
 
   static void show(
-      BuildContext context, Widget Function(String id, VoidCallback onClose) builder) {
+    BuildContext context,
+    Widget Function(String id, VoidCallback onClose) builder,
+  ) {
     final String id = UniqueKey().toString();
 
     void close() {
@@ -76,52 +78,60 @@ class AppNotificationManager {
               child: Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.topCenter,
-                children: _entries.asMap().entries.map((kv) {
-                  int i = kv.key;
-                  var entry = kv.value;
+                children: _entries
+                    .asMap()
+                    .entries
+                    .map((kv) {
+                      int i = kv.key;
+                      var entry = kv.value;
 
-                  return AnimatedContainer(
-                    key: ValueKey(entry.id),
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOutCubic,
-                    margin: EdgeInsets.only(top: i * 12.0),
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: AnimatedScale(
-                      scale: 1.0 - (i * 0.05),
-                      alignment: Alignment.topCenter,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOutCubic,
-                      child: IgnorePointer(
-                        ignoring: i != 0, // Only the top notification is interactive
-                        child: Dismissible(
-                          key: ValueKey('dismiss_up_${entry.id}'),
-                          direction: DismissDirection.up,
-                          onDismissed: (_) {
-                            _entries.removeWhere((e) => e.id == entry.id);
-                            _overlayEntry?.markNeedsBuild();
-                            if (_entries.isEmpty) {
-                              _overlayEntry?.remove();
-                              _overlayEntry = null;
-                            }
-                          },
-                          child: Dismissible(
-                            key: ValueKey('dismiss_horiz_${entry.id}'),
-                            direction: DismissDirection.horizontal,
-                            onDismissed: (_) {
-                              _entries.removeWhere((e) => e.id == entry.id);
-                              _overlayEntry?.markNeedsBuild();
-                              if (_entries.isEmpty) {
-                                _overlayEntry?.remove();
-                                _overlayEntry = null;
-                              }
-                            },
-                            child: entry.banner,
+                      return AnimatedContainer(
+                        key: ValueKey(entry.id),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        margin: EdgeInsets.only(top: i * 12.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: AnimatedScale(
+                          scale: 1.0 - (i * 0.05),
+                          alignment: Alignment.topCenter,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          child: IgnorePointer(
+                            ignoring:
+                                i !=
+                                0, // Only the top notification is interactive
+                            child: Dismissible(
+                              key: ValueKey('dismiss_up_${entry.id}'),
+                              direction: DismissDirection.up,
+                              onDismissed: (_) {
+                                _entries.removeWhere((e) => e.id == entry.id);
+                                _overlayEntry?.markNeedsBuild();
+                                if (_entries.isEmpty) {
+                                  _overlayEntry?.remove();
+                                  _overlayEntry = null;
+                                }
+                              },
+                              child: Dismissible(
+                                key: ValueKey('dismiss_horiz_${entry.id}'),
+                                direction: DismissDirection.horizontal,
+                                onDismissed: (_) {
+                                  _entries.removeWhere((e) => e.id == entry.id);
+                                  _overlayEntry?.markNeedsBuild();
+                                  if (_entries.isEmpty) {
+                                    _overlayEntry?.remove();
+                                    _overlayEntry = null;
+                                  }
+                                },
+                                child: entry.banner,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                }).toList().reversed.toList(),
+                      );
+                    })
+                    .toList()
+                    .reversed
+                    .toList(),
               ),
             ),
           );
@@ -141,10 +151,7 @@ class AppNotificationManager {
   }
 }
 
-void showSuccessNotification(
-  BuildContext? context,
-  String message,
-) {
+void showSuccessNotification(BuildContext? context, String message) {
   final ctx = context ?? appScaffoldMessengerKey.currentContext;
   if (ctx == null || !ctx.mounted) return;
 
@@ -234,9 +241,9 @@ class _InfoBanner extends StatelessWidget {
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
             ),
           ),
           Stack(
@@ -262,10 +269,7 @@ class _InfoBanner extends StatelessWidget {
                 icon: const Icon(Icons.close, size: 16),
                 onPressed: onClose,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 style: IconButton.styleFrom(
                   foregroundColor: Colors.grey.shade500,
                 ),
@@ -320,9 +324,9 @@ class _SuccessBanner extends StatelessWidget {
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
             ),
           ),
           Stack(
@@ -348,10 +352,7 @@ class _SuccessBanner extends StatelessWidget {
                 icon: const Icon(Icons.close, size: 16),
                 onPressed: onClose,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 style: IconButton.styleFrom(
                   foregroundColor: Colors.grey.shade500,
                 ),

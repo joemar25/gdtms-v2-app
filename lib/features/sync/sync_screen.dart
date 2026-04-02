@@ -1,7 +1,77 @@
+// =============================================================================
+// sync_screen.dart  (shown in the app as "History")
+// =============================================================================
+//
+// Purpose:
+//   Displays the full history of delivery status updates that the courier has
+//   queued, along with their sync state. Acts as the courier's audit trail and
+//   recovery surface for items that failed to sync.
+//
+// Queue entry states:
+//   • pending   — created offline, not yet attempted.
+//   • processing — actively being uploaded (during an active sync run).
+//   • synced    — successfully confirmed by the server.
+//   • failed    — max retries exceeded; courier can retry manually.
+//   • conflict  — server rejected the update (e.g. already delivered by another
+//                 device); shown with an error message; auto-resolved in some
+//                 cases (same-status transition, delivered-immutable).
+//
+// Key behaviours:
+//   • Each entry shows barcode, status badge, mail type, and three timestamps:
+//     Delivered (local capture time), Queued (when action was saved), Synced.
+//   • Pagination with left/right swipe + haptic feedback.
+//   • Pull-to-refresh triggers a sync run (online only).
+//   • "Reload" action re-bootstraps deliveries from server (online only).
+//   • "Sync Now" manually triggers the queue processor (online only).
+//   • Long-press an entry to delete it from the history (with confirmation).
+//   • Locked entries (DELIVERED, verified RTS, OSA) are non-navigable and show
+//     an informational message when tapped.
+//
+// Navigation:
+//   Route: /sync
+//   Pushed from: DashboardScreen HISTORY card, AppHeaderBar on some screens
+// =============================================================================
+
+// =============================================================================
+// sync_screen.dart  (shown in the app as "History")
+// =============================================================================
+//
+// Purpose:
+//   Shows the courier's delivery update queue — every status change they have
+//   submitted, whether pending, syncing, synced, or in conflict. Acts as both
+//   a sync control panel and an audit trail of all actions taken.
+//
+// Key behaviours:
+//   • Queue list — each entry shows the barcode, status badge (Delivered/RTS/
+//     OSA), mail type, dispatch code, and three timestamps:
+//       - Delivered  : when the courier physically tapped SUBMIT (device-local
+//                      time via epoch ms — same timezone as Queued/Synced).
+//       - Queued     : when the sync operation was created locally.
+//       - Synced     : when the server confirmed the upload (green).
+//   • Sync Now button — manually triggers [SyncManager.processQueue] for all
+//     pending/failed entries (visible only when online and queue is non-empty).
+//   • Reload button — pulls a fresh bootstrap from the server to reconcile any
+//     out-of-band changes made via the web portal.
+//   • Pagination — swipe left/right with haptic feedback.
+//   • Long-press to delete a synced entry from the visual history.
+//   • Conflict entries show a red badge; tapping displays the server error.
+//   • Lock icon — terminal items (verified RTS, OSA, already-delivered) are
+//     sealed and navigating to them is blocked.
+//
+// Data:
+//   [SyncOperationsDao] for queue entries. [LocalDeliveryDao] for enriching
+//   each entry with recipient name, mail type, and date fields.
+//
+// Navigation:
+//   Route: /sync
+//   Accessed via: DashboardScreen HISTORY card
+// =============================================================================
+
 import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -46,7 +116,9 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
       final authStorage = ref.read(authStorageProvider);
       final lastSyncMs = await authStorage.getLastSyncTime();
       if (lastSyncMs != null) {
-        ref.read(lastSyncTimeProvider.notifier).setValue(DateTime.fromMillisecondsSinceEpoch(lastSyncMs));
+        ref
+            .read(lastSyncTimeProvider.notifier)
+            .setValue(DateTime.fromMillisecondsSinceEpoch(lastSyncMs));
       }
     });
   }
@@ -114,9 +186,14 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
         pageIcon: Icons.sync_rounded,
         actions: [
           // ── Sync Now (online only) ────────────────────────────────────
-          if (isOnline && syncState.entries.any(
-            (e) => e.status == 'pending' || e.status == 'error' || e.status == 'failed' || e.status == 'processing',
-          ))
+          if (isOnline &&
+              syncState.entries.any(
+                (e) =>
+                    e.status == 'pending' ||
+                    e.status == 'error' ||
+                    e.status == 'failed' ||
+                    e.status == 'processing',
+              ))
             TextButton.icon(
               onPressed: syncState.isSyncing
                   ? null
@@ -148,43 +225,65 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          _SyncHeader(isOnline: isOnline),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async {
-                if (ref.read(isOnlineProvider)) {
-                  await ref.read(syncManagerProvider.notifier).processQueue();
-                }
-                await ref.read(syncManagerProvider.notifier).loadEntries();
-              },
-              child: syncState.entries.isEmpty
-                  ? _EmptyState(isSyncing: syncState.isSyncing)
-                  : Column(
-                      children: [
-                        Expanded(
-                          child: _EntryList(
-                            syncState: syncState,
-                            deliveries: _deliveries,
-                            page: _currentPage,
-                            pageSize: _pageSize,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          final velocity = details.primaryVelocity ?? 0;
+          final totalPages = (syncState.entries.length / _pageSize).ceil();
+          // Swipe Left (velocity < 0) -> Next Page
+          if (velocity < -200 && _currentPage < totalPages) {
+            HapticFeedback.mediumImpact();
+            setState(() => _currentPage++);
+          }
+          // Swipe Right (velocity > 0) -> Previous Page
+          else if (velocity > 200 && _currentPage > 1) {
+            HapticFeedback.mediumImpact();
+            setState(() => _currentPage--);
+          }
+        },
+        child: Column(
+          children: [
+            _SyncHeader(isOnline: isOnline),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  if (ref.read(isOnlineProvider)) {
+                    await ref.read(syncManagerProvider.notifier).processQueue();
+                  }
+                  await ref.read(syncManagerProvider.notifier).loadEntries();
+                },
+                child: syncState.entries.isEmpty
+                    ? _EmptyState(isSyncing: syncState.isSyncing)
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: _EntryList(
+                              syncState: syncState,
+                              deliveries: _deliveries,
+                              page: _currentPage,
+                              pageSize: _pageSize,
+                            ),
                           ),
-                        ),
-                        if (syncState.entries.length > _pageSize)
-                          PaginationBar(
-                            currentPage: _currentPage - 1,
-                            totalPages: (syncState.entries.length / _pageSize).ceil(),
-                            firstItem: ((_currentPage - 1) * _pageSize) + 1,
-                            lastItem: math.min(_currentPage * _pageSize, syncState.entries.length),
-                            totalCount: syncState.entries.length,
-                            onPageChanged: (p) => setState(() => _currentPage = p + 1),
-                          ),
-                      ],
-                    ),
+                          if (syncState.entries.length > _pageSize)
+                            PaginationBar(
+                              currentPage: _currentPage - 1,
+                              totalPages: (syncState.entries.length / _pageSize)
+                                  .ceil(),
+                              firstItem: ((_currentPage - 1) * _pageSize) + 1,
+                              lastItem: math.min(
+                                _currentPage * _pageSize,
+                                syncState.entries.length,
+                              ),
+                              totalCount: syncState.entries.length,
+                              onPageChanged: (p) =>
+                                  setState(() => _currentPage = p + 1),
+                            ),
+                        ],
+                      ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -291,11 +390,14 @@ class _EntryList extends ConsumerWidget {
                   final confirmed = await ConfirmationDialog.show(
                     context,
                     title: 'Retry sync?',
-                    subtitle: 'This will attempt to upload this update to the server again.',
+                    subtitle:
+                        'This will attempt to upload this update to the server again.',
                     confirmLabel: 'Retry',
                   );
                   if (confirmed == true) {
-                    ref.read(syncManagerProvider.notifier).retrySingle(entry.id);
+                    ref
+                        .read(syncManagerProvider.notifier)
+                        .retrySingle(entry.id);
                   }
                 }
               : null,
@@ -304,11 +406,14 @@ class _EntryList extends ConsumerWidget {
                   final confirmed = await ConfirmationDialog.show(
                     context,
                     title: 'Resolve conflict?',
-                    subtitle: 'This will mark the update as "Resolved" locally without sending it to the server. Use this if you have manually confirmed the state on the server.',
+                    subtitle:
+                        'This will mark the update as "Resolved" locally without sending it to the server. Use this if you have manually confirmed the state on the server.',
                     confirmLabel: 'Resolve',
                   );
                   if (confirmed == true) {
-                    ref.read(syncManagerProvider.notifier).dismissConflict(entry.id);
+                    ref
+                        .read(syncManagerProvider.notifier)
+                        .dismissConflict(entry.id);
                   }
                 }
               : null,
@@ -317,12 +422,15 @@ class _EntryList extends ConsumerWidget {
                   final confirmed = await ConfirmationDialog.show(
                     context,
                     title: 'Delete operation?',
-                    subtitle: 'This will permanently remove this update from your sync queue. The local delivery status will NOT be reverted.',
+                    subtitle:
+                        'This will permanently remove this update from your sync queue. The local delivery status will NOT be reverted.',
                     confirmLabel: 'Delete',
                     isDestructive: true,
                   );
                   if (confirmed == true) {
-                    ref.read(syncManagerProvider.notifier).deleteSingle(entry.id);
+                    ref
+                        .read(syncManagerProvider.notifier)
+                        .deleteSingle(entry.id);
                   }
                 }
               : null,
@@ -372,18 +480,31 @@ class _EntryTile extends StatelessWidget {
     final deliveredDate = raw['delivered_date']?.toString() ?? '';
     final dispatchedAt = raw['dispatched_at']?.toString() ?? '';
 
+    // Use deliveredAt epoch ms for local-timezone display (same approach as
+    // Queued/Synced rows). Falls back to the server ISO string only when the
+    // local column is absent (e.g. records seeded purely from server bootstrap).
+    final deliveredAtMs = delivery!.deliveredAt;
+    final String dlDateResolved;
+    if (deliveredAtMs != null) {
+      dlDateResolved = DateFormat(
+        'MMM d, yyyy · h:mm a',
+      ).format(DateTime.fromMillisecondsSinceEpoch(deliveredAtMs));
+    } else if (deliveredDate.isNotEmpty) {
+      dlDateResolved = formatDate(deliveredDate, includeTime: true);
+    } else {
+      dlDateResolved = '';
+    }
+
     // If both dates exist and are the same, show only delivery date.
     final String txDate;
     final String dlDate;
     if (transactionAt.isNotEmpty &&
         deliveredDate.isNotEmpty &&
         transactionAt == deliveredDate) {
-      dlDate = formatDate(deliveredDate, includeTime: true);
+      dlDate = dlDateResolved;
       txDate = '';
     } else {
-      dlDate = deliveredDate.isNotEmpty
-          ? formatDate(deliveredDate, includeTime: true)
-          : '';
+      dlDate = dlDateResolved;
       txDate = transactionAt.isNotEmpty
           ? formatDate(transactionAt, includeTime: true)
           : '';
@@ -416,7 +537,8 @@ class _EntryTile extends StatelessWidget {
     final payloadStatus = _payloadStatus;
     final dates = _dates;
     final rtsVerif = (delivery?.rtsVerificationStatus ?? '').toLowerCase();
-    final isRtsVerified = payloadStatus.toLowerCase() == 'rts' &&
+    final isRtsVerified =
+        payloadStatus.toLowerCase() == 'rts' &&
         (rtsVerif == 'verified_with_pay' || rtsVerif == 'verified_no_pay');
     final isOsa = payloadStatus.toLowerCase() == 'osa';
     final isLocked = checkIsLocked(
@@ -425,11 +547,23 @@ class _EntryTile extends StatelessWidget {
     );
 
     return InkWell(
-      onTap: isLocked 
-          ? () => showInfoNotification(
-                context,
-                'This delivery is ${payloadStatus.toLowerCase()} and cannot be opened for details.',
-              )
+      onTap: isLocked
+          ? () {
+              final s = payloadStatus.toUpperCase();
+              final v = rtsVerif.toLowerCase();
+              String msg =
+                  'This delivery is ${s.toLowerCase()} and cannot be opened.';
+              if (s == 'OSA') {
+                msg = 'This item is marked OSA and cannot be opened.';
+              } else if (s == 'DELIVERED') {
+                msg = 'This item has already been delivered and is sealed.';
+              } else if (s == 'RTS' &&
+                  (v == 'verified_with_pay' || v == 'verified_no_pay')) {
+                msg =
+                    'This RTS item has already been verified and is no longer actionable.';
+              }
+              showInfoNotification(context, msg);
+            }
           : () => context.push('/deliveries/${entry.barcode}'),
       onLongPress: onDelete,
       child: Padding(
@@ -440,10 +574,7 @@ class _EntryTile extends StatelessWidget {
             // ── Status icon ──────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: _StatusChip(
-                status: entry.status,
-                isSyncing: isSyncing,
-              ),
+              child: _StatusChip(status: entry.status, isSyncing: isSyncing),
             ),
             const SizedBox(width: 12),
 
@@ -475,7 +606,9 @@ class _EntryTile extends StatelessWidget {
                   ),
 
                   // Recipient name
-                  if (recipientName != null && recipientName.isNotEmpty && !isLocked) ...[
+                  if (recipientName != null &&
+                      recipientName.isNotEmpty &&
+                      !isLocked) ...[
                     const SizedBox(height: 2),
                     Text(
                       recipientName,
@@ -572,7 +705,9 @@ class _EntryTile extends StatelessWidget {
                   ],
 
                   // Retry, Dismiss, or Delete buttons
-                  if (onRetry != null || onDismiss != null || onDelete != null) ...[
+                  if (onRetry != null ||
+                      onDismiss != null ||
+                      onDelete != null) ...[
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -588,7 +723,8 @@ class _EntryTile extends StatelessWidget {
                               child: const Text('RETRY'),
                             ),
                           ),
-                        if (onRetry != null && (onDismiss != null || onDelete != null))
+                        if (onRetry != null &&
+                            (onDismiss != null || onDelete != null))
                           const SizedBox(width: 16),
                         if (onDismiss != null)
                           SizedBox(

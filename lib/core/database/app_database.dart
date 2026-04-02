@@ -142,9 +142,7 @@ class AppDatabase {
       // This timestamp is used for all terminal statuses (delivered, rts, osa)
       // so that the today-only filter can be applied consistently across
       // all of them.
-      final cols = await db.rawQuery(
-        'PRAGMA table_info(local_deliveries)',
-      );
+      final cols = await db.rawQuery('PRAGMA table_info(local_deliveries)');
       final hasCompletedAt = cols.any((c) => c['name'] == 'completed_at');
       if (!hasCompletedAt) {
         await db.execute(
@@ -190,7 +188,9 @@ class AppDatabase {
       // Tracks RTS verification state. Note: this handles duplicate cases
       // caused by hot-reload interruptions during previous DB upgrade runs.
       final cols = await db.rawQuery('PRAGMA table_info(local_deliveries)');
-      final hasRtsStatus = cols.any((c) => c['name'] == 'rts_verification_status');
+      final hasRtsStatus = cols.any(
+        (c) => c['name'] == 'rts_verification_status',
+      );
       if (!hasRtsStatus) {
         await db.execute(
           "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",

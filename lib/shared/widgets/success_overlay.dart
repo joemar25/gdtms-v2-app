@@ -32,7 +32,10 @@ class _SuccessOverlayState extends State<SuccessOverlay> {
     return Container(
       color: Colors.black45,
       child: Center(
-        child: Lottie.asset('assets/anim/successfully-done.json', repeat: false),
+        child: Lottie.asset(
+          'assets/anim/successfully-done.json',
+          repeat: false,
+        ),
       ),
     );
   }

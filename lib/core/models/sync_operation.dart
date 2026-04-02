@@ -43,18 +43,18 @@ class SyncOperation {
   }
 
   Map<String, dynamic> toDb() => {
-        'id': id,
-        'courier_id': courierId,
-        'barcode': barcode,
-        'operation_type': operationType,
-        'payload_json': payloadJson,
-        if (mediaPathsJson != null) 'media_paths_json': mediaPathsJson,
-        'status': status,
-        'retry_count': retryCount,
-        if (lastError != null) 'last_error': lastError,
-        'created_at': createdAt,
-        if (lastAttemptAt != null) 'last_attempt_at': lastAttemptAt,
-      };
+    'id': id,
+    'courier_id': courierId,
+    'barcode': barcode,
+    'operation_type': operationType,
+    'payload_json': payloadJson,
+    if (mediaPathsJson != null) 'media_paths_json': mediaPathsJson,
+    'status': status,
+    'retry_count': retryCount,
+    if (lastError != null) 'last_error': lastError,
+    'created_at': createdAt,
+    if (lastAttemptAt != null) 'last_attempt_at': lastAttemptAt,
+  };
 
   SyncOperation copyWith({
     String? status,

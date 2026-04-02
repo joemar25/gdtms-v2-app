@@ -1,7 +1,12 @@
-const int kDashboardPerPage = 10;
-const int kDeliveriesPerPage = 10;
-const int kCompletedPerPage = 10;
-const int kDispatchesPerPage = 10;
+const int kDashboardPerPage = 5;
+const int kDeliveriesPerPage = 5;
+const int kCompletedPerPage = 5;
+const int kDispatchesPerPage = 5;
+
+const int kCompactDashboardPerPage = 15;
+const int kCompactDeliveriesPerPage = 15;
+const int kCompactCompletedPerPage = 15;
+const int kCompactDispatchesPerPage = 15;
 
 const int kMaxDeliveryImages = 10;
 const int kMaxNoteLength = 500;

@@ -11,8 +11,9 @@ class _DeliveryRefreshNotifier extends Notifier<int> {
   void increment() => state++;
 }
 
-final deliveryRefreshProvider =
-    NotifierProvider<_DeliveryRefreshNotifier, int>(_DeliveryRefreshNotifier.new);
+final deliveryRefreshProvider = NotifierProvider<_DeliveryRefreshNotifier, int>(
+  _DeliveryRefreshNotifier.new,
+);
 
 /// Incrementing counter used to signal that wallet data should be refreshed.
 /// Incremented after a successful payout request submission so WalletScreen
@@ -24,5 +25,6 @@ class _WalletRefreshNotifier extends Notifier<int> {
   void increment() => state++;
 }
 
-final walletRefreshProvider =
-    NotifierProvider<_WalletRefreshNotifier, int>(_WalletRefreshNotifier.new);
+final walletRefreshProvider = NotifierProvider<_WalletRefreshNotifier, int>(
+  _WalletRefreshNotifier.new,
+);

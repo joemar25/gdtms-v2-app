@@ -41,10 +41,14 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (pageIcon != null) ...[
-            Icon(pageIcon, size: 22, color: Theme.of(context).colorScheme.primary),
+            Icon(
+              pageIcon,
+              size: 22,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 8),
           ],
-          Text(title),
+          Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
         ],
       ),
       leading: leading,
@@ -64,10 +68,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
 }
 
 class _IOSNotificationBell extends StatefulWidget {
-  const _IOSNotificationBell({
-    required this.unreadCount,
-    required this.onTap,
-  });
+  const _IOSNotificationBell({required this.unreadCount, required this.onTap});
 
   final int unreadCount;
   final VoidCallback onTap;
@@ -179,9 +180,10 @@ class _CupertinoStyleBellButtonState extends State<CupertinoStyleBellButton>
       duration: const Duration(milliseconds: 80),
       reverseDuration: const Duration(milliseconds: 200),
     );
-    _pressScale = Tween(begin: 1.0, end: 0.82).animate(
-      CurvedAnimation(parent: _press, curve: Curves.easeIn),
-    );
+    _pressScale = Tween(
+      begin: 1.0,
+      end: 0.82,
+    ).animate(CurvedAnimation(parent: _press, curve: Curves.easeIn));
   }
 
   @override

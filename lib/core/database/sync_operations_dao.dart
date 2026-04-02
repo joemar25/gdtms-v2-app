@@ -21,12 +21,16 @@ class SyncOperationsDao {
   }
 
   /// Returns pending or failed operations ready for retry (respects exponential backoff).
-  Future<List<SyncOperation>> getPending(String courierId, {int limit = 5}) async {
+  Future<List<SyncOperation>> getPending(
+    String courierId, {
+    int limit = 5,
+  }) async {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
     final rows = await db.query(
       'sync_operations',
-      where: "courier_id = ? "
+      where:
+          "courier_id = ? "
           "AND status IN ('pending', 'failed') "
           "AND retry_count < 10 "
           "AND (last_attempt_at IS NULL OR last_attempt_at + ("
@@ -108,11 +112,7 @@ class SyncOperationsDao {
     final db = await _db;
     await db.update(
       'sync_operations',
-      {
-        'status': 'pending',
-        'retry_count': 0,
-        'last_error': null,
-      },
+      {'status': 'pending', 'retry_count': 0, 'last_error': null},
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -122,7 +122,8 @@ class SyncOperationsDao {
   Future<int> getPendingCount() async {
     final db = await _db;
     final rows = await db.rawQuery(
-        "SELECT COUNT(*) as c FROM sync_operations WHERE status IN ('pending', 'processing', 'failed', 'conflict')");
+      "SELECT COUNT(*) as c FROM sync_operations WHERE status IN ('pending', 'processing', 'failed', 'conflict')",
+    );
     return Sqflite.firstIntValue(rows) ?? 0;
   }
 
@@ -153,5 +154,22 @@ class SyncOperationsDao {
       [courierId],
     );
     return {for (final r in rows) r['barcode'] as String};
+  }
+
+  /// Gets the count of operations successfully synced today.
+  Future<int> getSyncedTodayCount() async {
+    final db = await _db;
+    final now = DateTime.now();
+    final dayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final rows = await db.rawQuery(
+      "SELECT COUNT(*) as c FROM sync_operations "
+      "WHERE status = 'synced' AND last_attempt_at >= ?",
+      [dayStart],
+    );
+    return Sqflite.firstIntValue(rows) ?? 0;
   }
 }

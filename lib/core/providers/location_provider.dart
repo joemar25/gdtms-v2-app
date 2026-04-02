@@ -65,8 +65,9 @@ class LocationProviderNotifier extends Notifier<LocationState>
 
   Future<void> _init() async {
     // Listen to GPS hardware toggle (user turns Location on/off in quick settings)
-    _serviceStatusSubscription =
-        Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
+    _serviceStatusSubscription = Geolocator.getServiceStatusStream().listen((
+      ServiceStatus status,
+    ) {
       _checkStatus();
     });
 

@@ -17,7 +17,11 @@ class EmptyState extends StatelessWidget {
             child: Lottie.asset('assets/anim/empty.json', repeat: false),
           ),
           const SizedBox(height: 12),
-          Text(message, style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ],
       ),
     );

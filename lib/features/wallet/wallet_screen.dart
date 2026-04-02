@@ -1,3 +1,34 @@
+// =============================================================================
+// wallet_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   Displays the courier's earnings wallet — their current balance, payout
+//   history, and the list of delivered items that are eligible for payout.
+//
+// Key behaviours:
+//   • Balance card — shows current available balance fetched from the server.
+//   • Delivered items list — paginated list of delivered parcels with their
+//     individual fees. Only deliveries that pass visibility rules (e.g. within
+//     the payout window, not already paid out) are shown. Locked items that
+//     fail visibility show a grey lock icon on the trailing edge.
+//   • REQUEST PAYOUT button — navigates to PayoutRequestScreen when the
+//     balance meets the minimum payout threshold.
+//   • Payout history — list of past payout requests with status (pending,
+//     approved, released) and amounts.
+//   • Offline guard — balance and history require connectivity; cached data is
+//     shown with a stale indicator when offline.
+//
+// Data:
+//   GET /wallet — balance and payout history (requires connectivity).
+//   Delivered items sourced from local SQLite via [LocalDeliveryDao].
+//
+// Navigation:
+//   Route: /wallet
+//   Pushed from: DashboardScreen WALLET card
+//   Pushes to: PayoutRequestScreen
+// =============================================================================
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -73,7 +104,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
     // Online: fetch summary
     final api = ref.read(apiClientProvider);
-    final result = await api.get<Map<String, dynamic>>('/wallet-summary', parser: parseApiMap);
+    final result = await api.get<Map<String, dynamic>>(
+      '/wallet-summary',
+      parser: parseApiMap,
+    );
 
     // Parse results and persist the full snapshot before the mounted check
     // so the cache is always written even if the user navigated away.
@@ -96,15 +130,21 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       bool isToday = false;
       if (requestedAt.isNotEmpty) {
         try {
-          final reqDate = DateTime.parse(requestedAt).toLocal();
-          final now = DateTime.now();
-          isToday = reqDate.year == now.year &&
-              reqDate.month == now.month &&
-              reqDate.day == now.day;
+          final parsedDate = parseServerDate(requestedAt);
+          if (parsedDate != null) {
+            final reqDate = parsedDate.toLocal();
+            final now = DateTime.now();
+            isToday =
+                reqDate.year == now.year &&
+                reqDate.month == now.month &&
+                reqDate.day == now.day;
+          }
         } catch (_) {}
       }
       newData['has_existing_request_today'] =
-          latestRequest != null && latestRequest['status']?.toString().toUpperCase() == 'PENDING' && isToday;
+          latestRequest != null &&
+          latestRequest['status']?.toString().toUpperCase() == 'PENDING' &&
+          isToday;
     }
 
     // ── Payout request history (from wallet-summary.payout_history.data) ────
@@ -121,7 +161,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       final grouped = <String, List<Map<String, dynamic>>>{};
       for (final req in rawList) {
         final dateField = req['date']?.toString();
-        final raw = dateField ??
+        final raw =
+            dateField ??
             req['from_date']?.toString() ??
             req['created_at']?.toString() ??
             req['requested_at']?.toString() ??
@@ -179,7 +220,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final tentativePayout = _data['tentative_pending_payout'] ?? 0;
     final latest = _data['latest_request'] ?? {};
     final latestStatus = latest['status']?.toString().toUpperCase() ?? '';
-    final isLatestPending = latestStatus == 'PENDING' ||
+    final isLatestPending =
+        latestStatus == 'PENDING' ||
         latestStatus == 'PROCESSING' ||
         latestStatus == 'OPS_APPROVED' ||
         latestStatus == 'HR_APPROVED' ||
@@ -258,7 +300,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             ),
                           ),
                         )
-                      else if (isLatestPending && _eligible > 0 && !hasExistingRequestToday)
+                      else if (isLatestPending &&
+                          _eligible > 0 &&
+                          !hasExistingRequestToday)
                         FilledButton.icon(
                           onPressed: () => context.push(
                             '/wallet/request',
@@ -465,7 +509,9 @@ class _EarningsCard extends StatelessWidget {
     final tentativeAmt = double.tryParse('$tentativePayout') ?? 0.0;
     final pendingAmt = double.tryParse('$pendingRequestAmt') ?? 0.0;
     final displayAmt = isLatestPending ? pendingAmt : tentativeAmt;
-    final displayLabel = isLatestPending ? 'Pending Payment Request' : 'Available for Request';
+    final displayLabel = isLatestPending
+        ? 'Pending Payment Request'
+        : 'Available for Request';
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -623,19 +669,28 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
               Row(
                 children: [
                   if (dateLabel != '—') ...[
-                    _InfoChip(
-                      icon: Icons.calendar_today_outlined,
-                      label: dateLabel,
+                    Flexible(
+                      child: _InfoChip(
+                        icon: Icons.calendar_today_outlined,
+                        label: dateLabel,
+                      ),
                     ),
                     const SizedBox(width: 10),
                   ],
                   if (totalItems != null) ...[
-                    _InfoChip(
-                      icon: Icons.inventory_2_outlined,
-                      label: '$totalItems items',
+                    Flexible(
+                      child: _InfoChip(
+                        icon: Icons.inventory_2_outlined,
+                        label: '$totalItems items',
+                      ),
                     ),
                   ] else if (paidAt != '—') ...[
-                    _InfoChip(icon: Icons.payments_outlined, label: paidAt),
+                    Flexible(
+                      child: _InfoChip(
+                        icon: Icons.payments_outlined,
+                        label: paidAt,
+                      ),
+                    ),
                   ],
                   const Spacer(),
                   Column(
@@ -670,15 +725,12 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, fg) = switch (status.toUpperCase()) {
       'PAID' => (const Color(0xFFE6F9EE), ColorStyles.grabGreen),
-      'APPROVED' || 'OPS_APPROVED' || 'HR_APPROVED' => (
-        const Color(0xFFE6F2FF),
-        Colors.blue.shade700,
-      ),
+      'APPROVED' ||
+      'OPS_APPROVED' ||
+      'HR_APPROVED' => (const Color(0xFFE6F2FF), Colors.blue.shade700),
       'REJECTED' => (const Color(0xFFFFEBEB), Colors.red.shade600),
-      'PENDING' || 'PROCESSING' => (
-        const Color(0xFFFFF4E0),
-        Colors.orange.shade700,
-      ),
+      'PENDING' ||
+      'PROCESSING' => (const Color(0xFFFFF4E0), Colors.orange.shade700),
       _ => (Colors.grey.shade100, Colors.grey.shade600),
     };
     return Container(
@@ -707,9 +759,13 @@ class _InfoChip extends StatelessWidget {
       children: [
         Icon(icon, size: 13, color: Colors.grey.shade500),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
         ),
       ],
     );

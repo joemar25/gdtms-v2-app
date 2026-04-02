@@ -33,7 +33,9 @@ class AuthState {
   }
 }
 
-final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);
 
 class AuthNotifier extends Notifier<AuthState> {
   AuthStorage get _authStorage => ref.read(authStorageProvider);
@@ -60,7 +62,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
     if (isAuth && courier != null) {
       final currentCourierId = courier['id']?.toString() ?? '';
-      if (currentCourierId.isNotEmpty && lastCourierId != null && currentCourierId != lastCourierId) {
+      if (currentCourierId.isNotEmpty &&
+          lastCourierId != null &&
+          currentCourierId != lastCourierId) {
         await AppDatabase.clearAllDeliveryData();
         await _authStorage.setLastCourierId(currentCourierId);
       } else if (lastCourierId == null && currentCourierId.isNotEmpty) {

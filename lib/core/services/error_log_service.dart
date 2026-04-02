@@ -30,12 +30,11 @@ class ErrorLogService {
     required String message,
     String? detail,
     String? barcode,
-  }) =>
-      log(
-        context: context,
-        message: message,
-        level: 'warning',
-        detail: detail,
-        barcode: barcode,
-      );
+  }) => log(
+    context: context,
+    message: message,
+    level: 'warning',
+    detail: detail,
+    barcode: barcode,
+  );
 }

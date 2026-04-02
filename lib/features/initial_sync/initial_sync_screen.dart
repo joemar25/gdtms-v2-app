@@ -104,7 +104,9 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                   LinearProgressIndicator(
                     borderRadius: BorderRadius.circular(4),
                     color: colorScheme.primary,
-                    backgroundColor: colorScheme.primary.withValues(alpha: 0.15),
+                    backgroundColor: colorScheme.primary.withValues(
+                      alpha: 0.15,
+                    ),
                   ),
               ],
             ),

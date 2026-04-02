@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Central color system for the FSI Courier App.
-/// 
+///
 /// This class defines all the color constants used throughout the application
 /// to ensure a consistent visual identity.
-/// 
+///
 /// ## Usage Guidelines
 /// - **Scaffold backgrounds**: Use [scaffoldLight] or [scaffoldDark]. These are
 ///   applied globally in the theme.
@@ -12,12 +12,12 @@ import 'package:flutter/material.dart';
 ///   applied globally in the theme.
 /// - **Cards / Elevated Surfaces**: Use [grabCardLight] or [grabCardDark].
 /// - **Brand Colors**: Use [grabGreen] for primary actions and [grabOrange] for warnings.
-/// 
+///
 /// Avoid hardcoding `Color(0xFF...)` values in individual screen files. Always
 /// reference a named constant from this class.
 class ColorStyles {
   // ── Base Colors ────────────────────────────────────────────────────────────
-  
+
   /// Fully transparent color. Used for overlays or containers that should not
   /// obscure the background.
   static const transparent = Colors.transparent;
@@ -29,7 +29,7 @@ class ColorStyles {
   static const white = Color(0xFFFFFFFF);
 
   // ── Brand Colors (Grab Express) ──────────────────────────────────────────
-  
+
   /// Primary brand green. Used for Call-to-Action (CTA) buttons, success states,
   /// and key highlights.
   /// HEX: #00B14F
@@ -45,7 +45,7 @@ class ColorStyles {
   static const grabOrange = Color(0xFFFF6E00);
 
   // ── App Semantic Colors ────────────────────────────────────────────────────
-  
+
   /// Primary theme color. Alias for [grabGreen].
   static const primary = grabGreen;
 
@@ -65,7 +65,7 @@ class ColorStyles {
   static const red = Color(0xFFD30000);
 
   // ── Scaffold & AppBar Backgrounds ──────────────────────────────────────────
-  // 
+  //
   // These are set globally in [app.dart] via ThemeData.scaffoldBackgroundColor
   // and ThemeData.appBarTheme. Individual screens should NOT override these
   // unless there is a specific design requirement.
@@ -87,7 +87,7 @@ class ColorStyles {
   static const appBarDark = Color(0xFF12121F);
 
   // ── Card / Surface Backgrounds ─────────────────────────────────────────────
-  // 
+  //
   // Used for DeliveryCard, BottomSheet, and any container that sits "above"
   // the scaffold background.
 

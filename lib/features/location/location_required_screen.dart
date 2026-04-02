@@ -62,11 +62,7 @@ class LocationRequiredScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(
-                icon,
-                size: 84,
-                color: ColorStyles.grabOrange,
-              ),
+              Icon(icon, size: 84, color: ColorStyles.grabOrange),
               const SizedBox(height: 32),
               Text(
                 title,

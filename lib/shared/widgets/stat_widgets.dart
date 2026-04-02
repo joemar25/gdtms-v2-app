@@ -61,6 +61,8 @@ class StatCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 count,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -70,6 +72,8 @@ class StatCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -81,6 +85,8 @@ class StatCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   details!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 ),
               ],
@@ -125,6 +131,8 @@ class ScanButton extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -136,6 +144,8 @@ class ScanButton extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 details!,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 textAlign: TextAlign.center,
               ),

@@ -41,8 +41,9 @@ class ConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final confirmColor =
-        isDestructive ? Colors.red.shade600 : ColorStyles.grabGreen;
+    final confirmColor = isDestructive
+        ? Colors.red.shade600
+        : ColorStyles.grabGreen;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -54,9 +55,9 @@ class ConfirmationDialog extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 10),
             Text(

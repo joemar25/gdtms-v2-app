@@ -1,3 +1,27 @@
+// =============================================================================
+// dispatch_list_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   Displays the courier's current dispatch batch — the set of deliveries
+//   assigned for today's run. The courier reviews the list, then confirms to
+//   start the dispatch and seed deliveries into their local SQLite queue.
+//
+// Key behaviours:
+//   • Fetches the dispatch list from GET /dispatch/items (requires connectivity).
+//   • Each item shows barcode, recipient, address, mail type, and dispatch code.
+//   • Compact / expanded card toggle respects the global compact mode setting.
+//   • Confirm DISPATCH button calls POST /dispatch/confirm and triggers a full
+//     delivery bootstrap, populating the local offline database.
+//   • Offline guard — screen is unreachable without network; an offline banner
+//     is shown and the confirm action is disabled.
+//
+// Navigation:
+//   Route: /dispatch/list
+//   Pushed from: DispatchEligibilityScreen (on eligible)
+//   Pops back to: DashboardScreen after successful dispatch confirmation
+// =============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,8 +29,8 @@ import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
@@ -43,11 +67,13 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
       return;
     }
     setState(() => _loading = true);
+    final isCompact = ref.read(compactModeProvider);
+    final pageSize = isCompact ? kCompactDispatchesPerPage : kDispatchesPerPage;
     final result = await ref
         .read(apiClientProvider)
         .get<Map<String, dynamic>>(
           '/pending-dispatches',
-          queryParameters: {'page': 1, 'per_page': kDispatchesPerPage},
+          queryParameters: {'page': 1, 'per_page': pageSize},
           parser: parseApiMap,
         );
 
@@ -109,6 +135,8 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<bool>(compactModeProvider, (_, __) => _load());
+    final isCompact = ref.watch(compactModeProvider);
     final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
@@ -126,7 +154,8 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
       body: !isOnline
           ? OfflinePlaceholder(
               onRetry: _load,
-              message: 'Viewing pending dispatches requires an internet connection.',
+              message:
+                  'Viewing pending dispatches requires an internet connection.',
             )
           : _loading
           ? const Center(child: CircularProgressIndicator())
@@ -158,14 +187,14 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                         final volume = item['volume']?.toString() ?? '-';
                         final tat = item['tat']?.toString() ?? '';
                         final status =
-                          item['status']?.toString().toDisplayStatus() ??
-                          'PENDING';
+                            item['status']?.toString().toDisplayStatus() ??
+                            'PENDING';
                         final isChecking = _checkingIndex == i;
 
                         // Add TAT label to reportingDate
                         final reportingDate = tat.isNotEmpty
-                          ? '${formatDate(tat)} (TAT)'
-                          : '-';
+                            ? '${formatDate(tat)} (TAT)'
+                            : '-';
 
                         // Map dispatch data to DeliveryCard format
                         final deliveryMap = {
@@ -174,24 +203,29 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                           'metadata': [
                             {
                               'icon': Icons.store_outlined,
-                              'label': branchName.isNotEmpty ? branchName : 'N/A'
+                              'label': branchName.isNotEmpty
+                                  ? branchName
+                                  : 'N/A',
                             },
                             {
                               'icon': Icons.inventory_2_outlined,
-                              'label': '$volume item${volume == '1' ? '' : 's'}'
+                              'label':
+                                  '$volume item${volume == '1' ? '' : 's'}',
                             },
                             {
                               'icon': Icons.event_outlined,
-                              'label': reportingDate
+                              'label': reportingDate,
                             },
                           ],
                         };
 
                         return DeliveryCard(
                           delivery: deliveryMap,
+                          compact: isCompact,
                           footerText: 'Tap to view and accept or reject',
                           isChecking: isChecking,
                           enableHoldToReveal: false,
+                          showChevron: false,
                           showLockIcon: false,
                           onTap: isChecking
                               ? null
@@ -203,4 +237,3 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
     );
   }
 }
-

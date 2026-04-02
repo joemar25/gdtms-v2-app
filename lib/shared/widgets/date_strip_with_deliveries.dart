@@ -95,6 +95,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
   late String? _selectedDate;
   int _daysShown = 30;
   bool _loadingMoreDates = false;
+
   /// Guards against load-more firing during the initial programmatic scroll.
   bool _loadMoreEnabled = false;
   late final ScrollController _scrollCtrl;
@@ -161,7 +162,6 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
     }
   }
 
-
   String _dateHeader(String d) {
     try {
       return DateFormat('EEE, MMM d').format(DateTime.parse(d));
@@ -177,7 +177,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
 
   int _countFor(String dateStr, Map<String, Map<String, dynamic>> index) {
     final d = index[dateStr];
-    
+
     // Fall back to list length if count fields are missing or zero but list has items.
     // This is crucial for history items that might not have explicit count metadata.
     final list = d?['deliveries'] as List?;
@@ -185,7 +185,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
 
     final fromCount = d?['delivery_count'] ?? d?['count'];
     if (fromCount != null) return (fromCount as num).toInt();
-    
+
     return 0;
   }
 
@@ -202,7 +202,9 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
   Widget _buildContent(BuildContext context, bool isCompact) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? ColorStyles.grabCardDark : ColorStyles.white;
-    final subtleBg = isDark ? ColorStyles.grabCardElevatedDark : ColorStyles.grabCardLight;
+    final subtleBg = isDark
+        ? ColorStyles.grabCardElevatedDark
+        : ColorStyles.grabCardLight;
     final cardBorder = isDark
         ? ColorStyles.white.withValues(alpha: 0.10)
         : ColorStyles.tertiary;
@@ -222,22 +224,34 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
           .map((d) => d['date'] as String?)
           .whereType<String>()
           .map((s) {
-            try { return DateTime.parse(s); } catch (_) { return null; }
+            try {
+              return DateTime.parse(s);
+            } catch (_) {
+              return null;
+            }
           })
           .whereType<DateTime>()
           .toList();
-          
+
       // Force include today if it's the requested behavior
       final today = DateTime.now();
       final todayNormalized = DateTime(today.year, today.month, today.day);
-      if (!parsedDates.any((d) => d.year == today.year && d.month == today.month && d.day == today.day)) {
+      if (!parsedDates.any(
+        (d) =>
+            d.year == today.year &&
+            d.month == today.month &&
+            d.day == today.day,
+      )) {
         parsedDates.add(todayNormalized);
       }
       allDates = parsedDates..sort();
     } else {
       final anchorDate = widget.referenceDate ?? DateTime.now();
-      final anchor =
-          DateTime(anchorDate.year, anchorDate.month, anchorDate.day);
+      final anchor = DateTime(
+        anchorDate.year,
+        anchorDate.month,
+        anchorDate.day,
+      );
       allDates = List.generate(_daysShown, (i) {
         // i=0 → oldest day; i=_daysShown-1 → anchor (today)
         final d = anchor.subtract(Duration(days: _daysShown - 1 - i));
@@ -285,8 +299,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                         // Restore scroll position so the view doesn't jump.
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (_scrollCtrl.hasClients) {
-                            final newMax =
-                                _scrollCtrl.position.maxScrollExtent;
+                            final newMax = _scrollCtrl.position.maxScrollExtent;
                             _scrollCtrl.jumpTo(newMax - prevMax + cur);
                           }
                         });
@@ -329,7 +342,8 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                 final count = _countFor(dateStr, breakdownIndex);
                 final hasDeliveries = count > 0;
                 final selected = dateStr == _selectedDate;
-                final isAnchor = dateIndex == allDates.length - 1; // today / referenceDate
+                final isAnchor =
+                    dateIndex == allDates.length - 1; // today / referenceDate
 
                 return GestureDetector(
                   onTap: () => setState(() => _selectedDate = dateStr),
@@ -367,7 +381,9 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                             fontWeight: FontWeight.w600,
                             color: selected
                                 ? Colors.white.withValues(alpha: 0.7)
-                                : ColorStyles.subSecondary.withValues(alpha: 0.7),
+                                : ColorStyles.subSecondary.withValues(
+                                    alpha: 0.7,
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -376,9 +392,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            color: selected
-                                ? Colors.white
-                                : primaryText,
+                            color: selected ? Colors.white : primaryText,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -457,7 +471,8 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
             return widget.itemBuilder!(context, d);
           }
           final barcode = resolveDeliveryIdentifier(d);
-          final status = (d['delivery_status']?.toString() ?? 'PENDING').toUpperCase();
+          final status = (d['delivery_status']?.toString() ?? 'PENDING')
+              .toUpperCase();
           final isLocked = checkIsLockedFromMap(d);
 
           final isPayoutLocked = widget.lockDeliveryNavigation || isLocked;
@@ -469,10 +484,28 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
             enableHoldToReveal: widget.enableHoldToReveal,
             onTap: (barcode.isNotEmpty && !isPayoutLocked)
                 ? () => context.push('/deliveries/$barcode')
-                : () => showInfoNotification(
-                      context,
-                      'This delivery is ${status.toLowerCase()} and cannot be opened for details.',
-                    ),
+                : () {
+                    final s = status.toUpperCase();
+                    final v =
+                        (d['rts_verification_status'] ??
+                                d['_rts_verification_status'] ??
+                                'unvalidated')
+                            .toString()
+                            .toLowerCase();
+                    String msg =
+                        'This delivery is ${s.toLowerCase()} and cannot be opened.';
+                    if (s == 'OSA') {
+                      msg = 'This item is marked OSA and cannot be opened.';
+                    } else if (s == 'DELIVERED') {
+                      msg =
+                          'This item has already been delivered and is sealed.';
+                    } else if (s == 'RTS' &&
+                        (v == 'verified_with_pay' || v == 'verified_no_pay')) {
+                      msg =
+                          'This RTS item has already been verified and is no longer actionable.';
+                    }
+                    showInfoNotification(context, msg);
+                  },
           );
         }),
       ],

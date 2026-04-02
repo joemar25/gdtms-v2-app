@@ -1,3 +1,27 @@
+// =============================================================================
+// dispatch_eligibility_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   Gate screen that the courier passes through before starting a dispatch run.
+//   It fetches the courier's eligibility status from the server and either
+//   allows them to proceed to the dispatch list or shows a blocking reason
+//   (e.g. unsynced deliveries, account suspension, incomplete profile).
+//
+// Flow:
+//   1. Screen mounts → calls GET /dispatch/eligibility.
+//   2. If eligible → shows a "START DISPATCH" button that navigates to
+//      DispatchListScreen.
+//   3. If ineligible → displays the server-provided reason and blocks access.
+//   4. Device info (free storage, OS version) is attached to the eligibility
+//      request so the server can enforce minimum-spec requirements.
+//
+// Navigation:
+//   Route: /dispatch/eligibility
+//   Pushed from: DashboardScreen DISPATCH card
+//   Pushes to: DispatchListScreen on success
+// =============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,12 +33,14 @@ import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
+import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class DispatchEligibilityScreen extends ConsumerStatefulWidget {
@@ -60,6 +86,7 @@ class _DispatchEligibilityScreenState
   String? _rejectError;
   bool _rejecting = false;
   String? _selectedRejectReason;
+  int _currentPage = 0;
 
   String get _resolvedPartialCode {
     final responseCode = widget.eligibilityResponse['partial_code']?.toString();
@@ -168,7 +195,9 @@ class _DispatchEligibilityScreenState
         ApiConflict(:final message) => message,
         ApiServerError(:final message) => message,
         ApiValidationError(:final message) =>
-          (message != null && message.isNotEmpty) ? message : 'Unable to accept dispatch.',
+          (message != null && message.isNotEmpty)
+              ? message
+              : 'Unable to accept dispatch.',
         ApiNetworkError(:final message) => message,
         ApiRateLimited(:final message) => message,
         _ => 'Unable to accept dispatch.',
@@ -228,10 +257,7 @@ class _DispatchEligibilityScreenState
     setState(() => _rejecting = false);
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
-      showSuccessNotification(
-        context,
-        'Dispatch rejected.',
-      );
+      showSuccessNotification(context, 'Dispatch rejected.');
       context.go('/dispatches');
     } else {
       final errorMessage = switch (result) {
@@ -318,16 +344,20 @@ class _DispatchEligibilityScreenState
 
     // Extract deliveries for use below actions
     final deliveries = info['deliveries'] is List
-        ? (info['deliveries'] as List)
-              .whereType<Map>()
-              .map((e) => Map<String, dynamic>.from(e))
-              .toList()
+        ? (info['deliveries'] as List).whereType<Map>().map((e) {
+            final d = Map<String, dynamic>.from(e);
+            // Clear status so only barcode and product are shown
+            d['delivery_status'] = '';
+            return d;
+          }).toList()
         : <Map<String, dynamic>>[];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'DISPATCH',
+          'DISPATCH DETAILS',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
         ),
         actions: [
@@ -338,393 +368,458 @@ class _DispatchEligibilityScreenState
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (!eligible) ...[
-                const SizedBox(height: 40),
-                Icon(
-                  Icons.cancel_rounded,
-                  color: Colors.red.shade400,
-                  size: 64,
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'NOT ELIGIBLE',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    letterSpacing: 1,
+      body: LoadingOverlay(
+        isLoading: _loading,
+        child: Stack(
+          children: [
+            ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (!eligible) ...[
+                  const SizedBox(height: 40),
+                  Icon(
+                    Icons.cancel_rounded,
+                    color: Colors.red.shade400,
+                    size: 64,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(reason, textAlign: TextAlign.center),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: () => context.go('/dispatches'),
-                  child: const Text('BACK TO DISPATCHES'),
-                ),
-              ] else if (_showRejectForm) ...[
-                // ── Reject Form ─────────────────────────────────────────
-                _SectionHeader(label: 'REJECT DISPATCH'),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isDark ? Colors.white12 : Colors.red.shade100,
+                  const SizedBox(height: 12),
+                  const Text(
+                    'NOT ELIGIBLE',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                      letterSpacing: 1,
                     ),
-                    boxShadow: isDark
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(reason, textAlign: TextAlign.center),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: () => context.go('/dispatches'),
+                    child: const Text('BACK TO DISPATCHES'),
+                  ),
+                ] else if (_showRejectForm) ...[
+                  // ── Reject Form ─────────────────────────────────────────
+                  _SectionHeader(label: 'REJECT DISPATCH'),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark ? Colors.white12 : Colors.red.shade100,
+                      ),
+                      boxShadow: isDark
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.gpp_maybe_outlined,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                maskedCode,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Select a rejection reason.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedRejectReason,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'REJECTION REASON *',
+                            prefixIcon: const Icon(Icons.list_alt_rounded),
+                            filled: true,
+                            fillColor: isDark
+                                ? const Color(0xFF12121A)
+                                : Colors.grey.withValues(alpha: 0.06),
+                            errorText: _rejectError,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? Colors.white24
+                                    : Colors.grey.shade300,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.gpp_maybe_outlined,
-                              color: Colors.red,
-                              size: 18,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? Colors.white24
+                                    : Colors.grey.shade300,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          hint: const Text('Select reason'),
+                          items:
+                              [
+                                ..._predefinedRejectReasons,
+                                _otherRejectReason,
+                              ].map((reason) {
+                                return DropdownMenuItem<String>(
+                                  value: reason,
+                                  child: Text(reason),
+                                );
+                              }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedRejectReason = value;
+                              _rejectError = null;
+                              if (value != _otherRejectReason) {
+                                _rejectReasonController.clear();
+                              }
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_selectedRejectReason == _otherRejectReason) ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _rejectReasonController,
+                      maxLength: 100,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: InputDecoration(
+                        labelText: 'SPECIFY REASON *',
+                        hintText: 'STATE YOUR REASON HERE...',
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.only(bottom: 40),
+                          child: Icon(Icons.edit_note_rounded),
+                        ),
+                        filled: true,
+                        fillColor: isDark
+                            ? const Color(0xFF12121A)
+                            : Colors.grey.withValues(alpha: 0.06),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? Colors.white24
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? Colors.white24
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        alignLabelWithHint: true,
+                      ),
+                      onChanged: (_) {
+                        if (_rejectError != null) {
+                          setState(() => _rejectError = null);
+                        }
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.shield_outlined,
+                          color: Colors.orange,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'You will be asked to confirm once more before submitting rejection.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.orange.shade800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                          ),
+                          onPressed: _rejecting
+                              ? null
+                              : () => setState(() => _showRejectForm = false),
+                          child: const Text('BACK'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: _rejecting ? null : _submitReject,
+                          child: _rejecting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('SUBMIT REJECTION'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  // ── Dispatch Info Card ───────────────────────────────────
+                  _DispatchInfoCard(maskedCode: maskedCode, info: info),
+
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              maskedCode,
+                              _error!,
                               style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
+                                color: Colors.red,
+                                fontSize: 13,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Select a rejection reason.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                    ),
+                  ],
+
+                  if (!widget.skipPinDialog) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.amber.withValues(alpha: 0.4),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedRejectReason,
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          labelText: 'REJECTION REASON *',
-                          prefixIcon: const Icon(Icons.list_alt_rounded),
-                          filled: true,
-                          fillColor: isDark
-                              ? const Color(0xFF12121A)
-                              : Colors.grey.withValues(alpha: 0.06),
-                          errorText: _rejectError,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? Colors.white24
-                                  : Colors.grey.shade300,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.lock_outline,
+                            color: Colors.amber,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'To confirm acceptance, you will need to enter the last 4 digits of the dispatch code.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.amber.shade700,
+                              ),
                             ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? Colors.white24
-                                  : Colors.grey.shade300,
-                            ),
-                          ),
-                        ),
-                        hint: const Text('Select reason'),
-                        items: [..._predefinedRejectReasons, _otherRejectReason]
-                            .map((reason) {
-                              return DropdownMenuItem<String>(
-                                value: reason,
-                                child: Text(reason),
-                              );
-                            })
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedRejectReason = value;
-                            _rejectError = null;
-                            if (value != _otherRejectReason) {
-                              _rejectReasonController.clear();
-                            }
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                if (_selectedRejectReason == _otherRejectReason) ...[
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _rejectReasonController,
-                    maxLength: 100,
-                    maxLines: 3,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: InputDecoration(
-                      labelText: 'SPECIFY REASON *',
-                      hintText: 'STATE YOUR REASON HERE...',
-                      prefixIcon: const Padding(
-                        padding: EdgeInsets.only(bottom: 40),
-                        child: Icon(Icons.edit_note_rounded),
-                      ),
-                      filled: true,
-                      fillColor: isDark
-                          ? const Color(0xFF12121A)
-                          : Colors.grey.withValues(alpha: 0.06),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: isDark ? Colors.white24 : Colors.grey.shade300,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: isDark ? Colors.white24 : Colors.grey.shade300,
-                        ),
-                      ),
-                      alignLabelWithHint: true,
-                    ),
-                    onChanged: (_) {
-                      if (_rejectError != null) {
-                        setState(() => _rejectError = null);
-                      }
-                    },
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.orange.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.shield_outlined,
-                        color: Colors.orange,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'You will be asked to confirm once more before submitting rejection.',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.orange.shade800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(48),
-                        ),
-                        onPressed: _rejecting
-                            ? null
-                            : () => setState(() => _showRejectForm = false),
-                        child: const Text('BACK'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.red.shade600,
-                          minimumSize: const Size.fromHeight(48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: _rejecting ? null : _submitReject,
-                        child: _rejecting
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('SUBMIT REJECTION'),
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ] else ...[
-                // ── Dispatch Info Card ───────────────────────────────────
-                _SectionHeader(label: 'DISPATCH DETAILS'),
-                const SizedBox(height: 10),
-                _DispatchInfoCard(maskedCode: maskedCode, info: info),
-
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.red.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _error!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-
-                if (!widget.skipPinDialog) ...[
                   const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.amber.withValues(alpha: 0.4),
+
+                  FilledButton.icon(
+                    icon: const Icon(Icons.check_circle_outline_rounded),
+                    label: const Text('ACCEPT DISPATCH'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: ColorStyles.grabGreen,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    onPressed: _loading ? null : _acceptDispatch,
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.cancel_outlined),
+                    label: const Text('REJECT DISPATCH'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () => setState(() => _showRejectForm = true),
+                  ),
+
+                  // ── Deliveries list below actions ───────────────────────
+                  if (deliveries.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(
-                          Icons.lock_outline,
-                          color: Colors.amber,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'To confirm acceptance, you will need to enter the last 4 digits of the dispatch code.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.amber.shade700,
-                            ),
+                        Text(
+                          'DELIVERIES (${deliveries.length})',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey.shade500,
+                            letterSpacing: 1.5,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-                const SizedBox(height: 20),
+                    const SizedBox(height: 8),
 
-                FilledButton.icon(
-                  icon: const Icon(Icons.check_circle_outline_rounded),
-                  label: const Text('ACCEPT DISPATCH'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: ColorStyles.grabGreen,
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: _loading ? null : _acceptDispatch,
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.cancel_outlined),
-                  label: const Text('REJECT DISPATCH'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () => setState(() => _showRejectForm = true),
-                ),
+                    // Local Pagination for Preview
+                    // Using kCompactDeliveriesPerPage (20)
+                    Builder(
+                      builder: (context) {
+                        final pageSize = kCompactDeliveriesPerPage;
+                        final total = deliveries.length;
+                        final totalPages = (total / pageSize).ceil();
+                        final start = _currentPage * pageSize;
+                        final end = (start + pageSize > total)
+                            ? total
+                            : start + pageSize;
+                        final visibleDeliveries = deliveries.sublist(
+                          start,
+                          end,
+                        );
 
-                // ── Deliveries list below actions ───────────────────────
-                if (deliveries.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Text(
-                    'DELIVERIES (${deliveries.length})',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey.shade500,
-                      letterSpacing: 1.5,
+                        return GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onHorizontalDragEnd: (details) {
+                            final velocity = details.primaryVelocity ?? 0;
+                            if (velocity < -500 &&
+                                _currentPage < totalPages - 1) {
+                              HapticFeedback.mediumImpact();
+                              setState(() => _currentPage++);
+                            } else if (velocity > 500 && _currentPage > 0) {
+                              HapticFeedback.mediumImpact();
+                              setState(() => _currentPage--);
+                            }
+                          },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ...visibleDeliveries.map(
+                                (d) => DeliveryCard(
+                                  delivery: d,
+                                  compact: true,
+                                  isPrivacyMode:
+                                      true, // Only barcode and product
+                                  showChevron: false,
+                                  enableHoldToReveal: false,
+                                  onTap: null,
+                                ),
+                              ),
+                              if (totalPages > 1) ...[
+                                const SizedBox(height: 12),
+                                PaginationBar(
+                                  currentPage: _currentPage,
+                                  totalPages: totalPages,
+                                  firstItem: start + 1,
+                                  lastItem: end,
+                                  totalCount: total,
+                                  onPageChanged: (p) =>
+                                      setState(() => _currentPage = p),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...deliveries.map(
-                    (d) => DeliveryCard(
-                      delivery: d,
-                      showChevron: false,
-                      enableHoldToReveal: false,
-                      onTap: null,
-                    ),
-                  ),
+                  ],
                 ],
               ],
-            ],
-          ),
-          if (_loading) const LoadingOverlay(),
-          if (_showSuccess)
-            SuccessOverlay(
-              onDone: () {
-                if (!mounted) return;
-                showAppSnackbar(
-                  context,
-                  'Dispatch accepted successfully!',
-                  type: SnackbarType.success,
-                );
-                context.go('/dashboard');
-              },
             ),
-        ],
+            // Loading state handled by wrapper
+            if (_showSuccess)
+              SuccessOverlay(
+                onDone: () {
+                  if (!mounted) return;
+                  showAppSnackbar(
+                    context,
+                    'Dispatch accepted successfully!',
+                    type: SnackbarType.success,
+                  );
+                  context.go('/dashboard');
+                },
+              ),
+          ],
+        ),
       ),
     );
   }

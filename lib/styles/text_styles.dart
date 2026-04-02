@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -13,9 +12,10 @@ const double textCaption = 12.0;
 class TextStyles {
   static title({Color? color, double? fontSize, FontWeight? fontWeight}) =>
       TextStyle(
-          fontSize: fontSize ?? textTitle,
-          color: color ?? ColorStyles.primary,
-          fontWeight: fontWeight ?? FontWeight.w700);
+        fontSize: fontSize ?? textTitle,
+        color: color ?? ColorStyles.primary,
+        fontWeight: fontWeight ?? FontWeight.w700,
+      );
 
   static subTitle({Color? color, double? fontSize, FontWeight? fontWeight}) =>
       TextStyle(
@@ -24,12 +24,8 @@ class TextStyles {
         fontWeight: fontWeight ?? FontWeight.w500,
       );
 
-  static caption({
-    Color? color,
-    double? fontSize,
-  }) =>
-      TextStyle(
-        fontSize: fontSize ?? textCaption,
-        color: color ?? ColorStyles.primary,
-      );
+  static caption({Color? color, double? fontSize}) => TextStyle(
+    fontSize: fontSize ?? textCaption,
+    color: color ?? ColorStyles.primary,
+  );
 }

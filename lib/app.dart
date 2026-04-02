@@ -2,14 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart' as geolocator;
 
 import 'core/api/api_client.dart';
+import 'shared/helpers/api_payload_helper.dart';
 import 'core/auth/auth_provider.dart';
 import 'core/auth/auth_storage.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/providers/delivery_refresh_provider.dart';
 import 'core/providers/notifications_provider.dart';
 import 'core/providers/sync_provider.dart';
+import 'core/services/location_ping_service.dart';
 import 'core/settings/app_settings.dart';
 import 'core/sync/delivery_bootstrap_service.dart';
 import 'core/database/cleanup_service.dart';
@@ -95,6 +98,7 @@ class _AutoSyncListener extends ConsumerStatefulWidget {
 class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     with WidgetsBindingObserver {
   Timer? _periodicTimer;
+  final _locationPing = LocationPingService.instance;
   bool _isSyncing = false;
   DateTime? _lastSyncAt;
   OverlayEntry? _syncPillEntry;
@@ -115,9 +119,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
 
   void _insertSyncPill() {
     if (_syncPillEntry != null) return;
-    _syncPillEntry = OverlayEntry(
-      builder: (_) => const _SyncFloatingPill(),
-    );
+    _syncPillEntry = OverlayEntry(builder: (_) => const _SyncFloatingPill());
     rootNavigatorKey.currentState?.overlay?.insert(_syncPillEntry!);
   }
 
@@ -126,6 +128,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     _syncPillEntry?.remove();
     _syncPillEntry = null;
     _periodicTimer?.cancel();
+    _locationPing.stop();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -135,11 +138,17 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _maybeTriggerSync(reason: 'app_resume');
+      if (ref.read(isOnlineProvider) &&
+          ref.read(authProvider).isAuthenticated) {
+        _locationPing.start(_sendLocationPing);
+      }
     } else if (state == AppLifecycleState.paused) {
-      // Stop the periodic timer while the app is in the background.
+      // Stop background services while app is not visible.
       _periodicTimer?.cancel();
+      _locationPing.stop();
     } else if (state == AppLifecycleState.detached) {
       _periodicTimer?.cancel();
+      _locationPing.stop();
     }
   }
 
@@ -148,6 +157,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     if (!ref.read(authProvider).isAuthenticated) return;
     if (ref.read(isOnlineProvider)) {
       _maybeTriggerSync(reason: 'startup');
+      _locationPing.start(_sendLocationPing);
       ref.read(notificationsProvider.notifier).loadUnreadCount();
     }
   }
@@ -157,6 +167,35 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     _periodicTimer = Timer.periodic(_kAutoSyncInterval, (_) {
       _maybeTriggerSync(reason: 'periodic');
     });
+    _locationPing.start(_sendLocationPing);
+  }
+
+  /// Captures the device's current GPS position and sends a background
+  /// location update to the server.  Errors are silently swallowed because
+  /// location pings are best-effort and must never interrupt the courier flow.
+  Future<void> _sendLocationPing(geolocator.Position position) async {
+    if (!mounted) return;
+    if (!ref.read(authProvider).isAuthenticated) return;
+    try {
+      await ref
+          .read(apiClientProvider)
+          .post<Map<String, dynamic>>(
+            '/location',
+            data: {
+              'latitude': position.latitude,
+              'longitude': position.longitude,
+              'accuracy': position.accuracy,
+              'timestamp': position.timestamp.toUtc().toIso8601String(),
+              'is_buffered': false,
+            },
+            parser: parseApiMap,
+          );
+      debugPrint(
+        '[LOCATION] ping sent: ${position.latitude}, ${position.longitude}',
+      );
+    } catch (e) {
+      debugPrint('[LOCATION] ping error: $e');
+    }
   }
 
   /// Fires a sync only if:
@@ -170,8 +209,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     if (_isSyncing) return;
 
     final now = DateTime.now();
-    if (_lastSyncAt != null &&
-        now.difference(_lastSyncAt!) < _kSyncDebounce) {
+    if (_lastSyncAt != null && now.difference(_lastSyncAt!) < _kSyncDebounce) {
       return;
     }
 
@@ -209,14 +247,17 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       if (!mounted) return;
 
       // Step 2: Pull server → SQLite (full reconcile across all statuses).
-      await DeliveryBootstrapService.instance
-          .syncFromApi(ref.read(apiClientProvider));
+      await DeliveryBootstrapService.instance.syncFromApi(
+        ref.read(apiClientProvider),
+      );
 
       debugPrint('[SYNC] _runFullSync: after syncFromApi, mounted=$mounted');
       if (mounted) {
         final now = DateTime.now();
         ref.read(lastSyncTimeProvider.notifier).setValue(now);
-        ref.read(authStorageProvider).setLastSyncTime(now.millisecondsSinceEpoch);
+        ref
+            .read(authStorageProvider)
+            .setLastSyncTime(now.millisecondsSinceEpoch);
 
         // Notify all listening screens (dashboard, delivery lists) to reload.
         final prev = ref.read(deliveryRefreshProvider);
@@ -247,6 +288,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
         });
       } else if (current == false) {
         _periodicTimer?.cancel(); // Pause periodic timer when offline.
+        _locationPing.stop();
       }
     });
 
@@ -260,6 +302,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
         ref.read(notificationsProvider.notifier).loadUnreadCount();
       } else if (current.isAuthenticated == false) {
         _periodicTimer?.cancel();
+        _locationPing.stop();
       }
     });
 
@@ -286,7 +329,8 @@ class _SyncFloatingPill extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(authProvider).isAuthenticated) return const SizedBox.shrink();
+    if (!ref.watch(authProvider).isAuthenticated)
+      return const SizedBox.shrink();
 
     final router = ref.watch(appRouterProvider);
     return ListenableBuilder(
@@ -372,9 +416,7 @@ class _SyncPillContent extends ConsumerWidget {
                         Flexible(
                           child: Text(
                             _trimMessage(syncState.lastMessage ?? 'Syncing…'),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(fontWeight: FontWeight.w600),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -384,9 +426,7 @@ class _SyncPillContent extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Text(
                             '${syncState.processed}/${syncState.total}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
+                            style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
                                   color: isDark
                                       ? Colors.white38
@@ -403,8 +443,8 @@ class _SyncPillContent extends ConsumerWidget {
                           color: failed > 0
                               ? Colors.red.shade600
                               : (isDark
-                                  ? Colors.white54
-                                  : Colors.grey.shade600),
+                                    ? Colors.white54
+                                    : Colors.grey.shade600),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -412,9 +452,7 @@ class _SyncPillContent extends ConsumerWidget {
                             if (pending > 0) '$pending pending',
                             if (failed > 0) '$failed failed',
                           ].join(' · '),
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: failed > 0 ? Colors.red.shade700 : null,
@@ -436,6 +474,9 @@ class _SyncPillContent extends ConsumerWidget {
   /// e.g. "Updating delivery B132256VI150 to server…" → "Updating delivery…"
   static String _trimMessage(String msg) {
     // Remove anything that looks like a barcode (all-caps alphanumeric 8+ chars)
-    return msg.replaceAll(RegExp(r'\b[A-Z0-9]{8,}\b'), '').replaceAll(RegExp(r'\s{2,}'), ' ').trim();
+    return msg
+        .replaceAll(RegExp(r'\b[A-Z0-9]{8,}\b'), '')
+        .replaceAll(RegExp(r'\s{2,}'), ' ')
+        .trim();
   }
 }

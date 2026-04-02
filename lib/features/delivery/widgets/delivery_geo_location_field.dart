@@ -59,8 +59,9 @@ class DeliveryGeoLocationField extends StatelessWidget {
                       ? Icons.my_location_rounded
                       : Icons.location_off_rounded,
                   size: 18,
-                  color:
-                      hasFix ? const Color(0xFF007A36) : Colors.grey.shade400,
+                  color: hasFix
+                      ? const Color(0xFF007A36)
+                      : Colors.grey.shade400,
                 ),
               const SizedBox(width: 10),
               Expanded(
@@ -70,9 +71,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
-                          color: isDark
-                              ? Colors.white54
-                              : Colors.grey.shade600,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
                         ),
                       )
                     : hasFix

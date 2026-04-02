@@ -1,3 +1,26 @@
+// =============================================================================
+// notifications_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   In-app notification centre that displays system and operational alerts
+//   pushed to the courier (e.g. new dispatch assignments, sync warnings,
+//   account messages from FSI operations).
+//
+// Key behaviours:
+//   • Notifications are stored and served via [NotificationsProvider].
+//   • Each item shows a timestamp, type badge, and message body.
+//   • Tapping a notification marks it as read and navigates to the relevant
+//     screen if applicable (e.g. a delivery barcode deep-link).
+//   • An unread badge count is shown on the bell icon in AppHeaderBar.
+//   • Offline banner is shown when connectivity is unavailable (new
+//     notifications cannot be fetched but cached ones remain readable).
+//
+// Navigation:
+//   Route: /notifications
+//   Pushed from: AppHeaderBar bell icon (present on most screens)
+// =============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -37,10 +60,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
-        titleTextStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w700,
+        title: const Text(
+          'Notifications',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
+        titleTextStyle: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         actions: [
           if (state.unreadCount > 0)
             TextButton(
@@ -83,7 +110,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     const SizedBox(height: 12),
                     Text(
                       'No notifications yet',
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
@@ -122,10 +152,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         children: [
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: OfflineBanner(
-              isMinimal: true,
-              margin: EdgeInsets.zero,
-            ),
+            child: OfflineBanner(isMinimal: true, margin: EdgeInsets.zero),
           ),
           Expanded(child: content),
         ],
@@ -148,8 +175,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     if (!n.read) {
       ref.read(notificationsProvider.notifier).markAsRead(n.id);
     }
-    if (n.transactionReference != null &&
-        n.transactionReference!.isNotEmpty) {
+    if (n.transactionReference != null && n.transactionReference!.isNotEmpty) {
       context.push('/wallet/${n.transactionReference}');
     }
   }
@@ -158,10 +184,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 // ─── Notification tile ────────────────────────────────────────────────────────
 
 class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({
-    required this.notification,
-    required this.onTap,
-  });
+  const _NotificationTile({required this.notification, required this.onTap});
 
   final AppNotification notification;
   final VoidCallback onTap;
@@ -177,16 +200,11 @@ class _NotificationTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: isUnread
               ? (isDark
-                  ? ColorStyles.grabGreen.withValues(alpha: 0.08)
-                  : ColorStyles.grabGreen.withValues(alpha: 0.05))
+                    ? ColorStyles.grabGreen.withValues(alpha: 0.08)
+                    : ColorStyles.grabGreen.withValues(alpha: 0.05))
               : null,
           border: isUnread
-              ? Border(
-                  left: BorderSide(
-                    color: ColorStyles.grabGreen,
-                    width: 3,
-                  ),
-                )
+              ? Border(left: BorderSide(color: ColorStyles.grabGreen, width: 3))
               : null,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -232,21 +250,22 @@ class _NotificationTile extends StatelessWidget {
                   Row(
                     children: [
                       if (notification.transactionReference != null) ...[
-                        Text(
-                          notification.transactionReference!,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: ColorStyles.grabGreen,
+                        Flexible(
+                          child: Text(
+                            notification.transactionReference!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: ColorStyles.grabGreen,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                       ],
                       Text(
-                        formatDate(
-                          notification.date,
-                          includeTime: true,
-                        ),
+                        formatDate(notification.date, includeTime: true),
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade500,
@@ -314,10 +333,7 @@ class _LoadMoreButton extends StatelessWidget {
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : OutlinedButton(
-                onPressed: onTap,
-                child: const Text('Load more'),
-              ),
+            : OutlinedButton(onPressed: onTap, child: const Text('Load more')),
       ),
     );
   }

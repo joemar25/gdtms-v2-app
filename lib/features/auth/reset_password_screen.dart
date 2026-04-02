@@ -1,3 +1,28 @@
+// =============================================================================
+// reset_password_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   Allows a courier to reset or change their account password.
+//
+// Modes:
+//   • Unauthenticated (default) — accessed from the login screen when a courier
+//     has forgotten their password. Requires the courier code and a new password.
+//     On success, the user is redirected to the login screen.
+//
+//   • Authenticated (authenticatedMode: true) — accessed from the profile page
+//     by a logged-in courier who wants to change their current password. The
+//     courier code is auto-filled and read-only; an additional "Current Password"
+//     field is shown. On success, the user is sent back to the dashboard.
+//
+// API:
+//   PATCH /auth/reset-password
+//
+// Navigation:
+//   Route: /reset-password
+//   Pushed from: LoginScreen (unauthenticated), ProfileScreen (authenticated)
+// =============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -149,16 +174,21 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final title =
-        widget.authenticatedMode ? 'Change Password' : 'Reset Password';
+    final title = widget.authenticatedMode
+        ? 'Change Password'
+        : 'Reset Password';
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
           ColoredBox(
-            color: isDark ? ColorStyles.scaffoldDark : ColorStyles.scaffoldLight,
+            color: isDark
+                ? ColorStyles.scaffoldDark
+                : ColorStyles.scaffoldLight,
           ),
           SafeArea(
             child: Center(
@@ -295,8 +325,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
                             FilledButton(
                               style: FilledButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.primary,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(double.infinity, 52),
                                 shape: RoundedRectangleBorder(

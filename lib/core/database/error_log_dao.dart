@@ -79,10 +79,6 @@ class ErrorLogDao {
   Future<void> deleteOld(int retentionMs) async {
     final cutoff = DateTime.now().millisecondsSinceEpoch - retentionMs;
     final db = await AppDatabase.getInstance();
-    await db.delete(
-      'error_logs',
-      where: 'created_at < ?',
-      whereArgs: [cutoff],
-    );
+    await db.delete('error_logs', where: 'created_at < ?', whereArgs: [cutoff]);
   }
 }

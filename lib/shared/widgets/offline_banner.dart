@@ -38,10 +38,7 @@ class OfflineBanner extends StatelessWidget {
 
 /// Minimal offline banner for use in list pages and compact layouts.
 class _MinimalOfflineBanner extends StatelessWidget {
-  const _MinimalOfflineBanner({
-    required this.message,
-    required this.margin,
-  });
+  const _MinimalOfflineBanner({required this.message, required this.margin});
 
   final String message;
   final EdgeInsets margin;

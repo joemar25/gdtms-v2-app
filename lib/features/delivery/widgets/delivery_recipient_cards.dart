@@ -88,9 +88,7 @@ class DeliveryRecipientCards extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.purple.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: Colors.purple.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [

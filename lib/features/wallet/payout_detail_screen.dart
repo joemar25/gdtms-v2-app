@@ -164,19 +164,25 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   const SizedBox(height: 12),
 
                   // ── Status History ───────────────────────────────────────
-                 _SectionCard(
+                  _SectionCard(
                     title: 'Status History',
                     trailing: transactionHistory.isNotEmpty
                         ? TextButton(
-                            onPressed: () => _showTransactionHistory(context, transactionHistory),
+                            onPressed: () => _showTransactionHistory(
+                              context,
+                              transactionHistory,
+                            ),
                             style: TextButton.styleFrom(
                               foregroundColor: ColorStyles.grabGreen,
-                              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             child: const Text('View All'),
                           )
                         : null,
-                    children: const [], 
+                    children: const [],
                   ),
 
                   // ── Daily breakdown ──────────────────────────────────────
@@ -205,38 +211,39 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
       // Ensure each delivery has a delivery_status field so DeliveryCard
       // can colour-code correctly (all deliveries in a payout are delivered).
       final deliveries =
-          (day['deliveries'] as List?)
-              ?.whereType<Map<String, dynamic>>()
-              .map(
-                (d) {
-                  final status =
-                      (d['delivery_status'] ?? 'DELIVERED').toString().toUpperCase();
-                  // RTS deliveries included in a payout are implicitly verified
-                  // with pay — no chevron, no navigation (same as status list).
-                  final defaultRtsVerif =
-                      status == 'RTS' ? 'verified_with_pay' : 'unvalidated';
-                  return <String, dynamic>{
-                    ...d,
-                    'delivery_status': status,
-                    'barcode_value': d['barcode_value'] ?? d['barcode'],
-                    'sequence_number': d['sequence_number'] ?? d['sequence'],
-                    'product': d['product'] ?? d['mail_type'],
-                    'transaction_at':
-                        d['transaction_at'] ?? d['delivered_date'] ?? d['paid_at'],
-                    'rts_verification_status': d['rts_verification_status'] ??
-                        d['verification_status'] ??
-                        d['rts_verification'] ??
-                        d['status_verification'] ??
-                        defaultRtsVerif,
-                  };
-                },
-              )
-              .toList() ??
+          (day['deliveries'] as List?)?.whereType<Map<String, dynamic>>().map((
+            d,
+          ) {
+            final status = (d['delivery_status'] ?? 'DELIVERED')
+                .toString()
+                .toUpperCase();
+            // RTS deliveries included in a payout are implicitly verified
+            // with pay — no chevron, no navigation (same as status list).
+            final defaultRtsVerif = status == 'RTS'
+                ? 'verified_with_pay'
+                : 'unvalidated';
+            return <String, dynamic>{
+              ...d,
+              'delivery_status': status,
+              'barcode_value': d['barcode_value'] ?? d['barcode'],
+              'sequence_number': d['sequence_number'] ?? d['sequence'],
+              'product': d['product'] ?? d['mail_type'],
+              'transaction_at':
+                  d['transaction_at'] ?? d['delivered_date'] ?? d['paid_at'],
+              'rts_verification_status':
+                  d['rts_verification_status'] ??
+                  d['verification_status'] ??
+                  d['rts_verification'] ??
+                  d['status_verification'] ??
+                  defaultRtsVerif,
+            };
+          }).toList() ??
           [];
       return <String, dynamic>{
         ...day,
         'deliveries': deliveries,
-        'delivery_count': deliveries.length, // Ensure volume is available for the tiles
+        'delivery_count':
+            deliveries.length, // Ensure volume is available for the tiles
       };
     }).toList();
   }
@@ -313,8 +320,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     ];
   }
 
-
-
   void _showTransactionHistory(
     BuildContext context,
     List<Map<String, dynamic>> history,
@@ -331,8 +336,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         builder: (_, scrollCtrl) => Container(
           decoration: BoxDecoration(
             color: isDark ? ColorStyles.grabCardDark : ColorStyles.white,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,8 +408,9 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                       margin: const EdgeInsets.symmetric(
                                         vertical: 4,
                                       ),
-                                      color: ColorStyles.grabGreen
-                                          .withValues(alpha: 0.25),
+                                      color: ColorStyles.grabGreen.withValues(
+                                        alpha: 0.25,
+                                      ),
                                     ),
                                   ),
                               ],
@@ -415,9 +420,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                           // Content
                           Expanded(
                             child: Padding(
-                              padding: EdgeInsets.only(
-                                bottom: isLast ? 0 : 16,
-                              ),
+                              padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -439,7 +442,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                       color: ColorStyles.subSecondary,
                                     ),
                                   ),
-                                  if (by != null && by.isNotEmpty) ...[                                    const SizedBox(height: 2),
+                                  if (by != null && by.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
                                     Text(
                                       'By: $by',
                                       style: TextStyle(
@@ -449,7 +453,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                     ),
                                   ],
                                   if (remarks != null &&
-                                      remarks.isNotEmpty) ...[                                    const SizedBox(height: 2),
+                                      remarks.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
                                     Text(
                                       remarks,
                                       style: TextStyle(
@@ -475,7 +480,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
       ),
     );
   }
-
 }
 
 // ─── Shared widgets ───────────────────────────────────────────────────────────
@@ -749,57 +753,69 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
             ],
           ),
           const SizedBox(height: 16),
-          ...widget.breakdown.entries.where((e) {
-            if (e.key == 'coordinator_incentive') return kAppDebugMode;
-            return true;
-          }).map((e) {
-            final val = double.tryParse('${e.value}') ?? 0.0;
-            final isDeduction = val < 0;
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            final isCoordinator = e.key == 'coordinator_incentive';
+          ...widget.breakdown.entries
+              .where((e) {
+                if (e.key == 'coordinator_incentive') return kAppDebugMode;
+                return true;
+              })
+              .map((e) {
+                final val = double.tryParse('${e.value}') ?? 0.0;
+                final isDeduction = val < 0;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                final isCoordinator = e.key == 'coordinator_incentive';
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isCoordinator
+                                ? '⚠ ${_formatKey(e.key)}'
+                                : _formatKey(e.key),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isCoordinator
+                                  ? Colors.red.shade700
+                                  : (isDark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600),
+                              fontWeight: isCoordinator
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                          if (isCoordinator)
+                            Text(
+                              'DEBUG ONLY',
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: Colors.red.shade400,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                        ],
+                      ),
                       Text(
-                        isCoordinator ? '⚠ ${_formatKey(e.key)}' : _formatKey(e.key),
+                        '${isDeduction ? '-' : ''}₱ ${val.abs().toStringAsFixed(2)}',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                           color: isCoordinator
                               ? Colors.red.shade700
-                              : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                          fontWeight: isCoordinator ? FontWeight.w700 : FontWeight.w500,
+                              : (isDeduction
+                                    ? Colors.red.shade400
+                                    : (isDark ? Colors.white : Colors.black87)),
                         ),
                       ),
-                      if (isCoordinator)
-                        Text(
-                          'DEBUG ONLY',
-                          style: TextStyle(fontSize: 9, color: Colors.red.shade400, letterSpacing: 0.4),
-                        ),
                     ],
                   ),
-                  Text(
-                    '${isDeduction ? '-' : ''}₱ ${val.abs().toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isCoordinator
-                          ? Colors.red.shade700
-                          : (isDeduction
-                              ? Colors.red.shade400
-                              : (isDark ? Colors.white : Colors.black87)),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
+                );
+              }),
           const SizedBox(height: 14),
           Center(
             child: Text(
@@ -826,7 +842,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           final transform = Matrix4.identity()
             ..setEntry(3, 2, 0.001) // perspective
             ..rotateX(_controller.value * math.pi);
-            
+
           return Transform(
             transform: transform,
             alignment: Alignment.center,

@@ -1,3 +1,32 @@
+// =============================================================================
+// payout_request_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   Lets the courier submit a payout request for their accumulated earnings.
+//   The screen previews the deliveries that will be included in the payout,
+//   the total amount, and the target account details before final submission.
+//
+// Key behaviours:
+//   • Delivery date strip — a horizontal date selector showing which days'
+//     delivered parcels are being grouped into the payout. Tapping a date
+//     expands the list of deliveries for that day.
+//   • Summary card — shows the total payout amount and fee breakdown.
+//   • SUBMIT button — calls POST /payouts. Handles the following server
+//     responses gracefully:
+//       - ApiConflict    : a payout is already pending, shows a user-friendly
+//                          message instead of an error.
+//       - ApiServerError : surfaces the server message to the courier.
+//       - ApiSuccess     : pops back to WalletScreen with a success notification.
+//   • Requires connectivity — offline guard prevents submission and shows an
+//     offline banner.
+//
+// Navigation:
+//   Route: /wallet/payout-request
+//   Pushed from: WalletScreen (REQUEST PAYOUT button)
+//   Pops to: WalletScreen on success or cancel
+// =============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -205,31 +234,35 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   ) {
     return raw.map((day) {
       final deliveries =
-          (day['deliveries'] as List?)
-              ?.whereType<Map<String, dynamic>>()
-              .map(
-                (d) {
-                  final status = (d['delivery_status']?.toString() ?? 'DELIVERED').toUpperCase();
-                  // In the context of a payout preview, RTS items are implicitly
-                  // verified with pay unless explicitly stated otherwise.
-                  final defaultRtsVerif = status == 'RTS' ? 'verified_with_pay' : 'unvalidated';
-                  
-                  return <String, dynamic>{
-                    ...d,
-                    'delivery_status': status,
-                    'barcode_value': d['barcode_value'] ?? d['barcode'],
-                    'sequence_number': d['sequence_number'] ?? d['sequence'],
-                    'product': d['product'] ?? d['mail_type'],
-                    'transaction_at': d['transaction_at'] ?? d['delivered_date'] ?? d['payout_date'],
-                    'rts_verification_status': d['rts_verification_status'] ?? 
-                                             d['verification_status'] ?? 
-                                             d['rts_verification'] ?? 
-                                             d['status_verification'] ??
-                                             defaultRtsVerif,
-                  };
-                },
-              )
-              .toList() ??
+          (day['deliveries'] as List?)?.whereType<Map<String, dynamic>>().map((
+            d,
+          ) {
+            final status = (d['delivery_status']?.toString() ?? 'DELIVERED')
+                .toUpperCase();
+            // In the context of a payout preview, RTS items are implicitly
+            // verified with pay unless explicitly stated otherwise.
+            final defaultRtsVerif = status == 'RTS'
+                ? 'verified_with_pay'
+                : 'unvalidated';
+
+            return <String, dynamic>{
+              ...d,
+              'delivery_status': status,
+              'barcode_value': d['barcode_value'] ?? d['barcode'],
+              'sequence_number': d['sequence_number'] ?? d['sequence'],
+              'product': d['product'] ?? d['mail_type'],
+              'transaction_at':
+                  d['transaction_at'] ??
+                  d['delivered_date'] ??
+                  d['payout_date'],
+              'rts_verification_status':
+                  d['rts_verification_status'] ??
+                  d['verification_status'] ??
+                  d['rts_verification'] ??
+                  d['status_verification'] ??
+                  defaultRtsVerif,
+            };
+          }).toList() ??
           [];
       return <String, dynamic>{...day, 'deliveries': deliveries};
     }).toList();
@@ -241,10 +274,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // Use the canonical theme tokens so this screen matches every other screen.
     // Do NOT hardcode raw Color() values here — use ColorStyles constants.
-    final scaffoldBg =
-        isDark ? ColorStyles.scaffoldDark : ColorStyles.scaffoldLight;
-    final appBarBg =
-        isDark ? ColorStyles.appBarDark : ColorStyles.appBarLight;
+    final scaffoldBg = isDark
+        ? ColorStyles.scaffoldDark
+        : ColorStyles.scaffoldLight;
+    final appBarBg = isDark ? ColorStyles.appBarDark : ColorStyles.appBarLight;
 
     if (!isOnline) {
       return Scaffold(
@@ -255,11 +288,24 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.payments_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                Icons.payments_rounded,
+                size: 20,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: 8),
-              Text(
-                widget.isConsolidation ? 'CONSOLIDATE REQUEST' : 'REQUEST PAYOUT',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+              Flexible(
+                child: Text(
+                  widget.isConsolidation
+                      ? 'CONSOLIDATE REQUEST'
+                      : 'REQUEST PAYOUT',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ],
           ),
@@ -298,11 +344,19 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.payments_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
+            Icon(
+              Icons.payments_rounded,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 8),
-            const Text(
-              'REQUEST PAYOUT',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+            const Flexible(
+              child: Text(
+                'REQUEST PAYOUT',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+              ),
             ),
           ],
         ),
@@ -322,8 +376,13 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                   )
                 : const Icon(Icons.payments_rounded),
             label: Text(
-              widget.isConsolidation ? 'SUBMIT CONSOLIDATED REQUEST' : 'SUBMIT REQUEST',
-              style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
+              widget.isConsolidation
+                  ? 'SUBMIT CONSOLIDATED REQUEST'
+                  : 'SUBMIT REQUEST',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: ColorStyles.grabGreen,
@@ -332,7 +391,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            onPressed: (_submitting ||
+            onPressed:
+                (_submitting ||
                     _loading ||
                     _previewData == null ||
                     (_previewData!['eligible_delivery_count'] as int? ?? 0) ==
@@ -410,7 +470,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.merge_rounded, color: Colors.amber.shade700, size: 18),
+                Icon(
+                  Icons.merge_rounded,
+                  color: Colors.amber.shade700,
+                  size: 18,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -457,7 +521,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         // ── Date Strip + Deliveries ───────────────────────────────────
         if (dailyBreakdown.isNotEmpty) ...[
           Text(
-            widget.isConsolidation ? 'ELIGIBLE FOR CONSOLIDATION' : 'DELIVERIES',
+            widget.isConsolidation
+                ? 'ELIGIBLE FOR CONSOLIDATION'
+                : 'DELIVERIES',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -474,7 +540,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         ],
 
         // ── Submission limits banner (hidden in consolidation — banner above covers it) ──
-        if (!widget.isConsolidation && preview['has_existing_request_today'] == true) ...[
+        if (!widget.isConsolidation &&
+            preview['has_existing_request_today'] == true) ...[
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
@@ -485,8 +552,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded,
-                    color: Colors.amber.shade700, size: 18),
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.amber.shade700,
+                  size: 18,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -806,11 +876,22 @@ class _AmountRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: isDebug ? FontWeight.w700 : FontWeight.normal)),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                  fontWeight: isDebug ? FontWeight.w700 : FontWeight.normal,
+                ),
+              ),
               if (isDebug)
                 Text(
                   'DEBUG ONLY — not visible in production',
-                  style: TextStyle(fontSize: 9, color: Colors.red.shade400, letterSpacing: 0.3),
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.red.shade400,
+                    letterSpacing: 0.3,
+                  ),
                 ),
             ],
           ),

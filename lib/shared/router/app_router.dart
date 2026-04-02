@@ -15,6 +15,7 @@ import 'package:fsi_courier_app/features/delivery/delivery_update_screen.dart';
 import 'package:fsi_courier_app/features/dispatch/dispatch_eligibility_screen.dart';
 import 'package:fsi_courier_app/features/dispatch/dispatch_list_screen.dart';
 import 'package:fsi_courier_app/features/profile/profile_screen.dart';
+import 'package:fsi_courier_app/features/profile/profile_edit_screen.dart';
 import 'package:fsi_courier_app/features/scan/scan_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_detail_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_request_screen.dart';
@@ -75,9 +76,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final path = state.uri.path;
       final isAuthRoute =
-          path == '/login' ||
-          path == '/reset-password' ||
-          path == '/splash';
+          path == '/login' || path == '/reset-password' || path == '/splash';
 
       // Allow unauthenticated users to access auth routes
       if (!auth.isAuthenticated) {
@@ -116,19 +115,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/splash',
-        pageBuilder: (_, state) => _page(key: state.pageKey, child: const SplashScreen()),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const SplashScreen()),
       ),
       GoRoute(
         path: '/initial-sync',
-        pageBuilder: (_, state) => _page(key: state.pageKey, child: const InitialSyncScreen()),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const InitialSyncScreen()),
       ),
       GoRoute(
         path: '/location-required',
-        pageBuilder: (_, state) => _page(key: state.pageKey, child: const LocationRequiredScreen()),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const LocationRequiredScreen()),
       ),
       GoRoute(
         path: '/login',
-        pageBuilder: (_, state) => _page(key: state.pageKey, child: const LoginScreen()),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const LoginScreen()),
       ),
       GoRoute(
         path: '/reset-password',
@@ -146,7 +149,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/dashboard',
-        pageBuilder: (_, state) => _page(key: state.pageKey, child: const DashboardScreen()),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const DashboardScreen()),
       ),
 
       // ── Unified scan ──────────────────────────────────────────────────────
@@ -156,7 +160,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
           final isDispatch = extra['mode'] == 'dispatch';
           final mode = isDispatch ? ScanMode.dispatch : ScanMode.pod;
-          return _page(key: state.pageKey, child: ScanScreen(mode: mode));
+          return _page(
+            key: state.pageKey,
+            child: ScanScreen(mode: mode),
+          );
         },
       ),
 
@@ -169,17 +176,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/dispatches/eligibility',
         pageBuilder: (_, state) {
           final extra = asStringDynamicMap(state.extra);
-          final parsedResponse = asStringDynamicMap(extra['eligibility_response']);
+          final parsedResponse = asStringDynamicMap(
+            extra['eligibility_response'],
+          );
           final response = parsedResponse.isNotEmpty
               ? parsedResponse
               : {'eligible': false, 'message': 'Eligibility data missing.'};
           return _page(
             key: state.pageKey,
             child: DispatchEligibilityScreen(
-              dispatchCode: (extra['dispatch_code'] ??
-                      state.uri.queryParameters['dispatch_code'] ??
-                      '')
-                  .toString(),
+              dispatchCode:
+                  (extra['dispatch_code'] ??
+                          state.uri.queryParameters['dispatch_code'] ??
+                          '')
+                      .toString(),
               eligibilityResponse: response,
               autoAccept: extra['auto_accept'] == true,
               skipPinDialog: extra['skip_accept_modal'] == true,
@@ -192,28 +202,38 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/deliveries',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
-          child: const DeliveryStatusListScreen(status: 'pending', title: 'DELIVERIES'),
+          child: const DeliveryStatusListScreen(
+            status: 'pending',
+            title: 'DELIVERIES',
+          ),
         ),
       ),
       GoRoute(
         path: '/deliveries/:barcode',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
-          child: DeliveryDetailScreen(barcode: state.pathParameters['barcode']!),
+          child: DeliveryDetailScreen(
+            barcode: state.pathParameters['barcode']!,
+          ),
         ),
       ),
       GoRoute(
         path: '/deliveries/:barcode/update',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
-          child: DeliveryUpdateScreen(barcode: state.pathParameters['barcode']!),
+          child: DeliveryUpdateScreen(
+            barcode: state.pathParameters['barcode']!,
+          ),
         ),
       ),
       GoRoute(
         path: '/delivered',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
-          child: const DeliveryStatusListScreen(status: 'delivered', title: 'DELIVERED'),
+          child: const DeliveryStatusListScreen(
+            status: 'delivered',
+            title: 'DELIVERED',
+          ),
         ),
       ),
       GoRoute(
@@ -232,7 +252,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/sync',
-        pageBuilder: (_, state) => _page(key: state.pageKey, child: const SyncScreen()),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const SyncScreen()),
       ),
       GoRoute(
         path: '/notifications',
@@ -241,7 +262,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/wallet',
-        pageBuilder: (_, state) => _page(key: state.pageKey, child: const WalletScreen()),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const WalletScreen()),
       ),
       GoRoute(
         path: '/wallet/request',
@@ -259,16 +281,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/wallet/:reference',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
-          child: PayoutDetailScreen(reference: state.pathParameters['reference'] ?? ''),
+          child: PayoutDetailScreen(
+            reference: state.pathParameters['reference'] ?? '',
+          ),
         ),
       ),
       GoRoute(
         path: '/profile',
-        pageBuilder: (_, state) => _page(key: state.pageKey, child: const ProfileScreen()),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const ProfileScreen()),
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const ProfileEditScreen()),
       ),
       GoRoute(
         path: '/error-logs',
-        pageBuilder: (_, state) => _page(key: state.pageKey, child: const ErrorLogsScreen()),
+        pageBuilder: (_, state) =>
+            _page(key: state.pageKey, child: const ErrorLogsScreen()),
       ),
     ],
   );

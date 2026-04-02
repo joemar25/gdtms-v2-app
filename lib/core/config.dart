@@ -106,8 +106,6 @@ const bool kAppDebugMode = kDebugMode;
 //  End of config.dart
 // ─────────────────────────────────────────────────────────────────────────────
 
-
-
 // to emphasize:
-// rule - if payout na yung delivery, then atleast 1 day yung retainability neto sa database before it was to be cleared. 
+// rule - if payout na yung delivery, then atleast 1 day yung retainability neto sa database before it was to be cleared.
 // or if delivery is paid, strictly no need to put it in the database so if system detected if the dlelivery is paid then no need for it to be in the our local database unless it was today for record only but cannot be opened since we have locked it.

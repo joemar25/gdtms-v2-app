@@ -9,5 +9,6 @@ class _CompactModeNotifier extends Notifier<bool> {
   void setValue(bool value) => state = value;
 }
 
-final compactModeProvider =
-    NotifierProvider<_CompactModeNotifier, bool>(_CompactModeNotifier.new);
+final compactModeProvider = NotifierProvider<_CompactModeNotifier, bool>(
+  _CompactModeNotifier.new,
+);

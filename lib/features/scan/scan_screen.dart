@@ -1,3 +1,30 @@
+// =============================================================================
+// scan_screen.dart
+// =============================================================================
+//
+// Purpose:
+//   Camera-based barcode scanner that provides a fast path for looking up or
+//   acting on a specific delivery without navigating the full list. The courier
+//   points the camera at a parcel barcode and is taken directly to that
+//   delivery's detail screen.
+//
+// Key behaviours:
+//   • Uses [MobileScanner] for real-time barcode detection (QR, Code128, etc.).
+//   • On a successful scan, looks up the barcode in local SQLite first
+//     (offline-first). If not found locally and the device is online, attempts
+//     a server lookup.
+//   • Flashlight toggle — hardware torch controlled via [MobileScannerController].
+//   • Haptic feedback on successful scan to confirm to the courier without
+//     requiring them to look at the screen.
+//   • Camera permission is requested on mount; if denied, shows a guidance
+//     message with a link to app settings.
+//
+// Navigation:
+//   Route: /scan
+//   Accessed via: FloatingBottomNavBar (Scan tab) and DashboardScreen SCAN card
+//   Pushes to: DeliveryDetailScreen on successful barcode match
+// =============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +34,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
@@ -49,8 +75,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   String get _title => _isDispatch ? 'Scan Dispatch' : 'Scan POD';
 
-  String get _hintText =>
-      _isDispatch ? 'E.G. E-GEOFXXXXX1234' : 'Enter delivery barcode or account name';
+  String get _hintText => _isDispatch
+      ? 'E.G. E-GEOFXXXXX1234'
+      : 'Enter delivery barcode or account name';
 
   String get _submitLabel =>
       _isDispatch ? 'Check Eligibility' : 'Find Delivery';
@@ -261,8 +288,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // DeliveryDetailScreen._load() runs isVisibleToRider again as the canonical
     // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
     // message before ever navigating, and avoids N+1 per-row checks.
-    final matches =
-        await LocalDeliveryDao.instance.searchVisibleByQuery(code);
+    final matches = await LocalDeliveryDao.instance.searchVisibleByQuery(code);
     if (!mounted) return;
 
     if (matches.length == 1) {
@@ -273,7 +299,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       );
 
       if (isLocked) {
-        setState(() => _inlineError = _blockedMessage(match.deliveryStatus, match.rtsVerificationStatus));
+        final msg = _blockedMessage(
+          match.deliveryStatus,
+          match.rtsVerificationStatus,
+        );
+        setState(() => _inlineError = msg);
+        showInfoNotification(context, msg);
         if (_hasPermission) await _scannerController.start();
         return;
       }
@@ -290,7 +321,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           .where((m) => m.deliveryStatus.toUpperCase() != 'OSA')
           .toList();
       if (actionable.isEmpty) {
-        setState(() => _inlineError = 'No active deliveries found for "$code".');
+        setState(
+          () => _inlineError = 'No active deliveries found for "$code".',
+        );
         if (_hasPermission) await _scannerController.start();
         return;
       }
@@ -312,13 +345,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // Before giving up, check if the barcode exists locally but is non-visible
     // (e.g. verified RTS, paid delivered, old window) so we can give a better
     // error message than just "not found".
-    final anyLocal =
-        await LocalDeliveryDao.instance.getByBarcode(code);
+    final anyLocal = await LocalDeliveryDao.instance.getByBarcode(code);
     if (!mounted) return;
     if (anyLocal != null) {
       // Item exists locally but is blocked — show status-specific reason.
-      setState(() => _inlineError =
-          _blockedMessage(anyLocal.deliveryStatus, anyLocal.rtsVerificationStatus));
+      final msg = _blockedMessage(
+        anyLocal.deliveryStatus,
+        anyLocal.rtsVerificationStatus,
+      );
+      setState(() => _inlineError = msg);
+      showInfoNotification(context, msg);
       if (_hasPermission) await _scannerController.start();
       return;
     }
@@ -360,13 +396,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     if (s == 'DELIVERED') {
       return 'This item has already been delivered and is sealed.';
     }
-    if (s == 'RTS' &&
-        (v == 'verified_with_pay' || v == 'verified_no_pay')) {
+    if (s == 'RTS' && (v == 'verified_with_pay' || v == 'verified_no_pay')) {
       return 'This RTS item has already been verified and is no longer actionable.';
     }
     return 'This delivery is not in your active list.';
   }
-
 
   Future<Map<String, dynamic>?> _showSearchResults(
     String query,
@@ -398,6 +432,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           elevation: 0,
           title: Text(
             _title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -411,7 +447,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 final isTorchOn = state.torchState == TorchState.on;
                 return IconButton(
                   icon: Icon(
-                    isTorchOn ? Icons.flashlight_on_rounded : Icons.flashlight_off_rounded,
+                    isTorchOn
+                        ? Icons.flashlight_on_rounded
+                        : Icons.flashlight_off_rounded,
                     color: isTorchOn ? ColorStyles.grabGreen : Colors.white,
                   ),
                   onPressed: () => _scannerController.toggleTorch(),
@@ -421,234 +459,245 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             const SizedBox(width: 8),
           ],
         ),
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            // ── Camera feed – always in tree so hardware never re-inits ──
-            MobileScanner(
-              controller: _scannerController,
-              onDetect: (capture) {
-                final code = capture.barcodes.firstOrNull?.rawValue;
-                if (code != null && code.isNotEmpty) _handleCode(code);
-              },
-            ),
-
-            // ── Dark scrim with transparent viewfinder window ─────────
-            CustomPaint(
-              size: Size.infinite,
-              painter: _ScanScrimPainter(
-                viewfinderH: viewfinderH,
-                viewfinderMargin: viewfinderMargin,
+        body: LoadingOverlay(
+          isLoading: _processing,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // ── Camera feed – always in tree so hardware never re-inits ──
+              MobileScanner(
+                controller: _scannerController,
+                onDetect: (capture) {
+                  final code = capture.barcodes.firstOrNull?.rawValue;
+                  if (code != null && code.isNotEmpty) _handleCode(code);
+                },
               ),
-            ),
 
-            // ── Animated scan line (inside viewfinder) ────────────────
-            if (_hasPermission)
-              AnimatedBuilder(
-                animation: _lineAnim,
-                builder: (_, __) => Positioned(
-                  top: vfTop + _lineAnim.value * (viewfinderH - 4),
-                  left: viewfinderMargin + 4,
-                  right: viewfinderMargin + 4,
-                  child: Container(
-                    height: 2,
-                    decoration: BoxDecoration(
-                      color: ColorStyles.grabGreen.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: ColorStyles.grabGreen.withValues(alpha: 0.5),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                  ),
+              // ── Dark scrim with transparent viewfinder window ─────────
+              CustomPaint(
+                size: Size.infinite,
+                painter: _ScanScrimPainter(
+                  viewfinderH: viewfinderH,
+                  viewfinderMargin: viewfinderMargin,
                 ),
               ),
 
-            // ── Corner brackets ───────────────────────────────────────
-            Positioned(
-              top: vfTop,
-              left: viewfinderMargin,
-              right: viewfinderMargin,
-              height: viewfinderH,
-              child: CustomPaint(
-                painter: _CornerPainter(color: ColorStyles.grabGreen),
-              ),
-            ),
+              // ── Animated scan line (inside viewfinder) ────────────────
+              if (_hasPermission)
+                AnimatedBuilder(
+                  animation: _lineAnim,
+                  builder: (_, __) => Positioned(
+                    top: vfTop + _lineAnim.value * (viewfinderH - 4),
+                    left: viewfinderMargin + 4,
+                    right: viewfinderMargin + 4,
+                    child: Container(
+                      height: 2,
+                      decoration: BoxDecoration(
+                        color: ColorStyles.grabGreen.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: ColorStyles.grabGreen.withValues(alpha: 0.5),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
-            // ── Permission overlay (on top of camera) ─────────────────
-            if (!_hasPermission)
-              GestureDetector(
-                onTap: _requestPermission,
-                child: Container(
-                  color: Colors.black87,
-                  child: const Center(
+              // ── Corner brackets ───────────────────────────────────────
+              Positioned(
+                top: vfTop,
+                left: viewfinderMargin,
+                right: viewfinderMargin,
+                height: viewfinderH,
+                child: CustomPaint(
+                  painter: _CornerPainter(color: ColorStyles.grabGreen),
+                ),
+              ),
+
+              // ── Permission overlay (on top of camera) ─────────────────
+              if (!_hasPermission)
+                GestureDetector(
+                  onTap: _requestPermission,
+                  child: Container(
+                    color: Colors.black87,
+                    child: const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white,
+                            size: 54,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Camera permission required',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Tap to grant camera access',
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // ── Fixed bottom action bar ───────────────────────────
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SafeArea(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.9),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.camera_alt_outlined,
-                          color: Colors.white,
-                          size: 54,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Camera permission required',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Tap to grant camera access',
-                          style: TextStyle(color: Colors.white60, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-            // ── Fixed bottom action bar ───────────────────────────
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: SafeArea(
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.9),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Static hint for dispatch mode so the user always knows
-                      // connectivity is required before they even attempt a scan.
-                      if (_isDispatch)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Consumer(
-                                builder: (_, ref, __) {
-                                  final isOnline = ref.watch(isOnlineProvider);
-                                  return Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        isOnline
-                                            ? Icons.wifi_rounded
-                                            : Icons.wifi_off_rounded,
-                                        size: 12,
-                                        color: isOnline
-                                            ? Colors.white54
-                                            : Colors.orange,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        isOnline
-                                            ? 'Dispatch scanning requires an internet connection.'
-                                            : 'You are offline — dispatch scanning unavailable.',
-                                        style: TextStyle(
+                        // Static hint for dispatch mode so the user always knows
+                        // connectivity is required before they even attempt a scan.
+                        if (_isDispatch)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Consumer(
+                                  builder: (_, ref, __) {
+                                    final isOnline = ref.watch(
+                                      isOnlineProvider,
+                                    );
+                                    return Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isOnline
+                                              ? Icons.wifi_rounded
+                                              : Icons.wifi_off_rounded,
+                                          size: 12,
                                           color: isOnline
                                               ? Colors.white54
                                               : Colors.orange,
-                                          fontSize: 11,
                                         ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (_inlineError != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: Colors.red.withValues(alpha: 0.4),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.error_outline_rounded,
-                                  color: Colors.redAccent,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    _inlineError!,
-                                    style: const TextStyle(
-                                      color: Colors.redAccent,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          isOnline
+                                              ? 'Dispatch scanning requires an internet connection.'
+                                              : 'You are offline — dispatch scanning unavailable.',
+                                          style: TextStyle(
+                                            color: isOnline
+                                                ? Colors.white54
+                                                : Colors.orange,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.keyboard_alt_outlined, size: 18),
-                        label: const Text(
-                          'ENTER MANUALLY',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                            fontSize: 13,
+                        if (_inlineError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.red.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline_rounded,
+                                    color: Colors.redAccent,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      _inlineError!,
+                                      style: const TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.4),
+                        OutlinedButton.icon(
+                          icon: const Icon(
+                            Icons.keyboard_alt_outlined,
+                            size: 18,
                           ),
-                          minimumSize: const Size(double.infinity, 48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                          label: const Text(
+                            'ENTER MANUALLY',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              fontSize: 13,
+                            ),
                           ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.4),
+                            ),
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: _openManualSheet,
                         ),
-                        onPressed: _openManualSheet,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            if (_processing) const LoadingOverlay(),
-            if (_showAutoAcceptSuccess)
-              SuccessOverlay(
-                onDone: () {
-                  if (!mounted) return;
-                  context.go('/dashboard');
-                },
-              ),
-          ],
+              // Loading state handled by wrapper
+              if (_showAutoAcceptSuccess)
+                SuccessOverlay(
+                  onDone: () {
+                    if (!mounted) return;
+                    context.go('/dashboard');
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );

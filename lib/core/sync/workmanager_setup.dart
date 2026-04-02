@@ -42,17 +42,13 @@ class BackgroundSyncSetup {
   static const String periodicSyncTask = 'periodicSyncTask';
 
   static Future<void> init() async {
-    await Workmanager().initialize(
-      callbackDispatcher,
-    );
+    await Workmanager().initialize(callbackDispatcher);
 
     await Workmanager().registerPeriodicTask(
       'fsi_courier_bg_sync',
       periodicSyncTask,
       frequency: const Duration(minutes: 15), // 15 mins is Android's minimum
-      constraints: Constraints(
-        networkType: NetworkType.connected,
-      ),
+      constraints: Constraints(networkType: NetworkType.connected),
     );
   }
 }

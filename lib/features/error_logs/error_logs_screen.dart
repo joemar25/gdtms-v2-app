@@ -49,7 +49,8 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
     final confirmed = await ConfirmationDialog.show(
       context,
       title: 'Clear All Logs',
-      subtitle: 'This will permanently delete all error logs from this device. This cannot be undone.',
+      subtitle:
+          'This will permanently delete all error logs from this device. This cannot be undone.',
       confirmLabel: 'Clear All',
       cancelLabel: 'Cancel',
       isDestructive: true,
@@ -87,7 +88,10 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
               child: Column(
                 children: [
                   // ── Summary bar ────────────────────────────────────────────
-                  _SummaryBar(errorCount: errorCount, warningCount: warningCount),
+                  _SummaryBar(
+                    errorCount: errorCount,
+                    warningCount: warningCount,
+                  ),
                   // ── Level filter ───────────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -162,8 +166,11 @@ class _SummaryBar extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         child: Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded,
-                size: 16, color: Colors.green.shade500),
+            Icon(
+              Icons.check_circle_outline_rounded,
+              size: 16,
+              color: Colors.green.shade500,
+            ),
             const SizedBox(width: 8),
             Text(
               'No errors recorded.',
@@ -262,9 +269,7 @@ class _LogCardState extends State<_LogCard> {
       decoration: BoxDecoration(
         color: widget.isDark ? const Color(0xFF1E1E2E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.25),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.04),
@@ -356,13 +361,10 @@ class _LogCardState extends State<_LogCard> {
           if (_expanded && e.detail != null)
             InkWell(
               onLongPress: () {
-                Clipboard.setData(ClipboardData(
-                  text: '${e.message}\n\n${e.detail}',
-                ));
-                showSuccessNotification(
-                  context,
-                  'Copied to clipboard',
+                Clipboard.setData(
+                  ClipboardData(text: '${e.message}\n\n${e.detail}'),
                 );
+                showSuccessNotification(context, 'Copied to clipboard');
               },
               child: Container(
                 width: double.infinity,
@@ -376,10 +378,7 @@ class _LogCardState extends State<_LogCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Divider(
-                      height: 16,
-                      color: color.withValues(alpha: 0.15),
-                    ),
+                    Divider(height: 16, color: color.withValues(alpha: 0.15)),
                     Text(
                       e.detail!,
                       style: TextStyle(

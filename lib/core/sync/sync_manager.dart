@@ -133,14 +133,19 @@ class SyncManagerNotifier extends Notifier<SyncState> {
       );
 
       final attemptAt = DateTime.now().millisecondsSinceEpoch;
-      await SyncOperationsDao.instance.updateStatus(entry.id, 'processing', lastAttemptAt: attemptAt);
+      await SyncOperationsDao.instance.updateStatus(
+        entry.id,
+        'processing',
+        lastAttemptAt: attemptAt,
+      );
 
       try {
         final payload = jsonDecode(entry.payloadJson) as Map<String, dynamic>;
 
         // ── Upload any pending media (stored offline as local files) ────────────
         if (entry.mediaPathsJson != null && entry.mediaPathsJson!.isNotEmpty) {
-          final pendingMedia = jsonDecode(entry.mediaPathsJson!) as Map<String, dynamic>;
+          final pendingMedia =
+              jsonDecode(entry.mediaPathsJson!) as Map<String, dynamic>;
           if (pendingMedia.isNotEmpty) {
             state = state.copyWith(
               lastMessage:
@@ -148,19 +153,28 @@ class SyncManagerNotifier extends Notifier<SyncState> {
             );
             final uploadedImages = <Map<String, dynamic>>[];
             final api = ref.read(apiClientProvider);
-            final uploadPath = '/deliveries/${entry.barcode}/media';
+            final isProfileUpdate = entry.operationType == 'UPDATE_PROFILE';
+            final uploadPath = isProfileUpdate
+                ? '/me/media'
+                : '/deliveries/${entry.barcode}/media';
 
-            debugPrint('[SYNC] media queue for ${entry.barcode}: ${pendingMedia.keys.join(', ')}');
+            debugPrint(
+              '[SYNC] media queue for ${entry.barcode}: ${pendingMedia.keys.join(', ')}',
+            );
             for (final kv in pendingMedia.entries) {
-              final uploadType = kv.key; // e.g., 'pod', 'selfie', 'recipient_signature'
+              final uploadType =
+                  kv.key; // e.g., 'pod', 'selfie', 'recipient_signature'
               final filePath = kv.value.toString();
 
               final file = File(filePath);
               if (!await file.exists()) {
-                debugPrint('[SYNC] media file missing for $uploadType — skipping: $filePath');
+                debugPrint(
+                  '[SYNC] media file missing for $uploadType — skipping: $filePath',
+                );
                 await ErrorLogService.warning(
                   context: 'sync',
-                  message: 'Media file missing for ${entry.barcode} ($uploadType)',
+                  message:
+                      'Media file missing for ${entry.barcode} ($uploadType)',
                   detail: 'Path not found: $filePath',
                   barcode: entry.barcode,
                 );
@@ -168,7 +182,9 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               }
 
               final bytes = await file.readAsBytes();
-              debugPrint('[SYNC] uploading $uploadType (${bytes.length}b) for ${entry.barcode}');
+              debugPrint(
+                '[SYNC] uploading $uploadType (${bytes.length}b) for ${entry.barcode}',
+              );
               final ext = filePath.endsWith('.png') ? 'png' : 'jpg';
               final filename = '$uploadType.$ext';
 
@@ -179,34 +195,49 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                 type: uploadType,
                 parser: (d) {
                   if (d is Map<String, dynamic>) return d;
-                  if (d is Map) return d.map((k, v) => MapEntry(k.toString(), v));
+                  if (d is Map)
+                    return d.map((k, v) => MapEntry(k.toString(), v));
                   return <String, dynamic>{};
                 },
               );
 
               if (result is ApiSuccess<Map<String, dynamic>>) {
                 final inner = result.data['data'];
-                final url = (inner is Map
-                        ? inner['url'] ?? inner['signed_url'] ?? inner['file'] ?? inner['path']
-                        : result.data['url'] ?? result.data['signed_url'])?.toString();
+                final url =
+                    (inner is Map
+                            ? inner['url'] ??
+                                  inner['signed_url'] ??
+                                  inner['file'] ??
+                                  inner['path']
+                            : result.data['url'] ?? result.data['signed_url'])
+                        ?.toString();
 
                 if (url != null && url.isNotEmpty) {
                   debugPrint('[SYNC] $uploadType uploaded → $url');
                   if (uploadType == 'recipient_signature') {
                     payload['recipient_signature'] = url;
+                  } else if (isProfileUpdate &&
+                      uploadType == 'profile_picture') {
+                    payload['profile_picture_url'] = url;
                   } else {
                     uploadedImages.add({
                       'file': url,
                       'type': uploadType,
-                      'captured_at': DateTime.now().toUtc().toIso8601String(),
+                      'captured_at': DateTime.fromMillisecondsSinceEpoch(
+                        entry.createdAt,
+                      ).toUtc().toIso8601String(),
                     });
                   }
                 } else {
-                  debugPrint('[SYNC] $uploadType upload succeeded but URL was null/empty — dropped');
+                  debugPrint(
+                    '[SYNC] $uploadType upload succeeded but URL was null/empty — dropped',
+                  );
                   await ErrorLogService.warning(
                     context: 'sync',
-                    message: 'Upload URL missing for ${entry.barcode} ($uploadType)',
-                    detail: 'ApiSuccess returned null/empty URL. data=${result.data}',
+                    message:
+                        'Upload URL missing for ${entry.barcode} ($uploadType)',
+                    detail:
+                        'ApiSuccess returned null/empty URL. data=${result.data}',
                     barcode: entry.barcode,
                   );
                 }
@@ -220,21 +251,27 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                 );
               }
             }
-            debugPrint('[SYNC] uploadedImages after loop: ${uploadedImages.map((e) => e['type']).join(', ')}');
+            debugPrint(
+              '[SYNC] uploadedImages after loop: ${uploadedImages.map((e) => e['type']).join(', ')}',
+            );
 
             if (uploadedImages.isNotEmpty) {
               final existing = payload['delivery_images'];
               final merged = <Map<String, dynamic>>[
-                if (existing is List) ...existing.whereType<Map<String, dynamic>>(),
+                if (existing is List)
+                  ...existing.whereType<Map<String, dynamic>>(),
                 ...uploadedImages,
               ];
               payload['delivery_images'] = merged;
             }
 
             final hasSignature = payload.containsKey('recipient_signature');
-            if (pendingMedia.isNotEmpty && uploadedImages.isEmpty && !hasSignature) {
+            if (pendingMedia.isNotEmpty &&
+                uploadedImages.isEmpty &&
+                !hasSignature) {
               final newRetryCount = entry.retryCount + 1;
-              const mediaError = 'Media upload failed — no proof photos could be uploaded.';
+              const mediaError =
+                  'Media upload failed — no proof photos could be uploaded.';
               await SyncOperationsDao.instance.updateStatus(
                 entry.id,
                 'failed',
@@ -249,7 +286,8 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               );
               state = state.copyWith(
                 processed: state.processed + 1,
-                lastMessage: 'Media upload failed for ${entry.barcode}. Will retry.',
+                lastMessage:
+                    'Media upload failed for ${entry.barcode}. Will retry.',
               );
               continue;
             }
@@ -258,16 +296,25 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
         final result = await retry<ApiResult<Map<String, dynamic>>>(
           () async {
+            final path = entry.operationType == 'UPDATE_PROFILE'
+                ? '/me'
+                : '/deliveries/${entry.barcode}';
             final res = await ref
                 .read(apiClientProvider)
                 .patch<Map<String, dynamic>>(
-                  '/deliveries/${entry.barcode}',
+                  path,
                   data: payload,
-                  extraHeaders: {'X-Request-ID': entry.id}, // Use op UUID for idempotency
+                  extraHeaders: {
+                    'X-Request-ID': entry.id,
+                  }, // Use op UUID for idempotency
                   parser: parseApiMap,
                 );
-            if (res is ApiNetworkError || res is ApiServerError || res is ApiRateLimited) {
-              throw Exception('Transient error during PATCH: ${_errorMessage(res)}');
+            if (res is ApiNetworkError ||
+                res is ApiServerError ||
+                res is ApiRateLimited) {
+              throw Exception(
+                'Transient error during PATCH: ${_errorMessage(res)}',
+              );
             }
             return res;
           },
@@ -278,22 +325,37 @@ class SyncManagerNotifier extends Notifier<SyncState> {
         if (_disposed) break;
 
         if (result is ApiSuccess<Map<String, dynamic>>) {
-          await SyncOperationsDao.instance.updateStatus(entry.id, 'synced');
+          final now = DateTime.now().millisecondsSinceEpoch;
+          await SyncOperationsDao.instance.updateStatus(
+            entry.id,
+            'synced',
+            lastAttemptAt: now,
+          );
           final deliveryData = result.data['data'];
           if (deliveryData is Map<String, dynamic>) {
-            await LocalDeliveryDao.instance.updateFromJson(
-              entry.barcode,
-              deliveryData,
-            );
+            if (entry.operationType == 'UPDATE_PROFILE') {
+              await ref
+                  .read(authProvider.notifier)
+                  .setAuthenticated(courier: deliveryData);
+            } else {
+              await LocalDeliveryDao.instance.updateFromJson(
+                entry.barcode,
+                deliveryData,
+              );
+            }
           } else {
             // Payload stores UPPERCASE status (server format); normalise to
             // lowercase before writing to local DB (internal app format).
-            final status = payload['delivery_status']?.toString().toUpperCase();
-            if (status != null) {
-              await LocalDeliveryDao.instance.updateStatus(
-                entry.barcode,
-                status,
-              );
+            if (entry.operationType != 'UPDATE_PROFILE') {
+              final status = payload['delivery_status']
+                  ?.toString()
+                  .toUpperCase();
+              if (status != null) {
+                await LocalDeliveryDao.instance.updateStatus(
+                  entry.barcode,
+                  status,
+                );
+              }
             }
           }
           successCount++;
@@ -301,20 +363,22 @@ class SyncManagerNotifier extends Notifier<SyncState> {
             processed: state.processed + 1,
             lastMessage: 'Delivery ${entry.barcode} successfully synced.',
           );
-        } else if (result is ApiConflict<Map<String, dynamic>> || 
-                   result is ApiBadRequest<Map<String, dynamic>> || 
-                   result is ApiValidationError<Map<String, dynamic>>) {
+        } else if (result is ApiConflict<Map<String, dynamic>> ||
+            result is ApiBadRequest<Map<String, dynamic>> ||
+            result is ApiValidationError<Map<String, dynamic>>) {
           // Terminal conflicts/errors from server -> abandon retry, mark as conflict or resolve automatically
           final errorMsg = _errorMessage(result);
-          
+
           // Auto-resolve cases where the server already reflects what the courier wanted:
           //
           // Case 1 — Immutable DELIVERED: server says item is already DELIVERED and
           //   cannot be changed. If the courier intended DELIVERED, end-state matches.
-          final isDeliveredImmutable = errorMsg.toLowerCase().contains('delivered') &&
-                                       errorMsg.toLowerCase().contains('immutable');
+          final isDeliveredImmutable =
+              errorMsg.toLowerCase().contains('delivered') &&
+              errorMsg.toLowerCase().contains('immutable');
           final wasIntendingToDeliver =
-              payload['delivery_status']?.toString().toUpperCase() == 'DELIVERED';
+              payload['delivery_status']?.toString().toUpperCase() ==
+              'DELIVERED';
 
           // Case 2 — Same-status transition: server rejected because status is
           //   already what the courier wanted (e.g. "Invalid status transition
@@ -326,15 +390,27 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               errorMsg.toLowerCase().contains('invalid status transition') &&
               errorMsg.toLowerCase().contains("to '$targetStatus'");
 
-          if ((isDeliveredImmutable && wasIntendingToDeliver) || isSameStatusTransition) {
-            await SyncOperationsDao.instance.updateStatus(entry.id, 'synced', lastError: 'Resolved: $errorMsg');
+          if ((isDeliveredImmutable && wasIntendingToDeliver) ||
+              isSameStatusTransition) {
+            final now = DateTime.now().millisecondsSinceEpoch;
+            await SyncOperationsDao.instance.updateStatus(
+              entry.id,
+              'synced',
+              lastAttemptAt: now,
+              lastError: 'Resolved: $errorMsg',
+            );
             successCount++;
             state = state.copyWith(
               processed: state.processed + 1,
-              lastMessage: 'Delivery ${entry.barcode} already updated on server.',
+              lastMessage:
+                  'Delivery ${entry.barcode} already updated on server.',
             );
           } else {
-            await SyncOperationsDao.instance.updateStatus(entry.id, 'conflict', lastError: errorMsg);
+            await SyncOperationsDao.instance.updateStatus(
+              entry.id,
+              'conflict',
+              lastError: errorMsg,
+            );
             await ErrorLogService.warning(
               context: 'sync',
               message: 'Conflict on ${entry.barcode}',
@@ -349,7 +425,12 @@ class SyncManagerNotifier extends Notifier<SyncState> {
         } else {
           final errorMsg = _errorMessage(result);
           final newRetryCount = entry.retryCount + 1;
-          await SyncOperationsDao.instance.updateStatus(entry.id, 'failed', lastError: errorMsg, retryCount: newRetryCount);
+          await SyncOperationsDao.instance.updateStatus(
+            entry.id,
+            'failed',
+            lastError: errorMsg,
+            retryCount: newRetryCount,
+          );
           await ErrorLogService.log(
             context: 'sync',
             message: 'Failed to sync ${entry.barcode}',
@@ -363,7 +444,12 @@ class SyncManagerNotifier extends Notifier<SyncState> {
         }
       } catch (e) {
         final newRetryCount = entry.retryCount + 1;
-        await SyncOperationsDao.instance.updateStatus(entry.id, 'failed', lastError: e.toString(), retryCount: newRetryCount);
+        await SyncOperationsDao.instance.updateStatus(
+          entry.id,
+          'failed',
+          lastError: e.toString(),
+          retryCount: newRetryCount,
+        );
         await ErrorLogService.log(
           context: 'sync',
           message: 'Exception syncing ${entry.barcode}',
@@ -426,13 +512,19 @@ class SyncManagerNotifier extends Notifier<SyncState> {
   Future<void> clearFailed() async {
     final auth = ref.read(authProvider);
     if (auth.courier == null) return;
-    await SyncOperationsDao.instance.deleteAllFailed(auth.courier!['id'].toString());
+    await SyncOperationsDao.instance.deleteAllFailed(
+      auth.courier!['id'].toString(),
+    );
     await loadEntries(); // Reload list
   }
 
   /// Dismisses a conflict operation.
   Future<void> dismissConflict(String id) async {
-    await SyncOperationsDao.instance.updateStatus(id, 'synced', lastError: 'Dismissed by user');
+    await SyncOperationsDao.instance.updateStatus(
+      id,
+      'synced',
+      lastError: 'Dismissed by user',
+    );
     await loadEntries();
   }
 

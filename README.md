@@ -259,3 +259,5 @@ Possible future improvements:
 in the sync page, the connect o sync should not hinder the pagination since it does not need to ,  i think 1 button there is good which is in the header to serve its function right?
 
 and in the delivery details no need to show a button that it is pending sync. instead just show a ready for sync so this delivery details should not be inreacted with.
+
+always run `dart format .` [documentation](https://dart.dev/tools/dart-format).

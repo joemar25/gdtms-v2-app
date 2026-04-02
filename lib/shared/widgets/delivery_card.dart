@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
-class DeliveryCard extends StatefulWidget {
+class DeliveryCard extends StatelessWidget {
   const DeliveryCard({
     super.key,
     required this.delivery,
     required this.onTap,
     this.compact = false,
     this.showChevron = true,
-    this.enableHoldToReveal = true,
+    this.enableHoldToReveal = true, // Legacy: ignored now
     this.footerText,
     this.footerIcon,
     this.isChecking = false,
     this.showLockIcon = true,
+    this.isPrivacyMode = false,
   });
 
   final Map<String, dynamic> delivery;
@@ -28,83 +28,111 @@ class DeliveryCard extends StatefulWidget {
   final IconData? footerIcon;
   final bool isChecking;
   final bool showLockIcon;
+  final bool isPrivacyMode;
 
   static Color statusColor(String status) {
     return switch (status.toUpperCase()) {
-      'PENDING' => ColorStyles.grabOrange,
-      'DELIVERED' => ColorStyles.grabGreen,
-      'RTS' => ColorStyles.red,
-      'OSA' => Colors.amber,
-      'DISPATCHED' => ColorStyles.blue,
-      _ => Colors.grey,
+      'PENDING' => const Color(0xFFFF6E00),
+      'DELIVERED' => const Color(0xFF00B14F),
+      'RTS' => const Color(0xFFE53935),
+      'OSA' => const Color(0xFFFFB300),
+      'DISPATCHED' => const Color(0xFF2196F3),
+      _ => const Color(0xFF607D8B),
+    };
+  }
+
+  static IconData statusIcon(String status) {
+    return switch (status.toUpperCase()) {
+      'PENDING' => Icons.schedule_rounded,
+      'DELIVERED' => Icons.check_circle_rounded,
+      'RTS' => Icons.assignment_return_rounded,
+      'OSA' => Icons.inventory_2_rounded,
+      'DISPATCHED' => Icons.local_shipping_rounded,
+      _ => Icons.help_outline_rounded,
     };
   }
 
   @override
-  State<DeliveryCard> createState() => _DeliveryCardState();
-}
-
-class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderStateMixin {
-  bool _isExpanded = false;
-
-  @override
   Widget build(BuildContext context) {
-    final delivery = widget.delivery;
+    final isExpanded = !compact;
+    final delivery = this.delivery;
     final barcode = resolveDeliveryIdentifier(delivery);
-    final rawStatus = delivery['delivery_status']?.toString() ?? 'PENDING';
-    final status = rawStatus.toUpperCase();
-    final jobOrder = (delivery['job_order'] ?? delivery['tracking_number'] ?? '').toString();
-    final product = (delivery['product'] ?? delivery['mail_type'] ?? '').toString();
-    final address = (delivery['address'] ?? delivery['delivery_address'] ?? '').toString();
-    final name = (delivery['name'] ??
-            delivery['recipient'] ??
-            delivery['recipient_name'] ??
-            '')
+    final rawStatus = delivery['delivery_status']?.toString() ?? '';
+    final status = rawStatus.toUpperCase().trim();
+    final jobOrder =
+        (delivery['job_order'] ?? delivery['tracking_number'] ?? '').toString();
+    final product = (delivery['product'] ?? delivery['mail_type'] ?? '')
         .toString();
+    final address = (delivery['address'] ?? delivery['delivery_address'] ?? '')
+        .toString();
+    final name =
+        (delivery['name'] ??
+                delivery['recipient'] ??
+                delivery['recipient_name'] ??
+                '')
+            .toString();
+
     final syncStatus = delivery['_sync_status']?.toString() ?? 'clean';
     final isDirty = syncStatus == 'dirty';
     final inSyncQueue = delivery['_in_sync_queue'] == true;
-    final color = isDirty ? Colors.amber.shade700 : DeliveryCard.statusColor(status);
+
+    final colorForStatus = isDirty
+        ? const Color(0xFFFFB300)
+        : statusColor(status);
+    final iconForStatus = statusIcon(status);
+
     final rtsVerifStatus =
         (delivery['_rts_verification_status']?.toString() ??
-        delivery['rts_verification_status']?.toString() ??
-        'unvalidated').toLowerCase();
-    final isRtsWithPay = status == 'RTS' && (rtsVerifStatus == 'verified_with_pay');
-    final isRtsNoPay = status == 'RTS' && (rtsVerifStatus == 'verified_no_pay');
+                delivery['rts_verification_status']?.toString() ??
+                'unvalidated')
+            .toLowerCase();
+    final isRtsWithPay =
+        status == 'RTS' && rtsVerifStatus == 'verified_with_pay';
+    final isRtsNoPay = status == 'RTS' && rtsVerifStatus == 'verified_no_pay';
     final isPaid = delivery['_paid_at'] != null;
     final isLocked = checkIsLockedFromMap(delivery);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
 
-    // Synchronous visibility evaluation mirroring LocalDeliveryDao.isVisibleToRider
+    // Visibility check
     final isArchived = delivery['_is_archived'] == true;
     final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart = DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
 
     bool isVisible = false;
     if (!isArchived) {
-      if (status == 'PENDING') {
+      if (status == 'PENDING' || status == '') {
         isVisible = true;
       } else if (status == 'DELIVERED') {
         final deliveredAt = delivery['_delivered_at'] as int? ?? 0;
         isVisible = deliveredAt >= todayStart && deliveredAt < tomorrowStart;
       } else if (status == 'RTS') {
         final completedAt = delivery['_completed_at'] as int? ?? 0;
-        // RTS items in the list are only those not yet verified into a payout.
-        isVisible = completedAt >= todayStart && completedAt < tomorrowStart && !isRtsWithPay && !isRtsNoPay;
+        isVisible =
+            completedAt >= todayStart &&
+            completedAt < tomorrowStart &&
+            !isRtsWithPay &&
+            !isRtsNoPay;
       } else if (status == 'OSA') {
         final completedAt = delivery['_completed_at'] as int? ?? 0;
         isVisible = completedAt >= todayStart && completedAt < tomorrowStart;
       }
     }
 
-    if (widget.compact) {
+    if (compact) {
       return _buildCompactCard(
         context: context,
-        cardBg: cardBg,
-        color: color,
+        isDark: isDark,
+        statusColor: colorForStatus,
         barcode: barcode,
         name: name,
         isDirty: isDirty,
@@ -114,186 +142,347 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
         isLocked: isLocked,
         isVisible: isVisible,
         inSyncQueue: inSyncQueue,
+        product: product,
+        address: address,
       );
     }
 
+    // ── Colors ──────────────────────────────────────────────────────────────
+    final cardBg = isDark ? const Color(0xFF161625) : Colors.white;
+    final cardBorder = isDark
+        ? const Color(0xFF2A2A40)
+        : const Color(0xFFE8EAF0);
+    final subtextColor = isDark
+        ? const Color(0xFF6B7280)
+        : const Color(0xFF9CA3AF);
+
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 260),
       curve: Curves.fastOutSlowIn,
+      width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: _isExpanded
-            ? (isDark ? Colors.blueGrey.shade900 : Colors.blue.shade50)
-            : cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? Colors.white10 : Colors.grey.shade200,
-        ),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cardBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.35)
+                : Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // Status indicator
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 4,
-            child: Container(color: color),
-          ),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: widget.isChecking ? null : widget.onTap,
-              onLongPress: widget.isChecking
-                  ? null
-                  : () {
-                      HapticFeedback.heavyImpact();
-                      setState(() => _isExpanded = !_isExpanded);
-                    },
-              child: AnimatedOpacity(
-                opacity: widget.isChecking ? 0.6 : 1.0,
-                duration: const Duration(milliseconds: 200),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: isChecking ? null : onTap,
+          splashColor: colorForStatus.withValues(alpha: 0.08),
+          highlightColor: colorForStatus.withValues(alpha: 0.04),
+          child: AnimatedOpacity(
+            opacity: isChecking ? 0.55 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Status accent bar ─────────────────────────────────────
+                Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        colorForStatus,
+                        colorForStatus.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Header row: barcode | job order | lock | chevron ──
+                      // ── Row 1: Status pill + Job Order + Chevron ─────────
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          // Status badge — hide if status is empty AND not dirty (Privacy mode also hides status)
+                          if (!isPrivacyMode && (status.isNotEmpty || isDirty))
+                            _StatusBadge(
+                              label: isDirty ? 'UNSYNCED' : status,
+                              color: colorForStatus,
+                              icon: isDirty
+                                  ? Icons.sync_problem_rounded
+                                  : iconForStatus,
+                            ),
+                          if (!isPrivacyMode && (status.isNotEmpty || isDirty))
+                            const SizedBox(width: 8),
+                          // Right side: job order / product + lock + chevron
                           Expanded(
-                            child: Text(
-                              barcode.isEmpty ? 'Unknown' : barcode,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13,
-                                letterSpacing: 0.3,
-                              ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (!isPrivacyMode &&
+                                    !isLocked &&
+                                    jobOrder.isNotEmpty)
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFF2196F3,
+                                        ).withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        jobOrder,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF2196F3),
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else if (!isPrivacyMode &&
+                                    isLocked &&
+                                    product.isNotEmpty)
+                                  Flexible(
+                                    child: Text(
+                                      product,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: subtextColor,
+                                      ),
+                                    ),
+                                  ),
+                                // Lock icon
+                                if (showLockIcon && (isLocked || !isVisible))
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 6),
+                                    child: Icon(
+                                      Icons.lock_outline_rounded,
+                                      color: isLocked
+                                          ? subtextColor
+                                          : Colors.red.shade400,
+                                      size: 15,
+                                    ),
+                                  ),
+                                // Minimal Chevron
+                                if (showChevron && !isChecking)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.06,
+                                              )
+                                            : Colors.grey.shade100,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: subtextColor,
+                                        size: 17,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          if (isLocked && product.isNotEmpty)
-                            Text(
-                              product,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade400,
-                              ),
-                            )
-                          else if (!isLocked && jobOrder.isNotEmpty)
-                            Text(
-                              jobOrder,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          const SizedBox(width: 8),
-                          if (widget.showLockIcon) ...[
-                            if (isLocked)
-                              Icon(Icons.lock_outline_rounded,
-                                  color: Colors.grey.shade400, size: 16)
-                            else if (!isVisible)
-                              Icon(Icons.lock_outline_rounded,
-                                  color: Colors.red.shade300, size: 16),
-                          ],
-                          if (widget.showChevron && !widget.isChecking)
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () =>
-                                  setState(() => _isExpanded = !_isExpanded),
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.white.withOpacity(0.05)
-                                      : Colors.grey.shade100,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: AnimatedRotation(
-                                  turns: _isExpanded ? 0.25 : 0.0,
-                                  duration: const Duration(milliseconds: 200),
-                                  curve: Curves.easeInOut,
-                                  child: Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: Colors.grey.shade600,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                            ),
                         ],
                       ),
-                      // ── Name ──
-                      if (name.isNotEmpty && !isLocked) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          name,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
+
+                      const SizedBox(height: 10),
+
+                      // ── Row 2: Barcode (large) ────────────────────────────
+                      Text(
+                        barcode.isEmpty ? 'UNKNOWN' : barcode,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          letterSpacing: 1.2,
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF111827),
+                        ),
+                      ),
+
+                      // ── Row 3: Recipient name ────────────────────────────
+                      if (!isPrivacyMode && name.isNotEmpty && !isLocked) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person_outline_rounded,
+                              size: 13,
+                              color: subtextColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? const Color(0xFFCBD5E1)
+                                      : const Color(0xFF374151),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-                      // ── Address ──
-                      if (address.isNotEmpty && !isLocked) ...[
+
+                      // ── Row 4: Address ───────────────────────────────────
+                      if (!isPrivacyMode &&
+                          address.isNotEmpty &&
+                          !isLocked) ...[
                         const SizedBox(height: 4),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.location_on_outlined,
-                              size: 12,
-                              color: Colors.grey.shade400,
+                            Padding(
+                              padding: const EdgeInsets.only(top: 1),
+                              child: Icon(
+                                Icons.location_on_outlined,
+                                size: 12,
+                                color: subtextColor,
+                              ),
                             ),
-                            const SizedBox(width: 3),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 address,
-                                maxLines: _isExpanded ? null : 1,
-                                overflow: _isExpanded
+                                maxLines: isExpanded ? null : 1,
+                                overflow: isExpanded
                                     ? null
                                     : TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: isDark
-                                      ? Colors.white38
-                                      : Colors.grey.shade500,
+                                  height: 1.4,
+                                  color: subtextColor,
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ],
-                      // ── Metadata chips ──
-                      if (delivery['metadata'] is List) ...[
+
+                      // ── Row 5: Privacy Mode Product Label ──────────────────
+                      if (isPrivacyMode && product.isNotEmpty) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 13,
+                              color: subtextColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                product.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: subtextColor,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+
+                      // ── Metadata chips ───────────────────────────────────
+                      if (!isPrivacyMode && delivery['metadata'] is List) ...[
                         const SizedBox(height: 10),
                         Wrap(
-                          spacing: 10,
+                          spacing: 8,
                           runSpacing: 6,
                           children: (delivery['metadata'] as List).map((m) {
                             final map = m as Map<String, dynamic>;
                             return InfoChip(
                               icon: map['icon'] as IconData,
                               label: map['label'] as String,
+                              isDark: isDark,
                             );
                           }).toList(),
                         ),
                       ],
-                      // ── Footer ──
-                      if (widget.footerText != null || widget.isChecking) ...[
+
+                      // ── Sync / Paid pills row ────────────────────────────
+                      if (!isPrivacyMode &&
+                          (isDirty || isPaid || inSyncQueue)) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            if (isDirty)
+                              _MiniPill(
+                                label: 'UNSYNCED',
+                                icon: Icons.sync_problem_rounded,
+                                bg: Colors.amber.shade50,
+                                border: Colors.amber.shade300,
+                                fg: Colors.amber.shade800,
+                              ),
+                            if (isPaid)
+                              _MiniPill(
+                                label: 'PAID',
+                                icon: Icons.check_circle_outline_rounded,
+                                bg: Colors.green.shade50,
+                                border: Colors.green.shade200,
+                                fg: Colors.green.shade700,
+                              ),
+                            if (inSyncQueue)
+                              _MiniPill(
+                                label: 'PENDING SYNC',
+                                icon: Icons.sync_lock_rounded,
+                                bg: Colors.blue.shade50,
+                                border: Colors.blue.shade200,
+                                fg: Colors.blue.shade800,
+                              ),
+                          ],
+                        ),
+                      ],
+
+                      // ── Footer ───────────────────────────────────────────
+                      if (footerText != null || isChecking) ...[
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            if (widget.isChecking) ...[
-                              const SizedBox(
-                                width: 12,
-                                height: 12,
+                            if (isChecking) ...[
+                              SizedBox(
+                                width: 11,
+                                height: 11,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation(
@@ -303,240 +492,136 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'Checking eligibility\u2026',
+                                'Checking eligibility…',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey.shade500,
+                                  color: subtextColor,
                                 ),
                               ),
-                            ] else if (widget.footerText != null) ...[
+                            ] else if (footerText != null) ...[
                               Icon(
-                                widget.footerIcon ?? Icons.info_outline,
+                                footerIcon ?? Icons.info_outline,
                                 size: 13,
-                                color: Colors.grey,
+                                color: subtextColor,
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                widget.footerText!,
+                                footerText!,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey.shade500,
+                                  color: subtextColor,
                                 ),
                               ),
                             ],
-                            const Spacer(),
-                            if (widget.isChecking || !widget.showChevron)
-                              Icon(
-                                Icons.chevron_right_rounded,
-                                color: Colors.grey.shade400,
-                                size: 20,
-                              ),
                           ],
                         ),
                       ],
-                      // ── Sync status pills ──
-                      if (isDirty || isPaid || inSyncQueue) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            if (isDirty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.shade50,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                      color: Colors.amber.shade300),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.sync_problem_rounded,
-                                        size: 10,
-                                        color: Colors.amber.shade700),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'UNSYNCED',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.amber.shade800,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (isDirty && isPaid) const SizedBox(width: 6),
-                            if (isPaid)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.shade50,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                      color: Colors.green.shade200),
-                                ),
-                                child: Text(
-                                  'PAID',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.green.shade700,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            if ((isDirty || isPaid) && inSyncQueue)
-                              const SizedBox(width: 6),
-                            if (inSyncQueue)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                      color: Colors.blue.shade200),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.sync_lock_rounded,
-                                        size: 10,
-                                        color: Colors.blue.shade700),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'PENDING SYNC',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.blue.shade800,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                      // ── Expandable detail section ──
-                      ClipRect(
-                        child: AnimatedSize(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.fastOutSlowIn,
-                          alignment: Alignment.topCenter,
-                          child: _isExpanded
-                              ? _buildDetailedSection(delivery, isDark)
-                              : const SizedBox(width: double.infinity),
-                        ),
-                      ),
+
+                      // ── Detail section (Auto-visible if not compact) ────────────────────────
+                      if (isExpanded && !isPrivacyMode)
+                        _buildDetailSection(delivery, isDark, subtextColor),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildDetailedSection(Map<String, dynamic> delivery, bool isDark) {
+  // ── Detail section ──────────────────────────────────────────────
+  Widget _buildDetailSection(
+    Map<String, dynamic> delivery,
+    bool isDark,
+    Color subtextColor,
+  ) {
     final seqNum = delivery['sequence_number']?.toString();
     final product = delivery['product']?.toString();
     final mailType = delivery['mail_type']?.toString();
     final specialInstr = delivery['special_instruction']?.toString();
     final transactionAt = delivery['transaction_at']?.toString();
 
-    final labelStyle = TextStyle(
-      fontSize: 9,
-      fontWeight: FontWeight.w700,
-      color: Colors.grey.shade500,
-      letterSpacing: 0.8,
-    );
-    final valueStyle = TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w600,
-      color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-    );
+    final hasDetails =
+        (seqNum != null && seqNum.isNotEmpty) ||
+        (transactionAt != null && transactionAt.isNotEmpty) ||
+        (product != null && product.isNotEmpty) ||
+        (mailType != null && mailType.isNotEmpty) ||
+        (specialInstr != null && specialInstr.isNotEmpty);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Divider(height: 1, color: Colors.grey.withValues(alpha: 0.2)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              if (seqNum != null && seqNum.isNotEmpty)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('SEQUENCE', style: labelStyle),
-                      const SizedBox(height: 2),
-                      Text(seqNum, style: valueStyle),
-                    ],
-                  ),
+    if (!hasDetails) return const SizedBox.shrink();
+
+    final dividerColor = isDark
+        ? Colors.white.withValues(alpha: 0.07)
+        : Colors.black.withValues(alpha: 0.07);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Divider(height: 1, color: dividerColor),
+        const SizedBox(height: 14),
+
+        // Detail grid
+        Row(
+          children: [
+            if (seqNum != null && seqNum.isNotEmpty)
+              Expanded(
+                child: _DetailCell(
+                  label: 'SEQUENCE',
+                  value: seqNum,
+                  isDark: isDark,
+                  subtextColor: subtextColor,
                 ),
-              if (transactionAt != null && transactionAt.isNotEmpty)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('TRANSACTION', style: labelStyle),
-                      const SizedBox(height: 2),
-                      Text(formatDate(transactionAt, includeTime: true), style: valueStyle),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          if ((product != null && product.isNotEmpty) || (mailType != null && mailType.isNotEmpty)) ...[
-            const SizedBox(height: 10),
-            Text('PRODUCT / MAIL TYPE', style: labelStyle),
-            const SizedBox(height: 2),
-            Text(
-              [product, mailType].where((e) => e != null && e.isNotEmpty).join(' | '),
-              style: valueStyle,
-            ),
-          ],
-          if (specialInstr != null && specialInstr.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text('SPECIAL INSTRUCTIONS', style: labelStyle),
-            const SizedBox(height: 2),
-            Text(
-              specialInstr,
-              style: valueStyle.copyWith(
-                color: Colors.blue.shade700,
-                fontStyle: FontStyle.italic,
               ),
-            ),
+            if (transactionAt != null && transactionAt.isNotEmpty)
+              Expanded(
+                child: _DetailCell(
+                  label: 'TRANSACTION',
+                  value: formatDate(transactionAt, includeTime: true),
+                  isDark: isDark,
+                  subtextColor: subtextColor,
+                ),
+              ),
           ],
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.center,
-            child: TextButton.icon(
-              onPressed: () => setState(() => _isExpanded = false),
-              icon: const Icon(Icons.expand_less_rounded, size: 18),
-              label: const Text('COLLAPSE', style: TextStyle(fontSize: 12, letterSpacing: 1)),
-            ),
+        ),
+
+        if ((product != null && product.isNotEmpty) ||
+            (mailType != null && mailType.isNotEmpty)) ...[
+          const SizedBox(height: 12),
+          _DetailCell(
+            label: 'PRODUCT / MAIL TYPE',
+            value: [
+              product,
+              mailType,
+            ].where((e) => e != null && e.isNotEmpty).join(' · '),
+            isDark: isDark,
+            subtextColor: subtextColor,
           ),
-          const SizedBox(height: 4),
         ],
-      ),
+
+        if (specialInstr != null && specialInstr.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _DetailCell(
+            label: 'SPECIAL INSTRUCTIONS',
+            value: specialInstr,
+            isDark: isDark,
+            subtextColor: subtextColor,
+            valueColor: const Color(0xFF2196F3),
+            isItalic: true,
+          ),
+        ],
+        const SizedBox(height: 4),
+      ],
     );
   }
 
+  // ── Compact card ───────────────────────────────────────────────────────────
   Widget _buildCompactCard({
     required BuildContext context,
-    required Color cardBg,
-    required Color color,
+    required bool isDark,
+    required Color statusColor,
     required String barcode,
     required String name,
     required bool isDirty,
@@ -546,181 +631,350 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
     required bool isLocked,
     required bool isVisible,
     required bool inSyncQueue,
+    required String product,
+    required String address,
   }) {
+    final cardBg = isDark ? const Color(0xFF161625) : Colors.white;
+    final subtextColor = isDark
+        ? const Color(0xFF6B7280)
+        : const Color(0xFF9CA3AF);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 7),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border(
-          left: BorderSide(color: color, width: 3),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2A2A40) : const Color(0xFFE8EAF0),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: InkWell(
-        borderRadius: const BorderRadius.only(
-          topRight: Radius.circular(10),
-          bottomRight: Radius.circular(10),
-        ),
-        onTap: widget.onTap,
-        onLongPress: widget.isChecking
-            ? null
-            : () {
-                HapticFeedback.heavyImpact();
-                setState(() => _isExpanded = !_isExpanded);
-              },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Text(
-                      barcode.isEmpty ? 'Unknown' : barcode,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                    if (name.isNotEmpty && !isLocked) ...[
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Left accent bar
+            Container(
+              width: 4,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [statusColor, statusColor.withValues(alpha: 0.4)],
                 ),
               ),
-              if (isDirty) ...[
-                const SizedBox(width: 5),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.amber.shade400),
-                  ),
-                  child: Text(
-                    'UNSYNCED',
-                    style: TextStyle(
-                      fontSize: 7,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.amber.shade800,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-              ],
-              if (inSyncQueue) ...[
-                const SizedBox(width: 5),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.blue.shade200),
+            ),
+            // Content
+            Expanded(
+              child: InkWell(
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.sync_lock_rounded, size: 8, color: Colors.blue.shade700),
-                      const SizedBox(width: 2),
-                      Text(
-                        'PENDING SYNC',
-                        style: TextStyle(
-                          fontSize: 7,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.blue.shade800,
-                          letterSpacing: 0.3,
+                      // Barcode + name/product/address
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              barcode.isEmpty ? 'UNKNOWN' : barcode,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                                letterSpacing: 0.8,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF111827),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isPrivacyMode
+                                  ? product // ONLY barcode and product in privacy mode
+                                  : [
+                                          address,
+                                          product,
+                                        ] // Compact mode shows address instead of name
+                                        .where((e) => e.isNotEmpty)
+                                        .join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: subtextColor,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      // Pills (Hidden in Privacy mode)
+                      if (!isPrivacyMode)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isDirty)
+                              _TinyPill(
+                                label: 'UNSYNC',
+                                color: Colors.amber.shade700,
+                              ),
+                            if (inSyncQueue)
+                              _TinyPill(
+                                label: 'SYNC',
+                                color: Colors.blue.shade600,
+                              ),
+                            if (isPaid)
+                              _TinyPill(
+                                label: 'PAID',
+                                color: Colors.green.shade600,
+                              ),
+                          ],
+                        ),
+                      // Lock / chevron
+                      if (!isPrivacyMode && isLocked)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Icon(
+                            Icons.lock_outline_rounded,
+                            color: subtextColor,
+                            size: 14,
+                          ),
+                        )
+                      else if (!isPrivacyMode && !isVisible)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Icon(
+                            Icons.lock_outline_rounded,
+                            color: Colors.red.shade400,
+                            size: 14,
+                          ),
+                        )
+                      else if (showChevron)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Icon(
+                            Icons.chevron_right_rounded,
+                            size: 16,
+                            color: subtextColor,
+                          ),
+                        ),
                     ],
                   ),
                 ),
-              ],
-              // Compact mode indicator
-              Container(
-                margin: const EdgeInsets.only(left: 6),
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.compress_rounded, size: 10, color: Colors.grey),
               ),
-              Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.only(left: 8),
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              if (isPaid) ...[
-                const SizedBox(width: 4),
-                Text(
-                  'PAID',
-                  style: TextStyle(
-                    fontSize: 8,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.green.shade600,
-                  ),
-                ),
-              ],
-              if (isLocked)
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Icon(Icons.lock_outline_rounded, color: Colors.grey.shade400, size: 14),
-                )
-              else if (!isVisible) ...[
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Icon(Icons.lock_outline_rounded, color: Colors.red.shade300, size: 14),
-                ),
-              ] else if (widget.showChevron)
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: AnimatedRotation(
-                    turns: _isExpanded ? 0.25 : 0.0, // 90 degrees when expanded
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    child: Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey.shade400),
-                  ),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class InfoChip extends StatelessWidget {
-  const InfoChip({super.key, required this.icon, required this.label});
-  final IconData icon;
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
   final String label;
+  final Color color;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniPill extends StatelessWidget {
+  const _MiniPill({
+    required this.label,
+    required this.icon,
+    required this.bg,
+    required this.border,
+    required this.fg,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color bg;
+  final Color border;
+  final Color fg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: fg),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: fg,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TinyPill extends StatelessWidget {
+  const _TinyPill({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 7,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailCell extends StatelessWidget {
+  const _DetailCell({
+    required this.label,
+    required this.value,
+    required this.isDark,
+    required this.subtextColor,
+    this.valueColor,
+    this.isItalic = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isDark;
+  final Color subtextColor;
+  final Color? valueColor;
+  final bool isItalic;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: subtextColor,
+            letterSpacing: 0.9,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color:
+                valueColor ??
+                (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1F2937)),
+            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class InfoChip extends StatelessWidget {
+  const InfoChip({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.isDark = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: Colors.grey.shade500),
+        Icon(icon, size: 12, color: color),
         const SizedBox(width: 3),
         Flexible(
           child: Text(
             label,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 11, color: color),
           ),
         ),
       ],

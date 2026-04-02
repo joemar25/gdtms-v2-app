@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
+import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
 /// Data access object for the [local_deliveries] table.
 class LocalDeliveryDao {
@@ -27,10 +28,7 @@ class LocalDeliveryDao {
     final db = await _db;
     final batch = db.batch();
     for (final json in deliveries) {
-      final delivery = LocalDelivery.fromJson(
-        json,
-        dispatchCode: dispatchCode,
-      );
+      final delivery = LocalDelivery.fromJson(json, dispatchCode: dispatchCode);
       if (delivery.barcode.isEmpty) continue;
       batch.insert(
         'local_deliveries',
@@ -52,7 +50,9 @@ class LocalDeliveryDao {
         'delivery_status': status.toUpperCase(),
         'updated_at': now,
         if (status.toUpperCase() == 'DELIVERED') 'delivered_at': now,
-        if (status.toUpperCase() == 'DELIVERED' || status.toUpperCase() == 'RTS' || status.toUpperCase() == 'OSA')
+        if (status.toUpperCase() == 'DELIVERED' ||
+            status.toUpperCase() == 'RTS' ||
+            status.toUpperCase() == 'OSA')
           'completed_at': now,
         'sync_status': 'dirty',
       },
@@ -63,10 +63,7 @@ class LocalDeliveryDao {
 
   /// Refreshes a record's indexed fields and [rawJson] from a fresh API response.
   /// Called after a successful GET or PATCH while online.
-  Future<void> updateFromJson(
-    String barcode,
-    Map<String, dynamic> json,
-  ) async {
+  Future<void> updateFromJson(String barcode, Map<String, dynamic> json) async {
     final db = await _db;
     // Always uppercase — server returns UPPERCASE (e.g. 'DELIVERED').
     // All DAO queries filter on uppercase values; storing lowercase makes
@@ -74,9 +71,10 @@ class LocalDeliveryDao {
     // until the next syncFromApi pass overwrites it.
     final status =
         (json['status']?.toString() ??
-            json['deliveryStatus']?.toString() ??
-            json['delivery_status']?.toString() ??
-            'PENDING').toUpperCase();
+                json['deliveryStatus']?.toString() ??
+                json['delivery_status']?.toString() ??
+                'PENDING')
+            .toUpperCase();
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // Parse is_paid from the fresh API response (v2.0 field).
@@ -112,8 +110,7 @@ class LocalDeliveryDao {
         // Server confirmed this record — mark clean so insertAllFromApiItems
         // no longer treats it as a dirty/unsynced courier update.
         'sync_status': 'clean',
-        if (rtsVerifStatus != null)
-          'rts_verification_status': rtsVerifStatus,
+        if (rtsVerifStatus != null) 'rts_verification_status': rtsVerifStatus,
       },
       where: 'barcode = ?',
       whereArgs: [barcode],
@@ -138,9 +135,10 @@ class LocalDeliveryDao {
       final dateStr = json['delivered_date']?.toString();
       int deliveredAt = now;
       if (dateStr != null && dateStr.isNotEmpty) {
-        try {
-          deliveredAt = DateTime.parse(dateStr).millisecondsSinceEpoch;
-        } catch (_) {
+        final parsedDate = parseServerDate(dateStr);
+        if (parsedDate != null) {
+          deliveredAt = parsedDate.millisecondsSinceEpoch;
+        } else {
           deliveredAt = now;
         }
       }
@@ -175,7 +173,9 @@ class LocalDeliveryDao {
     String dispatchCode = '',
     String serverStatus = 'PENDING',
   }) async {
-    debugPrint('[DAO] insertAllFromApiItems: ${items.length} items, status=$serverStatus');
+    debugPrint(
+      '[DAO] insertAllFromApiItems: ${items.length} items, status=$serverStatus',
+    );
     final db = await _db;
 
     // Collect all local records so we can decide what to do per-item.
@@ -230,7 +230,7 @@ class LocalDeliveryDao {
         batch.update(
           'local_deliveries',
           {
-            'delivery_status': serverStatusUpper,
+            'delivery_status': delivery.deliveryStatus,
             'raw_json': delivery.rawJson,
             'updated_at': delivery.updatedAt,
             if (delivery.deliveredAt != null)
@@ -265,8 +265,12 @@ class LocalDeliveryDao {
     }
 
     await batch.commit(noResult: true);
-    final totalRows = await db.rawQuery('SELECT COUNT(*) as c FROM local_deliveries');
-    debugPrint('[DAO] insertAllFromApiItems done — total rows in DB: ${totalRows.first['c']}');
+    final totalRows = await db.rawQuery(
+      'SELECT COUNT(*) as c FROM local_deliveries',
+    );
+    debugPrint(
+      '[DAO] insertAllFromApiItems done — total rows in DB: ${totalRows.first['c']}',
+    );
   }
 
   // ── Read ──────────────────────────────────────────────────────────────────────────────
@@ -284,7 +288,9 @@ class LocalDeliveryDao {
         "SELECT delivery_status, COALESCE(is_archived,0) as arch, COUNT(*) as n "
         "FROM local_deliveries GROUP BY delivery_status, arch",
       );
-      debugPrint('[DAO] countByStatus(pending)=${Sqflite.firstIntValue(res) ?? 0} — breakdown: $dist');
+      debugPrint(
+        '[DAO] countByStatus(pending)=${Sqflite.firstIntValue(res) ?? 0} — breakdown: $dist',
+      );
     }
     return Sqflite.firstIntValue(res) ?? 0;
   }
@@ -297,7 +303,8 @@ class LocalDeliveryDao {
     final rows = await db.query(
       'local_deliveries',
       columns: ['barcode'],
-      where: "delivery_status COLLATE NOCASE = 'PENDING' AND COALESCE(is_archived, 0) = 0",
+      where:
+          "delivery_status COLLATE NOCASE = 'PENDING' AND COALESCE(is_archived, 0) = 0",
     );
     return rows.map((r) => r['barcode'] as String).toSet();
   }
@@ -307,7 +314,8 @@ class LocalDeliveryDao {
     final db = await _db;
     final rows = await db.query(
       'local_deliveries',
-      where: 'delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0',
+      where:
+          'delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0',
       whereArgs: [status.toUpperCase()],
       orderBy: 'updated_at DESC',
     );
@@ -323,7 +331,8 @@ class LocalDeliveryDao {
     final db = await _db;
     final rows = await db.query(
       'local_deliveries',
-      where: 'delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0',
+      where:
+          'delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0',
       whereArgs: [status.toUpperCase()],
       orderBy: 'updated_at DESC',
       limit: limit,
@@ -339,10 +348,16 @@ class LocalDeliveryDao {
   }) async {
     final db = await _db;
     final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart =
-        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
     final rows = await db.query(
       'local_deliveries',
       where:
@@ -367,10 +382,16 @@ class LocalDeliveryDao {
   }) async {
     final db = await _db;
     final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart =
-        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
     final rows = await db.query(
       'local_deliveries',
       where:
@@ -395,10 +416,16 @@ class LocalDeliveryDao {
   }) async {
     final db = await _db;
     final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart =
-        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
     final rows = await db.query(
       'local_deliveries',
       where:
@@ -433,10 +460,16 @@ class LocalDeliveryDao {
 
     if (status.toUpperCase() == 'DELIVERED') {
       final now = DateTime.now();
-      final todayStart =
-          DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-      final tomorrowStart =
-          DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+      final todayStart = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).millisecondsSinceEpoch;
+      final tomorrowStart = DateTime(
+        now.year,
+        now.month,
+        now.day + 1,
+      ).millisecondsSinceEpoch;
       where =
           "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
           "AND delivery_status COLLATE NOCASE = 'DELIVERED' "
@@ -450,10 +483,16 @@ class LocalDeliveryDao {
       whereArgs = [q, q, todayStart, tomorrowStart];
     } else if (status.toUpperCase() == 'RTS' || status.toUpperCase() == 'OSA') {
       final now = DateTime.now();
-      final todayStart =
-          DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-      final tomorrowStart =
-          DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+      final todayStart = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).millisecondsSinceEpoch;
+      final tomorrowStart = DateTime(
+        now.year,
+        now.month,
+        now.day + 1,
+      ).millisecondsSinceEpoch;
       where =
           "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
           "AND delivery_status COLLATE NOCASE = ? "
@@ -504,7 +543,8 @@ class LocalDeliveryDao {
     final q = '%${query.trim()}%';
     final rows = await db.query(
       'local_deliveries',
-      where: '(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) AND COALESCE(is_archived, 0) = 0',
+      where:
+          '(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) AND COALESCE(is_archived, 0) = 0',
       whereArgs: [q, q],
       orderBy: 'updated_at DESC',
       limit: limit,
@@ -535,10 +575,16 @@ class LocalDeliveryDao {
     final db = await _db;
     final q = '%${query.trim()}%';
     final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart =
-        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
     // NOTE: if you update isVisibleToRider, update this query too — they must
     // stay in sync or the scan pre-filter will diverge from the hard gate.
     final rows = await db.rawQuery(
@@ -585,10 +631,16 @@ class LocalDeliveryDao {
   Future<List<LocalDelivery>> getVisibleDelivered() async {
     final db = await _db;
     final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart =
-        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
     final rows = await db.query(
       'local_deliveries',
       where:
@@ -615,10 +667,16 @@ class LocalDeliveryDao {
   Future<int> countVisibleDelivered() async {
     final db = await _db;
     final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart =
-        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
     final res = await db.rawQuery(
       'SELECT COUNT(*) FROM local_deliveries '
       'WHERE delivery_status COLLATE NOCASE = "DELIVERED" '
@@ -632,9 +690,13 @@ class LocalDeliveryDao {
     final allDelivered = await db.rawQuery(
       "SELECT barcode, delivered_at, completed_at FROM local_deliveries WHERE delivery_status COLLATE NOCASE='DELIVERED' LIMIT 5",
     );
-    debugPrint('[DAO] countVisibleDelivered: $count today (todayStart=$todayStart)');
+    debugPrint(
+      '[DAO] countVisibleDelivered: $count today (todayStart=$todayStart)',
+    );
     for (final r in allDelivered) {
-      debugPrint('[DAO]   barcode=${r['barcode']} delivered_at=${r['delivered_at']} completed_at=${r['completed_at']}');
+      debugPrint(
+        '[DAO]   barcode=${r['barcode']} delivered_at=${r['delivered_at']} completed_at=${r['completed_at']}',
+      );
     }
     return count;
   }
@@ -643,10 +705,16 @@ class LocalDeliveryDao {
   Future<int> countVisibleRts() async {
     final db = await _db;
     final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart =
-        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
     final res = await db.rawQuery(
       'SELECT COUNT(*) FROM local_deliveries '
       'WHERE delivery_status COLLATE NOCASE = "RTS" '
@@ -663,10 +731,16 @@ class LocalDeliveryDao {
   Future<int> countVisibleOsa() async {
     final db = await _db;
     final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart =
-        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
     final res = await db.rawQuery(
       'SELECT COUNT(*) FROM local_deliveries '
       'WHERE delivery_status COLLATE NOCASE = "OSA" '
@@ -711,16 +785,21 @@ class LocalDeliveryDao {
     if (rows.isEmpty) return false;
 
     final row = rows.first;
-    final status =
-        (row['delivery_status'] as String? ?? '').toUpperCase();
+    final status = (row['delivery_status'] as String? ?? '').toUpperCase();
     final isArchived = (row['is_archived'] as int? ?? 0) != 0;
     if (isArchived) return false;
 
     final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tomorrowStart =
-        DateTime(now.year, now.month, now.day + 1).millisecondsSinceEpoch;
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).millisecondsSinceEpoch;
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).millisecondsSinceEpoch;
 
     switch (status) {
       case 'PENDING':
@@ -774,7 +853,8 @@ class LocalDeliveryDao {
     final pendingRows = await db.query(
       'local_deliveries',
       columns: ['barcode'],
-      where: "delivery_status COLLATE NOCASE = 'PENDING' AND COALESCE(sync_status, '') != 'dirty'",
+      where:
+          "delivery_status COLLATE NOCASE = 'PENDING' AND COALESCE(sync_status, '') != 'dirty'",
     );
 
     final staleBarcodes = pendingRows
@@ -792,7 +872,8 @@ class LocalDeliveryDao {
       await db.update(
         'local_deliveries',
         {'is_archived': 1},
-        where: "barcode IN ($placeholders) AND delivery_status COLLATE NOCASE = 'PENDING'",
+        where:
+            "barcode IN ($placeholders) AND delivery_status COLLATE NOCASE = 'PENDING'",
         whereArgs: chunk,
       );
     }
@@ -833,7 +914,10 @@ class LocalDeliveryDao {
   /// This is intentional: a courier scanning or navigating to a paid+expired
   /// barcode finds nothing — preventing re-submission, double-payout attempts,
   /// or viewing of the recipient's personal data after the payout is settled.
-  Future<int> deleteOldSynced(int retentionMs, {required int paidRetentionMs}) async {
+  Future<int> deleteOldSynced(
+    int retentionMs, {
+    required int paidRetentionMs,
+  }) async {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
     final cutoff = now - retentionMs;

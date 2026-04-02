@@ -43,14 +43,16 @@ class S3UploadService {
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       if (attempt > 0) {
         final delay = retryDelays[attempt - 1];
-        debugPrint('[S3] Retry $attempt/${ maxAttempts - 1} for $s3Key after ${delay.inSeconds}s…');
+        debugPrint(
+          '[S3] Retry $attempt/${maxAttempts - 1} for $s3Key after ${delay.inSeconds}s…',
+        );
         await Future.delayed(delay);
       }
 
       try {
         final now = DateTime.now().toUtc();
-        final dateStamp = _fmt8(now);  // YYYYMMDD
-        final amzDate = _fmt15(now);   // YYYYMMDDTHHMMSSZ
+        final dateStamp = _fmt8(now); // YYYYMMDD
+        final amzDate = _fmt15(now); // YYYYMMDDTHHMMSSZ
 
         final host = '$awsBucket.s3.$awsRegion.amazonaws.com';
         final payloadHash = _sha256Hex(bytes);
@@ -113,7 +115,7 @@ class S3UploadService {
               'Authorization': authorization,
             },
             responseType: ResponseType.plain,
-            validateStatus: (s) => s != null,  // let us handle all statuses
+            validateStatus: (s) => s != null, // let us handle all statuses
           ),
         );
 
@@ -135,17 +137,24 @@ class S3UploadService {
         // 5xx — fall through to retry loop.
       } on DioException catch (e) {
         lastError = 'DioException(${e.type.name}): ${e.message}';
-        debugPrint('[S3] Network error on attempt ${attempt + 1} for $s3Key — $lastError');
+        debugPrint(
+          '[S3] Network error on attempt ${attempt + 1} for $s3Key — $lastError',
+        );
         // Fall through to retry loop.
       } catch (e) {
         lastError = e.toString();
-        debugPrint('[S3] Unexpected error on attempt ${attempt + 1} for $s3Key — $lastError');
+        debugPrint(
+          '[S3] Unexpected error on attempt ${attempt + 1} for $s3Key — $lastError',
+        );
         // Unexpected errors are unlikely to self-heal — bail immediately.
         return (url: null, error: lastError);
       }
     }
 
-    return (url: null, error: lastError ?? 'Upload failed after $maxAttempts attempts');
+    return (
+      url: null,
+      error: lastError ?? 'Upload failed after $maxAttempts attempts',
+    );
   }
 
   // ── AWS Signature V4 helpers ──────────────────────────────────────────────

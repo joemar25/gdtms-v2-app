@@ -153,7 +153,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final newFingerprint = '${apiBaseUrl}_$courierId';
         final prefs = await SharedPreferences.getInstance();
         final prevFingerprint = prefs.getString('_session_fingerprint') ?? '';
-        
+
         final lastCourierId = await authStorage.getLastCourierId();
         if ((prevFingerprint.isNotEmpty && prevFingerprint != newFingerprint) ||
             (lastCourierId != null && lastCourierId != courierId)) {
@@ -210,7 +210,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         children: [
           // ─ Background ─────────────────────────────────────────────
           ColoredBox(
-            color: isDark ? ColorStyles.scaffoldDark : ColorStyles.scaffoldLight,
+            color: isDark
+                ? ColorStyles.scaffoldDark
+                : ColorStyles.scaffoldLight,
           ),
           SafeArea(
             child: Center(

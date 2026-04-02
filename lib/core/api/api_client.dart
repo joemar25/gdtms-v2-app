@@ -11,6 +11,7 @@ import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'api_result.dart';
+export 'api_result.dart';
 import 's3_upload_service.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
@@ -193,7 +194,10 @@ class ApiClient {
         if (status == 422) {
           return ApiValidationError<T>(
             _extractValidationErrors(response.data),
-            message: _extractMessage(response.data, fallback: 'Validation failed.'),
+            message: _extractMessage(
+              response.data,
+              fallback: 'Validation failed.',
+            ),
           );
         }
         if (status == 400) {
@@ -202,7 +206,9 @@ class ApiClient {
           );
         }
 
-        return ApiServerError<T>(_extractMessage(response.data, fallback: 'Server error.'));
+        return ApiServerError<T>(
+          _extractMessage(response.data, fallback: 'Server error.'),
+        );
       }
     }
 
@@ -253,7 +259,11 @@ class ApiClient {
       final options = extraHeaders != null
           ? Options(headers: extraHeaders)
           : null;
-      final response = await _dio.patch<dynamic>(path, data: data, options: options);
+      final response = await _dio.patch<dynamic>(
+        path,
+        data: data,
+        options: options,
+      );
       debugPrint('[API] PATCH $path → ${response.statusCode}');
       return _mapResponse<T>(response, parser);
     } catch (e) {
@@ -297,12 +307,28 @@ class ApiClient {
 
     // ── S3 direct upload (primary, when enabled) ────────────────────────────
     if (needsS3) {
-      // Derive barcode from path: '/deliveries/BARCODE/media' → BARCODE
+      // Derive barcode/ID from path.
       final segments = path.split('/').where((s) => s.isNotEmpty).toList();
-      final barcode = segments.length >= 2 ? segments[1] : 'unknown';
+      final String folder;
+      final String identifier;
+
+      if (segments.first == 'me') {
+        folder = 'couriers';
+        // For profile, we can use 'profile' as the identifier or try to get courier ID.
+        // Since we don't have easy access to courier ID here without async,
+        // we'll use 'me' and let the S3 prefix be couriers/me/profile_picture.
+        // Alternatively, the caller could provide the ID in the path if we changed the API structure.
+        // For now, let's stick to a descriptive path.
+        identifier = 'me';
+      } else {
+        folder = 'deliveries';
+        identifier = segments.length >= 2 ? segments[1] : 'unknown';
+      }
+
       final ext = filename.endsWith('.png') ? 'png' : 'jpg';
-      final s3Key =
-          'deliveries/$barcode/images/${type}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final s3Key = segments.first == 'me'
+          ? '$folder/$identifier/profile/profile_picture_${DateTime.now().millisecondsSinceEpoch}.$ext'
+          : '$folder/$identifier/images/${type}_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
       debugPrint(
         '[UPLOAD] S3 upload: type=$type s3Key=$s3Key (${bytes.length}b)',
@@ -315,19 +341,23 @@ class ApiClient {
       if (s3Result.url != null) {
         debugPrint('[UPLOAD] S3 success: ${s3Result.url}');
         return ApiSuccess<T>(
-          parser({'data': {'url': s3Result.url}}),
+          parser({
+            'data': {'url': s3Result.url},
+          }),
         );
       }
       // S3 failed.
       final s3Err = s3Result.error ?? 'unknown';
       if (kS3StrictMode) {
         // Strict mode: no API fallback — surface S3 failure immediately.
-        debugPrint('[UPLOAD] S3 failed ($type) — strict mode, not falling back. $s3Err');
+        debugPrint(
+          '[UPLOAD] S3 failed ($type) — strict mode, not falling back. $s3Err',
+        );
         await ErrorLogService.log(
           context: 'api',
           message: 'S3 upload failed (strict mode, no API fallback) ($type)',
           detail: 'key=$s3Key\n$s3Err',
-          barcode: barcode,
+          barcode: identifier,
         );
         return ApiServerError<T>('S3 upload failed: $s3Err');
       }
@@ -338,7 +368,7 @@ class ApiClient {
         context: 'api',
         message: 'S3 upload failed, falling back to API ($type)',
         detail: 'key=$s3Key\n$s3Err',
-        barcode: barcode,
+        barcode: identifier,
       );
       // Do NOT return — fall through to API upload below.
     }
@@ -348,7 +378,9 @@ class ApiClient {
     // Expects multipart/form-data with fields: file (binary), type (string).
     debugPrint('[UPLOAD] API upload: type=$type path=$path (${bytes.length}b)');
     final segments = path.split('/').where((s) => s.isNotEmpty).toList();
-    final barcode = segments.length >= 2 ? segments[1] : null;
+    final barcode = segments.first != 'me' && segments.length >= 2
+        ? segments[1]
+        : null;
     try {
       final formData = FormData.fromMap({
         'file': MultipartFile.fromBytes(
