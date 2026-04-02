@@ -13,7 +13,7 @@ import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
-import 'package:fsi_courier_app/shared/widgets/dispatch_card.dart';
+import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_placeholder.dart';
 
@@ -167,18 +167,35 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                           ? '${formatDate(tat)} (TAT)'
                           : '-';
 
-                        return DispatchCard(
-                          maskedCode: maskedCode,
-                          branchName: branchName.isNotEmpty
-                            ? branchName
-                            : 'N/A',
-                          volume: volume,
-                          reportingDate: reportingDate,
-                          status: status,
+                        // Map dispatch data to DeliveryCard format
+                        final deliveryMap = {
+                          'barcode': maskedCode,
+                          'delivery_status': status,
+                          'metadata': [
+                            {
+                              'icon': Icons.store_outlined,
+                              'label': branchName.isNotEmpty ? branchName : 'N/A'
+                            },
+                            {
+                              'icon': Icons.inventory_2_outlined,
+                              'label': '$volume item${volume == '1' ? '' : 's'}'
+                            },
+                            {
+                              'icon': Icons.event_outlined,
+                              'label': reportingDate
+                            },
+                          ],
+                        };
+
+                        return DeliveryCard(
+                          delivery: deliveryMap,
+                          footerText: 'Tap to view and accept or reject',
                           isChecking: isChecking,
+                          enableHoldToReveal: false,
+                          showLockIcon: false,
                           onTap: isChecking
-                            ? null
-                            : () => _openDispatch(i, partialCode),
+                              ? null
+                              : () => _openDispatch(i, partialCode),
                         );
                       },
                     ),

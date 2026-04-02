@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class DeliveryCard extends StatefulWidget {
   const DeliveryCard({
@@ -11,21 +12,29 @@ class DeliveryCard extends StatefulWidget {
     this.compact = false,
     this.showChevron = true,
     this.enableHoldToReveal = true,
+    this.footerText,
+    this.footerIcon,
+    this.isChecking = false,
+    this.showLockIcon = true,
   });
 
   final Map<String, dynamic> delivery;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool compact;
   final bool showChevron;
   final bool enableHoldToReveal;
+  final String? footerText;
+  final IconData? footerIcon;
+  final bool isChecking;
+  final bool showLockIcon;
 
   static Color statusColor(String status) {
     return switch (status.toUpperCase()) {
-      'PENDING' => Colors.orange,
-      'DELIVERED' => Colors.green,
-      'RTS' => Colors.red,
+      'PENDING' => ColorStyles.grabOrange,
+      'DELIVERED' => ColorStyles.grabGreen,
+      'RTS' => ColorStyles.red,
       'OSA' => Colors.amber,
-      'DISPATCHED' => Colors.blue,
+      'DISPATCHED' => ColorStyles.blue,
       _ => Colors.grey,
     };
   }
@@ -115,220 +124,316 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
         color: _isExpanded
             ? (isDark ? Colors.blueGrey.shade900 : Colors.blue.shade50)
             : cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border(left: BorderSide(color: color, width: 4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
-            blurRadius: _isExpanded ? 15 : 10,
-            offset: Offset(0, _isExpanded ? 5 : 3),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.shade200,
+        ),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: widget.onTap,
-          child: GestureDetector(
-            onLongPress: () {
-              if (widget.compact || !widget.enableHoldToReveal || isLocked) return;
-              setState(() => _isExpanded = !_isExpanded);
-            },
-            behavior: HitTestBehavior.translucent,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // Status indicator
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 4,
+            child: Container(color: color),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: widget.isChecking ? null : widget.onTap,
+              child: AnimatedOpacity(
+                opacity: widget.isChecking ? 0.6 : 1.0,
+                duration: const Duration(milliseconds: 200),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    barcode.isEmpty ? 'Unknown' : barcode,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                                // Locked: show product type instead of internal job-order ID
-                                if (isLocked && product.isNotEmpty)
-                                  Text(
-                                    product,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade500,
-                                    ),
-                                  )
-                                else if (!isLocked && jobOrder.isNotEmpty)
-                                  Text(
-                                    jobOrder,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.grey.shade500,
-                                    ),
-                                  ),
-                              ],
+                      // ── Header row: barcode | job order | lock | chevron ──
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              barcode.isEmpty ? 'Unknown' : barcode,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                                letterSpacing: 0.3,
+                              ),
                             ),
-                            if (name.isNotEmpty && !isLocked) ...[
-                              const SizedBox(height: 3),
-                              Text(
-                                name,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w500,
+                          ),
+                          if (isLocked && product.isNotEmpty)
+                            Text(
+                              product,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade400,
+                              ),
+                            )
+                          else if (!isLocked && jobOrder.isNotEmpty)
+                            Text(
+                              jobOrder,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          if (widget.showLockIcon) ...[
+                            if (isLocked)
+                              Icon(Icons.lock_outline_rounded,
+                                  color: Colors.grey.shade400, size: 16)
+                            else if (!isVisible)
+                              Icon(Icons.lock_outline_rounded,
+                                  color: Colors.red.shade300, size: 16),
+                          ],
+                          if (widget.showChevron && !widget.isChecking)
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () =>
+                                  setState(() => _isExpanded = !_isExpanded),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.05)
+                                      : Colors.grey.shade100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: AnimatedRotation(
+                                  turns: _isExpanded ? 0.25 : 0.0,
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeInOut,
+                                  child: Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: Colors.grey.shade600,
+                                    size: 18,
+                                  ),
                                 ),
                               ),
-                            ],
-                            if (address.isNotEmpty && !isLocked) ...[
-                              const SizedBox(height: 2),
-                              Text(
+                            ),
+                        ],
+                      ),
+                      // ── Name ──
+                      if (name.isNotEmpty && !isLocked) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          name,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                      // ── Address ──
+                      if (address.isNotEmpty && !isLocked) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 12,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(width: 3),
+                            Expanded(
+                              child: Text(
                                 address,
                                 maxLines: _isExpanded ? null : 1,
-                                overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                                overflow: _isExpanded
+                                    ? null
+                                    : TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? Colors.white38
+                                      : Colors.grey.shade500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      // ── Metadata chips ──
+                      if (delivery['metadata'] is List) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 6,
+                          children: (delivery['metadata'] as List).map((m) {
+                            final map = m as Map<String, dynamic>;
+                            return InfoChip(
+                              icon: map['icon'] as IconData,
+                              label: map['label'] as String,
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      // ── Footer ──
+                      if (widget.footerText != null || widget.isChecking) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            if (widget.isChecking) ...[
+                              const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation(
+                                    ColorStyles.grabOrange,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Checking eligibility\u2026',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ] else if (widget.footerText != null) ...[
+                              Icon(
+                                widget.footerIcon ?? Icons.info_outline,
+                                size: 13,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.footerText!,
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey.shade500,
                                 ),
                               ),
                             ],
+                            const Spacer(),
+                            if (widget.isChecking || !widget.showChevron)
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.grey.shade400,
+                                size: 20,
+                              ),
                           ],
                         ),
-                      ),
-                      if (isLocked) ...[
-                        const SizedBox(width: 8),
-                        Icon(Icons.lock_outline_rounded, color: Colors.grey.shade400, size: 16),
-                      ] else if (!isVisible) ...[
-                        const SizedBox(width: 8),
-                        Icon(Icons.lock_outline_rounded, color: Colors.red.shade300, size: 16),
-                      ] else if (widget.showChevron) ...[
-                        const SizedBox(width: 8),
-                        AnimatedRotation(
-                          turns: _isExpanded ? 0.25 : 0.0, // 90 degrees when expanded
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          child: Icon(
-                            Icons.chevron_right_rounded,
-                            color: Colors.grey.shade400,
-                            size: 20,
-                          ),
+                      ],
+                      // ── Sync status pills ──
+                      if (isDirty || isPaid || inSyncQueue) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            if (isDirty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade50,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                      color: Colors.amber.shade300),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.sync_problem_rounded,
+                                        size: 10,
+                                        color: Colors.amber.shade700),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'UNSYNCED',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.amber.shade800,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (isDirty && isPaid) const SizedBox(width: 6),
+                            if (isPaid)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                      color: Colors.green.shade200),
+                                ),
+                                child: Text(
+                                  'PAID',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.green.shade700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            if ((isDirty || isPaid) && inSyncQueue)
+                              const SizedBox(width: 6),
+                            if (inSyncQueue)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                      color: Colors.blue.shade200),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.sync_lock_rounded,
+                                        size: 10,
+                                        color: Colors.blue.shade700),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'PENDING SYNC',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.blue.shade800,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                       ],
+                      // ── Expandable detail section ──
+                      ClipRect(
+                        child: AnimatedSize(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.fastOutSlowIn,
+                          alignment: Alignment.topCenter,
+                          child: _isExpanded
+                              ? _buildDetailedSection(delivery, isDark)
+                              : const SizedBox(width: double.infinity),
+                        ),
+                      ),
                     ],
                   ),
-                  if (isDirty || isPaid || inSyncQueue) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        if (isDirty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade50,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.amber.shade300),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.sync_problem_rounded,
-                                  size: 10,
-                                  color: Colors.amber.shade700,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  'UNSYNCED',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.amber.shade800,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (isDirty && isPaid) const SizedBox(width: 6),
-                        if (isPaid)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.green.shade200),
-                            ),
-                            child: Text(
-                              'PAID',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.green.shade700,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        if ((isDirty || isPaid) && inSyncQueue) const SizedBox(width: 6),
-                        if (inSyncQueue)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.blue.shade200),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.sync_lock_rounded, size: 10, color: Colors.blue.shade700),
-                                const SizedBox(width: 3),
-                                Text(
-                                  'PENDING SYNC',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.blue.shade800,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                  ClipRect(
-                    child: AnimatedSize(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.fastOutSlowIn,
-                      alignment: Alignment.topCenter,
-                      child: _isExpanded
-                          ? _buildDetailedSection(delivery, isDark)
-                          : const SizedBox(width: double.infinity),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -582,6 +687,30 @@ class _DeliveryCardState extends State<DeliveryCard> with SingleTickerProviderSt
           ),
         ),
       ),
+    );
+  }
+}
+
+class InfoChip extends StatelessWidget {
+  const InfoChip({super.key, required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: Colors.grey.shade500),
+        const SizedBox(width: 3),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+        ),
+      ],
     );
   }
 }

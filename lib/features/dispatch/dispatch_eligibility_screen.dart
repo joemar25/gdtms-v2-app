@@ -12,6 +12,7 @@ import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -699,74 +700,11 @@ class _DispatchEligibilityScreenState
                   ),
                   const SizedBox(height: 8),
                   ...deliveries.map(
-                    (d) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isDark ? Colors.white10 : Colors.grey.shade200,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  d['barcode_value']?.toString() ?? '-',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 13,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                d['job_order']?.toString() ?? '-',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            d['name']?.toString() ?? '',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.location_on_outlined,
-                                size: 12,
-                                color: Colors.grey.shade400,
-                              ),
-                              const SizedBox(width: 3),
-                              Expanded(
-                                child: Text(
-                                  d['address']?.toString() ?? '',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? Colors.white38
-                                        : Colors.grey.shade500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                    (d) => DeliveryCard(
+                      delivery: d,
+                      showChevron: false,
+                      enableHoldToReveal: false,
+                      onTap: null,
                     ),
                   ),
                 ],
@@ -1001,53 +939,59 @@ class _DispatchInfoCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(16),
-            border: const Border(
-              left: BorderSide(color: ColorStyles.grabGreen, width: 4),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? Colors.white10 : Colors.grey.shade200,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
             children: [
-              Text(
-                maskedCode,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                  letterSpacing: 0.5,
-                ),
+              // Status indicator
+              Positioned(
+                left: -16, // account for container padding
+                top: -16,
+                bottom: -16,
+                width: 4,
+                child: Container(color: ColorStyles.grabGreen),
               ),
-              const SizedBox(height: 12),
-              _InfoRow(
-                icon: Icons.store_outlined,
-                label: 'BRANCH',
-                value: branchName,
-              ),
-              _InfoRow(
-                icon: Icons.inventory_2_outlined,
-                label: 'ITEMS',
-                value: volume,
-              ),
-              _InfoRow(
-                icon: Icons.event_outlined,
-                label: 'TRANSMITTAL DATE',
-                value: transmittalDate.isNotEmpty
-                    ? formatDate(transmittalDate)
-                    : '-',
-              ),
-              _InfoRow(
-                icon: Icons.schedule_outlined,
-                label: 'TAT',
-                value: tat.isNotEmpty
-                    ? formatDate(tat, includeTime: false)
-                    : '-',
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    maskedCode,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoRow(
+                    icon: Icons.store_outlined,
+                    label: 'BRANCH',
+                    value: branchName,
+                  ),
+                  _InfoRow(
+                    icon: Icons.inventory_2_outlined,
+                    label: 'ITEMS',
+                    value: volume,
+                  ),
+                  _InfoRow(
+                    icon: Icons.event_outlined,
+                    label: 'TRANSMITTAL DATE',
+                    value: transmittalDate.isNotEmpty
+                        ? formatDate(transmittalDate)
+                        : '-',
+                  ),
+                  _InfoRow(
+                    icon: Icons.schedule_outlined,
+                    label: 'TAT',
+                    value: tat.isNotEmpty
+                        ? formatDate(tat, includeTime: false)
+                        : '-',
+                  ),
+                ],
               ),
             ],
           ),
