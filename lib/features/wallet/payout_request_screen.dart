@@ -286,7 +286,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           title: widget.isConsolidation
               ? 'CONSOLIDATE REQUEST'
               : 'REQUEST PAYOUT',
-          pageIcon: Icons.payments_rounded,
+          // pageIcon: Icons.payments_rounded,
           backgroundColor: appBarBg,
         ),
         body: Center(
