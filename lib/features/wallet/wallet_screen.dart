@@ -45,6 +45,7 @@ import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
 import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
+import 'package:fsi_courier_app/shared/widgets/payment_method_card.dart';
 // confirmation_dialog not used in this file
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -60,11 +61,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   Map<String, dynamic> _data = {};
   double _eligible = 0.0;
   List<Map<String, dynamic>> _historyBreakdown = [];
+  Map<String, dynamic>? _paymentMethod;
   String? _initialHistoryDate;
   int _stripKey = 0;
   double _horizontalDrag = 0.0;
 
   static const _earningsCacheKey = 'wallet_summary_cache';
+  static const _paymentMethodCacheKey = 'wallet_payment_method_cache';
 
   @override
   void initState() {
@@ -91,21 +94,33 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       } catch (_) {}
     }
 
+    // Load cached payment method
+    final cachedPm = prefs.getString(_paymentMethodCacheKey);
+    Map<String, dynamic>? cachedPaymentMethod;
+    if (cachedPm != null && cachedPm.isNotEmpty) {
+      try {
+        cachedPaymentMethod = jsonDecode(cachedPm) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+
     if (!ref.read(isOnlineProvider)) {
       if (mounted) {
         _data = cachedData;
         _eligible = cachedEligible;
+        _paymentMethod = cachedPaymentMethod;
         setState(() => _loading = false);
       }
       return;
     }
 
-    // Online: fetch summary
+    // Online: fetch summary + payment method in parallel
     final api = ref.read(apiClientProvider);
-    final result = await api.get<Map<String, dynamic>>(
-      '/wallet-summary',
-      parser: parseApiMap,
-    );
+    final futures = await Future.wait([
+      api.get<Map<String, dynamic>>('/wallet-summary', parser: parseApiMap),
+      api.get<Map<String, dynamic>>('/me/payment-method', parser: parseApiMap),
+    ]);
+    final result = futures[0];
+    final pmResult = futures[1];
 
     // Parse results and persist the full snapshot before the mounted check
     // so the cache is always written even if the user navigated away.
@@ -196,17 +211,30 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       }).toList();
     }
 
-    // Persist the full snapshot as JSON — same pattern as courier data.
-    await prefs.setString(
-      _earningsCacheKey,
-      jsonEncode({'summary': newData, 'eligible': newEligible}),
-    );
+    // Parse payment method result
+    Map<String, dynamic>? newPaymentMethod = cachedPaymentMethod;
+    if (pmResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
+      newPaymentMethod = mapFromKey(data, 'data');
+    }
+
+    // Persist both snapshots
+    await Future.wait([
+      prefs.setString(
+        _earningsCacheKey,
+        jsonEncode({'summary': newData, 'eligible': newEligible}),
+      ),
+      if (newPaymentMethod != null)
+        prefs.setString(_paymentMethodCacheKey, jsonEncode(newPaymentMethod))
+      else
+        Future<void>.value(),
+    ]);
 
     if (!mounted) return;
 
     _data = newData;
     _eligible = newEligible;
     _historyBreakdown = historyBreakdown;
+    _paymentMethod = newPaymentMethod;
     _stripKey++;
     setState(() => _loading = false);
   }
@@ -297,6 +325,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
                       // ── Online-only section ──────────────────────────────
                       if (isOnline) ...[
+                        // Payment method card
+                        if (_paymentMethod != null) ...[
+                          PaymentMethodCard(data: _paymentMethod),
+                          const SizedBox(height: 16),
+                        ],
+
                         // Request payout / consolidate / pending notice
                         if (canRequestPayout)
                           FilledButton.icon(

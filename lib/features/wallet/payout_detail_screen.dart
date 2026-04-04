@@ -517,8 +517,7 @@ class _SectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (trailingWidget != null)
-                  trailingWidget, // ignore: use_null_aware_elements
+                ?trailingWidget,
               ],
             ),
             const SizedBox(height: 10),
