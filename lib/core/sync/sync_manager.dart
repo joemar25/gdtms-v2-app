@@ -92,11 +92,54 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
   /// Loads all queue entries from SQLite and refreshes [state.entries].
   /// Call this when opening the Sync screen.
+  ///
+  /// After loading, non-blockingly checks whether any synced entry has passed
+  /// its retention deadline and runs auto-cleanup if needed.
   Future<void> loadEntries() async {
     final courier = ref.read(authProvider).courier ?? {};
     final courierId = courier['id']?.toString() ?? '';
     final entries = await SyncOperationsDao.instance.getAll(courierId);
     if (!_disposed) state = state.copyWith(entries: entries);
+    _autoCleanupIfEligible(entries);
+  }
+
+  /// Checks whether any synced entry in [entries] has passed its retention
+  /// deadline using the same cutoff logic as [deleteOldSynced].
+  /// If eligible entries are found, runs cleanup and reloads the list.
+  void _autoCleanupIfEligible(List<SyncOperation> entries) {
+    if (entries.every((e) => e.status != 'synced')) return;
+    // ignore: discarded_futures
+    _autoCleanupCheck(entries);
+  }
+
+  Future<void> _autoCleanupCheck(List<SyncOperation> entries) async {
+    try {
+      final retentionDays =
+          await ref.read(appSettingsProvider).getSyncRetentionDays();
+      final synced = entries.where((e) => e.status == 'synced');
+
+      final int cutoff;
+      if (retentionDays <= 0) {
+        // Debug 1-min mode: rolling 1-minute cutoff.
+        cutoff = DateTime.now().millisecondsSinceEpoch -
+            const Duration(minutes: 1).inMilliseconds;
+      } else {
+        // Midnight-aligned: same formula as deleteOldSynced.
+        final now = DateTime.now();
+        final todayMidnight = DateTime(now.year, now.month, now.day);
+        cutoff = todayMidnight
+            .subtract(Duration(days: retentionDays - 1))
+            .millisecondsSinceEpoch;
+      }
+
+      if (!synced.any((e) => e.createdAt < cutoff)) return;
+
+      // Eligible entries exist — run cleanup then refresh the list.
+      await _cleanupAsync();
+      await loadEntries();
+    } catch (_) {
+      // Non-critical — silently ignored.
+    }
   }
 
   /// Processes every [pending] queue entry sequentially.

@@ -107,6 +107,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
   int _currentPage = 1;
   static const int _pageSize = 5;
 
+
   @override
   void initState() {
     super.initState();
@@ -290,13 +291,21 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
-class _SyncHeader extends ConsumerWidget {
+class _SyncHeader extends ConsumerStatefulWidget {
   const _SyncHeader({required this.isOnline});
 
   final bool isOnline;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SyncHeader> createState() => _SyncHeaderState();
+}
+
+class _SyncHeaderState extends ConsumerState<_SyncHeader> {
+  // Prevents the auto-cleanup reload from firing on every StreamBuilder tick
+  // once the countdown reaches zero.
+  bool _eligibleCleanupTriggered = false;
+
+  Widget _build(BuildContext context) {
     final theme = Theme.of(context);
     final lastSyncTime = ref.watch(lastSyncTimeProvider);
     final syncState = ref.watch(syncManagerProvider);
@@ -315,15 +324,15 @@ class _SyncHeader extends ConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                    widget.isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
                     size: 16,
-                    color: isOnline ? Colors.green : Colors.orange,
+                    color: widget.isOnline ? Colors.green : Colors.orange,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    isOnline ? 'Online' : 'Offline',
+                    widget.isOnline ? 'Online' : 'Offline',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: isOnline ? Colors.green : Colors.orange,
+                      color: widget.isOnline ? Colors.green : Colors.orange,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -414,6 +423,22 @@ class _SyncHeader extends ConsumerWidget {
                               DateTime.now().millisecondsSinceEpoch;
                           final remaining = expiryMs - nowMs;
 
+                          // When the countdown reaches zero while the screen is
+                          // open, fire a one-shot reload so the auto-cleanup in
+                          // loadEntries() runs and the list refreshes live.
+                          if (remaining <= 0 && !_eligibleCleanupTriggered) {
+                            _eligibleCleanupTriggered = true;
+                            WidgetsBinding.instance.addPostFrameCallback((_) async {
+                              if (!mounted) return;
+                              await ref
+                                  .read(syncManagerProvider.notifier)
+                                  .loadEntries();
+                              if (mounted) {
+                                setState(() => _eligibleCleanupTriggered = false);
+                              }
+                            });
+                          }
+
                           String label;
                           if (remaining <= 0) {
                             label = 'History eligible for deletion';
@@ -471,6 +496,9 @@ class _SyncHeader extends ConsumerWidget {
       ],
     );
   }
+
+  @override
+  Widget build(BuildContext context) => _build(context);
 }
 
 // ── Entry List ────────────────────────────────────────────────────────────────
