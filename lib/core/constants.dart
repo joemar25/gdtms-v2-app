@@ -80,25 +80,14 @@ const List<String> kDeliveredNotePresets = [
 ];
 
 const List<String> kNonDeliveredNotePresets = [
-  'Closed / No Business',
-  'Company Moved Out',
-  'Deceased',
-  'Hard to Deliver',
-  'Incomplete Address',
-  'Incorrect Address',
-  'Insufficient Address',
-  'Moved Out',
-  'No One to Receive',
-  'Out of Scope',
-  'Person Moved Out',
-  'Recipient Not Around',
-  'Refused to Accept',
-  'Request to Redeliver',
-  'Risky Area',
-  'Unknown Address',
-  'Unknown Person',
-  'Unlocated',
-  'Wrong Address',
+  'Called recipient, no answer',
+  'Phone number is incorrect',
+  'Recipient is currently busy',
+  'Security / Guard refused entry',
+  'Gate or Door is locked',
+  'Address is hard to reach',
+  'No safe place to leave item',
+  'Customer requested reschedule',
 ];
 
 const List<Map<String, String>> kRelationshipOptions = [

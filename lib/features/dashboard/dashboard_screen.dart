@@ -117,10 +117,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // fetch sync counts — scoped to the current courier only
     final courierId =
         await ref.read(authStorageProvider).getLastCourierId() ?? '';
-    final pendingSync =
-        await SyncOperationsDao.instance.getPendingCount(courierId);
-    final syncedTotal =
-        await SyncOperationsDao.instance.getSyncedCount(courierId);
+    final pendingSync = await SyncOperationsDao.instance.getPendingCount(
+      courierId,
+    );
+    final syncedTotal = await SyncOperationsDao.instance.getSyncedCount(
+      courierId,
+    );
 
     if (!mounted) return;
 

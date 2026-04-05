@@ -4,9 +4,6 @@ import 'package:flutter/foundation.dart';
 //  FSI Courier App Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// App version string.
-const String appVersion = '1.0.0';
-
 /// Device name for identification.
 const String deviceName = 'Mobile App';
 
@@ -94,6 +91,17 @@ const String awsBucket = String.fromEnvironment(
   'AWS_BUCKET',
   defaultValue: 'REDACTED_BUCKET_NAME',
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Sentry Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Sentry DSN for crash reporting.
+///
+/// - Set via --dart-define=SENTRY_DSN=https://... at build/run time.
+/// - Leave empty to disable Sentry (default for local dev without a DSN).
+/// - Add to dart_defines.json for prod/demo builds.
+const String sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Debug Mode

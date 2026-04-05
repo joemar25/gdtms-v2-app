@@ -75,19 +75,7 @@ class DeliveryCard extends StatelessWidget {
                 '')
             .toString();
 
-    // Attempts count (RTS attempts list preferred, fall back to numeric fields)
-    final attemptsRaw = delivery['rts_attempts'];
-    final attemptsCount = attemptsRaw is List
-        ? attemptsRaw.whereType<Map<String, dynamic>>().length
-        : int.tryParse(
-                (delivery['attempts'] ??
-                        delivery['attempt_count'] ??
-                        delivery['attempts_count'] ??
-                        delivery['delivery_attempts'] ??
-                        '')
-                    .toString(),
-              ) ??
-              0;
+    final attemptsCount = getAttemptsCountFromMap(delivery);
 
     final syncStatus = delivery['_sync_status']?.toString() ?? 'clean';
     final isDirty = syncStatus == 'dirty';

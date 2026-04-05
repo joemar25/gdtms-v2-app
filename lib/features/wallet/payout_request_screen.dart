@@ -287,8 +287,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         backgroundColor: scaffoldBg,
         appBar: AppHeaderBar(
           title: widget.isConsolidation
-              ? 'CONSOLIDATE REQUEST'
-              : 'REQUEST PAYOUT',
+              ? 'Consolidate Request'
+              : 'Request Payout',
           // pageIcon: Icons.payments_rounded,
           backgroundColor: appBarBg,
         ),
@@ -320,7 +320,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: AppHeaderBar(title: 'REQUEST PAYOUT', backgroundColor: appBarBg),
+      appBar: AppHeaderBar(title: 'Request Payout', backgroundColor: appBarBg),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -467,7 +467,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               : 'ELIGIBLE DELIVERIES',
         ),
         const SizedBox(height: 12),
-
 
         // // ── Coverage Period ───────────────────────────────────────────
         // if (toDate.isNotEmpty) ...[

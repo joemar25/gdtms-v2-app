@@ -28,6 +28,13 @@ class FsiCourierApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Cap the image cache: 80 MB / 150 images max.
+    // Default Flutter limits (unlimited count, 100 MB) are too generous for a
+    // delivery app that shows many thumbnails on list screens.
+    PaintingBinding.instance.imageCache
+      ..maximumSize = 150
+      ..maximumSizeBytes = 80 << 20; // 80 MB
+
     final router = ref.watch(appRouterProvider);
     final auth = ref.watch(authProvider);
 
@@ -119,7 +126,9 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
 
   void _insertSyncPill() {
     if (_syncPillEntry != null) return;
-    _syncPillEntry = OverlayEntry(builder: (_) => const _SyncFloatingPill());
+    _syncPillEntry = OverlayEntry(
+      builder: (_) => const RepaintBoundary(child: _SyncFloatingPill()),
+    );
     rootNavigatorKey.currentState?.overlay?.insert(_syncPillEntry!);
   }
 
@@ -352,22 +361,41 @@ class _SyncPillContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final syncState = ref.watch(syncManagerProvider);
+    // select() extracts only the display values — prevents rebuilds when
+    // unrelated SyncState fields change (e.g. a different entry's retry count).
+    final (
+      :isSyncing,
+      :pending,
+      :failed,
+      :lastMessage,
+      :total,
+      :processed,
+    ) = ref.watch(
+      syncManagerProvider.select((s) {
+        final p = s.entries
+            .where((e) => e.status == 'pending' || e.status == 'processing')
+            .length;
+        final f = s.entries
+            .where(
+              (e) =>
+                  e.status == 'error' ||
+                  e.status == 'failed' ||
+                  e.status == 'conflict',
+            )
+            .length;
+        return (
+          isSyncing: s.isSyncing,
+          pending: p,
+          failed: f,
+          lastMessage: s.lastMessage,
+          total: s.total,
+          processed: s.processed,
+        );
+      }),
+    );
     final isOnline = ref.watch(isOnlineProvider);
 
-    final pending = syncState.entries
-        .where((e) => e.status == 'pending' || e.status == 'processing')
-        .length;
-    final failed = syncState.entries
-        .where(
-          (e) =>
-              e.status == 'error' ||
-              e.status == 'failed' ||
-              e.status == 'conflict',
-        )
-        .length;
-
-    final hasActivity = syncState.isSyncing || pending > 0 || failed > 0;
+    final hasActivity = isSyncing || pending > 0 || failed > 0;
     final top = MediaQuery.of(context).padding.top;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -409,7 +437,7 @@ class _SyncPillContent extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (syncState.isSyncing) ...[
+                      if (isSyncing) ...[
                         const SizedBox(
                           width: 13,
                           height: 13,
@@ -418,17 +446,17 @@ class _SyncPillContent extends ConsumerWidget {
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            _trimMessage(syncState.lastMessage ?? 'Syncing…'),
+                            _trimMessage(lastMessage ?? 'Syncing…'),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(fontWeight: FontWeight.w600),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                           ),
                         ),
-                        if (syncState.total > 0) ...[
+                        if (total > 0) ...[
                           const SizedBox(width: 8),
                           Text(
-                            '${syncState.processed}/${syncState.total}',
+                            '$processed/$total',
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
                                   color: isDark

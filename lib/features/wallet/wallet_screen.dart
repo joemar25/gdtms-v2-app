@@ -326,7 +326,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
                       // ── Online-only section ──────────────────────────────
                       if (isOnline) ...[
-
                         // Request payout / consolidate / pending notice
                         if (canRequestPayout)
                           FilledButton.icon(
@@ -575,7 +574,7 @@ class _EarningsCard extends StatelessWidget {
     this.isFlipping = false,
     this.child,
   });
- 
+
   final dynamic tentativePayout;
   final dynamic pendingRequestAmt;
   final bool isLatestPending;
@@ -583,7 +582,7 @@ class _EarningsCard extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isFlipping;
   final Widget? child;
- 
+
   @override
   Widget build(BuildContext context) {
     final tentativeAmt = double.tryParse('$tentativePayout') ?? 0.0;
@@ -592,7 +591,7 @@ class _EarningsCard extends StatelessWidget {
     final displayLabel = isLatestPending
         ? 'Pending Payment Request'
         : 'Available for Request';
- 
+
     return Container(
       margin: EdgeInsets.zero,
       decoration: BoxDecoration(
@@ -619,69 +618,72 @@ class _EarningsCard extends StatelessWidget {
           splashColor: Colors.white.withValues(alpha: 0.1),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-            child: child ??
+            child:
+                child ??
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Row(
-                  children: [
-                    Icon(
-                      isLatestPending
-                          ? Icons.schedule_rounded
-                          : Icons.account_balance_wallet_rounded,
-                      color: Colors.white70,
-                      size: 18,
+                    Row(
+                      children: [
+                        Icon(
+                          isLatestPending
+                              ? Icons.schedule_rounded
+                              : Icons.account_balance_wallet_rounded,
+                          color: Colors.white70,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          displayLabel,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (isLatestPending)
+                          const Icon(
+                            Icons.unfold_more_rounded,
+                            color: Colors.white60,
+                            size: 16,
+                          ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      displayLabel,
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                    const Spacer(),
-                    if (isLatestPending)
-                      const Icon(
-                        Icons.unfold_more_rounded,
-                        color: Colors.white60,
-                        size: 16,
+                      '₱ ${_fmt(displayAmt)}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
                       ),
+                    ),
+
+                    // ── If flipping enabled: hint for tapping ──
+                    if (isFlipping) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tap to view payout account',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+
+                    // ── If pending: also show accumulated available for next request ──
+                    if (showPending && isLatestPending && tentativeAmt > 0) ...[
+                      const SizedBox(height: 14),
+                      _payoutRow(
+                        icon: Icons.arrow_circle_up_rounded,
+                        label: 'Accumulated for next request',
+                        amount: _fmt(tentativeAmt),
+                      ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '₱ ${_fmt(displayAmt)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
- 
-                // ── If flipping enabled: hint for tapping ──
-                if (isFlipping) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap to view payout account',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
- 
-                // ── If pending: also show accumulated available for next request ──
-                if (showPending && isLatestPending && tentativeAmt > 0) ...[
-                  const SizedBox(height: 14),
-                  _payoutRow(
-                    icon: Icons.arrow_circle_up_rounded,
-                    label: 'Accumulated for next request',
-                    amount: _fmt(tentativeAmt),
-                  ),
-                ],
-              ],
-            ),
           ),
         ),
       ),

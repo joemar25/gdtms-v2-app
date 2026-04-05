@@ -114,14 +114,16 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
   Future<void> _autoCleanupCheck(List<SyncOperation> entries) async {
     try {
-      final retentionDays =
-          await ref.read(appSettingsProvider).getSyncRetentionDays();
+      final retentionDays = await ref
+          .read(appSettingsProvider)
+          .getSyncRetentionDays();
       final synced = entries.where((e) => e.status == 'synced');
 
       final int cutoff;
       if (retentionDays <= 0) {
         // Debug 1-min mode: rolling 1-minute cutoff.
-        cutoff = DateTime.now().millisecondsSinceEpoch -
+        cutoff =
+            DateTime.now().millisecondsSinceEpoch -
             const Duration(minutes: 1).inMilliseconds;
       } else {
         // Midnight-aligned: same formula as deleteOldSynced.

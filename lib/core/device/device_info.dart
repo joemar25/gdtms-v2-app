@@ -4,7 +4,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/services/app_version_service.dart';
 
 final deviceInfoProvider = Provider<DeviceInfoService>(
   (ref) => DeviceInfoService(),
@@ -67,7 +67,7 @@ class DeviceInfoService {
 
   Future<Map<String, dynamic>> toMap() async => {
     'os': os,
-    'app_version': appVersion,
+    'app_version': AppVersionService.version,
     'device_model': await deviceModel,
     'device_id': await deviceId,
   };

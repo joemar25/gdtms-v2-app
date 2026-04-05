@@ -93,7 +93,8 @@ class SyncOperationsDao {
     final int cutoff;
     if (retentionDays <= 0) {
       // Debug 1-min mode: rolling cutoff, no midnight alignment.
-      cutoff = DateTime.now().millisecondsSinceEpoch -
+      cutoff =
+          DateTime.now().millisecondsSinceEpoch -
           const Duration(minutes: 1).inMilliseconds;
     } else {
       // Midnight-aligned: delete items whose creation calendar-day is strictly

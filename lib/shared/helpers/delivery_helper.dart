@@ -21,34 +21,27 @@ bool checkIsLocked({
   return isDelivered || isOsa || isRtsVerified;
 }
 
-/// Parse attempts count from a decoded delivery map.
-/// Supports 'rts_attempts' (list) and numeric/string fields like 'attempts',
-/// 'attempt_count', 'attempts_count', or 'delivery_attempts'.
-int? _attemptsCountFromMap(Map<String, dynamic> delivery) {
+/// Returns the number of RTS attempts for a delivery map.
+///
+/// Priority order:
+///   1. `rts_count` — integer shipped by the server on all list / delta-sync
+///      payloads (guaranteed since the backend update, April 2026).
+///   2. `rts_attempts` — full attempt objects returned only by the detail
+///      endpoint (`GET /deliveries/:barcode`). Used as a local override so the
+///      detail screen always shows the accurate count even before the next sync.
+///   3. `0` — safe default if neither field is present.
+int getAttemptsCountFromMap(Map<String, dynamic> delivery) {
+  // 1. Prefer the server-provided integer count (list & delta-sync payloads).
+  final rtsCount = delivery['rts_count'];
+  if (rtsCount is num) return rtsCount.toInt();
+
+  // 2. Fall back to counting the detail-endpoint attempts array.
   final attemptsList = delivery['rts_attempts'];
-  if (attemptsList is List) {
+  if (attemptsList is List && attemptsList.isNotEmpty) {
     return attemptsList.whereType<Map<String, dynamic>>().length;
   }
 
-  final candidates = [
-    delivery['attempts'],
-    delivery['attempt_count'],
-    delivery['attempts_count'],
-    delivery['delivery_attempts'],
-    delivery['attemptsMade'],
-    delivery['attempts_made'],
-  ];
-
-  for (final c in candidates) {
-    if (c == null) continue;
-    if (c is num) return c.toInt();
-    final s = c.toString().trim();
-    if (s.isEmpty) continue;
-    final parsed = int.tryParse(s);
-    if (parsed != null) return parsed;
-  }
-
-  return null;
+  return 0;
 }
 
 /// Helper to check locking state from a delivery map (rawJson decoded).
@@ -61,7 +54,7 @@ bool checkIsLockedFromMap(Map<String, dynamic> delivery) {
           .toString();
 
   // If it's an RTS item and attempts >= 3, consider it locked.
-  final attempts = _attemptsCountFromMap(delivery) ?? 0;
+  final attempts = getAttemptsCountFromMap(delivery);
   if (status.toUpperCase() == 'RTS' && attempts >= 3) return true;
 
   return checkIsLocked(status: status, rtsVerificationStatus: rtsVerif);

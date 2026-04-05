@@ -227,9 +227,20 @@ class _DeliveryStatusListScreenState
 
   List<Widget> _buildActions(BuildContext context) {
     final searchBtn = IconButton(
-      icon: Icon(_showSearch ? Icons.search_off_rounded : Icons.search_rounded),
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 240),
+        transitionBuilder: (child, anim) => ScaleTransition(
+          scale: anim,
+          child: FadeTransition(opacity: anim, child: child),
+        ),
+        child: Icon(
+          _showSearch ? Icons.search_off_rounded : Icons.search_rounded,
+          key: ValueKey(_showSearch),
+        ),
+      ),
       tooltip: 'Search',
       onPressed: () {
+        HapticFeedback.lightImpact();
         setState(() {
           _showSearch = !_showSearch;
           if (!_showSearch) {
@@ -313,33 +324,54 @@ class _DeliveryStatusListScreenState
           children: [
             // ── Search bar ─────────────────────────────────────────────────────
             AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeInOut,
-              child: _showSearch
-                  ? AppSearchBar(
-                      controller: _searchController,
-                      query: _searchQuery,
-                      hintText: 'BARCODE OR NAME',
-                      isLoading: _searchLoading,
-                      resultCount: isSearching
-                          ? (_searchLoading ? null : _searchResults.length)
-                          : null,
-                      totalCount: (!isSearching && _searchQuery.isEmpty)
-                          ? _totalCount
-                          : null,
-                      onChanged: (v) {
-                        setState(() => _searchQuery = v);
-                        _runSearch(v);
-                      },
-                      onClear: () {
-                        setState(() {
-                          _searchQuery = '';
-                          _searchResults = [];
-                          _searchController.clear();
-                        });
-                      },
-                    )
-                  : const SizedBox.shrink(),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutQuart,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                reverseDuration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutQuart,
+                switchOutCurve: Curves.easeInQuad,
+                transitionBuilder: (child, anim) {
+                  final slide = Tween<Offset>(
+                    begin: const Offset(0, -0.2),
+                    end: Offset.zero,
+                  ).animate(anim);
+                  return FadeTransition(
+                    opacity: anim,
+                    child: SlideTransition(
+                      position: slide,
+                      child: child,
+                    ),
+                  );
+                },
+                child: _showSearch
+                    ? AppSearchBar(
+                        key: const ValueKey('search_bar'),
+                        autofocus: true,
+                        controller: _searchController,
+                        query: _searchQuery,
+                        hintText: 'BARCODE OR NAME',
+                        isLoading: _searchLoading,
+                        resultCount: isSearching
+                            ? (_searchLoading ? null : _searchResults.length)
+                            : null,
+                        totalCount: (!isSearching && _searchQuery.isEmpty)
+                            ? _totalCount
+                            : null,
+                        onChanged: (v) {
+                          setState(() => _searchQuery = v);
+                          _runSearch(v);
+                        },
+                        onClear: () {
+                          setState(() {
+                            _searchQuery = '';
+                            _searchResults = [];
+                            _searchController.clear();
+                          });
+                        },
+                      )
+                    : const SizedBox.shrink(key: ValueKey('empty')),
+              ),
             ),
 
             // ── List ───────────────────────────────────────────────────────────
@@ -401,15 +433,8 @@ class _DeliveryStatusListScreenState
                                                 'unvalidated')
                                             .toString()
                                             .toLowerCase();
-                                    // Determine attempts (prefer rts_attempts list)
                                     final attemptsCount =
-                                        (d['rts_attempts'] as List?)?.length ??
-                                        int.tryParse(
-                                          d['attempts']?.toString() ??
-                                              d['attempt_count']?.toString() ??
-                                              '',
-                                        ) ??
-                                        0;
+                                        getAttemptsCountFromMap(d);
 
                                     String msg =
                                         'This delivery is ${s.toLowerCase()} and cannot be opened.';

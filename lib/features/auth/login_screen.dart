@@ -8,6 +8,7 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/services/app_version_service.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -122,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         'device_name': deviceName,
         'device_identifier': await authStorage.getDeviceId(),
         'device_type': kDeviceTypeLogin,
-        'app_version': appVersion,
+        'app_version': AppVersionService.version,
       },
       parser: parseApiMap,
     );

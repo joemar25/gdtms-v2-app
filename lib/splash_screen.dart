@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/cleanup_service.dart';
+import 'package:fsi_courier_app/core/services/version_check_service.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -54,6 +56,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (mounted) ref.read(compactModeProvider.notifier).setValue(compactMode);
       // ignore: discarded_futures
       CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
+      // Check for forced app updates (best-effort; failures are logged).
+      if (mounted) {
+        await VersionCheckService(ref.read(apiClientProvider)).check(context);
+      }
     } catch (_) {
       // Keep defaults on error — app proceeds to login.
     }

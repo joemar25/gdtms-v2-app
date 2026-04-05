@@ -24,8 +24,12 @@ import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
 import 'package:fsi_courier_app/features/initial_sync/initial_sync_screen.dart';
 import 'package:fsi_courier_app/features/error_logs/error_logs_screen.dart';
 import 'package:fsi_courier_app/features/notifications/notifications_screen.dart';
+import 'package:fsi_courier_app/features/legal/terms_screen.dart';
+import 'package:fsi_courier_app/features/legal/privacy_screen.dart';
+import 'package:fsi_courier_app/features/report/report_issue_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final initialLocationProvider = Provider<String>((ref) => '/splash');
 
@@ -97,13 +101,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     navigatorKey: rootNavigatorKey,
     initialLocation: ref.read(initialLocationProvider),
     refreshListenable: notifier,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final auth = ref.read(authProvider);
       final locationState = ref.read(locationProvider);
 
       final path = state.uri.path;
       final isAuthRoute =
           path == '/login' || path == '/reset-password' || path == '/splash';
+      final isLegalRoute = path == '/terms' || path == '/privacy';
 
       // Allow unauthenticated users to access auth routes
       if (!auth.isAuthenticated) {
@@ -111,9 +116,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
+      // ── TERMS & CONDITIONS GATE ──
+      // After auth, before anything else: ensure the courier has accepted T&C.
+      if (!isLegalRoute && !isAuthRoute) {
+        final prefs = await SharedPreferences.getInstance();
+        final accepted = prefs.getString('terms_accepted_version');
+        if (accepted != kTermsVersion) return '/terms';
+      }
+
       // ── GLOBAL GEOLOCATION GUARD ──
       final isUpdateRoute = path.contains('/update');
-      if (path != '/splash' && !isUpdateRoute) {
+      if (path != '/splash' && !isUpdateRoute && !isLegalRoute) {
         if (!locationState.isReady) {
           if (path != '/location-required') {
             return '/location-required';
@@ -129,7 +142,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // ── INITIAL SYNC GUARD ──
-      if (!auth.initialSyncCompleted && path != '/initial-sync') {
+      if (!auth.initialSyncCompleted &&
+          path != '/initial-sync' &&
+          !isLegalRoute) {
         return '/initial-sync';
       }
       if (auth.initialSyncCompleted && path == '/initial-sync') {
@@ -373,6 +388,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
           child: const ErrorLogsScreen(),
+          extra: state.extra,
+        ),
+      ),
+
+      // ── Legal ──────────────────────────────────────────────────────────
+      GoRoute(
+        path: '/terms',
+        pageBuilder: (_, state) {
+          final viewOnly = state.uri.queryParameters['mode'] == 'view';
+          return _page(
+            key: state.pageKey,
+            child: TermsScreen(viewOnly: viewOnly),
+            extra: state.extra,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/privacy',
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const PrivacyScreen(),
+          extra: state.extra,
+        ),
+      ),
+
+      // ── Report ─────────────────────────────────────────────────────────
+      GoRoute(
+        path: '/report',
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const ReportIssueScreen(),
           extra: state.extra,
         ),
       ),

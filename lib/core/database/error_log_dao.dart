@@ -64,6 +64,29 @@ class ErrorLogDao {
     return rows.map(ErrorLogEntry.fromMap).toList();
   }
 
+  /// Returns the most recent [limit] log entries as raw maps for API submission.
+  Future<List<Map<String, dynamic>>> getRecentLogs({int limit = 50}) async {
+    final db = await AppDatabase.getInstance();
+    final rows = await db.query(
+      'error_logs',
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
+    return rows.map((row) {
+      final ts = row['created_at'] as int?;
+      return {
+        'level': row['level'],
+        'context': row['context'],
+        'message': row['message'],
+        'detail': row['detail'],
+        'barcode': row['barcode'],
+        'occurred_at': ts != null
+            ? DateTime.fromMillisecondsSinceEpoch(ts).toUtc().toIso8601String()
+            : null,
+      };
+    }).toList();
+  }
+
   Future<int> getCount() async {
     final db = await AppDatabase.getInstance();
     final result = await db.rawQuery('SELECT COUNT(*) FROM error_logs');

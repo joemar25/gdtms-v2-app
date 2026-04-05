@@ -40,6 +40,7 @@ import 'package:fsi_courier_app/core/database/error_log_dao.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/services/app_version_service.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
@@ -192,8 +193,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _logout() async {
     final courierId =
         await ref.read(authStorageProvider).getLastCourierId() ?? '';
-    final pendingCount =
-        await SyncOperationsDao.instance.getPendingCount(courierId);
+    final pendingCount = await SyncOperationsDao.instance.getPendingCount(
+      courierId,
+    );
     if (!mounted) return;
     if (pendingCount > 0) {
       final forceLogout = await ConfirmationDialog.show(
@@ -315,9 +317,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _CardDivider(isDark: isDark),
                     _ActionTile(
                       icon: Icons.person_outline_rounded,
-                      iconColor: isOnline
-                          ? _Tokens.accentGreen
-                          : Colors.grey,
+                      iconColor: isOnline ? _Tokens.accentGreen : Colors.grey,
                       label: 'Edit Profile',
                       subtitle: isOnline
                           ? 'Update your personal details'
@@ -501,7 +501,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       icon: Icons.info_outline_rounded,
                       iconColor: _Tokens.accentBlue,
                       label: 'App Version',
-                      value: 'v$appVersion',
+                      value: AppVersionService.displayVersion,
                       isDark: isDark,
                     ),
                     if (kAppDebugMode) ...[
@@ -537,11 +537,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: 24),
 
+                // ── Legal ──────────────────────────────────────────────────
+                _SectionLabel('Legal'),
+                _ModernCard(
+                  isDark: isDark,
+                  children: [
+                    _ActionTile(
+                      icon: Icons.description_outlined,
+                      iconColor: _Tokens.accentBlue,
+                      label: 'Terms & Conditions',
+                      subtitle: 'Read the app terms of service',
+                      isDark: isDark,
+                      onTap: () => context.push('/terms?mode=view'),
+                    ),
+                    _CardDivider(isDark: isDark),
+                    _ActionTile(
+                      icon: Icons.shield_outlined,
+                      iconColor: _Tokens.accentTeal,
+                      label: 'Privacy Policy',
+                      subtitle: 'How we collect and use your data',
+                      isDark: isDark,
+                      onTap: () => context.push('/privacy'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
                 // ── Diagnostics ────────────────────────────────────────────
                 _SectionLabel('Diagnostics'),
                 _ModernCard(
                   isDark: isDark,
                   children: [
+                    _ActionTile(
+                      icon: Icons.bug_report_outlined,
+                      iconColor: _Tokens.accentAmber,
+                      label: 'Report an Issue',
+                      subtitle: isOnline
+                          ? 'Send a bug report or feedback to the admin'
+                          : 'Requires internet connection',
+                      isDark: isDark,
+                      onTap: isOnline ? () => context.push('/report') : null,
+                    ),
+                    _CardDivider(isDark: isDark),
                     _ErrorLogsTile(
                       isDark: isDark,
                       errorLogCount: _errorLogCount,

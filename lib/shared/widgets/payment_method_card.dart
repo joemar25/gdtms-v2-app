@@ -25,7 +25,7 @@ class PaymentMethodCard extends StatelessWidget {
     required this.data,
     this.isTransparent = false,
   });
- 
+
   final Map<String, dynamic>? data;
   final bool isTransparent;
 
@@ -53,7 +53,7 @@ class PaymentMethodCard extends StatelessWidget {
             : ColorStyles.grabGreen.withValues(alpha: 0.06),
         icon: Icons.account_balance_rounded,
         iconColor: isTransparent ? Colors.white70 : ColorStyles.grabGreen,
-        label: 'PAYOUT ACCOUNT',
+        label: 'Payout Account',
         labelColor: isTransparent ? Colors.white70 : ColorStyles.grabGreen,
         badge: _Badge(
           text: 'ACTIVE',
@@ -78,7 +78,7 @@ class PaymentMethodCard extends StatelessWidget {
             : Colors.amber.withValues(alpha: 0.06),
         icon: Icons.account_balance_rounded,
         iconColor: isTransparent ? Colors.white70 : Colors.amber.shade700,
-        label: 'PAYOUT ACCOUNT',
+        label: 'Payout Account',
         labelColor: isTransparent ? Colors.white70 : Colors.amber.shade700,
         badge: _Badge(
           text: 'INACTIVE',
@@ -211,9 +211,9 @@ class PaymentMethodCard extends StatelessWidget {
         ],
       ],
     );
- 
+
     if (isTransparent) return content;
- 
+
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
@@ -267,9 +267,9 @@ class PaymentMethodCard extends StatelessWidget {
         ),
       ],
     );
- 
+
     if (isTransparent) return content;
- 
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.amber.withValues(alpha: 0.06),
@@ -310,7 +310,7 @@ class _Badge extends StatelessWidget {
   final String text;
   final Color color;
   final bool isTransparent;
- 
+
   @override
   Widget build(BuildContext context) {
     return Container(

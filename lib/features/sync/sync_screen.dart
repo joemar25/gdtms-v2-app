@@ -107,7 +107,6 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
   int _currentPage = 1;
   static const int _pageSize = 5;
 
-
   @override
   void initState() {
     super.initState();
@@ -324,7 +323,9 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
               Row(
                 children: [
                   Icon(
-                    widget.isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                    widget.isOnline
+                        ? Icons.wifi_rounded
+                        : Icons.wifi_off_rounded,
                     size: 16,
                     color: widget.isOnline ? Colors.green : Colors.orange,
                   ),
@@ -394,7 +395,8 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                       final int expiryMs;
                       if (days <= 0) {
                         // Debug 1-min: expires 1 minute after creation.
-                        expiryMs = earliestSynced +
+                        expiryMs =
+                            earliestSynced +
                             const Duration(minutes: 1).inMilliseconds;
                       } else {
                         // Midnight-aligned: expiry = midnight of
@@ -428,13 +430,17 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                           // loadEntries() runs and the list refreshes live.
                           if (remaining <= 0 && !_eligibleCleanupTriggered) {
                             _eligibleCleanupTriggered = true;
-                            WidgetsBinding.instance.addPostFrameCallback((_) async {
+                            WidgetsBinding.instance.addPostFrameCallback((
+                              _,
+                            ) async {
                               if (!mounted) return;
                               await ref
                                   .read(syncManagerProvider.notifier)
                                   .loadEntries();
                               if (mounted) {
-                                setState(() => _eligibleCleanupTriggered = false);
+                                setState(
+                                  () => _eligibleCleanupTriggered = false,
+                                );
                               }
                             });
                           }
@@ -568,20 +574,18 @@ class _EntryList extends ConsumerWidget {
                 }
               : null,
           onDelete: () async {
-                  final confirmed = await ConfirmationDialog.show(
-                    context,
-                    title: 'Delete operation?',
-                    subtitle:
-                        'This will permanently remove this update from your sync queue. The local delivery status will NOT be reverted.',
-                    confirmLabel: 'Delete',
-                    isDestructive: true,
-                  );
-                  if (confirmed == true) {
-                    ref
-                        .read(syncManagerProvider.notifier)
-                        .deleteSingle(entry.id);
-                  }
-                },
+            final confirmed = await ConfirmationDialog.show(
+              context,
+              title: 'Delete operation?',
+              subtitle:
+                  'This will permanently remove this update from your sync queue. The local delivery status will NOT be reverted.',
+              confirmLabel: 'Delete',
+              isDestructive: true,
+            );
+            if (confirmed == true) {
+              ref.read(syncManagerProvider.notifier).deleteSingle(entry.id);
+            }
+          },
         );
       },
     );

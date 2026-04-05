@@ -48,6 +48,7 @@ import 'package:uuid/uuid.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/services/review_prompt_service.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
@@ -527,6 +528,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     ref.read(deliveryRefreshProvider.notifier).increment();
     setState(() => _loading = false);
     showSuccessNotification(context, 'Delivery status updated successfully.');
+    // Fire-and-forget: may trigger the native in-app review sheet.
+    ReviewPromptService.instance.onDeliveryCompleted();
     context.go('/dashboard');
   }
 

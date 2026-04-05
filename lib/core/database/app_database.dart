@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -24,12 +25,38 @@ class AppDatabase {
   static Future<Database> _open() async {
     final dir = await getDatabasesPath();
     final path = p.join(dir, 'fsi_courier.db');
-    return openDatabase(
+    final db = await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
+    // sqflite blocks execute() inside all open callbacks (onConfigure, onOpen).
+    // Running PRAGMAs here — after openDatabase() returns a live handle — is
+    // the only reliable way to apply connection-level tuning.
+    await _applyPragmas(db);
+    return db;
+  }
+
+  /// Applies performance PRAGMAs on an already-open database connection.
+  /// Failures are non-fatal: the app continues with SQLite defaults.
+  static Future<void> _applyPragmas(Database db) async {
+    try {
+      // WAL mode: concurrent reads during writes; no corruption on force-close.
+      await db.execute('PRAGMA journal_mode=WAL');
+      // NORMAL: fsync only at WAL checkpoints, not every write.
+      await db.execute('PRAGMA synchronous=NORMAL');
+      // Keep temp tables in memory rather than on disk.
+      await db.execute('PRAGMA temp_store=MEMORY');
+      // 64 MB memory-mapped I/O for faster read-heavy list queries.
+      await db.execute('PRAGMA mmap_size=67108864');
+      // 5-second busy timeout prevents SQLITE_BUSY when workmanager and the
+      // main isolate access the DB concurrently.
+      await db.execute('PRAGMA busy_timeout=5000');
+    } catch (e) {
+      // Log but never crash — SQLite defaults are safe fallbacks.
+      debugPrint('[DB] PRAGMA setup warning (non-fatal): $e');
+    }
   }
 
   static Future<void> _onCreate(Database db, int version) async {
@@ -210,6 +237,14 @@ class AppDatabase {
           created_at INTEGER NOT NULL
         )
       ''');
+    }
+    if (oldVersion < 10) {
+      // v10: add index on sync_operations(courier_id, status) to speed up
+      // the sync-lock barcode query that runs on every delivery list load.
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_sync_courier '
+        'ON sync_operations(courier_id, status)',
+      );
     }
   }
 
