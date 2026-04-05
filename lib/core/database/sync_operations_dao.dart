@@ -74,10 +74,37 @@ class SyncOperationsDao {
     );
   }
 
-  /// Deletes synced operations older than [retentionMs] and returns the count.
-  Future<int> deleteOldSynced(int retentionMs) async {
+  /// Deletes synced operations older than [retentionDays] calendar days and
+  /// returns the deleted count.
+  ///
+  /// Uses midnight-aligned cutoffs so that all records created on the same
+  /// calendar day expire together at the same midnight boundary, regardless of
+  /// the exact time they were created.
+  ///
+  /// Special case: [retentionDays] == 0 activates the debug 1-minute mode —
+  /// records created more than 60 seconds ago are deleted immediately (no
+  /// midnight alignment).
+  ///
+  /// Examples (normal mode, retentionDays = 1, cleanup running on Apr 5):
+  ///   cutoff = Apr 5 00:00 → items from Apr 4 (any time) are deleted ✓
+  ///   items created today (Apr 5) are kept ✓
+  Future<int> deleteOldSynced(int retentionDays) async {
     final db = await _db;
-    final cutoff = DateTime.now().millisecondsSinceEpoch - retentionMs;
+    final int cutoff;
+    if (retentionDays <= 0) {
+      // Debug 1-min mode: rolling cutoff, no midnight alignment.
+      cutoff = DateTime.now().millisecondsSinceEpoch -
+          const Duration(minutes: 1).inMilliseconds;
+    } else {
+      // Midnight-aligned: delete items whose creation calendar-day is strictly
+      // before (today - (retentionDays - 1)).
+      // Formula: cutoff = midnight of today - (retentionDays - 1) days.
+      final now = DateTime.now();
+      final todayMidnight = DateTime(now.year, now.month, now.day);
+      cutoff = todayMidnight
+          .subtract(Duration(days: retentionDays - 1))
+          .millisecondsSinceEpoch;
+    }
     return await db.delete(
       'sync_operations',
       where: "status = 'synced' AND created_at < ?",
@@ -118,11 +145,13 @@ class SyncOperationsDao {
     );
   }
 
-  /// Gets count of incomplete operations (used for UI badge).
-  Future<int> getPendingCount() async {
+  /// Gets count of incomplete operations for [courierId] (used for UI badge).
+  Future<int> getPendingCount(String courierId) async {
     final db = await _db;
     final rows = await db.rawQuery(
-      "SELECT COUNT(*) as c FROM sync_operations WHERE status IN ('pending', 'processing', 'failed', 'conflict')",
+      "SELECT COUNT(*) as c FROM sync_operations "
+      "WHERE courier_id = ? AND status IN ('pending', 'processing', 'failed', 'conflict')",
+      [courierId],
     );
     return Sqflite.firstIntValue(rows) ?? 0;
   }
@@ -156,8 +185,22 @@ class SyncOperationsDao {
     return {for (final r in rows) r['barcode'] as String};
   }
 
-  /// Gets the count of operations successfully synced today.
-  Future<int> getSyncedTodayCount() async {
+  /// Gets the total count of all synced operations for [courierId].
+  ///
+  /// No date filter — mirrors the full list shown in the History screen so
+  /// dashboard counts always match what the courier sees when they tap the card.
+  Future<int> getSyncedCount(String courierId) async {
+    final db = await _db;
+    final rows = await db.rawQuery(
+      "SELECT COUNT(*) as c FROM sync_operations "
+      "WHERE courier_id = ? AND status = 'synced'",
+      [courierId],
+    );
+    return Sqflite.firstIntValue(rows) ?? 0;
+  }
+
+  /// Gets the count of operations successfully synced today for [courierId].
+  Future<int> getSyncedTodayCount(String courierId) async {
     final db = await _db;
     final now = DateTime.now();
     final dayStart = DateTime(
@@ -167,8 +210,8 @@ class SyncOperationsDao {
     ).millisecondsSinceEpoch;
     final rows = await db.rawQuery(
       "SELECT COUNT(*) as c FROM sync_operations "
-      "WHERE status = 'synced' AND last_attempt_at >= ?",
-      [dayStart],
+      "WHERE courier_id = ? AND status = 'synced' AND last_attempt_at >= ?",
+      [courierId, dayStart],
     );
     return Sqflite.firstIntValue(rows) ?? 0;
   }

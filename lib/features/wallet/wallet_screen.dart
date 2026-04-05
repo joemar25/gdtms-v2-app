@@ -312,24 +312,20 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           margin: EdgeInsets.only(bottom: 14),
                         ),
 
-                      // ── Earnings card (show when there's something actionable) ─
+                      // ── Earnings / Payout Flip Card ────────────────────────
                       if (tentativePayout > 0 || isLatestPending)
-                        _EarningsCard(
+                        _WalletFlipCard(
                           tentativePayout: tentativePayout,
                           pendingRequestAmt: pendingRequestAmt,
                           isLatestPending: isLatestPending,
                           showPending: isOnline,
+                          paymentMethod: _paymentMethod,
                         ),
 
                       const SizedBox(height: 20),
 
                       // ── Online-only section ──────────────────────────────
                       if (isOnline) ...[
-                        // Payment method card
-                        if (_paymentMethod != null) ...[
-                          PaymentMethodCard(data: _paymentMethod),
-                          const SizedBox(height: 16),
-                        ],
 
                         // Request payout / consolidate / pending notice
                         if (canRequestPayout)
@@ -438,6 +434,135 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   // _showEarningsDetail removed — unused helper
 }
 
+// ─── Flip Card Component ──────────────────────────────────────────────────
+
+class _WalletFlipCard extends StatefulWidget {
+  const _WalletFlipCard({
+    required this.tentativePayout,
+    required this.pendingRequestAmt,
+    required this.isLatestPending,
+    required this.showPending,
+    required this.paymentMethod,
+  });
+
+  final dynamic tentativePayout;
+  final dynamic pendingRequestAmt;
+  final bool isLatestPending;
+  final bool showPending;
+  final Map<String, dynamic>? paymentMethod;
+
+  @override
+  State<_WalletFlipCard> createState() => _WalletFlipCardState();
+}
+
+class _WalletFlipCardState extends State<_WalletFlipCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  bool _isFront = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _flip() {
+    if (!mounted) return;
+    if (_isFront) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+    setState(() => _isFront = !_isFront);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // If not latest pending, only show the front (no flip needed)
+    if (!widget.isLatestPending || widget.paymentMethod == null) {
+      return _EarningsCard(
+        tentativePayout: widget.tentativePayout,
+        pendingRequestAmt: widget.pendingRequestAmt,
+        isLatestPending: widget.isLatestPending,
+        showPending: widget.showPending,
+        onTap: null, // No flip possible without pending + method
+      );
+    }
+
+    return GestureDetector(
+      onTap: _flip,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final val = _controller.value;
+          final isUnder = val > 0.5;
+
+          // Standard flip transition logic — uses rotateX for vertical roll.
+          final transform = Matrix4.identity()
+            ..setEntry(3, 2, 0.0012) // Slightly more perspective
+            ..rotateX(val * 3.141592653589793); // pi
+
+          return Transform(
+            transform: transform,
+            alignment: Alignment.center,
+            child: isUnder
+                ? Transform(
+                    transform: Matrix4.identity()
+                      ..rotateX(3.141592653589793), // flipped back correctly
+                    alignment: Alignment.center,
+                    child: _buildBack(),
+                  )
+                : _EarningsCard(
+                    tentativePayout: widget.tentativePayout,
+                    pendingRequestAmt: widget.pendingRequestAmt,
+                    isLatestPending: widget.isLatestPending,
+                    showPending: widget.showPending,
+                    // Pass a null callback because GestureDetector handles it.
+                    onTap: null,
+                    isFlipping: true,
+                  ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBack() {
+    return _EarningsCard(
+      tentativePayout: widget.tentativePayout,
+      pendingRequestAmt: widget.pendingRequestAmt,
+      isLatestPending: widget.isLatestPending,
+      showPending: widget.showPending,
+      onTap: null,
+      isFlipping: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PaymentMethodCard(data: widget.paymentMethod, isTransparent: true),
+          const SizedBox(height: 12),
+          Text(
+            'Tap to flip back',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.white.withValues(alpha: 0.7),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Earnings card ────────────────────────────────────────────────────────────
 
 class _EarningsCard extends StatelessWidget {
@@ -446,13 +571,19 @@ class _EarningsCard extends StatelessWidget {
     this.pendingRequestAmt = 0.0,
     this.isLatestPending = false,
     this.showPending = true,
+    this.onTap,
+    this.isFlipping = false,
+    this.child,
   });
-
+ 
   final dynamic tentativePayout;
   final dynamic pendingRequestAmt;
   final bool isLatestPending;
   final bool showPending;
-
+  final VoidCallback? onTap;
+  final bool isFlipping;
+  final Widget? child;
+ 
   @override
   Widget build(BuildContext context) {
     final tentativeAmt = double.tryParse('$tentativePayout') ?? 0.0;
@@ -461,7 +592,9 @@ class _EarningsCard extends StatelessWidget {
     final displayLabel = isLatestPending
         ? 'Pending Payment Request'
         : 'Available for Request';
+ 
     return Container(
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF007A36), Color(0xFF00B14F)],
@@ -477,47 +610,80 @@ class _EarningsCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                isLatestPending
-                    ? Icons.schedule_rounded
-                    : Icons.account_balance_wallet_rounded,
-                color: Colors.white70,
-                size: 18,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                displayLabel,
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '₱ ${_fmt(displayAmt)}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 34,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          highlightColor: Colors.white.withValues(alpha: 0.1),
+          splashColor: Colors.white.withValues(alpha: 0.1),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: child ??
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Row(
+                  children: [
+                    Icon(
+                      isLatestPending
+                          ? Icons.schedule_rounded
+                          : Icons.account_balance_wallet_rounded,
+                      color: Colors.white70,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      displayLabel,
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const Spacer(),
+                    if (isLatestPending)
+                      const Icon(
+                        Icons.unfold_more_rounded,
+                        color: Colors.white60,
+                        size: 16,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '₱ ${_fmt(displayAmt)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+ 
+                // ── If flipping enabled: hint for tapping ──
+                if (isFlipping) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tap to view payout account',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+ 
+                // ── If pending: also show accumulated available for next request ──
+                if (showPending && isLatestPending && tentativeAmt > 0) ...[
+                  const SizedBox(height: 14),
+                  _payoutRow(
+                    icon: Icons.arrow_circle_up_rounded,
+                    label: 'Accumulated for next request',
+                    amount: _fmt(tentativeAmt),
+                  ),
+                ],
+              ],
             ),
           ),
-
-          // ── If pending: also show accumulated available for next request ──
-          if (showPending && isLatestPending && tentativeAmt > 0) ...[
-            const SizedBox(height: 14),
-            _payoutRow(
-              icon: Icons.arrow_circle_up_rounded,
-              label: 'Accumulated for next request',
-              amount: _fmt(tentativeAmt),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

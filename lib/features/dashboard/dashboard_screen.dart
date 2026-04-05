@@ -32,6 +32,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
@@ -113,9 +114,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
     }
 
-    // fetch sync counts
-    final pendingSync = await SyncOperationsDao.instance.getPendingCount();
-    final syncedToday = await SyncOperationsDao.instance.getSyncedTodayCount();
+    // fetch sync counts — scoped to the current courier only
+    final courierId =
+        await ref.read(authStorageProvider).getLastCourierId() ?? '';
+    final pendingSync =
+        await SyncOperationsDao.instance.getPendingCount(courierId);
+    final syncedTotal =
+        await SyncOperationsDao.instance.getSyncedCount(courierId);
 
     if (!mounted) return;
 
@@ -126,7 +131,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       'rts': rts,
       'osa': osa,
       'pending_sync': pendingSync,
-      'synced_today': syncedToday,
+      'synced_total': syncedTotal,
     };
 
     setState(() => _loading = false);
@@ -151,7 +156,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     // Use summary values for sync to ensure consistency after load
     final pendingSyncCount = _summary['pending_sync'] ?? 0;
-    final syncedTodayCount = _summary['synced_today'] ?? 0;
+    final syncedTotalCount = _summary['synced_total'] ?? 0;
 
     return PopScope(
       canPop: false,
@@ -297,7 +302,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             child: StatCard(
                               label: 'SYNC',
                               count:
-                                  '$syncedTodayCount / ${pendingSyncCount + syncedTodayCount}',
+                                  '$syncedTotalCount / ${pendingSyncCount + syncedTotalCount}',
                               icon: Icons.sync_rounded,
                               color: pendingSyncCount > 0
                                   ? Colors.blueAccent
@@ -305,11 +310,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               onTap: () => context.push('/sync'),
                               subdued:
                                   pendingSyncCount == 0 &&
-                                  syncedTodayCount == 0,
+                                  syncedTotalCount == 0,
                               details: pendingSyncCount > 0
                                   ? '$pendingSyncCount pending updates.'
-                                  : (syncedTodayCount > 0
-                                        ? '$syncedTodayCount synced today.'
+                                  : (syncedTotalCount > 0
+                                        ? '$syncedTotalCount synced.'
                                         : 'All caught up.'),
                             ),
                           ),

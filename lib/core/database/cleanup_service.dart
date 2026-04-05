@@ -21,16 +21,31 @@ class CleanupService {
   ///
   /// Reads the courier's configured [syncRetentionDays] from [settings].
   /// If cleanup already ran today the call is a no-op.
+  ///
+  /// Exception: when [syncRetentionDays] == 0 (debug 1-minute mode) the
+  /// once-per-day gate is bypassed so cleanup runs on every call, allowing
+  /// rapid testing of the auto-removal flow.
   Future<void> runIfNeeded(AppSettings settings) async {
     final prefs = await SharedPreferences.getInstance();
-    final now = DateTime.now();
-    final today =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    if (prefs.getString(_lastCleanupKey) == today) return;
-
     final syncRetentionDays = await settings.getSyncRetentionDays();
+
+    // Normal mode: skip if cleanup already ran today.
+    if (syncRetentionDays > 0) {
+      final now = DateTime.now();
+      final today =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      if (prefs.getString(_lastCleanupKey) == today) return;
+    }
+
     await run(syncRetentionDays: syncRetentionDays);
-    await prefs.setString(_lastCleanupKey, today);
+
+    // Only record the run date in normal mode; debug mode always re-runs.
+    if (syncRetentionDays > 0) {
+      final now = DateTime.now();
+      final today =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      await prefs.setString(_lastCleanupKey, today);
+    }
   }
 
   /// Deletes [synced] queue entries and completed delivery records that exceed
@@ -54,19 +69,17 @@ class CleanupService {
   ///
   /// It is safe to call this at any time; pending data is never touched.
   Future<void> run({int? syncRetentionDays}) async {
-    final syncMs =
-        (syncRetentionDays ?? kDefaultSyncRetentionDays) *
-        Duration.millisecondsPerDay;
+    final days = syncRetentionDays ?? kDefaultSyncRetentionDays;
     final deliveryMs = kLocalDataRetentionDays * Duration.millisecondsPerDay;
     debugPrint(
-      '[CleanupService] run: retentionDays=${syncRetentionDays ?? kDefaultSyncRetentionDays}, '
+      '[CleanupService] run: retentionDays=$days, '
       'deliveryMs=$deliveryMs (${kLocalDataRetentionDays}d), '
       'cutoff=${DateTime.now().subtract(Duration(milliseconds: deliveryMs))}',
     );
     const paidDeliveryMs =
         kPaidDeliveryRetentionDays * Duration.millisecondsPerDay;
     final results = await Future.wait([
-      SyncOperationsDao.instance.deleteOldSynced(syncMs),
+      SyncOperationsDao.instance.deleteOldSynced(days),
       LocalDeliveryDao.instance.deleteOldSynced(
         deliveryMs,
         paidRetentionMs: paidDeliveryMs,

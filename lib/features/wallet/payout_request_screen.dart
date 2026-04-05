@@ -39,7 +39,6 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
-import 'package:fsi_courier_app/shared/widgets/payment_method_card.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class PayoutRequestScreen extends ConsumerStatefulWidget {
@@ -57,7 +56,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   bool _submitting = false;
   String? _error;
   Map<String, dynamic>? _previewData;
-  Map<String, dynamic>? _paymentMethod;
   String? _initialSelectedDate;
 
   @override
@@ -69,7 +67,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   Future<void> _fetchPreview() async {
     setState(() {
       _previewData = null;
-      _paymentMethod = null;
       _error = null;
       _loading = true;
     });
@@ -83,24 +80,16 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     if (!mounted) return;
 
     final previewResult = results[0];
-    final pmResult = results[1];
 
-    Map<String, dynamic>? paymentMethod;
-    if (pmResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      paymentMethod = mapFromKey(data, 'data');
-    }
-
-    if (previewResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      final preview = mapFromKey(data, 'data');
+    if (previewResult is ApiSuccess<Map<String, dynamic>>) {
+      final preview = mapFromKey(previewResult.data, 'data');
       setState(() {
         _previewData = preview;
-        _paymentMethod = paymentMethod;
         _initialSelectedDate = null;
         _loading = false;
       });
     } else {
       setState(() {
-        _paymentMethod = paymentMethod;
         _error = 'Failed to load payment preview.';
         _loading = false;
       });
@@ -479,9 +468,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         ),
         const SizedBox(height: 12),
 
-        // ── Payment method card ───────────────────────────────────────
-        PaymentMethodCard(data: _paymentMethod),
-        const SizedBox(height: 16),
 
         // // ── Coverage Period ───────────────────────────────────────────
         // if (toDate.isNotEmpty) ...[

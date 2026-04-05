@@ -362,19 +362,45 @@ class _SyncHeader extends ConsumerWidget {
                       if (days == null) {
                         return const SizedBox.shrink();
                       }
-                      final int retentionMs =
-                          days * Duration.millisecondsPerDay;
+
+                      // Human-readable label for the retention setting.
+                      final retentionLabel = days <= 0
+                          ? '1 min (debug)'
+                          : '$days day${days == 1 ? '' : 's'}';
 
                       if (earliestSynced == null) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 6),
                           child: Text(
-                            'Sync history retention: $days day${days == 1 ? '' : 's'}',
+                            'Sync history retention: $retentionLabel',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
                         );
+                      }
+
+                      // Compute midnight-aligned expiry for normal mode, or
+                      // rolling 1-minute expiry for debug mode (days == 0).
+                      final int expiryMs;
+                      if (days <= 0) {
+                        // Debug 1-min: expires 1 minute after creation.
+                        expiryMs = earliestSynced +
+                            const Duration(minutes: 1).inMilliseconds;
+                      } else {
+                        // Midnight-aligned: expiry = midnight of
+                        // (creation calendar-day + retentionDays).
+                        final created = DateTime.fromMillisecondsSinceEpoch(
+                          earliestSynced,
+                        );
+                        final creationDay = DateTime(
+                          created.year,
+                          created.month,
+                          created.day,
+                        );
+                        expiryMs = creationDay
+                            .add(Duration(days: days))
+                            .millisecondsSinceEpoch;
                       }
 
                       return StreamBuilder<int>(
@@ -386,7 +412,6 @@ class _SyncHeader extends ConsumerWidget {
                           final nowMs =
                               nowSnap.data ??
                               DateTime.now().millisecondsSinceEpoch;
-                          final expiryMs = earliestSynced + retentionMs;
                           final remaining = expiryMs - nowMs;
 
                           String label;
@@ -514,8 +539,7 @@ class _EntryList extends ConsumerWidget {
                   }
                 }
               : null,
-          onDelete: (entry.status != 'synced' || entry.lastError != null)
-              ? () async {
+          onDelete: () async {
                   final confirmed = await ConfirmationDialog.show(
                     context,
                     title: 'Delete operation?',
@@ -529,8 +553,7 @@ class _EntryList extends ConsumerWidget {
                         .read(syncManagerProvider.notifier)
                         .deleteSingle(entry.id);
                   }
-                }
-              : null,
+                },
         );
       },
     );

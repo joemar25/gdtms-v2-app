@@ -126,6 +126,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         .read(apiClientProvider)
         .get<Map<String, dynamic>>('/me', parser: parseApiMap);
 
+    if (!mounted) return;
+
     if (result is ApiSuccess<Map<String, dynamic>>) {
       final data = result.data['data'];
       if (data is Map<String, dynamic>) {
@@ -188,7 +190,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    final pendingCount = await SyncOperationsDao.instance.getPendingCount();
+    final courierId =
+        await ref.read(authStorageProvider).getLastCourierId() ?? '';
+    final pendingCount =
+        await SyncOperationsDao.instance.getPendingCount(courierId);
     if (!mounted) return;
     if (pendingCount > 0) {
       final forceLogout = await ConfirmationDialog.show(
@@ -266,13 +271,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           appBar: AppHeaderBar(
             title: 'Profile',
             pageIcon: Icons.person_rounded,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.edit_rounded, size: 20),
-                tooltip: 'Edit Profile',
-                onPressed: () => context.push('/profile/edit'),
-              ),
-            ],
           ),
           bottomNavigationBar: const FloatingBottomNavBar(
             currentPath: '/profile',
@@ -317,11 +315,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _CardDivider(isDark: isDark),
                     _ActionTile(
                       icon: Icons.person_outline_rounded,
-                      iconColor: _Tokens.accentGreen,
+                      iconColor: isOnline
+                          ? _Tokens.accentGreen
+                          : Colors.grey,
                       label: 'Edit Profile',
-                      subtitle: 'Update your personal details',
+                      subtitle: isOnline
+                          ? 'Update your personal details'
+                          : 'Requires internet connection',
                       isDark: isDark,
-                      onTap: () => context.push('/profile/edit'),
+                      onTap: isOnline
+                          ? () => context.push('/profile/edit')
+                          : null,
                     ),
                     _CardDivider(isDark: isDark),
                     _ActionTile(
@@ -613,23 +617,33 @@ class _ProfileHeroCard extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.4),
                 width: 2.5,
               ),
-              image: courier['profile_picture_url'] != null
-                  ? DecorationImage(
-                      image: NetworkImage(
-                        courier['profile_picture_url'].toString(),
-                      ),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
               color: Colors.white.withValues(alpha: 0.15),
             ),
-            child: courier['profile_picture_url'] == null
-                ? const Icon(
-                    Icons.person_rounded,
-                    size: 36,
-                    color: Colors.white,
-                  )
-                : null,
+            child: ClipOval(
+              child: courier['profile_picture_url'] != null
+                  ? Image.network(
+                      courier['profile_picture_url'].toString(),
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                      // Pre-signed S3 URLs expire after 1 hour (HTTP 403).
+                      // Show the placeholder avatar instead of crashing.
+                      errorBuilder: (_, e, s) => const Center(
+                        child: Icon(
+                          Icons.person_rounded,
+                          size: 36,
+                          color: Colors.white,
+                        ),
+                      ),
+                    )
+                  : const Center(
+                      child: Icon(
+                        Icons.person_rounded,
+                        size: 36,
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
           ),
           const SizedBox(width: 16),
 
@@ -959,7 +973,7 @@ class _ActionTile extends StatelessWidget {
   final String label;
   final String subtitle;
   final bool isDark;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool isDestructive;
 
   @override
@@ -1163,6 +1177,7 @@ class _SyncRetentionTile extends StatelessWidget {
             child: SegmentedButton<int>(
               showSelectedIcon: false,
               segments: const [
+                ButtonSegment(value: 0, label: Text('1 min')),
                 ButtonSegment(value: 1, label: Text('1 day')),
                 ButtonSegment(value: 3, label: Text('3 days')),
                 ButtonSegment(value: 5, label: Text('5 days')),

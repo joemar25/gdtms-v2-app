@@ -583,14 +583,11 @@ class SyncManagerNotifier extends Notifier<SyncState> {
       final retentionDays = await ref
           .read(appSettingsProvider)
           .getSyncRetentionDays();
-      final syncMs = retentionDays * Duration.millisecondsPerDay;
       const deliveryMs = kLocalDataRetentionDays * Duration.millisecondsPerDay;
       const paidDeliveryMs =
           kPaidDeliveryRetentionDays * Duration.millisecondsPerDay;
       await Future.wait([
-        // Do not delete from SyncOperationsDao aggressively yet, it might be used by UI history.
-        // Wait, retention policy should delete old "synced" operations.
-        SyncOperationsDao.instance.deleteOldSynced(syncMs),
+        SyncOperationsDao.instance.deleteOldSynced(retentionDays),
         LocalDeliveryDao.instance.deleteOldSynced(
           deliveryMs,
           paidRetentionMs: paidDeliveryMs,

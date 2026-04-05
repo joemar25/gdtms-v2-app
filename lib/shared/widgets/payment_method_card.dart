@@ -20,9 +20,14 @@ import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class PaymentMethodCard extends StatelessWidget {
   /// Pass `null` while loading to show a skeleton.
-  const PaymentMethodCard({super.key, required this.data});
-
+  const PaymentMethodCard({
+    super.key,
+    required this.data,
+    this.isTransparent = false,
+  });
+ 
   final Map<String, dynamic>? data;
+  final bool isTransparent;
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +45,21 @@ class PaymentMethodCard extends StatelessWidget {
     if (hasActive) {
       return _buildCard(
         context: context,
-        borderColor: ColorStyles.grabGreen.withValues(alpha: 0.35),
-        bgColor: ColorStyles.grabGreen.withValues(alpha: 0.06),
+        borderColor: isTransparent
+            ? Colors.transparent
+            : ColorStyles.grabGreen.withValues(alpha: 0.35),
+        bgColor: isTransparent
+            ? Colors.transparent
+            : ColorStyles.grabGreen.withValues(alpha: 0.06),
         icon: Icons.account_balance_rounded,
-        iconColor: ColorStyles.grabGreen,
+        iconColor: isTransparent ? Colors.white70 : ColorStyles.grabGreen,
         label: 'PAYOUT ACCOUNT',
-        labelColor: ColorStyles.grabGreen,
-        badge: _Badge(text: 'ACTIVE', color: ColorStyles.grabGreen),
+        labelColor: isTransparent ? Colors.white70 : ColorStyles.grabGreen,
+        badge: _Badge(
+          text: 'ACTIVE',
+          color: isTransparent ? Colors.white : ColorStyles.grabGreen,
+          isTransparent: isTransparent,
+        ),
         bankName: bankName ?? '—',
         accountName: accountName,
         accountNumber: accountNumber,
@@ -57,13 +70,21 @@ class PaymentMethodCard extends StatelessWidget {
     if (bankStatus != null) {
       return _buildCard(
         context: context,
-        borderColor: Colors.amber.withValues(alpha: 0.4),
-        bgColor: Colors.amber.withValues(alpha: 0.06),
+        borderColor: isTransparent
+            ? Colors.transparent
+            : Colors.amber.withValues(alpha: 0.4),
+        bgColor: isTransparent
+            ? Colors.transparent
+            : Colors.amber.withValues(alpha: 0.06),
         icon: Icons.account_balance_rounded,
-        iconColor: Colors.amber.shade700,
+        iconColor: isTransparent ? Colors.white70 : Colors.amber.shade700,
         label: 'PAYOUT ACCOUNT',
-        labelColor: Colors.amber.shade700,
-        badge: _Badge(text: 'INACTIVE', color: Colors.amber.shade700),
+        labelColor: isTransparent ? Colors.white70 : Colors.amber.shade700,
+        badge: _Badge(
+          text: 'INACTIVE',
+          color: isTransparent ? Colors.white : Colors.amber.shade700,
+          isTransparent: isTransparent,
+        ),
         bankName: bankName ?? '—',
         accountName: accountName,
         accountNumber: accountNumber,
@@ -73,7 +94,11 @@ class PaymentMethodCard extends StatelessWidget {
     }
 
     // ── No bank on file ───────────────────────────────────────────────────
-    return _buildNoBank(context: context, message: message);
+    return _buildNoBank(
+      context: context,
+      message: message,
+      isTransparent: isTransparent,
+    );
   }
 
   Widget _buildCard({
@@ -91,6 +116,104 @@ class PaymentMethodCard extends StatelessWidget {
     String? footerMessage,
     IconData? footerIcon,
   }) {
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header row
+        Row(
+          children: [
+            Icon(icon, size: 16, color: iconColor),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+                color: labelColor,
+              ),
+            ),
+            const Spacer(),
+            badge,
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Bank name
+        Text(
+          bankName,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: isTransparent ? Colors.white : null,
+          ),
+        ),
+        // Account details
+        if (accountName != null || accountNumber != null) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              if (accountName != null)
+                Expanded(
+                  child: Text(
+                    accountName,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isTransparent
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : Colors.grey.shade600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              if (accountNumber != null) ...[
+                if (accountName != null) const SizedBox(width: 8),
+                Text(
+                  _maskAccount(accountNumber),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isTransparent
+                        ? Colors.white.withValues(alpha: 0.6)
+                        : Colors.grey.shade500,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+        // Footer message
+        if (footerMessage != null) ...[
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                footerIcon ?? Icons.info_outline_rounded,
+                size: 13,
+                color: isTransparent
+                    ? Colors.white.withValues(alpha: 0.8)
+                    : Colors.amber.shade700,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  footerMessage,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isTransparent
+                        ? Colors.white.withValues(alpha: 0.8)
+                        : Colors.amber.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+ 
+    if (isTransparent) return content;
+ 
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
@@ -98,93 +221,55 @@ class PaymentMethodCard extends StatelessWidget {
         border: Border.all(color: borderColor),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row
-          Row(
-            children: [
-              Icon(icon, size: 16, color: iconColor),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  color: labelColor,
-                ),
-              ),
-              const Spacer(),
-              badge,
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Bank name
-          Text(
-            bankName,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-          ),
-          // Account details
-          if (accountName != null || accountNumber != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                if (accountName != null)
-                  Expanded(
-                    child: Text(
-                      accountName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                if (accountNumber != null) ...[
-                  if (accountName != null) const SizedBox(width: 8),
-                  Text(
-                    _maskAccount(accountNumber),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ],
-          // Footer message
-          if (footerMessage != null) ...[
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  footerIcon ?? Icons.info_outline_rounded,
-                  size: 13,
-                  color: Colors.amber.shade700,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    footerMessage,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.amber.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
+      child: content,
     );
   }
 
-  Widget _buildNoBank({required BuildContext context, String? message}) {
+  Widget _buildNoBank({
+    required BuildContext context,
+    String? message,
+    bool isTransparent = false,
+  }) {
+    final content = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.account_balance_outlined,
+          size: 18,
+          color: isTransparent ? Colors.white70 : Colors.amber.shade700,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'No Bank Account on File',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: isTransparent ? Colors.white : Colors.amber.shade800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                message ??
+                    'A default GCash account will be automatically set up when you submit a payout request.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isTransparent
+                      ? Colors.white.withValues(alpha: 0.7)
+                      : Colors.amber.shade700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+ 
+    if (isTransparent) return content;
+ 
     return Container(
       decoration: BoxDecoration(
         color: Colors.amber.withValues(alpha: 0.06),
@@ -192,38 +277,7 @@ class PaymentMethodCard extends StatelessWidget {
         border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.account_balance_outlined,
-            size: 18,
-            color: Colors.amber.shade700,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'No Bank Account on File',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.amber.shade800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  message ??
-                      'A default GCash account will be automatically set up when you submit a payout request.',
-                  style: TextStyle(fontSize: 12, color: Colors.amber.shade700),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 
@@ -248,17 +302,27 @@ class PaymentMethodCard extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({required this.text, required this.color});
+  const _Badge({
+    required this.text,
+    required this.color,
+    this.isTransparent = false,
+  });
   final String text;
   final Color color;
-
+  final bool isTransparent;
+ 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: isTransparent
+            ? Colors.white.withValues(alpha: 0.15)
+            : color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
+        border: isTransparent
+            ? Border.all(color: Colors.white.withValues(alpha: 0.3))
+            : null,
       ),
       child: Text(
         text,
