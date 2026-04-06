@@ -128,6 +128,7 @@ Future<void> showContactAppSheet(
 }) async {
   final cleaned = phone.trim();
   if (cleaned.isEmpty) return;
+  final noPlus = cleaned.replaceAll('+', '');
 
   final encodedMsg = messageTemplate != null
       ? Uri.encodeComponent(messageTemplate)
@@ -148,9 +149,18 @@ Future<void> showContactAppSheet(
       color: const Color(0xFF007AFF),
       uri: Uri(scheme: 'tel', path: cleaned),
     ),
+    _CommApp(
+      label: 'Viber',
+      icon: Icons.chat_bubble_rounded,
+      color: const Color(0xFF7360F2),
+      uri: Uri.parse(
+        encodedMsg != null
+            ? 'viber://chat?number=$noPlus&text=$encodedMsg'
+            : 'viber://chat?number=$noPlus',
+      ),
+    ),
   ];
 
-  final noPlus = cleaned.replaceAll('+', '');
   final optionalCandidates = [
     _CommApp(
       label: 'WhatsApp',
@@ -160,16 +170,6 @@ Future<void> showContactAppSheet(
         encodedMsg != null
             ? 'whatsapp://send?phone=$noPlus&text=$encodedMsg'
             : 'whatsapp://send?phone=$noPlus',
-      ),
-    ),
-    _CommApp(
-      label: 'Viber',
-      icon: Icons.videocam_rounded,
-      color: const Color(0xFF7360F2),
-      uri: Uri.parse(
-        encodedMsg != null
-            ? 'viber://chat?number=$noPlus&text=$encodedMsg'
-            : 'viber://chat?number=$noPlus',
       ),
     ),
     _CommApp(
@@ -500,6 +500,27 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     await showContactAppSheet(context, phone ?? '', messageTemplate: template);
   }
 
+  // Future<void> _onViberTap(String? phone, {String? targetName}) async {
+  //   if (!mounted) return;
+  //   final barcode = widget.barcode;
+  //   final resolvedName = targetName ?? _str('name');
+  //   final template =
+  //       'Hi${resolvedName.isNotEmpty ? ' $resolvedName' : ''}! '
+  //       "I'm your FSI courier "
+  //       '${barcode.isNotEmpty ? 'with tracking number $barcode' : 'with your delivery'}. '
+  //       'Please be ready or contact me for re-scheduling. Thank you!';
+
+  //   final cleaned = (phone ?? '').trim();
+  //   if (cleaned.isEmpty) return;
+  //   final noPlus = cleaned.replaceAll('+', '');
+  //   final uri = Uri.parse(
+  //     'viber://chat?number=$noPlus&text=${Uri.encodeComponent(template)}',
+  //   );
+
+  //   HapticFeedback.lightImpact();
+  //   await launchUrl(uri, mode: LaunchMode.externalApplication);
+  // }
+
   Future<void> _launchMaps(String? address) async {
     final destination = address?.trim() ?? '';
     if (destination.isEmpty) return;
@@ -673,6 +694,17 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                     ),
                                     isDark: isDark,
                                   ),
+                                  // _IosRowDivider(isDark: isDark),
+                                  // _IosTappableRow(
+                                  //   label: 'Viber',
+                                  //   value: _str('contact').cleanContactNumber(),
+                                  //   icon: Icons.chat_bubble_rounded,
+                                  //   accentColor: const Color(0xFF7360F2),
+                                  //   onTap: () => _onViberTap(
+                                  //     _str('contact').cleanContactNumber(),
+                                  //   ),
+                                  //   isDark: isDark,
+                                  // ),
                                 ],
                               ],
                             ),
