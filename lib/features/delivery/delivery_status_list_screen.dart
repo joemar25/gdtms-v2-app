@@ -264,6 +264,11 @@ class _DeliveryStatusListScreenState
       'RTS' => [
         searchBtn,
         IconButton(
+          icon: const Icon(Icons.help_outline_rounded),
+          tooltip: 'RTS Logic',
+          onPressed: () => _showRtsHelpBottomSheet(context),
+        ),
+        IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
           tooltip: 'Scan Dispatch',
           onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
@@ -496,6 +501,174 @@ class _DeliveryStatusListScreenState
     );
   }
 
+  void _showRtsHelpBottomSheet(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rtsColor = DeliveryCard.statusColor('RTS');
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.black12,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Header Icon & Title
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: rtsColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.assignment_return_rounded,
+                      color: rtsColor,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'RTS Logic & Payments',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          'How things work in the system',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? Colors.white60 : Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: isDark ? Colors.white38 : Colors.black26,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Help Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _HelpItem(
+                      icon: Icons.inventory_2_outlined,
+                      title: 'Delivery Back to FSI',
+                      description: 'If an RTS item is delivered back to FSI, it will be automatically validated for payment by the site team.',
+                      isDark: isDark,
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(height: 1),
+                    ),
+                    _HelpItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: 'Automatic Consolidation',
+                      description: 'If validated "With Pay", the item will be automatically consolidated into your existing old payment request, if one is available.',
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Footer note
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      rtsColor.withValues(alpha: 0.15),
+                      rtsColor.withValues(alpha: 0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 18, color: rtsColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'This ensures your payments are tracked accurately without manual intervention.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? rtsColor.withValues(alpha: 0.9) : rtsColor.withValues(alpha: 0.8),
+                          height: 1.4,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   int _bannerCount(bool isOnline) {
     final status = widget.status.toUpperCase();
     int count = 0;
@@ -678,6 +851,59 @@ class _StatusInfoBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HelpItem extends StatelessWidget {
+  const _HelpItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.isDark,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: isDark ? Colors.white70 : Colors.black87,
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
