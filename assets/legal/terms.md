@@ -32,16 +32,36 @@ You are responsible for maintaining the confidentiality of your login credential
 
 The App collects the following data to support delivery operations:
 
-- **Location data** — Used to track delivery progress and verify delivery accuracy. Location is transmitted to FSI servers while the App is in use.
+- **Location data** — Used to track delivery progress, verify delivery accuracy, and enforce geofencing rules. Location is transmitted to FSI servers while the App is in use.
 - **Device information** — Device model, OS version, and unique device identifier are collected for security and support purposes.
-- **Delivery records** — Photos, signatures, and delivery confirmation data are collected as proof of delivery and stored on FSI servers.
-- **Usage logs** — Error logs and diagnostic data are collected locally and may be submitted to FSI for troubleshooting upon your consent.
+- **Delivery records** — Photos, signatures, and delivery confirmation data are collected as proof of delivery and stored on secure cloud servers (AWS S3 in the ap-southeast-1 region).
+- **Usage logs** — Error logs and diagnostic data (via Sentry) are collected for troubleshooting and stability improvements.
 
 Your data is processed in accordance with FSI's Privacy Policy. Data is not sold to third parties.
 
 ---
 
-## 5. Intellectual Property
+## 5. Payouts and Earnings
+
+By using the App, you acknowledge the following regarding your earnings:
+
+- **Payment Methods** — Payouts are primarily released to your registered bank account. If no active bank account is provided or verified, a GCash account may be provisioned or used as a fallback.
+- **Accuracy** — You are responsible for ensuring your payout account details are correct. FSI is not liable for payments sent to incorrect accounts provided by you.
+- **Consolidation** — Payout requests are subject to verification and may be consolidated based on operational windows.
+
+---
+
+## 6. Data Retention and Visibility
+
+The App follows specific data retention policies for local storage (on your mobile device):
+
+- **Payout Retention** — Deliveries that have been paid or processed for payout are retained in the App's local database for a minimum of **24 hours** for record-keeping before being automatically cleared.
+- **Locked Records** — If a delivery is detected as already "Paid" by the system on the same day it was recorded, it will remain visible in your local database for that day but will be **locked** (cannot be modified or re-opened).
+- **Server Sync** — All records are permanently stored on FSI's central servers for operational and auditing purposes even after being removed from your mobile device.
+
+---
+
+## 7. Intellectual Property
 
 All content, features, and functionality of the App are the exclusive property of Fastrak Services Inc. and are protected by applicable intellectual property laws. You are granted a limited, non-exclusive, non-transferable license to use the App solely for authorized delivery operations.
 
