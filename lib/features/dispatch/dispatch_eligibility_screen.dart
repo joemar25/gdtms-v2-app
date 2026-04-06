@@ -841,6 +841,21 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
   @override
   void initState() {
     super.initState();
+    // Wire up backspace handling for each focus node
+    for (int i = 0; i < 4; i++) {
+      final index = i;
+      _focusNodes[index].onKeyEvent = (node, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace &&
+            _controllers[index].text.isEmpty &&
+            index > 0) {
+          _focusNodes[index - 1].requestFocus();
+          _controllers[index - 1].clear();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      };
+    }
     // Auto-focus the first digit when dialog is shown
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[0].requestFocus();
@@ -862,15 +877,11 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
     if (value.length == 1 && index < 3) {
       _focusNodes[index + 1].requestFocus();
     }
-    if (value.isEmpty && index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
+    // REMOVE the "value.isEmpty" block — onKeyEvent handles backspace now
     setState(() => _error = null);
 
-    // Check if all fields are filled after any change
     final entered = _controllers.map((c) => c.text).join();
     if (entered.length == 4 && _controllers.every((c) => c.text.isNotEmpty)) {
-      // Delay to allow UI to update before confirming
       Future.delayed(const Duration(milliseconds: 100), _confirm);
     }
   }

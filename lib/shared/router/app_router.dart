@@ -29,6 +29,7 @@ import 'package:fsi_courier_app/features/legal/privacy_screen.dart';
 import 'package:fsi_courier_app/features/report/report_issue_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
+import 'package:fsi_courier_app/shared/widgets/bottom_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final initialLocationProvider = Provider<String>((ref) => '/splash');
@@ -40,7 +41,31 @@ class _RouterNotifier extends ChangeNotifier {
   }
 }
 
-// ── Transition helper ─────────────────────────────────────────────────────────
+// ── Transition helpers ───────────────────────────────────────────────────────
+
+/// Builds a [CustomTransitionPage] with a smooth fade + full horizontal slide.
+/// Designed specifically for bottom-nav transitions.
+Page<T> _tabTransitionPage<T>({required LocalKey key, required Widget child}) {
+  return CustomTransitionPage<T>(
+    key: key,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 380),
+    reverseTransitionDuration: const Duration(milliseconds: 320),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final slide = Tween<Offset>(
+        begin: const Offset(1.0, 0.0),
+        end: Offset.zero,
+      ).animate(
+        CurvedAnimation(parent: animation, curve: Curves.easeOutQuart),
+      );
+
+      return SlideTransition(
+        position: slide,
+        child: FadeTransition(opacity: animation, child: child),
+      );
+    },
+  );
+}
 
 /// Builds a [CustomTransitionPage] with a smooth fade + subtle upward-slide.
 /// All app routes use this for a consistent, polished feel.
@@ -89,6 +114,22 @@ Page<T> _page<T>({
       );
     },
   );
+}
+
+// ── Persistent Layout Wrapper ───────────────────────────────────────────────
+
+class ScaffoldWithNavBar extends StatelessWidget {
+  const ScaffoldWithNavBar({required this.navigationShell, super.key});
+  final StatefulNavigationShell navigationShell;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBody: true,
+      body: navigationShell,
+      bottomNavigationBar: AppBottomNavBar(navigationShell: navigationShell),
+    );
+  }
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -203,13 +244,46 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           extra: state.extra,
         ),
       ),
-      GoRoute(
-        path: '/dashboard',
-        pageBuilder: (_, state) => _page(
-          key: state.pageKey,
-          child: const DashboardScreen(),
-          extra: state.extra,
-        ),
+      // ── Main Shell (Persistent Tabs) ───────────────────────────────────────
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return ScaffoldWithNavBar(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dashboard',
+                pageBuilder: (_, state) => _tabTransitionPage(
+                  key: state.pageKey,
+                  child: const DashboardScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/wallet',
+                pageBuilder: (_, state) => _tabTransitionPage(
+                  key: state.pageKey,
+                  child: const WalletScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                pageBuilder: (_, state) => _tabTransitionPage(
+                  key: state.pageKey,
+                  child: const ProfileScreen(),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
 
       // ── Unified scan ──────────────────────────────────────────────────────
@@ -336,14 +410,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           extra: state.extra,
         ),
       ),
-      GoRoute(
-        path: '/wallet',
-        pageBuilder: (_, state) => _page(
-          key: state.pageKey,
-          child: const WalletScreen(),
-          extra: state.extra,
-        ),
-      ),
+
       GoRoute(
         path: '/wallet/request',
         pageBuilder: (_, state) {
@@ -367,14 +434,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           extra: state.extra,
         ),
       ),
-      GoRoute(
-        path: '/profile',
-        pageBuilder: (_, state) => _page(
-          key: state.pageKey,
-          child: const ProfileScreen(),
-          extra: state.extra,
-        ),
-      ),
+
       GoRoute(
         path: '/profile/edit',
         pageBuilder: (_, state) => _page(

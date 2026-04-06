@@ -18,6 +18,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     this.backgroundColor,
     this.centerTitle = false,
     this.showNotificationBell = true,
+    this.heroTag,
   });
 
   final String? title;
@@ -30,6 +31,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   final Color? backgroundColor;
   final bool centerTitle;
   final bool showNotificationBell;
+  final String? heroTag;
 
   @override
   Size get preferredSize =>
@@ -40,7 +42,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return AppBar(
+    final appBar = AppBar(
       scrolledUnderElevation: 0,
       elevation: 0,
       backgroundColor: backgroundColor ?? Colors.transparent,
@@ -84,6 +86,15 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
         const SizedBox(width: 12),
       ],
     );
+
+    if (heroTag != null) {
+      return Hero(
+        tag: heroTag!,
+        // Use a material wrapper to prevent text style issues during Hero transition
+        child: Material(color: Colors.transparent, child: appBar),
+      );
+    }
+    return appBar;
   }
 }
 

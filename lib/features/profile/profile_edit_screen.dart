@@ -26,6 +26,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -181,62 +182,77 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               children: [
                 // ── Profile Picture ──────────────────────────────────────────
                 GestureDetector(
-                  onTap: _pickImage,
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white10 : Colors.grey.shade200,
-                          shape: BoxShape.circle,
-                          image: _profileImage != null
-                              ? DecorationImage(
-                                  image: FileImage(_profileImage!),
-                                  fit: BoxFit.cover,
-                                )
-                              : (currentProfilePic != null &&
-                                        currentProfilePic.isNotEmpty
+                      onTap: _pickImage,
+                      child: Hero(
+                        tag: 'profile_avatar',
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white10
+                                    : Colors.grey.shade200,
+                                shape: BoxShape.circle,
+                                image: _profileImage != null
                                     ? DecorationImage(
-                                        image: NetworkImage(currentProfilePic),
+                                        image: FileImage(_profileImage!),
                                         fit: BoxFit.cover,
                                       )
-                                    : null),
-                          border: Border.all(
-                            color: ColorStyles.grabGreen.withValues(alpha: 0.5),
-                            width: 2,
-                          ),
+                                    : (currentProfilePic != null &&
+                                              currentProfilePic.isNotEmpty
+                                          ? DecorationImage(
+                                              image: NetworkImage(
+                                                currentProfilePic,
+                                              ),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null),
+                                border: Border.all(
+                                  color: ColorStyles.grabGreen.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  width: 2,
+                                ),
+                              ),
+                              child:
+                                  _profileImage == null &&
+                                      (currentProfilePic == null ||
+                                          currentProfilePic.isEmpty)
+                                  ? const Icon(
+                                      Icons.person_rounded,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: ColorStyles.grabGreen,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        child:
-                            _profileImage == null &&
-                                (currentProfilePic == null ||
-                                    currentProfilePic.isEmpty)
-                            ? const Icon(
-                                Icons.person_rounded,
-                                size: 60,
-                                color: Colors.grey,
-                              )
-                            : null,
                       ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: ColorStyles.grabGreen,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    )
+                    .animate()
+                    .fadeIn(duration: 400.ms)
+                    .scale(
+                      begin: const Offset(0.9, 0.9),
+                      end: const Offset(1, 1),
+                    ),
                 const SizedBox(height: 32),
 
                 // ── Fields ──────────────────────────────────────────────────
@@ -246,7 +262,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   icon: Icons.alternate_email_rounded,
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Username is required' : null,
-                ),
+                ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _firstNameController,
@@ -256,7 +272,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   inputFormatters: [UpperCaseFormatter()],
                   validator: (v) =>
                       v == null || v.isEmpty ? 'First name is required' : null,
-                ),
+                ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _middleNameController,
@@ -264,7 +280,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   icon: Icons.person_outline_rounded,
                   textCapitalization: TextCapitalization.characters,
                   inputFormatters: [UpperCaseFormatter()],
-                ),
+                ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1, end: 0),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _lastNameController,
@@ -274,7 +290,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   inputFormatters: [UpperCaseFormatter()],
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Last name is required' : null,
-                ),
+                ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1, end: 0),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _emailController,
@@ -290,29 +306,33 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     }
                     return null;
                   },
-                ),
+                ).animate().fadeIn(delay: 500.ms).slideX(begin: 0.1, end: 0),
                 const SizedBox(height: 40),
 
                 // ── Save Button ─────────────────────────────────────────────
                 SizedBox(
                   width: double.infinity,
                   height: 54,
-                  child: FilledButton(
-                    onPressed: _save,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: ColorStyles.grabGreen,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text(
-                      'Save Changes',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  child:
+                      FilledButton(
+                            onPressed: _save,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: ColorStyles.grabGreen,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text(
+                              'Save Changes',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(delay: 600.ms)
+                          .scaleXY(begin: 0.95, end: 1),
                 ),
                 const SizedBox(height: 20),
               ],

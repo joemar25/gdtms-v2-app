@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
@@ -17,32 +19,17 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnim;
-  late Animation<double> _scaleAnim;
-
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _scaleAnim = Tween<double>(
-      begin: 0.92,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
-    _controller.forward();
     _initAndNavigate();
   }
 
   Future<void> _initAndNavigate() async {
     await Future.wait([
       _initialize(),
-      Future.delayed(const Duration(milliseconds: 2200)),
+      Future.delayed(const Duration(milliseconds: 2500)),
     ]);
     if (!mounted) return;
     final auth = ref.read(authProvider);
@@ -66,24 +53,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ColorStyles.grabSurfaceDark,
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: ScaleTransition(
-            scale: _scaleAnim,
-            child: _buildContent(context),
-          ),
-        ),
-      ),
+      body: SafeArea(child: _buildContent(context)),
     );
   }
 
@@ -138,6 +111,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             fit: BoxFit.cover,
                           ),
                         ),
+                      ).animate().scale(
+                        duration: 600.ms,
+                        curve: Curves.easeOutBack,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -145,24 +121,30 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'FSI COURIER',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.75),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
+                                  'FSI COURIER',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.75),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.5,
+                                  ),
+                                )
+                                .animate()
+                                .fadeIn(delay: 200.ms)
+                                .slideX(begin: 0.2, end: 0),
                             const Text(
-                              'Delivery Management',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                                  'Delivery Management',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                                .animate()
+                                .fadeIn(delay: 300.ms)
+                                .slideX(begin: 0.2, end: 0),
                           ],
                         ),
                       ),
@@ -175,35 +157,45 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _SplashChip(
-                          icon: Icons.local_shipping_rounded,
-                          label: 'Dispatch',
-                        ),
+                              icon: Icons.local_shipping_rounded,
+                              label: 'Dispatch',
+                            )
+                            .animate()
+                            .fadeIn(delay: 400.ms)
+                            .scaleXY(begin: 0.8, end: 1),
                         const SizedBox(width: 8),
                         _SplashChip(
-                          icon: Icons.inventory_2_rounded,
-                          label: 'Delivery',
-                        ),
+                              icon: Icons.inventory_2_rounded,
+                              label: 'Delivery',
+                            )
+                            .animate()
+                            .fadeIn(delay: 500.ms)
+                            .scaleXY(begin: 0.8, end: 1),
                         const SizedBox(width: 8),
                         _SplashChip(
-                          icon: Icons.account_balance_wallet_rounded,
-                          label: 'Wallet',
-                        ),
+                              icon: Icons.account_balance_wallet_rounded,
+                              label: 'Wallet',
+                            )
+                            .animate()
+                            .fadeIn(delay: 600.ms)
+                            .scaleXY(begin: 0.8, end: 1),
                       ],
                     ),
                   ),
                 ],
               ),
-            ),
+            ).animate().fadeIn(duration: 800.ms).slideY(begin: 0.05, end: 0),
             const SizedBox(height: 44),
+
             // ── Loading indicator ────────────────────────────────────────
             SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                color: ColorStyles.grabGreen,
-                strokeWidth: 2.0,
+              width: 80,
+              height: 80,
+              child: Lottie.asset(
+                'assets/anim/hour-glass.json',
+                fit: BoxFit.contain,
               ),
-            ),
+            ).animate().fadeIn(delay: 800.ms),
             const SizedBox(height: 18),
             Text(
               'Fastrak Services Inc.',
@@ -212,7 +204,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 fontSize: 12,
                 letterSpacing: 0.5,
               ),
-            ),
+            ).animate().fadeIn(delay: 1000.ms),
           ],
         ),
       ),

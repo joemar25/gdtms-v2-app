@@ -29,7 +29,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// 'services' types are provided by material.dart; remove explicit import
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -274,9 +274,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'Profile',
             pageIcon: Icons.person_rounded,
           ),
-          bottomNavigationBar: const FloatingBottomNavBar(
-            currentPath: '/profile',
-          ),
+          // bottomNavigationBar: const FloatingBottomNavBar(
+          //   currentPath: '/profile',
+          // ),
           body: RefreshIndicator(
             onRefresh: _refresh,
             color: _Tokens.accentGreen,
@@ -294,11 +294,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   courier: courier,
                   branchName: branchName,
                   isDark: isDark,
-                ),
+                ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.2, end: 0),
                 const SizedBox(height: 24),
 
                 // ── Account actions ────────────────────────────────────────
-                _SectionLabel('Account'),
+                _SectionLabel('Account').animate().fadeIn(delay: 200.ms),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -311,19 +311,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onTap: () => context.push('/change-password'),
                     ),
                     _CardDivider(isDark: isDark),
-                    // _ActionTile(
-                    //   icon: Icons.person_outline_rounded,
-                    //   iconColor: isOnline ? _Tokens.accentGreen : Colors.grey,
-                    //   label: 'Edit Profile',
-                    //   subtitle: isOnline
-                    //       ? 'Update your personal details'
-                    //       : 'Requires internet connection',
-                    //   isDark: isDark,
-                    //   onTap: isOnline
-                    //       ? () => context.push('/profile/edit')
-                    //       : null,
-                    // ),
-                    // _CardDivider(isDark: isDark),
                     _ActionTile(
                       icon: Icons.logout_rounded,
                       iconColor: Colors.red.shade400,
@@ -345,11 +332,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
                   ],
-                ),
+                ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0),
                 const SizedBox(height: 24),
 
                 // ── Preferences ────────────────────────────────────────────
-                _SectionLabel('Preferences'),
+                _SectionLabel('Preferences').animate().fadeIn(delay: 400.ms),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -409,11 +396,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ],
                   ],
-                ),
+                ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0),
                 const SizedBox(height: 24),
 
                 // ── Appearance ─────────────────────────────────────────────
-                _SectionLabel('Appearance'),
+                _SectionLabel('Appearance').animate().fadeIn(delay: 600.ms),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -443,11 +430,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
                   ],
-                ),
+                ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.1, end: 0),
                 const SizedBox(height: 24),
 
                 // ── Device Specifications ──────────────────────────────────
-                _SectionLabel('Device'),
+                _SectionLabel('Device').animate().fadeIn(delay: 800.ms),
                 if (_specsLoaded &&
                     _freeStorageGb >= 0 &&
                     _freeStorageGb < 2.0) ...[
@@ -530,11 +517,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       isDark: isDark,
                     ),
                   ],
-                ),
+                ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.1, end: 0),
                 const SizedBox(height: 24),
 
                 // ── Legal ──────────────────────────────────────────────────
-                _SectionLabel('Legal'),
+                _SectionLabel('Legal').animate().fadeIn(delay: 1000.ms),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -556,11 +543,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onTap: () => context.push('/privacy'),
                     ),
                   ],
-                ),
+                ).animate().fadeIn(delay: 1100.ms).slideY(begin: 0.1, end: 0),
                 const SizedBox(height: 24),
 
                 // ── Diagnostics ────────────────────────────────────────────
-                _SectionLabel('Diagnostics'),
+                _SectionLabel('Diagnostics').animate().fadeIn(delay: 1200.ms),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -584,7 +571,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
                   ],
-                ),
+                ).animate().fadeIn(delay: 1300.ms).slideY(begin: 0.1, end: 0),
                 const SizedBox(height: 36),
               ],
             ),
@@ -617,8 +604,8 @@ class _ProfileHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name =
-        '${courier['first_name'] ?? '-'} ${courier['last_name'] ?? ''}'.trim();
+    final name = '${courier['first_name'] ?? '-'} ${courier['last_name'] ?? ''}'
+        .trim();
     final email = courier['email']?.toString() ?? 'No email';
     final courierCode = courier['courier_code']?.toString() ?? '-';
 
@@ -634,8 +621,9 @@ class _ProfileHeroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(_Tokens.radius),
         boxShadow: [
           BoxShadow(
-            color: (isDark ? Colors.black : ColorStyles.grabGreen)
-                .withValues(alpha: isDark ? 0.3 : 0.25),
+            color: (isDark ? Colors.black : ColorStyles.grabGreen).withValues(
+              alpha: isDark ? 0.3 : 0.25,
+            ),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -658,28 +646,31 @@ class _ProfileHeroCard extends StatelessWidget {
                   ),
                   color: Colors.white.withValues(alpha: 0.15),
                 ),
-                child: ClipOval(
-                  child: courier['profile_picture_url'] != null
-                      ? Image.network(
-                          courier['profile_picture_url'].toString(),
-                          width: 64,
-                          height: 64,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, e, s) => const Center(
+                child: Hero(
+                  tag: 'profile_avatar',
+                  child: ClipOval(
+                    child: courier['profile_picture_url'] != null
+                        ? Image.network(
+                            courier['profile_picture_url'].toString(),
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, e, s) => const Center(
+                              child: Icon(
+                                Icons.person_rounded,
+                                size: 32,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : const Center(
                             child: Icon(
                               Icons.person_rounded,
                               size: 32,
                               color: Colors.white,
                             ),
                           ),
-                        )
-                      : const Center(
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 32,
-                            color: Colors.white,
-                          ),
-                        ),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -804,11 +795,7 @@ class _CompactInfoItem extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                size: 12,
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
+              Icon(icon, size: 12, color: Colors.white.withValues(alpha: 0.6)),
               const SizedBox(width: 4),
               Text(
                 label.toUpperCase(),

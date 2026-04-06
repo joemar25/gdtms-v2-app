@@ -27,8 +27,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
@@ -198,11 +200,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             title: 'Dashboard',
             pageIcon: Icons.dashboard_rounded,
           ),
-          bottomNavigationBar: const FloatingBottomNavBar(
-            currentPath: '/dashboard',
-          ),
+          // bottomNavigationBar: const FloatingBottomNavBar(
+          //   currentPath: '/dashboard',
+          // ),
           body: _loading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(
+                  child: SizedBox(
+                    width: 150,
+                    height: 150,
+                    child: Lottie.asset('assets/anim/hour-glass.json'),
+                  ),
+                )
               : RefreshIndicator(
                   onRefresh: _onRefresh,
                   child: ListView(
@@ -210,45 +218,60 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       // ── Greeting ─────────────────────────────────────────────
                       Text(
-                        '$greeting, $firstName!',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
+                            '$greeting, $firstName!',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          )
+                          .animate()
+                          .fadeIn(duration: 400.ms)
+                          .slideX(begin: -0.1, end: 0),
                       Text(
-                        courierCode,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
+                            courierCode,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: Colors.grey.shade500),
+                          )
+                          .animate()
+                          .fadeIn(delay: 100.ms)
+                          .slideX(begin: -0.1, end: 0),
                       const SizedBox(height: 20),
 
                       // ── 4 Summary Boxes ───────────────────────────────────────
                       Row(
                         children: [
                           Expanded(
-                            child: StatCard(
-                              label: 'DISPATCH',
-                              count: '$pendingDispatchCount',
-                              icon: Icons.qr_code_rounded,
-                              color: ColorStyles.grabOrange,
-                              onTap: pendingDispatchCount == 0
-                                  ? null
-                                  : () => context.push('/dispatches'),
-                              details: 'Waiting for acceptance.',
-                            ),
+                            child:
+                                StatCard(
+                                      label: 'DISPATCH',
+                                      count: '$pendingDispatchCount',
+                                      icon: Icons.qr_code_rounded,
+                                      color: ColorStyles.grabOrange,
+                                      heroTag: 'stat_DISPATCH',
+                                      onTap: pendingDispatchCount == 0
+                                          ? null
+                                          : () => context.push('/dispatches'),
+                                      details: 'Waiting for acceptance.',
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 200.ms)
+                                    .slideY(begin: 0.1, end: 0),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: StatCard(
-                              label: 'DELIVERIES',
-                              count: '$deliveriesCount',
-                              icon: Icons.local_shipping_outlined,
-                              color: ColorStyles.grabGreen,
-                              onTap: deliveriesCount == 0
-                                  ? null
-                                  : () => context.push('/deliveries'),
-                              details: "Today's for deliveries.",
-                            ),
+                            child:
+                                StatCard(
+                                      label: 'DELIVERIES',
+                                      count: '$deliveriesCount',
+                                      icon: Icons.local_shipping_outlined,
+                                      color: ColorStyles.grabGreen,
+                                      heroTag: 'stat_PENDING',
+                                      onTap: deliveriesCount == 0
+                                          ? null
+                                          : () => context.push('/deliveries'),
+                                      details: "Today's for deliveries.",
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 300.ms)
+                                    .slideY(begin: 0.1, end: 0),
                           ),
                         ],
                       ),
@@ -256,30 +279,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: StatCard(
-                              label: 'DELIVERED',
-                              count: '$deliveredCount',
-                              icon: Icons.check_circle_outline_rounded,
-                              color: ColorStyles.grabGreen,
-                              onTap: deliveredCount == 0
-                                  ? null
-                                  : () => context.push('/delivered'),
-                              details: "Today's delivered.",
-                            ),
+                            child:
+                                StatCard(
+                                      label: 'DELIVERED',
+                                      count: '$deliveredCount',
+                                      icon: Icons.check_circle_outline_rounded,
+                                      color: ColorStyles.grabGreen,
+                                      heroTag: 'stat_DELIVERED',
+                                      onTap: deliveredCount == 0
+                                          ? null
+                                          : () => context.push('/delivered'),
+                                      details: "Today's delivered.",
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 400.ms)
+                                    .slideY(begin: 0.1, end: 0),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: StatCard(
-                              label: 'RTS',
-                              count: '$rtsCount',
-                              icon: Icons.assignment_return_outlined,
-                              color: Colors.red,
-                              onTap: rtsCount == 0
-                                  ? null
-                                  : () => context.push('/rts'),
-                              subdued: true,
-                              details: "Today's return to sender items.",
-                            ),
+                            child:
+                                StatCard(
+                                      label: 'RTS',
+                                      count: '$rtsCount',
+                                      icon: Icons.assignment_return_outlined,
+                                      color: Colors.red,
+                                      heroTag: 'stat_RTS',
+                                      onTap: rtsCount == 0
+                                          ? null
+                                          : () => context.push('/rts'),
+                                      subdued: true,
+                                      details:
+                                          "Today's return to sender items.",
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 500.ms)
+                                    .slideY(begin: 0.1, end: 0),
                           ),
                         ],
                       ),
@@ -287,38 +321,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: StatCard(
-                              label: 'OSA',
-                              count: '$osaCount',
-                              icon: Icons.lock_outline_rounded,
-                              color: Colors.grey,
-                              onTap: osaCount == 0
-                                  ? null
-                                  : () => context.push('/osa'),
-                              subdued: true,
-                              details: "Today's out of service area.",
-                            ),
+                            child:
+                                StatCard(
+                                      label: 'OSA',
+                                      count: '$osaCount',
+                                      icon: Icons.lock_outline_rounded,
+                                      color: Colors.grey,
+                                      heroTag: 'stat_OSA',
+                                      onTap: osaCount == 0
+                                          ? null
+                                          : () => context.push('/osa'),
+                                      subdued: true,
+                                      details: "Today's out of service area.",
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 600.ms)
+                                    .slideY(begin: 0.1, end: 0),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: StatCard(
-                              label: 'SYNC',
-                              count:
-                                  '$syncedTotalCount / ${pendingSyncCount + syncedTotalCount}',
-                              icon: Icons.sync_rounded,
-                              color: pendingSyncCount > 0
-                                  ? Colors.blueAccent
-                                  : Colors.blueGrey,
-                              onTap: () => context.push('/sync'),
-                              subdued:
-                                  pendingSyncCount == 0 &&
-                                  syncedTotalCount == 0,
-                              details: pendingSyncCount > 0
-                                  ? '$pendingSyncCount pending updates.'
-                                  : (syncedTotalCount > 0
-                                        ? '$syncedTotalCount synced.'
-                                        : 'All caught up.'),
-                            ),
+                            child:
+                                StatCard(
+                                      label: 'SYNC',
+                                      count:
+                                          '$syncedTotalCount / ${pendingSyncCount + syncedTotalCount}',
+                                      icon: Icons.sync_rounded,
+                                      color: pendingSyncCount > 0
+                                          ? Colors.blueAccent
+                                          : Colors.blueGrey,
+                                      onTap: () => context.push('/sync'),
+                                      subdued:
+                                          pendingSyncCount == 0 &&
+                                          syncedTotalCount == 0,
+                                      details: pendingSyncCount > 0
+                                          ? '$pendingSyncCount pending updates.'
+                                          : (syncedTotalCount > 0
+                                                ? '$syncedTotalCount synced.'
+                                                : 'All caught up.'),
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 700.ms)
+                                    .slideY(begin: 0.1, end: 0),
                           ),
                         ],
                       ),
@@ -328,29 +371,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: ScanButton(
-                              label: 'SCAN DISPATCH',
-                              icon: Icons.qr_code_scanner_rounded,
-                              color: ColorStyles.grabOrange,
-                              onTap: () => context.push(
-                                '/scan',
-                                extra: {'mode': 'dispatch'},
-                              ),
-                              details:
-                                  'Scan a dispatch barcode\nto check eligibility.',
-                            ),
+                            child:
+                                ScanButton(
+                                      label: 'SCAN DISPATCH',
+                                      icon: Icons.qr_code_scanner_rounded,
+                                      color: ColorStyles.grabOrange,
+                                      onTap: () => context.push(
+                                        '/scan',
+                                        extra: {'mode': 'dispatch'},
+                                      ),
+                                      details:
+                                          'Scan a dispatch barcode\nto check eligibility.',
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 800.ms)
+                                    .scale(
+                                      begin: const Offset(0.95, 0.95),
+                                      end: const Offset(1, 1),
+                                    ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: ScanButton(
-                              label: 'SCAN POD',
-                              icon: Icons.qr_code_scanner_rounded,
-                              color: ColorStyles.grabGreen,
-                              onTap: () =>
-                                  context.push('/scan', extra: {'mode': 'pod'}),
-                              details:
-                                  'Scan a delivery barcode to\nfind and update POD.',
-                            ),
+                            child:
+                                ScanButton(
+                                      label: 'SCAN POD',
+                                      icon: Icons.qr_code_scanner_rounded,
+                                      color: ColorStyles.grabGreen,
+                                      onTap: () => context.push(
+                                        '/scan',
+                                        extra: {'mode': 'pod'},
+                                      ),
+                                      details:
+                                          'Scan a delivery barcode to\nfind and update POD.',
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 900.ms)
+                                    .scale(
+                                      begin: const Offset(0.95, 0.95),
+                                      end: const Offset(1, 1),
+                                    ),
                           ),
                         ],
                       ),

@@ -32,6 +32,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -293,9 +294,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             title: 'Wallet',
             pageIcon: Icons.account_balance_wallet_rounded,
           ),
-          bottomNavigationBar: const FloatingBottomNavBar(
-            currentPath: '/wallet',
-          ),
+          // bottomNavigationBar: const FloatingBottomNavBar(
+          //   currentPath: '/wallet',
+          // ),
           body: _loading
               ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(
@@ -315,12 +316,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       // ── Earnings / Payout Flip Card ────────────────────────
                       if (tentativePayout > 0 || isLatestPending)
                         _WalletFlipCard(
-                          tentativePayout: tentativePayout,
-                          pendingRequestAmt: pendingRequestAmt,
-                          isLatestPending: isLatestPending,
-                          showPending: isOnline,
-                          paymentMethod: _paymentMethod,
-                        ),
+                              tentativePayout: tentativePayout,
+                              pendingRequestAmt: pendingRequestAmt,
+                              isLatestPending: isLatestPending,
+                              showPending: isOnline,
+                              paymentMethod: _paymentMethod,
+                            )
+                            .animate()
+                            .fadeIn(duration: 500.ms)
+                            .slideY(begin: 0.1, end: 0),
 
                       const SizedBox(height: 20),
 
@@ -340,7 +344,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                          )
+                          ).animate().fadeIn(delay: 200.ms).scaleXY(begin: 0.95, end: 1)
                         else if (isLatestPending &&
                             _eligible > 0 &&
                             !hasExistingRequestToday)
@@ -401,7 +405,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
                         // ── Payout history strip ─────────────────────────────
                         if (_historyBreakdown.isNotEmpty) ...[
-                          _SectionLabel('Payout History'),
+                          _SectionLabel(
+                            'Payout History',
+                          ).animate().fadeIn(delay: 300.ms),
                           const SizedBox(height: 8),
                           DateStripWithDeliveries(
                             key: ValueKey('history_$_stripKey'),
@@ -418,7 +424,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                 if (ref.isNotEmpty) ctx.push('/wallet/$ref');
                               },
                             ),
-                          ),
+                          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.05, end: 0),
                           const SizedBox(height: 20),
                         ],
                       ],
@@ -649,15 +655,32 @@ class _EarningsCard extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '₱ ${_fmt(displayAmt)}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        // Currency symbol offset to align numbers with label text above
+                        SizedBox(
+                          width: 24,
+                          child: Text(
+                            '₱',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          _fmt(displayAmt),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 34,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
                     ),
 
                     // ── If flipping enabled: hint for tapping ──
@@ -768,6 +791,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Header Row (Reference + Status Badge) ─────────────────────
               Row(
                 children: [
                   Expanded(
@@ -782,47 +806,49 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                   _StatusBadge(status),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
+
+              // ── Values Row (Date/Items + Amount) ──────────────────────────
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (dateLabel != '—') ...[
-                    Flexible(
-                      child: _InfoChip(
-                        icon: Icons.calendar_today_outlined,
-                        label: dateLabel,
-                      ),
+                    _InfoChip(
+                      icon: Icons.calendar_today_outlined,
+                      label: dateLabel,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                   ],
                   if (totalItems != null) ...[
-                    Flexible(
-                      child: _InfoChip(
-                        icon: Icons.inventory_2_outlined,
-                        label: '$totalItems items',
-                      ),
+                    _InfoChip(
+                      icon: Icons.inventory_2_outlined,
+                      label: '$totalItems items',
                     ),
                   ] else if (paidAt != '—') ...[
-                    Flexible(
-                      child: _InfoChip(
-                        icon: Icons.payments_outlined,
-                        label: paidAt,
-                      ),
-                    ),
+                    _InfoChip(icon: Icons.payments_outlined, label: paidAt),
                   ],
                   const Spacer(),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '₱ ${amount.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: ColorStyles.grabGreen,
-                            ),
-                      ),
-                    ],
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '₱ ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: ColorStyles.grabGreen.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        TextSpan(
+                          text: amount.toStringAsFixed(2),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: ColorStyles.grabGreen,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

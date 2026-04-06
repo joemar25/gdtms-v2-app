@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 /// Wraps [child] and overlays a semi-transparent loading spinner when
 /// [isLoading] is true. Used on screens that perform async operations
@@ -8,10 +9,12 @@ class LoadingOverlay extends StatelessWidget {
     super.key,
     required this.isLoading,
     required this.child,
+    this.message,
   });
 
   final bool isLoading;
   final Widget child;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -20,8 +23,33 @@ class LoadingOverlay extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: Colors.black45,
-            child: const Center(child: CircularProgressIndicator()),
+            color: Colors.black54,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 120,
+                    height: 120,
+                    child: Lottie.asset(
+                      'assets/anim/hour-glass.json',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  if (message != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      message!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
       ],
     );

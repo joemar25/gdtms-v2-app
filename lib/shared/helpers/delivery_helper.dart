@@ -9,6 +9,7 @@ import 'package:fsi_courier_app/core/models/local_delivery.dart';
 bool checkIsLocked({
   required String status,
   required String rtsVerificationStatus,
+  int attempts = 0,
 }) {
   final s = status.toUpperCase();
   final v = rtsVerificationStatus.toLowerCase();
@@ -17,8 +18,9 @@ bool checkIsLocked({
   final isOsa = s == 'OSA';
   final isRtsVerified =
       s == 'RTS' && (v == 'verified_with_pay' || v == 'verified_no_pay');
+  final isRtsMaxAttempts = s == 'RTS' && attempts >= 3;
 
-  return isDelivered || isOsa || isRtsVerified;
+  return isDelivered || isOsa || isRtsVerified || isRtsMaxAttempts;
 }
 
 /// Returns the number of RTS attempts for a delivery map.

@@ -138,6 +138,7 @@ class DeliveryCard extends StatelessWidget {
         context: context,
         isDark: isDark,
         statusColor: colorForStatus,
+        status: status,
         barcode: barcode,
         name: name,
         isDirty: isDirty,
@@ -239,7 +240,9 @@ class DeliveryCard extends StatelessWidget {
                                 // in the header to avoid duplicating the product
                                 // which is already shown in the details below.
                                 if (!isPrivacyMode &&
-                                    status == 'DELIVERED' &&
+                                    (status == 'DELIVERED' ||
+                                        (status == 'RTS' &&
+                                            attemptsCount >= 3)) &&
                                     mailType.isNotEmpty)
                                   Flexible(
                                     child: Container(
@@ -314,7 +317,9 @@ class DeliveryCard extends StatelessWidget {
                                   Padding(
                                     padding: const EdgeInsets.only(left: 6),
                                     child: _MiniPill(
-                                      label: 'ATTEMPTS: $attemptsCount',
+                                      label: status == 'DELIVERED'
+                                          ? 'RTS-ATTEMPTS: $attemptsCount'
+                                          : 'ATTEMPTS: $attemptsCount',
                                       icon: Icons.autorenew_rounded,
                                       bg: attemptsCount >= 3
                                           ? Colors.red.shade50
@@ -601,10 +606,13 @@ class DeliveryCard extends StatelessWidget {
 
     final rawStatus = delivery['delivery_status']?.toString() ?? '';
     final status = rawStatus.toUpperCase().trim();
+    final attemptsCount = getAttemptsCountFromMap(delivery);
 
-    // If the header already shows the mail type for delivered items,
-    // don't repeat it in the detail grid to avoid redundancy.
-    final showProductMailType = !(status == 'DELIVERED' && mailType.isNotEmpty);
+    // If the header already shows the mail type for delivered items or
+    // RTS items with max attempts, don't repeat it in the detail grid.
+    final showProductMailType = !((status == 'DELIVERED' ||
+            (status == 'RTS' && attemptsCount >= 3)) &&
+        mailType.isNotEmpty);
 
     final hasDetails =
         seqNum.isNotEmpty ||
@@ -681,6 +689,7 @@ class DeliveryCard extends StatelessWidget {
     required BuildContext context,
     required bool isDark,
     required Color statusColor,
+    required String status,
     required String barcode,
     required String name,
     required bool isDirty,
@@ -810,7 +819,9 @@ class DeliveryCard extends StatelessWidget {
                               ),
                             if (attemptsCount > 0)
                               _TinyPill(
-                                label: 'A:$attemptsCount',
+                                label: status == 'DELIVERED'
+                                    ? 'RTS-A:$attemptsCount'
+                                    : 'A:$attemptsCount',
                                 color: attemptsCount >= 3
                                     ? Colors.red.shade600
                                     : Colors.orange.shade600,

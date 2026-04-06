@@ -463,7 +463,7 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                             } else {
                               label = '${ss}s';
                             }
-                            label = 'History deletes in $label';
+                            label = 'History will be automatically cleared after $label';
                           }
 
                           return Padding(
@@ -529,6 +529,22 @@ class _EntryList extends ConsumerWidget {
     final endIndex = math.min(startIndex + pageSize, allEntries.length);
     final entries = allEntries.sublist(startIndex, endIndex);
 
+    // Count RTS attempts per barcode from ALL sync entries (not just current page).
+    // This is the most reliable source because rawJson may not contain rts_count.
+    final rtsCountByBarcode = <String, int>{};
+    for (final e in allEntries) {
+      if (e.operationType != 'UPDATE_STATUS') continue;
+      try {
+        final map = jsonDecode(e.payloadJson) as Map<String, dynamic>;
+        final status =
+            (map['delivery_status']?.toString() ?? '').toUpperCase();
+        if (status == 'RTS') {
+          rtsCountByBarcode[e.barcode] =
+              (rtsCountByBarcode[e.barcode] ?? 0) + 1;
+        }
+      } catch (_) {}
+    }
+
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(top: 8, bottom: 100),
@@ -539,6 +555,7 @@ class _EntryList extends ConsumerWidget {
         return _EntryTile(
           entry: entry,
           delivery: deliveries[entry.barcode],
+          rtsAttemptsCount: rtsCountByBarcode[entry.barcode] ?? 0,
           isSyncing:
               syncState.isSyncing && syncState.currentBarcode == entry.barcode,
           onRetry: (entry.status == 'error' || entry.status == 'failed')
@@ -598,6 +615,7 @@ class _EntryTile extends StatelessWidget {
   const _EntryTile({
     required this.entry,
     required this.isSyncing,
+    required this.rtsAttemptsCount,
     this.delivery,
     this.onRetry,
     this.onDismiss,
@@ -607,6 +625,7 @@ class _EntryTile extends StatelessWidget {
   final SyncOperation entry;
   final LocalDelivery? delivery;
   final bool isSyncing;
+  final int rtsAttemptsCount;
   final VoidCallback? onRetry;
   final VoidCallback? onDismiss;
   final VoidCallback? onDelete;
@@ -718,9 +737,16 @@ class _EntryTile extends StatelessWidget {
         : payloadStatus;
     final currentRtsVerif = (delivery?.rtsVerificationStatus ?? '')
         .toLowerCase();
+
+    // Use rtsAttemptsCount (derived from sync queue entries) as the authoritative
+    // attempt count. rawJson may not contain rts_count if the server hasn't
+    // returned it for this item yet, so counting queue entries is more reliable.
+    final attemptsCount = rtsAttemptsCount;
+
     final isLocked = checkIsLocked(
       status: currentStatus,
       rtsVerificationStatus: currentRtsVerif,
+      attempts: attemptsCount,
     );
 
     return InkWell(
@@ -734,6 +760,9 @@ class _EntryTile extends StatelessWidget {
                 msg = 'This item is marked OSA and cannot be opened.';
               } else if (s == 'DELIVERED') {
                 msg = 'This item has already been delivered and is sealed.';
+              } else if (s == 'RTS' && attemptsCount >= 3) {
+                msg =
+                    'This RTS item has reached the maximum number of attempts and is locked.';
               } else if (s == 'RTS' &&
                   (v == 'verified_with_pay' || v == 'verified_no_pay')) {
                 msg =
