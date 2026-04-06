@@ -39,7 +39,9 @@ import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/shared/helpers/formatters.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:flutter/services.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({super.key});
@@ -106,9 +108,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
       final payload = {
         'name': _usernameController.text.trim(),
-        'first_name': _firstNameController.text.trim(),
-        'middle_name': _middleNameController.text.trim(),
-        'last_name': _lastNameController.text.trim(),
+        'first_name': _firstNameController.text.trim().toUpperCase(),
+        'middle_name': _middleNameController.text.trim().toUpperCase(),
+        'last_name': _lastNameController.text.trim().toUpperCase(),
         'email': _emailController.text.trim(),
       };
 
@@ -250,6 +252,8 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   controller: _firstNameController,
                   label: 'First Name',
                   icon: Icons.person_outline_rounded,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [UpperCaseFormatter()],
                   validator: (v) =>
                       v == null || v.isEmpty ? 'First name is required' : null,
                 ),
@@ -258,12 +262,16 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   controller: _middleNameController,
                   label: 'Middle Name',
                   icon: Icons.person_outline_rounded,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [UpperCaseFormatter()],
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _lastNameController,
                   label: 'Last Name',
                   icon: Icons.person_outline_rounded,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [UpperCaseFormatter()],
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Last name is required' : null,
                 ),
@@ -320,12 +328,16 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     required String label,
     required IconData icon,
     TextInputType? keyboardType,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      textCapitalization: textCapitalization,
+      inputFormatters: inputFormatters,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,

@@ -290,11 +290,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 if (!isActive) const SizedBox(height: 12),
 
                 // ── Hero profile card ──────────────────────────────────────
-                _ProfileHeroCard(courier: courier, isDark: isDark),
-                const SizedBox(height: 20),
-
-                // ── Quick stats row ────────────────────────────────────────
-                _QuickStatsRow(
+                _ProfileHeroCard(
                   courier: courier,
                   branchName: branchName,
                   isDark: isDark,
@@ -315,19 +311,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onTap: () => context.push('/change-password'),
                     ),
                     _CardDivider(isDark: isDark),
-                    _ActionTile(
-                      icon: Icons.person_outline_rounded,
-                      iconColor: isOnline ? _Tokens.accentGreen : Colors.grey,
-                      label: 'Edit Profile',
-                      subtitle: isOnline
-                          ? 'Update your personal details'
-                          : 'Requires internet connection',
-                      isDark: isDark,
-                      onTap: isOnline
-                          ? () => context.push('/profile/edit')
-                          : null,
-                    ),
-                    _CardDivider(isDark: isDark),
+                    // _ActionTile(
+                    //   icon: Icons.person_outline_rounded,
+                    //   iconColor: isOnline ? _Tokens.accentGreen : Colors.grey,
+                    //   label: 'Edit Profile',
+                    //   subtitle: isOnline
+                    //       ? 'Update your personal details'
+                    //       : 'Requires internet connection',
+                    //   isDark: isDark,
+                    //   onTap: isOnline
+                    //       ? () => context.push('/profile/edit')
+                    //       : null,
+                    // ),
+                    // _CardDivider(isDark: isDark),
                     _ActionTile(
                       icon: Icons.logout_rounded,
                       iconColor: Colors.red.shade400,
@@ -609,15 +605,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 // ─── Profile Hero Card ────────────────────────────────────────────────────────
 
 class _ProfileHeroCard extends StatelessWidget {
-  const _ProfileHeroCard({required this.courier, required this.isDark});
+  const _ProfileHeroCard({
+    required this.courier,
+    required this.branchName,
+    required this.isDark,
+  });
 
   final Map<String, dynamic> courier;
+  final String branchName;
   final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final name = '${courier['first_name'] ?? '-'} ${courier['last_name'] ?? ''}'
-        .trim();
+    final name =
+        '${courier['first_name'] ?? '-'} ${courier['last_name'] ?? ''}'.trim();
     final email = courier['email']?.toString() ?? 'No email';
     final courierCode = courier['courier_code']?.toString() ?? '-';
 
@@ -633,115 +634,150 @@ class _ProfileHeroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(_Tokens.radius),
         boxShadow: [
           BoxShadow(
-            color: (isDark ? Colors.black : ColorStyles.grabGreen).withValues(
-              alpha: isDark ? 0.3 : 0.25,
-            ),
+            color: (isDark ? Colors.black : ColorStyles.grabGreen)
+                .withValues(alpha: isDark ? 0.3 : 0.25),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(24),
-      child: Row(
+      padding: const EdgeInsets.all(20),
+      child: Column(
         children: [
-          // Avatar
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.4),
-                width: 2.5,
+          Row(
+            children: [
+              // Avatar
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    width: 2,
+                  ),
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
+                child: ClipOval(
+                  child: courier['profile_picture_url'] != null
+                      ? Image.network(
+                          courier['profile_picture_url'].toString(),
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, e, s) => const Center(
+                            child: Icon(
+                              Icons.person_rounded,
+                              size: 32,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Center(
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 32,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
               ),
-              color: Colors.white.withValues(alpha: 0.15),
-            ),
-            child: ClipOval(
-              child: courier['profile_picture_url'] != null
-                  ? Image.network(
-                      courier['profile_picture_url'].toString(),
-                      width: 72,
-                      height: 72,
-                      fit: BoxFit.cover,
-                      // Pre-signed S3 URLs expire after 1 hour (HTTP 403).
-                      // Show the placeholder avatar instead of crashing.
-                      errorBuilder: (_, e, s) => const Center(
-                        child: Icon(
-                          Icons.person_rounded,
-                          size: 36,
-                          color: Colors.white,
-                        ),
-                      ),
-                    )
-                  : const Center(
-                      child: Icon(
-                        Icons.person_rounded,
-                        size: 36,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-          ),
-          const SizedBox(width: 16),
+              const SizedBox(width: 16),
 
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name.isEmpty ? '-' : name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  email,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.75),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name.isEmpty ? '-' : name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: -0.3,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.badge_outlined,
-                        size: 12,
-                        color: Colors.white.withValues(alpha: 0.85),
+                    Text(
+                      email,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
-                      const SizedBox(width: 5),
-                      Text(
-                        courierCode,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
                       ),
-                    ],
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.badge_outlined,
+                            size: 10,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            courierCode,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Edit Icon
+              IconButton(
+                onPressed: () => context.push('/profile/edit'),
+                icon: const Icon(
+                  Icons.edit_note_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Divider(color: Colors.white.withValues(alpha: 0.15), height: 1),
+          const SizedBox(height: 16),
+          // Compact Info Row
+          Row(
+            children: [
+              _CompactInfoItem(
+                icon: Icons.phone_android_rounded,
+                label: 'Phone',
+                value: courier['phone_number']?.toString() ?? '-',
+              ),
+              const SizedBox(width: 20),
+              _CompactInfoItem(
+                icon: Icons.store_rounded,
+                label: 'Branch',
+                value: branchName,
+              ),
+            ],
           ),
         ],
       ),
@@ -749,118 +785,52 @@ class _ProfileHeroCard extends StatelessWidget {
   }
 }
 
-// ─── Quick Stats Row ──────────────────────────────────────────────────────────
-
-class _QuickStatsRow extends StatelessWidget {
-  const _QuickStatsRow({
-    required this.courier,
-    required this.branchName,
-    required this.isDark,
-  });
-
-  final Map<String, dynamic> courier;
-  final String branchName;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatChip(
-            icon: Icons.phone_outlined,
-            label: 'Phone',
-            value: courier['phone_number']?.toString() ?? '-',
-            iconColor: _Tokens.accentTeal,
-            isDark: isDark,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StatChip(
-            icon: Icons.store_outlined,
-            label: 'Branch',
-            value: branchName,
-            iconColor: _Tokens.accentAmber,
-            isDark: isDark,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  const _StatChip({
+class _CompactInfoItem extends StatelessWidget {
+  const _CompactInfoItem({
     required this.icon,
     required this.label,
     required this.value,
-    required this.iconColor,
-    required this.isDark,
   });
 
   final IconData icon;
   final String label;
   final String value;
-  final Color iconColor;
-  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? _Tokens.cardDark : _Tokens.cardLight,
-        borderRadius: BorderRadius.circular(_Tokens.radiusSm),
-        border: Border.all(
-          color: isDark ? _Tokens.borderDark : _Tokens.borderLight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(_Tokens.radiusXs),
-            ),
-            child: Icon(icon, size: 16, color: iconColor),
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 12,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white.withValues(alpha: 0.6),
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade500,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF1A1A2E),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -936,8 +906,6 @@ class _SectionLabel extends StatelessWidget {
     );
   }
 }
-
-// ─── Modern Card ──────────────────────────────────────────────────────────────
 
 class _ModernCard extends StatelessWidget {
   const _ModernCard({required this.children, required this.isDark});

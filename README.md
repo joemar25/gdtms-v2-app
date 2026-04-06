@@ -233,7 +233,7 @@ Use credentials provided privately by the programmer leads or secure vault. Do n
 - `.documentation/sync_logic_state.md`
 
 ## Future Enhancements
-
+w
 ### Sync Data Retention
 
 Synced delivery-update queue history is configurable per-courier in
@@ -261,3 +261,13 @@ in the sync page, the connect o sync should not hinder the pagination since it d
 and in the delivery details no need to show a button that it is pending sync. instead just show a ready for sync so this delivery details should not be inreacted with.
 
 always run `dart format .` [documentation](https://dart.dev/tools/dart-format).
+
+<!-- what to do:
+find . -name "*{module_name_here}*"
+example: find . -name "*profile*"
+
+find lib -name "*{module_name_here}*"
+example: find lib -name "*profile*"
+
+grep -n "class _StatChip" "c:\Users\Joemar Jane Cardiño\Documents\FSI-Internal\fsi-courier-app\lib\features\profile\profile_screen.dart"
+-->
