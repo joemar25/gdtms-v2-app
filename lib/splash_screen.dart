@@ -156,29 +156,38 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _SplashChip(
-                              icon: Icons.local_shipping_rounded,
-                              label: 'Dispatch',
-                            )
-                            .animate()
-                            .fadeIn(delay: 400.ms)
-                            .scaleXY(begin: 0.8, end: 1),
+                        Expanded(
+                          child:
+                              _SplashChip(
+                                    icon: Icons.local_shipping_rounded,
+                                    label: 'Dispatch',
+                                  )
+                                  .animate()
+                                  .fadeIn(delay: 400.ms)
+                                  .scaleXY(begin: 0.8, end: 1),
+                        ),
                         const SizedBox(width: 8),
-                        _SplashChip(
-                              icon: Icons.inventory_2_rounded,
-                              label: 'Delivery',
-                            )
-                            .animate()
-                            .fadeIn(delay: 500.ms)
-                            .scaleXY(begin: 0.8, end: 1),
+                        Expanded(
+                          child:
+                              _SplashChip(
+                                    icon: Icons.inventory_2_rounded,
+                                    label: 'Delivery',
+                                  )
+                                  .animate()
+                                  .fadeIn(delay: 500.ms)
+                                  .scaleXY(begin: 0.8, end: 1),
+                        ),
                         const SizedBox(width: 8),
-                        _SplashChip(
-                              icon: Icons.account_balance_wallet_rounded,
-                              label: 'Wallet',
-                            )
-                            .animate()
-                            .fadeIn(delay: 600.ms)
-                            .scaleXY(begin: 0.8, end: 1),
+                        Expanded(
+                          child:
+                              _SplashChip(
+                                    icon: Icons.account_balance_wallet_rounded,
+                                    label: 'Wallet',
+                                  )
+                                  .animate()
+                                  .fadeIn(delay: 600.ms)
+                                  .scaleXY(begin: 0.8, end: 1),
+                        ),
                       ],
                     ),
                   ),
@@ -222,32 +231,30 @@ class _SplashChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 18),
+          const SizedBox(height: 5),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -111,6 +111,29 @@ const String sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 const bool kAppDebugMode = kDebugMode;
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Payout Request Time Window
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// The earliest hour (inclusive, local time) at which a courier may submit a
+/// payout request. Currently 06:00 AM.
+const int kPayoutWindowStartHour = 6;
+
+/// The latest hour (exclusive, local time) at which a courier may submit a
+/// payout request. Currently 12:00 PM (noon).
+const int kPayoutWindowEndHour = 12;
+
+/// Returns `true` when a payout request is currently allowed.
+///
+/// The window is **06:00 AM – 11:59 AM** local time (i.e. `hour >= 6 && hour < 12`).
+/// In debug builds ([kAppDebugMode] == true) this restriction is lifted and the
+/// function always returns `true`, allowing developers to test at any time.
+bool isWithinPayoutRequestWindow() {
+  if (kAppDebugMode) return true;
+  final now = DateTime.now();
+  return now.hour >= kPayoutWindowStartHour && now.hour < kPayoutWindowEndHour;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  End of config.dart
 // ─────────────────────────────────────────────────────────────────────────────
 

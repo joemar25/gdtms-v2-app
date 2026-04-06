@@ -102,6 +102,19 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   }
 
   Future<void> _submit() async {
+    // ── Time-window guard (defense-in-depth) ────────────────────────────────
+    // The WalletScreen already prevents navigation here outside the window, but
+    // guard again in case the screen is reached via a deep-link or future route.
+    if (!isWithinPayoutRequestWindow()) {
+      setState(() {
+        _error =
+            'Payout requests are only allowed between '
+            '${kPayoutWindowStartHour.toString().padLeft(2, '0')}:00 AM '
+            'and 12:00 PM. Please try again during that window.';
+      });
+      return;
+    }
+
     final preview = _previewData;
     if (preview == null) return;
 
@@ -320,7 +333,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: AppHeaderBar(title: 'Request Payout', backgroundColor: appBarBg),
+      appBar: AppHeaderBar(
+        title: kAppDebugMode ? 'Request Payout (DEBUG)' : 'Request Payout',
+        backgroundColor: appBarBg,
+      ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -334,7 +350,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                       color: ColorStyles.white,
                     ),
                   )
-                : const Icon(Icons.payments_rounded),
+                : Icon(
+                    isWithinPayoutRequestWindow()
+                        ? Icons.payments_rounded
+                        : Icons.lock_clock_rounded,
+                  ),
             label: Text(
               widget.isConsolidation
                   ? 'SUBMIT CONSOLIDATED REQUEST'
@@ -357,7 +377,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                     _previewData == null ||
                     (_previewData!['eligible_delivery_count'] as int? ?? 0) ==
                         0 ||
-                    _previewData!['has_existing_request_today'] == true)
+                    _previewData!['has_existing_request_today'] == true ||
+                    !isWithinPayoutRequestWindow())
                 ? null
                 : _submit,
           ),

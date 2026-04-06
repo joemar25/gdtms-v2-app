@@ -38,13 +38,13 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
-import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/payment_method_card.dart';
 // confirmation_dialog not used in this file
@@ -260,6 +260,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final hasExistingRequestToday = _data['has_existing_request_today'] == true;
     final canRequestPayout = !isLatestPending && !hasExistingRequestToday;
 
+    // ── Payout request time-window guard ────────────────────────────────────
+    // In production, couriers may only request between 06:00 AM and 12:00 PM.
+    // In debug builds the restriction is lifted (isWithinPayoutRequestWindow
+    // always returns true) so developers can test at any hour.
+    final isInRequestWindow = isWithinPayoutRequestWindow();
+
     ref.listen<int>(walletRefreshProvider, (_, _) => _load());
 
     return PopScope(
@@ -330,33 +336,65 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
                       // ── Online-only section ──────────────────────────────
                       if (isOnline) ...[
+                        // ── Time-window guard ─────────────────────────────────
+                        if (!isInRequestWindow) ...[
+                          _PayoutWindowBanner(),
+                          const SizedBox(height: 12),
+                        ],
+
                         // Request payout / consolidate / pending notice
-                        if (canRequestPayout)
+                        if (canRequestPayout && isInRequestWindow)
                           FilledButton.icon(
-                            onPressed: () => context.push('/wallet/request'),
-                            // FIX: Icons.currency_peso not available in older Flutter SDK.
-                            // Replaced with Icons.payments_rounded which is universally available.
-                            icon: const Icon(Icons.payments_rounded),
-                            label: const Text('Request Payout'),
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                                onPressed: () =>
+                                    context.push('/wallet/request'),
+                                icon: const Icon(Icons.payments_rounded),
+                                label: Text(
+                                  kAppDebugMode
+                                      ? 'Request Payout (DEBUG)'
+                                      : 'Request Payout',
+                                ),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(50),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                              )
+                              .animate()
+                              .fadeIn(delay: 200.ms)
+                              .scaleXY(begin: 0.95, end: 1)
+                        else if (canRequestPayout && !isInRequestWindow)
+                          // Show disabled button with a lock icon so the courier
+                          // sees the action but understands it's time-locked.
+                          Opacity(
+                            opacity: 0.45,
+                            child: FilledButton.icon(
+                              onPressed: null,
+                              icon: const Icon(Icons.lock_clock_rounded),
+                              label: const Text('Request Payout'),
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size.fromHeight(50),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
                               ),
                             ),
-                          ).animate().fadeIn(delay: 200.ms).scaleXY(begin: 0.95, end: 1)
+                          )
                         else if (isLatestPending &&
                             _eligible > 0 &&
-                            !hasExistingRequestToday)
+                            !hasExistingRequestToday &&
+                            isInRequestWindow)
                           FilledButton.icon(
                             onPressed: () => context.push(
                               '/wallet/request',
                               extra: {'consolidate': true},
                             ),
-                            // FIX: Icons.currency_peso not available in older Flutter SDK.
-                            // Replaced with Icons.payments_rounded which is universally available.
                             icon: const Icon(Icons.payments_rounded),
-                            label: const Text('Consolidate Payout Request'),
+                            label: Text(
+                              kAppDebugMode
+                                  ? 'Consolidate Payout Request (DEBUG)'
+                                  : 'Consolidate Payout Request',
+                            ),
                             style: FilledButton.styleFrom(
                               backgroundColor: Colors.amber.shade700,
                               minimumSize: const Size.fromHeight(50),
@@ -437,6 +475,101 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   }
 
   // _showEarningsDetail removed — unused helper
+}
+
+// ─── Payout Window Banner ──────────────────────────────────────────────────────
+//
+// Shown in WalletScreen when the courier is outside the 06:00–12:00 request
+// window. Invisible in debug builds because the window check is bypassed.
+
+class _PayoutWindowBanner extends StatelessWidget {
+  const _PayoutWindowBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    // In debug mode the banner should never be shown (isWithinPayoutRequestWindow
+    // returns true), but guard here defensively just in case.
+    if (kAppDebugMode) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.deepPurple.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.30)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.bug_report_rounded,
+              color: Colors.deepPurple.shade400,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '(DEBUG) Time restriction bypassed — requests allowed at any hour.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.deepPurple.shade400,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: ColorStyles.grabOrange.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: ColorStyles.grabOrange.withValues(alpha: 0.30),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.lock_clock_rounded,
+            color: ColorStyles.grabOrange,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Payout Requests: Morning Only',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: ColorStyles.grabOrange,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'You can request a payout between '
+                  '${kPayoutWindowStartHour.toString().padLeft(2, '0')}:00 AM '
+                  'and '
+                  '${kPayoutWindowEndHour == 12 ? '12:00 PM (noon)' : '${kPayoutWindowEndHour.toString().padLeft(2, '0')}:00'}. '
+                  'Please come back during that window.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: ColorStyles.grabOrange.withValues(alpha: 0.85),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─── Flip Card Component ──────────────────────────────────────────────────

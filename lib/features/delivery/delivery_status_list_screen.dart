@@ -564,7 +564,9 @@ class _DeliveryStatusListScreenState
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -597,7 +599,9 @@ class _DeliveryStatusListScreenState
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.03)
+                      : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
@@ -608,7 +612,8 @@ class _DeliveryStatusListScreenState
                     _HelpItem(
                       icon: Icons.inventory_2_outlined,
                       title: 'Delivery Back to FSI',
-                      description: 'If an RTS item is delivered back to FSI, it will be automatically validated for payment by the site team.',
+                      description:
+                          'If an RTS item is delivered back to FSI, it will be automatically validated for payment by the site team.',
                       isDark: isDark,
                     ),
                     const Padding(
@@ -618,7 +623,8 @@ class _DeliveryStatusListScreenState
                     _HelpItem(
                       icon: Icons.account_balance_wallet_outlined,
                       title: 'Automatic Consolidation',
-                      description: 'If validated "With Pay", the item will be automatically consolidated into your existing old payment request, if one is available.',
+                      description:
+                          'If validated "With Pay", the item will be automatically consolidated into your existing old payment request, if one is available.',
                       isDark: isDark,
                     ),
                   ],
@@ -652,7 +658,9 @@ class _DeliveryStatusListScreenState
                         'This ensures your payments are tracked accurately without manual intervention.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? rtsColor.withValues(alpha: 0.9) : rtsColor.withValues(alpha: 0.8),
+                          color: isDark
+                              ? rtsColor.withValues(alpha: 0.9)
+                              : rtsColor.withValues(alpha: 0.8),
                           height: 1.4,
                           fontWeight: FontWeight.w500,
                         ),
@@ -873,11 +881,7 @@ class _HelpItem extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: isDark ? Colors.white70 : Colors.black87,
-        ),
+        Icon(icon, size: 20, color: isDark ? Colors.white70 : Colors.black87),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
