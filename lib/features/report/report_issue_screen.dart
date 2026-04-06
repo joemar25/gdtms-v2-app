@@ -29,21 +29,29 @@ class ReportIssueScreen extends ConsumerStatefulWidget {
 
 class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _summaryController = TextEditingController();
   final _messageController = TextEditingController();
 
   String _selectedType = 'bug';
+  String _selectedSeverity = 'high';
   bool _includeLogs = true;
   bool _submitting = false;
 
   static const _types = [
     ('bug', 'Bug / App Error', Icons.bug_report_outlined),
-    ('enhancement', 'Feature Enhancement', Icons.auto_awesome_outlined),
-    ('task', 'Task / Request', Icons.assignment_outlined),
-    ('feedback', 'General Feedback', Icons.feedback_outlined),
+    ('feedback', 'General Report', Icons.feedback_outlined),
+  ];
+
+  static const _severities = [
+    ('low', 'Low', Colors.blue),
+    ('medium', 'Medium', Colors.orange),
+    ('high', 'High', Colors.red),
+    ('critical', 'Critical', Colors.purple),
   ];
 
   @override
   void dispose() {
+    _summaryController.dispose();
     _messageController.dispose();
     super.dispose();
   }
@@ -56,6 +64,8 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
         .read(reportServiceProvider)
         .submit(
           type: _selectedType,
+          severity: _selectedSeverity,
+          summary: _summaryController.text.trim(),
           userMessage: _messageController.text.trim().isEmpty
               ? null
               : _messageController.text.trim(),
@@ -146,8 +156,42 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             ),
             const SizedBox(height: 20),
 
+            // ── Summary / Subject ──────────────────────────────────────────
+            _SectionLabel('Summary *', isDark: isDark),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: borderColor),
+              ),
+              child: TextFormField(
+                controller: _summaryController,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Briefly describe the issue',
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.white38 : Colors.black38,
+                    fontSize: 13,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                ),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Required' : null,
+              ),
+            ),
+            const SizedBox(height: 20),
+
             // ── Category ───────────────────────────────────────────────────
-            _SectionLabel('Category', isDark: isDark),
+            _SectionLabel('Type', isDark: isDark),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
@@ -216,6 +260,54 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             ),
             const SizedBox(height: 20),
 
+            // ── Severity ───────────────────────────────────────────────────
+            _SectionLabel('Severity', isDark: isDark),
+            const SizedBox(height: 8),
+            Row(
+              children: _severities.map((s) {
+                final (value, label, color) = s;
+                final isSelected = _selectedSeverity == value;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedSeverity = value),
+                    child: Container(
+                      margin: EdgeInsets.only(
+                        right: value != _severities.last.$1 ? 8 : 0,
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? color : cardColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected ? color : borderColor,
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: color.withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected ? Colors.white : (isDark ? Colors.white54 : Colors.black54),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+
             // ── Description ────────────────────────────────────────────────
             _SectionLabel('Description (optional)', isDark: isDark),
             const SizedBox(height: 8),
@@ -227,7 +319,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
               ),
               child: TextFormField(
                 controller: _messageController,
-                maxLines: 6,
+                maxLines: 4,
                 maxLength: 500,
                 style: TextStyle(
                   fontSize: 14,

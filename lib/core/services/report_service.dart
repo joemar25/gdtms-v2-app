@@ -38,11 +38,13 @@ class ReportService {
 
   /// Submits a report.
   ///
-  /// [type]        — 'bug' | 'sync_issue' | 'feedback'
+  /// [type]        — 'bug' | 'task' | 'feedback' | 'enhancement'
   /// [userMessage] — optional free-text from the courier.
   /// [includeLogs] — whether to attach the last 50 local error log entries.
   Future<ApiResult<String>> submit({
     required String type,
+    required String severity,
+    required String summary,
     String? userMessage,
     bool includeLogs = true,
   }) async {
@@ -65,36 +67,20 @@ class ReportService {
                 .toList()
           : [];
 
-      // Derive severity from report type so the server validation passes.
-      final severity = switch (type) {
-        'bug' => 'high',
-        'critical' => 'critical',
-        'sync_issue' => 'medium',
-        'task' => 'medium',
-        'enhancement' => 'low',
-        'feedback' => 'low',
-        _ => 'low',
-      };
-
-      // Ensure API allowed types
-      final apiType = switch (type) {
-        'bug' || 'enhancement' || 'task' || 'feedback' => type,
-        _ => 'bug',
-      };
-
-      final message = userMessage?.trim();
-      final generatedMessage = 'Courier submitted a $apiType report.';
+      // Use provided summary or fallback to generated message.
+      final apiMessage =
+          summary.trim().isNotEmpty ? summary : 'Courier submitted a $type report.';
 
       final payload = BugReportPayload(
-        type: apiType,
+        type: type,
         severity: severity,
         appVersion: AppVersionService.version,
         platform: platform,
         deviceModel: deviceModel,
         osVersion: osVersion,
         deviceId: deviceId,
-        message: generatedMessage,
-        userMessage: message,
+        message: apiMessage,
+        userMessage: userMessage?.trim(),
         logs: logs,
       );
 
@@ -149,7 +135,9 @@ class ReportService {
         deviceInfo: deviceInfo,
       );
       await service.submit(
-        type: 'crash',
+        type: 'bug', // mapped from 'crash' if needed, but 'bug' is safer.
+        severity: 'critical',
+        summary: 'AUTOMATED_CRASH_REPORT',
         userMessage: errorDetail,
         includeLogs: true,
       );

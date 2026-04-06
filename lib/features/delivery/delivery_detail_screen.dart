@@ -12,8 +12,8 @@
 //     an active sync-queue entry, preventing double-submission.
 //   • Delivered lock — when status is DELIVERED, address and contact rows become
 //     non-tappable (no accidental navigation away).
-//   • Timeline — full status history rendered from rawJson, always visible
-//     (not gated by debug mode).
+//   • Timeline — full status history rendered from rawJson, restricted to debug
+//     app builds; hidden in production since it is not essential UI.
 //   • Tappable rows — delivery address launches Maps; contact number launches
 //     the dialler; both respect null-safety and lock state.
 //   • Online refresh — when online, pulls the latest server record and merges it
@@ -1179,6 +1179,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   // ─── History timeline ─────────────────────────────────────────────────────
 
   Widget _buildTimeline(bool isDark) {
+    if (!kAppDebugMode) return const SizedBox.shrink();
+
     final history = _delivery['delivery_trans_history'];
     if (history is! List || history.isEmpty) return const SizedBox.shrink();
 
@@ -1193,7 +1195,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardSectionHeader(label: 'History', isDark: isDark),
+            _CardSectionHeader(label: 'History (Debug)', isDark: isDark),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

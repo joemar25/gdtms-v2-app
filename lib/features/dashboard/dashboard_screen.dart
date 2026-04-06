@@ -245,7 +245,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       count: '$pendingDispatchCount',
                                       icon: Icons.qr_code_rounded,
                                       color: ColorStyles.grabOrange,
-                                      heroTag: 'stat_DISPATCH',
                                       onTap: pendingDispatchCount == 0
                                           ? null
                                           : () => context.push('/dispatches'),
@@ -263,7 +262,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       count: '$deliveriesCount',
                                       icon: Icons.local_shipping_outlined,
                                       color: ColorStyles.grabGreen,
-                                      heroTag: 'stat_PENDING',
                                       onTap: deliveriesCount == 0
                                           ? null
                                           : () => context.push('/deliveries'),
@@ -285,7 +283,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       count: '$deliveredCount',
                                       icon: Icons.check_circle_outline_rounded,
                                       color: ColorStyles.grabGreen,
-                                      heroTag: 'stat_DELIVERED',
                                       onTap: deliveredCount == 0
                                           ? null
                                           : () => context.push('/delivered'),
@@ -303,7 +300,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       count: '$rtsCount',
                                       icon: Icons.assignment_return_outlined,
                                       color: Colors.red,
-                                      heroTag: 'stat_RTS',
                                       onTap: rtsCount == 0
                                           ? null
                                           : () => context.push('/rts'),
@@ -327,7 +323,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       count: '$osaCount',
                                       icon: Icons.lock_outline_rounded,
                                       color: Colors.grey,
-                                      heroTag: 'stat_OSA',
                                       onTap: osaCount == 0
                                           ? null
                                           : () => context.push('/osa'),

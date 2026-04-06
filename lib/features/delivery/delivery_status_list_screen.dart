@@ -329,7 +329,6 @@ class _DeliveryStatusListScreenState
         appBar: AppHeaderBar(
           title: widget.title,
           actions: _buildActions(context),
-          heroTag: 'stat_${widget.status.toUpperCase()}',
         ),
         body: GestureDetector(
           behavior: HitTestBehavior.translucent,
