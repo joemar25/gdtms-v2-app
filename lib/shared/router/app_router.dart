@@ -55,9 +55,7 @@ Page<T> _tabTransitionPage<T>({required LocalKey key, required Widget child}) {
       final slide = Tween<Offset>(
         begin: const Offset(1.0, 0.0),
         end: Offset.zero,
-      ).animate(
-        CurvedAnimation(parent: animation, curve: Curves.easeOutQuart),
-      );
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutQuart));
 
       return SlideTransition(
         position: slide,
@@ -67,8 +65,8 @@ Page<T> _tabTransitionPage<T>({required LocalKey key, required Widget child}) {
   );
 }
 
-/// Builds a [CustomTransitionPage] with a smooth fade + subtle upward-slide.
-/// All app routes use this for a consistent, polished feel.
+/// Builds a [CustomTransitionPage] for secondary screens (pushed routes).
+/// Uses a prominent horizontal slide from the right.
 Page<T> _page<T>({
   required LocalKey key,
   required Widget child,
@@ -77,11 +75,9 @@ Page<T> _page<T>({
   return CustomTransitionPage<T>(
     key: key,
     child: child,
-    transitionDuration: const Duration(milliseconds: 260),
-    reverseTransitionDuration: const Duration(milliseconds: 200),
+    transitionDuration: const Duration(milliseconds: 320),
+    reverseTransitionDuration: const Duration(milliseconds: 280),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
-
       // If the route was navigated with an extra indicating a swipe direction,
       // perform a horizontal slide that matches the swipe (left/right).
       String? swipeDir;
@@ -90,24 +86,23 @@ Page<T> _page<T>({
         if (val is String) swipeDir = val;
       }
 
-      if (swipeDir == 'left' || swipeDir == 'right') {
-        final begin = swipeDir == 'left'
-            ? const Offset(1.0, 0.0)
-            : const Offset(-1.0, 0.0);
-        final slide = Tween<Offset>(begin: begin, end: Offset.zero).animate(
-          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-        );
-        return SlideTransition(
-          position: slide,
-          child: FadeTransition(opacity: fade, child: child),
-        );
+      final Offset begin;
+      if (swipeDir == 'right') {
+        begin = const Offset(-1.0, 0.0); // coming from the left
+      } else {
+        begin = const Offset(1.0, 0.0); // default: slide in from the right
       }
 
-      // Default: subtle upward slide with fade.
       final slide = Tween<Offset>(
-        begin: const Offset(0.0, 0.035),
+        begin: begin,
         end: Offset.zero,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutQuart));
+      final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(
+          parent: animation,
+          curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+        ),
+      );
       return FadeTransition(
         opacity: fade,
         child: SlideTransition(position: slide, child: child),
@@ -118,16 +113,74 @@ Page<T> _page<T>({
 
 // ── Persistent Layout Wrapper ───────────────────────────────────────────────
 
-class ScaffoldWithNavBar extends StatelessWidget {
+class ScaffoldWithNavBar extends StatefulWidget {
   const ScaffoldWithNavBar({required this.navigationShell, super.key});
   final StatefulNavigationShell navigationShell;
 
   @override
+  State<ScaffoldWithNavBar> createState() => _ScaffoldWithNavBarState();
+}
+
+class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
+  int _previousIndex = 0;
+
+  @override
   Widget build(BuildContext context) {
+    final currentIndex = widget.navigationShell.currentIndex;
+    final isForward = currentIndex >= _previousIndex;
+
+    // Capture direction BEFORE rebuilding so the transition builder can read it.
+    if (currentIndex != _previousIndex) {
+      // Will be reset after build.
+      Future.microtask(() {
+        if (mounted) setState(() => _previousIndex = currentIndex);
+      });
+    }
+
     return Scaffold(
       extendBody: true,
-      body: navigationShell,
-      bottomNavigationBar: AppBottomNavBar(navigationShell: navigationShell),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 380),
+        reverseDuration: const Duration(milliseconds: 320),
+        switchInCurve: Curves.easeOutQuart,
+        switchOutCurve: Curves.easeInQuart,
+        transitionBuilder: (child, animation) {
+          // Slide direction depends on whether we're going to a higher or lower index.
+          final slideIn = Tween<Offset>(
+            begin: Offset(isForward ? 1.0 : -1.0, 0.0),
+            end: Offset.zero,
+          ).animate(animation);
+          final slideOut = Tween<Offset>(
+            begin: Offset.zero,
+            end: Offset(isForward ? -0.3 : 0.3, 0.0),
+          ).animate(animation);
+
+          // The 'child' in transitionBuilder is either the new or the old widget.
+          // We slide the incoming page in and the outgoing page out slightly.
+          final isIncoming =
+              (child.key as ValueKey<int>?)?.value == currentIndex;
+          return SlideTransition(
+            position: isIncoming ? slideIn : slideOut,
+            child: FadeTransition(opacity: animation, child: child),
+          );
+        },
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey<int>(currentIndex),
+          child: widget.navigationShell,
+        ),
+      ),
+      bottomNavigationBar: AppBottomNavBar(
+        navigationShell: widget.navigationShell,
+      ),
     );
   }
 }

@@ -12,13 +12,16 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor =
-        isDark ? ColorStyles.appBarDark : ColorStyles.appBarLight;
-    final borderColor =
-        isDark ? ColorStyles.separatorDark : ColorStyles.separatorLight;
+    final backgroundColor = isDark
+        ? ColorStyles.appBarDark
+        : ColorStyles.appBarLight;
+    final borderColor = isDark
+        ? ColorStyles.separatorDark
+        : ColorStyles.separatorLight;
     final activeColor = ColorStyles.grabGreen;
-    final inactiveColor =
-        isDark ? ColorStyles.labelSecondaryDark : ColorStyles.labelSecondary;
+    final inactiveColor = isDark
+        ? ColorStyles.labelSecondaryDark
+        : ColorStyles.labelSecondary;
 
     // Use padding to create the floating effect
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
@@ -26,7 +29,12 @@ class AppBottomNavBar extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, bottomPadding > 0 ? bottomPadding : 16),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          bottomPadding > 0 ? bottomPadding : 16,
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
           child: Container(
@@ -46,7 +54,9 @@ class AppBottomNavBar extends StatelessWidget {
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: backgroundColor.withValues(alpha: isDark ? 0.85 : 0.92),
+                    color: backgroundColor.withValues(
+                      alpha: isDark ? 0.85 : 0.92,
+                    ),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: borderColor.withValues(alpha: 0.5),
@@ -94,7 +104,8 @@ class AppBottomNavBar extends StatelessWidget {
                                 index: 1,
                                 selectedIndex: currentIdx,
                                 icon: Icons.account_balance_wallet_outlined,
-                                selectedIcon: Icons.account_balance_wallet_rounded,
+                                selectedIcon:
+                                    Icons.account_balance_wallet_rounded,
                                 label: 'Wallet',
                                 activeColor: activeColor,
                                 inactiveColor: inactiveColor,

@@ -463,7 +463,8 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                             } else {
                               label = '${ss}s';
                             }
-                            label = 'History will be automatically cleared after $label';
+                            label =
+                                'History will be automatically cleared after $label';
                           }
 
                           return Padding(
@@ -536,8 +537,7 @@ class _EntryList extends ConsumerWidget {
       if (e.operationType != 'UPDATE_STATUS') continue;
       try {
         final map = jsonDecode(e.payloadJson) as Map<String, dynamic>;
-        final status =
-            (map['delivery_status']?.toString() ?? '').toUpperCase();
+        final status = (map['delivery_status']?.toString() ?? '').toUpperCase();
         if (status == 'RTS') {
           rtsCountByBarcode[e.barcode] =
               (rtsCountByBarcode[e.barcode] ?? 0) + 1;

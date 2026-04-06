@@ -610,9 +610,9 @@ class DeliveryCard extends StatelessWidget {
 
     // If the header already shows the mail type for delivered items or
     // RTS items with max attempts, don't repeat it in the detail grid.
-    final showProductMailType = !((status == 'DELIVERED' ||
-            (status == 'RTS' && attemptsCount >= 3)) &&
-        mailType.isNotEmpty);
+    final showProductMailType =
+        !((status == 'DELIVERED' || (status == 'RTS' && attemptsCount >= 3)) &&
+            mailType.isNotEmpty);
 
     final hasDetails =
         seqNum.isNotEmpty ||
