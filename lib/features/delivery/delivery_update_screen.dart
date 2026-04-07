@@ -63,6 +63,7 @@ import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_geo_location_field.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_recipient_cards.dart';
+import 'package:fsi_courier_app/features/delivery/widgets/searchable_selection_sheet.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -622,6 +623,50 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         ],
       ),
     );
+  }
+
+  // ── Searchable Pickers ─────────────────────────────────────────────────────
+
+  Future<void> _openRelationshipPicker() async {
+    if (_recipientIsOwner) return;
+
+    final options = kRelationshipOptions
+        .where((e) => _recipientIsOwner || e['value'] != 'OWNER')
+        .toList();
+
+    final result = await SearchableSelectionSheet.show<String>(
+      context: context,
+      title: 'SELECT RELATIONSHIP',
+      options: options,
+      initialValue: _relationship,
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _relationship = result;
+        _relationshipSpecify.clear();
+        _errors.remove('relationship');
+        _errors.remove('relationship_specify');
+      });
+    }
+  }
+
+  Future<void> _openReasonPicker() async {
+    final result = await SearchableSelectionSheet.show<String>(
+      context: context,
+      title: 'SELECT REASON',
+      options: kReasons,
+      initialValue: _reason,
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _reason = result;
+        _reasonSpecify.clear();
+        _errors.remove('reason');
+        _errors.remove('reason_specify');
+      });
+    }
   }
 
   // ─── Build helpers ────────────────────────────────────────────────────────
@@ -1208,38 +1253,30 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   ),
                                   _kFieldGap,
 
-                                  DropdownButtonFormField<String>(
-                                    key: ValueKey(_relationship),
-                                    initialValue: _relationship,
-                                    decoration: deliveryFieldDecoration(
-                                      context,
-                                      labelText: _recipientIsOwner
-                                          ? 'RELATIONSHIP (LOCKED — OWNER)'
-                                          : 'RELATIONSHIP',
-                                      errorText: _errors['relationship'],
-                                    ),
-                                    items: kRelationshipOptions
-                                        .where(
-                                          (e) =>
-                                              _recipientIsOwner ||
-                                              e['value'] != 'OWNER',
-                                        )
-                                        .map(
-                                          (e) => DropdownMenuItem(
-                                            value: e['value'],
-                                            child: Text(e['label']!),
+                                  GestureDetector(
+                                    onTap: _recipientIsOwner ? null : _openRelationshipPicker,
+                                    child: AbsorbPointer(
+                                      child: TextFormField(
+                                        key: ValueKey(_relationship),
+                                        initialValue: kRelationshipOptions.firstWhere(
+                                              (e) => e['value'] == _relationship,
+                                              orElse: () => {'label': ''},
+                                            )['label'],
+                                        decoration: deliveryFieldDecoration(
+                                          context,
+                                          labelText: _recipientIsOwner
+                                              ? 'RELATIONSHIP (LOCKED — OWNER)'
+                                              : 'RELATIONSHIP',
+                                          errorText: _errors['relationship'],
+                                        ).copyWith(
+                                          suffixIcon: Icon(
+                                            Icons.search_rounded,
+                                            size: 20,
+                                            color: Colors.grey.shade500,
                                           ),
-                                        )
-                                        .toList(),
-                                    onChanged: _recipientIsOwner
-                                        ? null
-                                        : (v) => setState(() {
-                                            _relationship = v;
-                                            _relationshipSpecify.clear();
-                                            _errors.remove(
-                                              'relationship_specify',
-                                            );
-                                          }),
+                                        ),
+                                      ),
+                                    ),
                                   ),
 
                                   // ── OTHERS → specify relationship ─────────────
@@ -1308,26 +1345,25 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     label: 'REASON FOR NON-DELIVERY',
                                   ),
                                   _kInnerGap,
-                                  DropdownButtonFormField<String>(
-                                    initialValue: _reason,
-                                    decoration: deliveryFieldDecoration(
-                                      context,
-                                      labelText: 'SELECT REASON',
-                                      errorText: _errors['reason'],
-                                    ),
-                                    items: kReasons
-                                        .map(
-                                          (e) => DropdownMenuItem(
-                                            value: e,
-                                            child: Text(e),
+                                  GestureDetector(
+                                    onTap: _openReasonPicker,
+                                    child: AbsorbPointer(
+                                      child: TextFormField(
+                                        key: ValueKey(_reason),
+                                        initialValue: _reason,
+                                        decoration: deliveryFieldDecoration(
+                                          context,
+                                          labelText: 'SELECT REASON',
+                                          errorText: _errors['reason'],
+                                        ).copyWith(
+                                          suffixIcon: Icon(
+                                            Icons.search_rounded,
+                                            size: 20,
+                                            color: Colors.grey.shade500,
                                           ),
-                                        )
-                                        .toList(),
-                                    onChanged: (v) => setState(() {
-                                      _reason = v;
-                                      _reasonSpecify.clear();
-                                      _errors.remove('reason_specify');
-                                    }),
+                                        ),
+                                      ),
+                                    ),
                                   ),
 
                                   // ── Others → specify reason ───────────────────
