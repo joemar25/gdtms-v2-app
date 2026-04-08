@@ -34,6 +34,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -123,6 +124,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   String _placement = 'RECEIVED';
   String? _reason;
   bool _loading = false;
+  bool _isPickerActive = false;
   double _dragStart = 0;
 
   void _cycleStatus(int direction) {
@@ -163,8 +165,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     super.initState();
     _loadDelivery();
     _captureLocation();
-    // Detect when the courier edits the note manually so we can deselect the
-    // active preset chip (it no longer exactly matches what's in the field).
+    _handleLostData(); // Handle cases where Android kills the activity during camera use
     _note.addListener(_onNoteChanged);
   }
 
@@ -305,44 +306,168 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     }
   }
 
+  // ── Camera Permission ──────────────────────────────────────────────────────
+  Future<bool> _handleCameraPermission() async {
+    var status = await Permission.camera.status;
+    if (status.isGranted) return true;
+
+    if (status.isDenied) {
+      status = await Permission.camera.request();
+      if (status.isGranted) return true;
+    }
+
+    if (status.isPermanentlyDenied) {
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          'Camera permission is required. Please enable it in Settings.',
+          type: SnackbarType.error,
+        );
+        await openAppSettings();
+      }
+      return false;
+    }
+
+    if (mounted) {
+      showAppSnackbar(
+        context,
+        'Camera permission is required to take photos.',
+        type: SnackbarType.error,
+      );
+    }
+    return false;
+  }
+
+  // ── Handle Lost Data (Android) ─────────────────────────────────────────────
+  Future<void> _handleLostData() async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      final response = await _picker.retrieveLostData();
+      if (response.isEmpty || response.file == null || !mounted) return;
+
+      // Since we don't know which slot (POD or Selfie) the user was intenting to 
+      // fill before the activity was killed, we'll try to guess or just 
+      // notify them. In this screen, POD is usually first, but it's safer to 
+      // just show a message or let them re-pick if we can't be sure.
+      // However, to be helpful, if both are empty, we can put it in POD.
+      
+      final rawBytes = await response.file!.readAsBytes();
+      final bytes = await FlutterImageCompress.compressWithList(
+        rawBytes,
+        minWidth: 600,
+        quality: 70,
+        format: CompressFormat.jpeg,
+      );
+
+      final entry = PhotoEntry(
+        id: _uuid.v4(),
+        file: response.file!.path,
+        type: 'recovered', // Temporary type
+      );
+
+      setState(() {
+         // Default to POD if empty, otherwise we just have the file ready
+         if (_podPhoto == null) {
+           _podPhoto = entry.type == 'recovered' ? PhotoEntry(id: entry.id, file: entry.file, type: 'pod') : entry;
+         }
+      });
+
+      showAppSnackbar(context, 'Successfully recovered image from camera.', type: SnackbarType.success);
+    } catch (e) {
+      debugPrint('Error recovering lost data: $e');
+    }
+  }
+
   // ── Pick photo for a pre-defined slot ──────────────────────────────────────
   Future<void> _pickPhotoForSlot(
     String slotType, {
     ImageSource source = ImageSource.camera,
   }) async {
-    final isSelfie = slotType == 'selfie';
-    final picked = await _picker.pickImage(
-      source: source,
-      preferredCameraDevice: isSelfie ? CameraDevice.front : CameraDevice.rear,
-    );
-    if (picked == null || !mounted) return;
+    if (_isPickerActive) return;
 
-    final rawBytes = await picked.readAsBytes();
-    final bytes = await FlutterImageCompress.compressWithList(
-      rawBytes,
-      minWidth: 600,
-      quality: 70,
-      format: CompressFormat.jpeg,
-    );
-    if (bytes.isEmpty || !mounted) return;
+    if (source == ImageSource.camera) {
+      final hasPermission = await _handleCameraPermission();
+      if (!hasPermission) return;
+    }
 
-    final apiType = slotType == 'pod' ? 'pod' : 'selfie';
-    final dir = await getApplicationDocumentsDirectory();
-    final filename = '${widget.barcode}_${_uuid.v4()}_$apiType.jpg';
-    final path = '${dir.path}/$filename';
-    await File(path).writeAsBytes(bytes);
+    setState(() => _isPickerActive = true);
 
-    final entry = PhotoEntry(id: _uuid.v4(), file: path, type: apiType);
-    if (!mounted) return;
-    setState(() {
-      if (slotType == 'pod') {
-        _podPhoto = entry;
-        _errors.remove('pod_photo');
-      } else {
-        _selfiePhoto = entry;
-        _errors.remove('selfie_photo');
+    try {
+      final isSelfie = slotType == 'selfie';
+      final picked = await _picker.pickImage(
+        source: source,
+        preferredCameraDevice: isSelfie ? CameraDevice.front : CameraDevice.rear,
+      ).timeout(const Duration(seconds: 30));
+      
+      if (picked == null || !mounted) {
+        setState(() => _isPickerActive = false);
+        return;
       }
-    });
+
+      final rawBytes = await picked.readAsBytes();
+
+      // Compression can sometimes fail on certain devices or in release mode 
+      // due to Proguard/native issues. Wrap in try-catch to allow fallback.
+      Uint8List bytes;
+      try {
+        bytes = await FlutterImageCompress.compressWithList(
+          rawBytes,
+          minWidth: 600,
+          quality: 70,
+          format: CompressFormat.jpeg,
+        );
+      } catch (e) {
+        debugPrint('Image compression failed: $e');
+        bytes = rawBytes; // Fallback to original bytes
+      }
+
+      if (bytes.isEmpty || !mounted) {
+        setState(() => _isPickerActive = false);
+        return;
+      }
+
+      // Map slot names to standard backend media types.
+      final apiType = slotType == 'pod' ? 'pod' : 'selfie';
+
+      final dir = await getApplicationDocumentsDirectory();
+      final filename = '${widget.barcode}_${_uuid.v4()}_$apiType.jpg';
+      final path = '${dir.path}/$filename';
+      await File(path).writeAsBytes(bytes);
+
+      final entry = PhotoEntry(id: _uuid.v4(), file: path, type: apiType);
+      if (!mounted) return;
+      setState(() {
+        if (slotType == 'pod') {
+          _podPhoto = entry;
+          _errors.remove('pod_photo');
+        } else {
+          _selfiePhoto = entry;
+          _errors.remove('selfie_photo');
+        }
+        _isPickerActive = false;
+      });
+    } on PlatformException catch (e) {
+      setState(() => _isPickerActive = false);
+      if (e.code == 'already_active') return;
+      
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          'Camera Error (${e.code}): ${e.message}',
+          type: SnackbarType.error,
+        );
+      }
+    } catch (e) {
+      setState(() => _isPickerActive = false);
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          'Failed to capture photo: ${e.toString()}',
+          type: SnackbarType.error,
+        );
+      }
+    }
   }
 
   // ── Selfie picker for rts/osa — forces Camera ─────────────────────────────
@@ -499,6 +624,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (_selfiePhoto != null) {
         pendingMediaPaths['selfie'] = _selfiePhoto!.file;
       }
+    }
+
+    // Include any additional photos captured in the generic _photos list.
+    for (var i = 0; i < _photos.length; i++) {
+        final photo = _photos[i];
+        // Use a suffix for duplicate types to keep keys unique in the map.
+        final key = photo.type + (i > 0 ? '_$i' : '');
+        pendingMediaPaths[key] = photo.file;
     }
 
     final opId = const Uuid().v4();

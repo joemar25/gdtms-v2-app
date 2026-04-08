@@ -1,3 +1,13 @@
+// =============================================================================
+// sync_manager.dart
+// =============================================================================
+//
+// [IMPORTANT] Exclusive to Deliveries:
+//   This manager is strictly for synchronizing delivery status updates and 
+//   associated media (POD, Selfie, Signature). 
+//   DO NOT use this for profile changes or Courier authentication updates.
+// =============================================================================
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -15,7 +25,6 @@ import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/services/error_log_service.dart';
-import 'package:fsi_courier_app/core/services/profile_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -198,67 +207,62 @@ class SyncManagerNotifier extends Notifier<SyncState> {
             );
             final uploadedImages = <Map<String, dynamic>>[];
             final api = ref.read(apiClientProvider);
-            final isProfileUpdate = entry.operationType == 'UPDATE_PROFILE';
-            final uploadPath = isProfileUpdate
-                ? '/me/media'
-                : '/deliveries/${entry.barcode}/media';
+            final uploadPath = '/deliveries/${entry.barcode}/media';
 
             debugPrint(
               '[SYNC] media queue for ${entry.barcode}: ${pendingMedia.keys.join(', ')}',
             );
+
+            int uploadedCount = 0;
+            int failedCount = 0;
+
             for (final kv in pendingMedia.entries) {
-              final uploadType =
-                  kv.key; // e.g., 'pod', 'selfie', 'recipient_signature'
+              // Strip only trailing numeric suffixes (e.g., pod_1 -> pod,
+              // selfie_2 -> selfie) while preserving compound types like
+              // recipient_signature. split('_').first would wrongly reduce
+              // recipient_signature -> recipient.
+              final baseType = kv.key.toString().replaceAll(RegExp(r'_\d+$'), '');
               final filePath = kv.value.toString();
 
               final file = File(filePath);
               if (!await file.exists()) {
                 debugPrint(
-                  '[SYNC] media file missing for $uploadType — skipping: $filePath',
+                  '[SYNC] media file missing for $baseType — skipping: $filePath',
                 );
                 await ErrorLogService.warning(
                   context: 'sync',
                   message:
-                      'Media file missing for ${entry.barcode} ($uploadType)',
+                      'Media file missing for ${entry.barcode} ($baseType)',
                   detail: 'Path not found: $filePath',
                   barcode: entry.barcode,
                 );
+                failedCount++;
                 continue;
               }
 
               final bytes = await file.readAsBytes();
               debugPrint(
-                '[SYNC] uploading $uploadType (${bytes.length}b) for ${entry.barcode}',
+                '[SYNC] uploading $baseType (${bytes.length}b) for ${entry.barcode}',
               );
               final ext = filePath.endsWith('.png') ? 'png' : 'jpg';
-              final filename = '$uploadType.$ext';
+              final filename = '$baseType.$ext';
 
-              ApiResult<Map<String, dynamic>> result;
-              if (isProfileUpdate) {
-                // Use dedicated profile media upload to ensure the backend
-                // receives `type=profile_picture` and the correct endpoint.
-                result = await ProfileService.instance.uploadProfileMedia(
-                  api,
-                  bytes: bytes,
-                  filename: filename,
-                );
-              } else {
-                result = await api.uploadMedia<Map<String, dynamic>>(
-                  uploadPath,
-                  bytes: bytes,
-                  filename: filename,
-                  type: uploadType,
-                  parser: (d) {
-                    if (d is Map<String, dynamic>) {
-                      return d;
-                    }
-                    if (d is Map) {
-                      return d.map((k, v) => MapEntry(k.toString(), v));
-                    }
-                    return <String, dynamic>{};
-                  },
-                );
-              }
+              ApiResult<Map<String, dynamic>> result =
+                  await api.uploadMedia<Map<String, dynamic>>(
+                uploadPath,
+                bytes: bytes,
+                filename: filename,
+                type: baseType,
+                parser: (d) {
+                  if (d is Map<String, dynamic>) {
+                    return d;
+                  }
+                  if (d is Map) {
+                    return d.map((k, v) => MapEntry(k.toString(), v));
+                  }
+                  return <String, dynamic>{};
+                },
+              );
 
               if (result is ApiSuccess<Map<String, dynamic>>) {
                 final inner = result.data['data'];
@@ -272,46 +276,47 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                         ?.toString();
 
                 if (url != null && url.isNotEmpty) {
-                  debugPrint('[SYNC] $uploadType uploaded → $url');
-                  if (uploadType == 'recipient_signature') {
+                  debugPrint('[SYNC] $baseType uploaded → $url');
+                  uploadedCount++;
+                  if (baseType == 'recipient_signature') {
                     payload['recipient_signature'] = url;
-                  } else if (isProfileUpdate &&
-                      uploadType == 'profile_picture') {
-                    payload['profile_picture_url'] = url;
                   } else {
+                    // Build the delivery_images entry exactly per API spec:
+                    // { "file": "<url>", "type": "<pod|selfie|recipient>" }
                     uploadedImages.add({
                       'file': url,
-                      'type': uploadType,
-                      'captured_at': DateTime.fromMillisecondsSinceEpoch(
-                        entry.createdAt,
-                      ).toUtc().toIso8601String(),
+                      'type': baseType,
                     });
                   }
                 } else {
+                  failedCount++;
                   debugPrint(
-                    '[SYNC] $uploadType upload succeeded but URL was null/empty — dropped',
+                    '[SYNC] $baseType upload succeeded but URL was null/empty — dropped',
                   );
                   await ErrorLogService.warning(
                     context: 'sync',
                     message:
-                        'Upload URL missing for ${entry.barcode} ($uploadType)',
+                        'Upload URL missing for ${entry.barcode} ($baseType)',
                     detail:
                         'ApiSuccess returned null/empty URL. data=${result.data}',
                     barcode: entry.barcode,
                   );
                 }
               } else {
-                debugPrint('[SYNC] $uploadType upload failed: $result');
+                failedCount++;
+                debugPrint('[SYNC] $baseType upload failed: $result');
                 await ErrorLogService.warning(
                   context: 'sync',
-                  message: 'Upload failed for ${entry.barcode} ($uploadType)',
+                  message: 'Upload failed for ${entry.barcode} ($baseType)',
                   detail: result.toString(),
                   barcode: entry.barcode,
                 );
               }
             }
             debugPrint(
-              '[SYNC] uploadedImages after loop: ${uploadedImages.map((e) => e['type']).join(', ')}',
+              '[SYNC] upload summary for ${entry.barcode}: '
+              'uploaded=$uploadedCount failed=$failedCount '
+              'types=[${uploadedImages.map((e) => e['type']).join(', ')}]',
             );
 
             if (uploadedImages.isNotEmpty) {
@@ -322,23 +327,30 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                 ...uploadedImages,
               ];
               payload['delivery_images'] = merged;
+              debugPrint(
+                '[SYNC] delivery_images payload: '
+                '${merged.map((e) => '{file:${(e['file'] as String?)?.substring(0, 40)}..., type:${e['type']}}').join(', ')}',
+              );
             }
 
             final hasSignature = payload.containsKey('recipient_signature');
-            final hasProfilePicture = payload.containsKey(
-              'profile_picture_url',
-            );
             final hasUploadedImages = uploadedImages.isNotEmpty;
-            final anyUploaded =
-                hasSignature || hasProfilePicture || hasUploadedImages;
+            final anyUploaded = hasSignature || hasUploadedImages;
 
-            // If there were pending media items but none of them produced an
-            // uploaded result (no delivery_images, no signature, and no
-            // profile picture URL), mark the operation as failed and retry.
+            // If there were pending media items but NONE produced an uploaded
+            // result (no delivery_images, no signature, no profile picture URL),
+            // mark the operation as failed and retry.
+            // Partial success (some images uploaded, some failed) is allowed —
+            // we proceed with the PATCH so the delivery status is updated even
+            // if a photo was temporarily unavailable.
             if (pendingMedia.isNotEmpty && !anyUploaded) {
               final newRetryCount = entry.retryCount + 1;
               const mediaError =
                   'Media upload failed — no proof photos could be uploaded.';
+              debugPrint(
+                '[SYNC] ALL media uploads failed for ${entry.barcode} '
+                '(${pendingMedia.length} files) — marking failed, will retry.',
+              );
               await SyncOperationsDao.instance.updateStatus(
                 entry.id,
                 'failed',
@@ -361,11 +373,18 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           }
         }
 
+        // Log the exact payload sent to the server for debugging.
+        debugPrint(
+          '[SYNC] PATCH payload for ${entry.barcode}: '
+          'status=${payload['delivery_status']} '
+          'images=${(payload['delivery_images'] as List?)?.length ?? 0} '
+          'signature=${payload.containsKey('recipient_signature')} '
+          'keys=[${payload.keys.join(', ')}]',
+        );
+
         final result = await retry<ApiResult<Map<String, dynamic>>>(
           () async {
-            final path = entry.operationType == 'UPDATE_PROFILE'
-                ? '/me'
-                : '/deliveries/${entry.barcode}';
+            final path = '/deliveries/${entry.barcode}';
             final res = await ref
                 .read(apiClientProvider)
                 .patch<Map<String, dynamic>>(
@@ -400,29 +419,19 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           );
           final deliveryData = result.data['data'];
           if (deliveryData is Map<String, dynamic>) {
-            if (entry.operationType == 'UPDATE_PROFILE') {
-              await ref
-                  .read(authProvider.notifier)
-                  .setAuthenticated(courier: deliveryData);
-            } else {
-              await LocalDeliveryDao.instance.updateFromJson(
-                entry.barcode,
-                deliveryData,
-              );
-            }
+            await LocalDeliveryDao.instance.updateFromJson(
+              entry.barcode,
+              deliveryData,
+            );
           } else {
             // Payload stores UPPERCASE status (server format); normalise to
             // lowercase before writing to local DB (internal app format).
-            if (entry.operationType != 'UPDATE_PROFILE') {
-              final status = payload['delivery_status']
-                  ?.toString()
-                  .toUpperCase();
-              if (status != null) {
-                await LocalDeliveryDao.instance.updateStatus(
-                  entry.barcode,
-                  status,
-                );
-              }
+            final status = payload['delivery_status']?.toString().toUpperCase();
+            if (status != null) {
+              await LocalDeliveryDao.instance.updateStatus(
+                entry.barcode,
+                status,
+              );
             }
           }
           successCount++;

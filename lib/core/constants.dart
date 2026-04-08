@@ -105,12 +105,12 @@ const List<Map<String, String>> kRelationshipOptions = [
   {'value': 'FATHER-IN-LAW', 'label': 'FATHER-IN-LAW'},
   {'value': 'GUARD', 'label': 'GUARD'},
   {'value': 'HELPER', 'label': 'HELPER'},
-  {'value': 'HOUSEHELP', 'label': 'HOUSEHELP'},
+  // {'value': 'HOUSEHELP', 'label': 'HOUSEHELP'}, -- not needed and confusing
   {'value': 'HUSBAND', 'label': 'HUSBAND'},
   {'value': 'MAID', 'label': 'MAID'},
   {'value': 'MOTHER', 'label': 'MOTHER'},
   {'value': 'MOTHER-IN-LAW', 'label': 'MOTHER-IN-LAW'},
-  {'value': 'NEIGHBOR', 'label': 'NEIGHBOR'},
+  // {'value': 'NEIGHBOR', 'label': 'NEIGHBOR'}, -- has cases that some owners can be attacked by neighbor
   {'value': 'NEPHEW', 'label': 'NEPHEW'},
   {'value': 'NIECE', 'label': 'NIECE'},
   {'value': 'OWNER', 'label': 'OWNER'},
