@@ -27,7 +27,9 @@ Main app flow:
 
 ## Documentation
 
+- [Documentation index](docs/index.md)
 - [Delivery Retention Rules & API v2.0](docs/mobile-delivery-retention.md)
+- [API Timestamp Bug Report](docs/api-timestamp-bug-report.md)
 
 ## Key Features
 
@@ -229,11 +231,10 @@ Use credentials provided privately by the programmer leads or secure vault. Do n
 
 ## Reference Documentation
 
-- `.documentation/architecture.md`
-- `.documentation/sync_logic_state.md`
+- [Documentation index](docs/index.md)
 
 ## Future Enhancements
-w
+
 ### Sync Data Retention
 
 Synced delivery-update queue history is configurable per-courier in
