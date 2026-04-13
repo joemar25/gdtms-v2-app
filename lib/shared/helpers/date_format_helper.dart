@@ -1,3 +1,5 @@
+// DOCS: docs/shared/helpers.md — update that file when you edit this one.
+
 import 'package:intl/intl.dart';
 
 /// Parses an ISO-8601 date string received from the server.

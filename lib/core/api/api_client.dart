@@ -1,3 +1,5 @@
+// DOCS: docs/core/api.md — update that file when you edit this one.
+
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';

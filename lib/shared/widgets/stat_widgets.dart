@@ -1,3 +1,5 @@
+// DOCS: docs/shared/widgets.md — update that file when you edit this one.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 

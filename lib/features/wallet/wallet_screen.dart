@@ -1,3 +1,5 @@
+// DOCS: docs/features/wallet.md — update that file when you edit this one.
+
 // =============================================================================
 // wallet_screen.dart
 // =============================================================================
@@ -726,9 +728,9 @@ class _EarningsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tentativeAmt = double.tryParse('$tentativePayout') ?? 0.0;
     final pendingAmt = double.tryParse('$pendingRequestAmt') ?? 0.0;
-    final displayAmt = isLatestPending ? pendingAmt : tentativeAmt;
+    final displayAmt = tentativeAmt;
     final displayLabel = isLatestPending
-        ? 'Pending Payment Request'
+        ? 'Accumulated for next request'
         : 'Available for Request';
 
     return Container(
@@ -829,13 +831,13 @@ class _EarningsCard extends StatelessWidget {
                       ),
                     ],
 
-                    // ── If pending: also show accumulated available for next request ──
-                    if (showPending && isLatestPending && tentativeAmt > 0) ...[
+                    // ── If pending: show pending request as secondary info ──
+                    if (showPending && isLatestPending && pendingAmt > 0) ...[
                       const SizedBox(height: 14),
                       _payoutRow(
-                        icon: Icons.arrow_circle_up_rounded,
-                        label: 'Accumulated for next request',
-                        amount: _fmt(tentativeAmt),
+                        icon: Icons.schedule_rounded,
+                        label: 'Pending Payment Request',
+                        amount: _fmt(pendingAmt),
                       ),
                     ],
                   ],

@@ -1,3 +1,5 @@
+// DOCS: docs/features/scan.md — update that file when you edit this one.
+
 // =============================================================================
 // scan_screen.dart
 // =============================================================================
@@ -61,7 +63,7 @@ class ScanScreen extends ConsumerStatefulWidget {
 }
 
 class _ScanScreenState extends ConsumerState<ScanScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final MobileScannerController _scannerController;
   final _manualController = TextEditingController();
   late final AnimationController _lineController;
@@ -71,6 +73,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   bool _processing = false;
   bool _showAutoAcceptSuccess = false;
   String? _inlineError;
+  // Track orientation axis to restart camera when it flips so CameraX
+  // picks up the correct display rotation on Android.
+  bool? _wasLandscape;
 
   bool get _isDispatch => widget.mode == ScanMode.dispatch;
 
@@ -103,17 +108,49 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     _lineAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _lineController, curve: Curves.easeInOut),
     );
-    // Unlock all orientations for scanning — barcodes can be long and
-    // landscape gives a wider viewfinder.  Portrait is restored on dispose.
+    WidgetsBinding.instance.addObserver(this);
+    // 1. Force portrait so the camera always initialises upright.
+    // 2. After the first frame, unlock all orientations so the user can
+    //    freely rotate — this also prevents the "camera comes back sideways"
+    //    regression because the camera inits in a known portrait state each
+    //    time the screen is opened.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+      if (!mounted) return;
+      _requestPermission();
+      // Small delay so the system settles in portrait before unlocking.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
       await SystemChrome.setPreferredOrientations([]);
-      if (mounted) _requestPermission();
     });
   }
 
   @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (!mounted || !_hasPermission || _processing) return;
+    final physicalSize =
+        WidgetsBinding.instance.platformDispatcher.views.first.physicalSize;
+    final isLandscape = physicalSize.width > physicalSize.height;
+    if (_wasLandscape != null && _wasLandscape != isLandscape) {
+      // Orientation axis flipped — restart the camera so CameraX picks up
+      // the correct display rotation and the preview is not sideways.
+      _wasLandscape = isLandscape;
+      _scannerController.stop().then((_) {
+        if (!mounted || !_hasPermission || _processing) return;
+        _scannerController.start();
+      });
+    } else {
+      _wasLandscape ??= isLandscape;
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // Restore portrait for every other screen in the app.
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _manualController.dispose();
@@ -126,6 +163,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     final status = await Permission.camera.request();
     if (!mounted) return;
     final granted = status.isGranted;
+    if (granted) {
+      final size =
+          WidgetsBinding.instance.platformDispatcher.views.first.physicalSize;
+      _wasLandscape = size.width > size.height;
+    }
     setState(() => _hasPermission = granted);
     if (granted) await _scannerController.start();
   }

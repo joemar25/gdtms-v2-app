@@ -1,3 +1,5 @@
+// DOCS: docs/core/services.md — update that file when you edit this one.
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';

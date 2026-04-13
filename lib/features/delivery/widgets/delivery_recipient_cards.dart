@@ -1,3 +1,5 @@
+// DOCS: docs/features/delivery.md — update that file when you edit this one.
+
 import 'package:flutter/material.dart';
 
 /// Renders quick-tap cards for the consignee (recipient) and authorized rep.

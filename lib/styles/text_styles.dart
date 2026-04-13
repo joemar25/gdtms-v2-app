@@ -1,3 +1,5 @@
+// DOCS: docs/styles.md — update that file when you edit this one.
+
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 

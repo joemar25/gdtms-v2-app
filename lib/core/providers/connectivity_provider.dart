@@ -1,3 +1,5 @@
+// DOCS: docs/core/providers.md — update that file when you edit this one.
+
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';

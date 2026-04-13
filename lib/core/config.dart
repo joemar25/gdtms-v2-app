@@ -1,3 +1,5 @@
+// DOCS: docs/core/settings.md — update that file when you edit this one.
+
 import 'package:flutter/foundation.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────

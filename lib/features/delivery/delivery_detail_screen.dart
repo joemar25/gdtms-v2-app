@@ -1,3 +1,5 @@
+// DOCS: docs/features/delivery.md — update that file when you edit this one.
+
 // =============================================================================
 // delivery_detail_screen.dart
 // =============================================================================

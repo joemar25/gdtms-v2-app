@@ -1,3 +1,5 @@
+// DOCS: docs/core/services.md — update that file when you edit this one.
+
 import 'dart:typed_data';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';

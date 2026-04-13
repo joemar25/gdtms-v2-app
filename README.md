@@ -27,7 +27,62 @@ Main app flow:
 
 ## Documentation
 
-- [Documentation index](docs/index.md)
+> **Rule 1 — API source of truth**: `docs/gdtms-v2-api/Courier-Mobile-API.postman_collection.json` is the single source of truth for all API definitions. **Update the collection first**, then `docs/gdtms-v2-api/README.md`, then the affected feature doc, then the app code. Never write or change API-related app code before the collection is updated.
+>
+> **Rule 2 — Code docs**: Every source file has a `// DOCS: docs/path/to/file.md` header comment. When you edit a file, open that doc and keep it up to date. When you add a new file or folder, create a matching doc, register it in `docs/index.md`, and add it below.
+
+Full index: [docs/index.md](docs/index.md)
+
+### API Reference
+
+- [Postman collection README](docs/gdtms-v2-api/README.md) — full endpoint reference, changelog, development workflow (v2.3)
+
+### Entry Points
+
+- [Entry points](docs/entry-points.md) — `main.dart`, `app.dart`, `splash_screen.dart`
+
+### Core
+
+- [API client & S3 upload](docs/core/api.md)
+- [Auth — provider, storage, service](docs/core/auth.md)
+- [Database — SQLite schema, DAOs, cleanup](docs/core/database.md)
+- [Device info & storage platform channel](docs/core/device.md)
+- [Models](docs/core/models.md)
+- [Providers](docs/core/providers.md)
+- [Services](docs/core/services.md)
+- [Settings & config](docs/core/settings.md)
+- [Sync — SyncManager, bootstrap, background tasks](docs/core/sync.md)
+
+### Features
+
+- [Auth screens](docs/features/auth.md)
+- [Dashboard](docs/features/dashboard.md)
+- [Delivery — list, detail, update, signature](docs/features/delivery.md)
+- [Dispatch — eligibility & list](docs/features/dispatch.md)
+- [Error logs](docs/features/error-logs.md)
+- [Initial sync](docs/features/initial-sync.md)
+- [Legal — terms & privacy](docs/features/legal.md)
+- [Location required](docs/features/location.md)
+- [Notifications](docs/features/notifications.md)
+- [Profile](docs/features/profile.md)
+- [Report issue](docs/features/report.md)
+- [Scan](docs/features/scan.md)
+- [Sync history](docs/features/sync-history.md)
+- [Wallet — overview, payout detail, payout request](docs/features/wallet.md)
+
+### Shared
+
+- [Helpers](docs/shared/helpers.md)
+- [Router — full route table & guards](docs/shared/router.md)
+- [Widgets](docs/shared/widgets.md)
+
+### UI Primitives
+
+- [Components](docs/components.md)
+- [Styles — colors & typography](docs/styles.md)
+
+### Legacy / Specific Reports
+
 - [Delivery Retention Rules & API v2.0](docs/mobile-delivery-retention.md)
 - [API Timestamp Bug Report](docs/api-timestamp-bug-report.md)
 

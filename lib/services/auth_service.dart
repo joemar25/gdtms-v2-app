@@ -1,3 +1,5 @@
+// DOCS: docs/core/auth.md — update that file when you edit this one.
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {

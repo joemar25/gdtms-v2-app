@@ -1,3 +1,5 @@
+// DOCS: docs/features/sync-history.md — update that file when you edit this one.
+
 // =============================================================================
 // sync_screen.dart  (shown in the app as "History")
 // =============================================================================

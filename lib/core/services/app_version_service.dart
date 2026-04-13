@@ -1,3 +1,5 @@
+// DOCS: docs/core/services.md — update that file when you edit this one.
+
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Single source of truth for the app's version string.

@@ -1,3 +1,5 @@
+// DOCS: docs/core/settings.md — update that file when you edit this one.
+
 const int kDashboardPerPage = 5;
 const int kDeliveriesPerPage = 5;
 const int kCompletedPerPage = 5;

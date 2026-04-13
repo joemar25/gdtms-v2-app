@@ -1,3 +1,5 @@
+// DOCS: docs/core/services.md — update that file when you edit this one.
+
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

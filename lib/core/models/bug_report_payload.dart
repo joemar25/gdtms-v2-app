@@ -1,3 +1,5 @@
+// DOCS: docs/core/models.md — update that file when you edit this one.
+
 class BugReportLog {
   const BugReportLog({
     required this.level,

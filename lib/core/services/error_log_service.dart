@@ -1,3 +1,5 @@
+// DOCS: docs/core/services.md — update that file when you edit this one.
+
 import 'package:fsi_courier_app/core/database/error_log_dao.dart';
 
 /// Simple static service for logging errors/warnings to the local SQLite store.

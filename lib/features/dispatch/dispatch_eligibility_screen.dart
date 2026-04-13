@@ -1,3 +1,5 @@
+// DOCS: docs/features/dispatch.md — update that file when you edit this one.
+
 // =============================================================================
 // dispatch_eligibility_screen.dart
 // =============================================================================
@@ -258,7 +260,7 @@ class _DispatchEligibilityScreenState
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
       showSuccessNotification(context, 'Dispatch rejected.');
-      context.go('/dispatches');
+      context.go('/dashboard');
     } else {
       final errorMessage = switch (result) {
         ApiBadRequest(:final message) => message,

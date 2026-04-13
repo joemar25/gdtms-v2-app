@@ -1,3 +1,5 @@
+// DOCS: docs/core/providers.md — update that file when you edit this one.
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Incrementing counter used to signal that delivery data should be refreshed.

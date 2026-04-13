@@ -1,3 +1,5 @@
+// DOCS: docs/core/providers.md — update that file when you edit this one.
+
 import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

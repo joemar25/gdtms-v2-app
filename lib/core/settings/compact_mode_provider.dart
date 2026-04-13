@@ -1,3 +1,5 @@
+// DOCS: docs/core/settings.md — update that file when you edit this one.
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Reactive compact mode state — initialized at startup from SharedPreferences.

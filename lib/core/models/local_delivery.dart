@@ -1,3 +1,5 @@
+// DOCS: docs/core/models.md — update that file when you edit this one.
+
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';

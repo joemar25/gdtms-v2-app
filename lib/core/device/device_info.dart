@@ -1,3 +1,5 @@
+// DOCS: docs/core/device.md — update that file when you edit this one.
+
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';

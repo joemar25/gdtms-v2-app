@@ -1,3 +1,5 @@
+// DOCS: docs/core/database.md — update that file when you edit this one.
+
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';

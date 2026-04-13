@@ -1,3 +1,5 @@
+// DOCS: docs/core/providers.md — update that file when you edit this one.
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/sync/sync_manager.dart';

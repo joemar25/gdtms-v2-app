@@ -1,3 +1,5 @@
+// DOCS: docs/core/sync.md — update that file when you edit this one.
+
 import 'package:flutter/foundation.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';

@@ -1,3 +1,5 @@
+// DOCS: docs/core/auth.md — update that file when you edit this one.
+
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

@@ -1,3 +1,5 @@
+// DOCS: docs/features/notifications.md — update that file when you edit this one.
+
 // =============================================================================
 // notifications_screen.dart
 // =============================================================================

@@ -1,3 +1,5 @@
+// DOCS: docs/core/api.md — update that file when you edit this one.
+
 sealed class ApiResult<T> {
   const ApiResult();
 }

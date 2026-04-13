@@ -1,0 +1,1622 @@
+{
+    "info": {
+        "_postman_id": "892be2ca-d1ea-42c6-9b0a-5bcf348f74fd",
+        "name": "Courier Mobile API",
+        "description": "API endpoints for courier mobile app (v2.3) — All routes use authenticated courier from Sanctum token (no courier ID needed in URL).\n\nv2.3 Changes (April 2026):\n- NEW: GET /api/mbl/app/version — Returns { min_version, force_update }. No authentication required.\n- NEW: POST /api/mbl/courier/reports — Submit bug reports with device info and severity. Requires authentication.\n\nv2.2 Changes (April 2026):\n- NEW: GET /api/mbl/me/payment-method — Returns the courier's active bank account for payouts. Includes auto-provisioning message when bank is missing or inactive.\n- NEW: Dynamic payout validation — Any active bank in the system is now accepted (removed GCash/BDO-only restriction).\n- NEW: Auto-provisioning fallback — If a courier has no active bank on file when submitting a payout, a default GCash (00000000) account is automatically created.\n\nv2.1 Changes (April 2026):\n- NEW: GET /api/mbl/me — Courier profile endpoint (name, branch, phone, is_active).\n- NEW: PATCH /api/mbl/me — Update profile information (username, email, names).\n- NEW: POST /api/mbl/me/media — Profile picture upload (fallback for non-S3-direct clients).\n- NEW: delivered_date field on PATCH deliveries — honors device timestamp for offline sync. Falls back to NOW() when absent.\n- NEW: X-Request-ID idempotency header on PATCH deliveries — prevents duplicate processing on retry.\n- NEW: transaction_at echoed in PATCH response so mobile can confirm what was stored.\n- NEW: updated_since query param on GET deliveries — delta sync (1 call instead of 4).\n- NEW: updated_at field on every GET deliveries list item — use as next updated_since value.\n\nv2.0 Changes (March 2026):\n- NEW: is_paid boolean on each delivery item.\n- NEW: paid query param on deliveries and dashboard-summary endpoints.\n- NEW: Slim List View vs Rich Detail View for deliveries.\n- UPDATED: Payout API response cleanup (removed redundant timestamps, added history snapshot).\n- UPDATED: Image fields (media, signature, rts attempt images) removed from all GET/PATCH delivery responses. Images are read-only on the web portal via signed URLs.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "34777683"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Login (Phone-based)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const json = pm.response.json();",
+                                    "    if (json.data && json.data.token) {",
+                                    "        pm.environment.set('authToken', json.data.token);",
+                                    "        console.log('Token saved:', json.data.token);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {},
+                                "requests": {}
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone_number\": \"09208019846\",\n    \"password\": \"09208019846\",\n    \"device_name\": \"Mar Test\",\n    \"device_identifier\": \"device-12345\",\n    \"device_type\": \"android\",\n    \"app_version\": \"1.0.0\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/login",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "login"]
+                        },
+                        "description": "Login courier using phone number and password. Returns Sanctum token. Required fields: phone_number, password. Optional fields: device_name, device_identifier, device_type (android, ios, flutter, web), app_version."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Login Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Login successful\",\n    \"data\": {\n        \"token\": \"1|a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t\",\n        \"session_revoked\": false,\n        \"session_revoked_message\": null,\n        \"user\": {\n            \"id\": 401,\n            \"name\": \"MARIA SANTOS\",\n            \"first_name\": \"MARIA\",\n            \"middle_name\": null,\n            \"last_name\": \"SANTOS\",\n            \"email\": \"maria.santos@example.com\",\n            \"phone_number\": \"09208019846\",\n            \"profile_picture_url\": null,\n            \"avatar\": null\n        },\n        \"courier\": {\n            \"id\": 543,\n            \"courier_code\": \"GEOFM00543\",\n            \"courier_type\": \"fm\",\n            \"branch_id\": 5\n        }\n    }\n}"
+                        },
+                        {
+                            "name": "401 - Invalid Credentials",
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"The provided credentials are incorrect.\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"courier_code\": \"CC99999\",\n    \"new_password\": \"NewPassword@123\",\n    \"new_password_confirmation\": \"NewPassword@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/reset-password",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "reset-password"]
+                        },
+                        "description": "Reset courier password using courier code (no auth required)"
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Password Reset",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Password reset successful. You can now login with your new password.\"\n}"
+                        },
+                        {
+                            "name": "404 - Invalid Courier Code",
+                            "status": "Not Found",
+                            "code": 404,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Invalid courier code. Please check and try again.\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Logout",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.environment.set('authToken', '');",
+                                    "    console.log('Token cleared');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/logout",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "logout"]
+                        },
+                        "description": "Logout courier and revoke all Sanctum tokens"
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Logout",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"You have been successfully logged out.\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Logout All Devices",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.environment.set('authToken', '');",
+                                    "    console.log('Token cleared');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/logout-all",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "logout-all"]
+                        },
+                        "description": "Revoke all Sanctum tokens across all devices for the authenticated courier"
+                    },
+                    "response": [
+                        {
+                            "name": "200 - All Sessions Revoked",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"All sessions have been logged out successfully.\",\n    \"data\": {\n        \"revoked_count\": 2\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "API Health Check (Welcoming)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl"]
+                        },
+                        "description": "Welcoming endpoint for the Courier Mobile API. Returns a simple JSON with success and a welcome message. Use this for connection/health checks. Requires Sanctum authentication."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Health OK",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Welcome to the Courier Mobile API! Connection successful.\",\n    \"timestamp\": \"2026-04-02T12:00:00.000000Z\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Change Password (Authenticated)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"current_password\": \"OldPassword123\",\n    \"new_password\": \"NewPassword@123\",\n    \"new_password_confirmation\": \"NewPassword@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/change-password",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "change-password"]
+                        },
+                        "description": "Change the authenticated courier's password. Requires current_password to verify identity."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Password Changed",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"status\": \"success\",\n    \"message\": \"Password changed successfully.\"\n}"
+                        },
+                        {
+                            "name": "422 - Invalid Current Password",
+                            "status": "Unprocessable Entity",
+                            "code": 422,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"message\": \"The provided password does not match your current password.\",\n    \"errors\": {\n        \"current_password\": [\n            \"The provided password does not match your current password.\"\n        ]\n    }\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Dispatches (Authenticated)",
+            "item": [
+                {
+                    "name": "Get Pending Dispatches",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/pending-dispatches?page=1&per_page=10",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "pending-dispatches"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Get partial dispatches pending acceptance for authenticated courier (status: DISPATCHED). Each item represents one partial batch the courier can individually accept or reject. Returns partial_code, dispatch_code, status, courier_code, volume, item_count (actual delivery count), branch (branch_name, branch_code), tat, and transmittal_date. Paginated, default 10 per page."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Pending Dispatches",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Operation completed successfully\",\n    \"pending_dispatches\": [\n        {\n            \"partial_code\": \"GEOFM005431748820260303110534\",\n            \"dispatch_code\": \"E-GEOFM005431748820260303110534\",\n            \"status\": \"dispatched\",\n            \"courier_code\": \"GEOFM00543\",\n            \"volume\": 15,\n            \"item_count\": 12,\n            \"branch\": {\n                \"branch_name\": \"QUEZON CITY BRANCH\",\n                \"branch_code\": \"QC001\"\n            },\n            \"tat\": \"2026-03-08T23:59:59.999999Z\",\n            \"transmittal_date\": \"2026-03-03\"\n        }\n    ],\n    \"total_count\": 1,\n    \"courier_id\": 543,\n    \"pagination\": {\n        \"current_page\": 1,\n        \"per_page\": 10,\n        \"total\": 1,\n        \"last_page\": 1\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Accept Dispatch",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"partial_code\": \"GEOFM005431748820260303110534\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"device_info\": {\n        \"os\": \"android\",\n        \"app_version\": \"1.0.0\",\n        \"device_model\": \"Samsung Galaxy S21\",\n        \"device_id\": \"device-12345\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/accept-dispatch",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "accept-dispatch"]
+                        },
+                        "description": "Accept a partial dispatch for authenticated courier (courier ID automatically used from token). partial_code must be uppercase alphanumeric with hyphens/underscores. client_request_id must be a valid UUID. Only this specific partial batch is accepted and moved to COURIER_RECEIVED. device_info.os must be one of: android, ios, windows, macos, linux."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Dispatch Accepted",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Operation completed successfully\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"partial_code\": \"GEOFM005431748820260303110534\",\n    \"dispatch_code\": \"E-GEOFM005431748820260303110534\",\n    \"status\": \"COURIER_RECEIVED\",\n    \"courier_id\": 543,\n    \"courier_code\": \"GEOFM00543\",\n    \"volume\": 15,\n    \"branch\": {\n        \"branch_name\": \"QUEZON CITY BRANCH\",\n        \"branch_code\": \"QC001\"\n    },\n    \"tat\": \"2026-03-08T23:59:59.999999Z\",\n    \"transmittal_date\": \"2026-03-03\",\n    \"deliveries\": [\n        {\n            \"barcode_value\": \"FSIEE586361\",\n            \"job_order\": \"571629\",\n            \"name\": \"ROMEO CRIZALDO LANUZA\",\n            \"address\": \"BLK 10 LOT 5 GRANDSTRIKEVILLE 4\",\n            \"contact\": \"+639609206186\",\n            \"product\": \"P145 E3 571629 CARD_R4A\",\n            \"special_instruction\": null,\n            \"delivery_status\": \"pending\",\n            \"rts_count\": 0\n        }\n    ]\n}"
+                        },
+                        {
+                            "name": "400 - Not Authorized",
+                            "status": "Bad Request",
+                            "code": 400,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"This courier is not authorized for this dispatch\",\n    \"error_code\": \"DISPATCH_NOT_FOUND\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Reject Dispatch",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"partial_code\": \"GEOFM005431748820260303110534\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440001\",\n    \"reason\": \"Unable to deliver due to vehicle breakdown\",\n    \"device_info\": {\n        \"os\": \"android\",\n        \"app_version\": \"1.0.0\",\n        \"device_model\": \"Samsung Galaxy S21\",\n        \"device_id\": \"device-12345\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/reject-dispatch",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "reject-dispatch"]
+                        },
+                        "description": "Reject a specific partial dispatch by authenticated courier with a mandatory reason. partial_code must be uppercase alphanumeric. client_request_id must be a valid UUID. Only batches with status 'DISPATCHED' can be rejected. Batch stays in 'DISPATCHED' status but rejection is logged in history."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Dispatch Rejected",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Operation completed successfully\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440001\"\n}"
+                        },
+                        {
+                            "name": "400 - Invalid Status",
+                            "status": "Bad Request",
+                            "code": 400,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Only dispatches with status DISPATCHED can be rejected\",\n    \"error_code\": \"INVALID_STATUS\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440001\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Open Partial Dispatch",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"partial_code\": \"GEOFM005431748820260303110534\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/check-dispatch-eligibility",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "check-dispatch-eligibility"]
+                        },
+                        "description": "Open a partial dispatch by partial_code — validates courier ownership and returns the full deliveries list inside that batch. partial_code must be uppercase alphanumeric. client_request_id must be a valid UUID. Use this before accepting or rejecting."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Dispatch Eligible",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Operation completed successfully\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"eligible\": true,\n    \"partial_code\": \"GEOFM005431748820260303110534\",\n    \"dispatch_code\": \"E-GEOFM005431748820260303110534\",\n    \"status\": \"DISPATCHED\",\n    \"courier_id\": 543,\n    \"courier_code\": \"GEOFM00543\",\n    \"volume\": 15,\n    \"item_count\": 12,\n    \"branch\": {\n        \"branch_name\": \"QUEZON CITY BRANCH\",\n        \"branch_code\": \"QC001\"\n    },\n    \"tat\": \"2026-03-08T23:59:59.999999Z\",\n    \"transmittal_date\": \"2026-03-03\",\n    \"deliveries\": [\n        {\n            \"barcode_value\": \"FSIEE586361\",\n            \"job_order\": \"571629\",\n            \"name\": \"ROMEO CRIZALDO LANUZA\",\n            \"address\": \"BLK 10 LOT 5 GRANDSTRIKEVILLE 4\",\n            \"contact\": \"+639609206186\",\n            \"product\": \"P145 E3 571629 CARD_R4A\",\n            \"special_instruction\": null,\n            \"delivery_status\": \"pending\",\n            \"rts_count\": 0\n        }\n    ]\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Deliveries (Authenticated)",
+            "item": [
+                {
+                    "name": "Get My Deliveries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/deliveries?status=delivered&active=true&paid=false&page=1&per_page=10",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "deliveries"],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "delivered",
+                                    "description": "PENDING, DELIVERED, RTS, OSA. Omit when using updated_since to get all statuses."
+                                },
+                                {
+                                    "key": "active",
+                                    "value": "true",
+                                    "description": "true or false. Ignored when updated_since is provided."
+                                },
+                                {
+                                    "key": "paid",
+                                    "value": "false",
+                                    "description": "NEW v2.0 — true | false | all (default: all). Filter by payment status."
+                                },
+                                {
+                                    "key": "updated_since",
+                                    "value": "2026-04-02T06:00:00.000Z",
+                                    "description": "NEW v2.1 — ISO 8601 UTC. Returns only deliveries whose server updated_at is after this timestamp. Use for delta sync on reconnect. Disable the status filter when using this param to receive all statuses in one call.",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "from_date",
+                                    "value": "2026-03-01",
+                                    "description": "Filter by transaction date (YYYY-MM-DD)"
+                                },
+                                {
+                                    "key": "to_date",
+                                    "value": "2026-03-31",
+                                    "description": "Filter by transaction date (YYYY-MM-DD)"
+                                }
+                            ]
+                        },
+                        "description": "Get deliveries for authenticated courier (no courier ID needed). Default per_page is 10.\n\n### v2.1 — Delta Sync: `updated_since`\nSend the ISO 8601 timestamp of the last successful sync. The server returns only records whose `updated_at` is after that timestamp, regardless of status. This reduces a typical reconnect from 4 status-filtered calls to **1 call**.\n\n**Recommended mobile flow:**\n```\nOn reconnect:\n  GET /deliveries?updated_since={lastSyncTimestamp}&per_page=100\n  → process each item by its delivery_status field\n  → save new lastSyncTimestamp = max(updated_at) from response\n\nFirst-time / full sync (no saved timestamp):\n  Fall back to 4 separate status calls (existing behavior)\n```\n\nEach item now includes `updated_at` (server timestamp). Use it as the next `updated_since` value.\n\n### v2.0 Changes:\n- NEW: is_paid boolean on each delivery item (true = remittance collected).\n- NEW: paid query param (true | false | all, default all) to filter by payment status.\n- OPTIMIZED: Slim Payload — heavy fields (history, media, signature, etc.) are removed from the list view to improve performance. Use the Get Delivery Details endpoint (by barcode) for rich data."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Delivered (Unpaid)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"id\": 306,\n            \"delivery_batch_id\": 51,\n            \"dispatch_code\": \"E-GEOFM005431748820260303110534\",\n            \"partial_code\": \"GEOFM005431748820260303105413\",\n            \"mail_type\": \"EXPRESS\",\n            \"delivery_status\": \"delivered\",\n            \"is_paid\": false,\n            \"job_order\": \"571629\",\n            \"name\": \"ROMEO CRIZALDO LANUZA\",\n            \"address\": \"BLK 10 LOT 5 GRANDSTRIKEVILLE 4, BRGY SAN ISIDRO, GEN TRIAS, CAVITE\",\n            \"contact\": \"+639609206186\",\n            \"authorized_rep\": \"MA ELIZA CRIZALDO LANUZA\",\n            \"contact_rep\": \"+639355349832\",\n            \"special_instruction\": null,\n            \"sequence_number\": \"S571629RO3\",\n            \"barcode_value\": \"FSIEE586361\",\n            \"product\": \"P145 E3 571629 CARD_R4A\",\n            \"remarks\": null,\n            \"rts_count\": 0,\n            \"transaction_at\": \"2026-03-09T11:55:10.000000Z\",\n            \"delivered_date\": \"2026-03-09T11:55:10.000000Z\",\n            \"updated_at\": \"2026-03-09T11:55:10.000000Z\",\n            \"rts_verification_status\": \"unvalidated\",\n            \"tat\": \"2026-03-09T15:59:59.999Z\",\n            \"transmittal_date\": \"2026-03-03T16:00:00.000Z\"\n        }\n    ],\n    \"pagination\": {\n        \"current_page\": 1,\n        \"last_page\": 1,\n        \"per_page\": 10,\n        \"total\": 1\n    },\n    \"courier_id\": 543,\n    \"filters_applied\": {\n        \"status\": \"delivered\",\n        \"active\": \"true\",\n        \"paid\": \"false\"\n    }\n}"
+                        },
+                        {
+                            "name": "200 - Delivered (Paid)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"id\": 290,\n            \"delivery_batch_id\": 49,\n            \"dispatch_code\": \"E-GEOFM005431748720260301083201\",\n            \"partial_code\": \"GEOFM005431748720260301081145\",\n            \"mail_type\": \"EXPRESS\",\n            \"delivery_status\": \"delivered\",\n            \"is_paid\": true,\n            \"job_order\": \"568902\",\n            \"name\": \"JUAN DELA CRUZ\",\n            \"address\": \"123 MAIN ST, QUEZON CITY, METRO MANILA\",\n            \"contact\": \"+639171234567\",\n            \"authorized_rep\": null,\n            \"contact_rep\": null,\n            \"special_instruction\": null,\n            \"sequence_number\": \"S568902RO1\",\n            \"barcode_value\": \"FSIEE512300\",\n            \"product\": \"P145 E1 568902 CARD_R4A\",\n            \"remarks\": null,\n            \"rts_count\": 0,\n            \"transaction_at\": \"2026-03-01T09:30:00.000Z\",\n            \"delivered_date\": \"2026-03-01T09:30:00.000Z\",\n            \"updated_at\": \"2026-03-01T09:30:05.000000Z\",\n            \"rts_verification_status\": \"unvalidated\",\n            \"tat\": \"2026-03-03T15:59:59.999Z\",\n            \"transmittal_date\": \"2026-02-28T16:00:00.000Z\"\n        }\n    ],\n    \"pagination\": {\n        \"current_page\": 1,\n        \"last_page\": 5,\n        \"per_page\": 10,\n        \"total\": 42\n    },\n    \"courier_id\": 543,\n    \"filters_applied\": {\n        \"status\": \"delivered\",\n        \"active\": \"true\",\n        \"paid\": \"true\"\n    }\n}"
+                        },
+                        {
+                            "name": "200 - Delta Sync (updated_since)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"id\": 306,\n            \"delivery_batch_id\": 51,\n            \"dispatch_code\": \"E-GEOFM005431748820260303110534\",\n            \"partial_code\": \"GEOFM005431748820260303105413\",\n            \"mail_type\": \"EXPRESS\",\n            \"delivery_status\": \"delivered\",\n            \"is_paid\": false,\n            \"job_order\": \"571629\",\n            \"name\": \"ROMEO CRIZALDO LANUZA\",\n            \"address\": \"BLK 10 LOT 5 GRANDSTRIKEVILLE 4, BRGY SAN ISIDRO, GEN TRIAS, CAVITE\",\n            \"contact\": \"+639609206186\",\n            \"authorized_rep\": \"MA ELIZA CRIZALDO LANUZA\",\n            \"contact_rep\": \"+639355349832\",\n            \"special_instruction\": null,\n            \"sequence_number\": \"S571629RO3\",\n            \"barcode_value\": \"FSIEE586361\",\n            \"product\": \"P145 E3 571629 CARD_R4A\",\n            \"remarks\": null,\n            \"rts_count\": 0,\n            \"transaction_at\": \"2026-04-02T08:30:00.000000Z\",\n            \"delivered_date\": \"2026-04-02T08:30:00.000000Z\",\n            \"updated_at\": \"2026-04-02T08:30:05.000000Z\",\n            \"rts_verification_status\": \"unvalidated\",\n            \"tat\": \"2026-03-09T15:59:59.999Z\",\n            \"transmittal_date\": \"2026-03-03T16:00:00.000Z\"\n        },\n        {\n            \"id\": 307,\n            \"delivery_batch_id\": 51,\n            \"dispatch_code\": \"E-GEOFM005431748820260303110534\",\n            \"partial_code\": \"GEOFM005431748820260303105413\",\n            \"mail_type\": \"EXPRESS\",\n            \"delivery_status\": \"rts\",\n            \"is_paid\": false,\n            \"job_order\": \"571629\",\n            \"name\": \"JUAN DELA CRUZ\",\n            \"address\": \"123 MAIN ST, QUEZON CITY\",\n            \"contact\": \"+639171234567\",\n            \"authorized_rep\": null,\n            \"contact_rep\": null,\n            \"special_instruction\": null,\n            \"sequence_number\": \"S571629RO4\",\n            \"barcode_value\": \"FSIEE586362\",\n            \"product\": \"P145 E3 571629 CARD_R4A\",\n            \"remarks\": null,\n            \"rts_count\": 2,\n            \"transaction_at\": \"2026-04-02T08:45:00.000000Z\",\n            \"delivered_date\": null,\n            \"updated_at\": \"2026-04-02T08:45:05.000000Z\",\n            \"rts_verification_status\": \"UNVALIDATED\",\n            \"tat\": \"2026-03-09T15:59:59.999Z\",\n            \"transmittal_date\": \"2026-03-03T16:00:00.000Z\"\n        }\n    ],\n    \"pagination\": {\n        \"current_page\": 1,\n        \"last_page\": 1,\n        \"per_page\": 100,\n        \"total\": 2\n    },\n    \"courier_id\": 543,\n    \"filters_applied\": {\n        \"status\": null,\n        \"active\": \"true\",\n        \"paid\": \"all\",\n        \"updated_since\": \"2026-04-02T06:00:00.000Z\"\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Delivery Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/deliveries/:barcode",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "deliveries", ":barcode"],
+                            "variable": [
+                                {
+                                    "key": "barcode",
+                                    "value": "FSI56D4FB35"
+                                }
+                            ]
+                        },
+                        "description": "Get specific delivery details by barcode value. Returns full delivery record including RTS attempt metadata and transaction history. Image data (media, signature, rts attempt images) is not included in the mobile response — images are accessible via the web portal only (signed URLs). rts_count indicates the number of attempts; rts_attempts contains metadata (reason, geolocation, timestamp) without image URLs.\n\nv2.0 Changes:\n- NEW: is_paid boolean (true = remittance collected).\n- REMOVED: tat_info object — the tat field already provides the TAT due datetime.\n- REMOVED: media, signature fields — images are read-only on the web portal.\n- UPDATED: rts_attempts no longer includes images array."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Delivery Details",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"id\": 306,\n        \"delivery_batch_id\": 51,\n        \"dispatch_code\": \"E-GEOFM005431748820260303110534\",\n        \"partial_code\": \"GEOFM005431748820260303105413\",\n        \"mail_type\": \"EXPRESS\",\n        \"delivery_status\": \"delivered\",\n        \"is_paid\": false,\n        \"name\": \"ROMEO CRIZALDO LANUZA\",\n        \"address\": \"BLK 10 LOT 5 GRANDSTRIKEVILLE 4, BRGY SAN ISIDRO, GEN TRIAS, CAVITE\",\n        \"contact\": \"+639609206186\",\n        \"authorized_rep\": \"MA ELIZA CRIZALDO LANUZA\",\n        \"contact_rep\": \"+639355349832\",\n        \"special_instruction\": null,\n        \"sequence_number\": \"S571629RO3\",\n        \"barcode_value\": \"FSIEE586361\",\n        \"job_order\": \"571629\",\n        \"product\": \"P145 E3 571629 CARD_R4A\",\n        \"remarks\": null,\n        \"note\": null,\n        \"recipient\": \"MA ELIZA CRIZALDO LANUZA\",\n        \"relationship\": \"sister_in_law\",\n        \"placement_type\": \"received\",\n        \"transaction_at\": \"2026-03-09T11:55:10.000000Z\",\n        \"delivered_date\": \"2026-03-09T11:55:10.000000Z\",\n        \"rts_verification_status\": \"unvalidated\",\n        \"rts_count\": 1,\n        \"rts_attempts\": [\n            {\n                \"attempt\": 1,\n                \"timestamp\": \"2026-04-02T04:37:59.000000Z\",\n                \"reason\": \"Hard to Deliver\",\n                \"geolocation\": {\n                    \"latitude\": 13.2364452,\n                    \"longitude\": 123.774294,\n                    \"accuracy\": 1000\n                }\n            }\n        ],\n        \"tat\": \"2026-03-09T15:59:59.999999Z\",\n        \"transmittal_date\": \"2026-03-03T16:00:00.000000Z\",\n        \"delivery_trans_history\": [\n            {\n                \"action\": \"DISPATCHED\",\n                \"timestamp\": \"2026-03-03T09:49:41.385459Z\",\n                \"status\": \"DISPATCHED\",\n                \"note\": \"Batch DISPATCHED to courier via DOP\",\n                \"user_id\": 3022,\n                \"courier_id\": null\n            },\n            {\n                \"action\": \"COURIER_RECEIVED\",\n                \"timestamp\": \"2026-03-03T15:59:12.205167Z\",\n                \"status\": \"COURIER_RECEIVED\",\n                \"note\": \"Dispatch accepted by courier via mobile app\",\n                \"user_id\": 401,\n                \"courier_id\": 543\n            },\n            {\n                \"action\": \"status_changed\",\n                \"timestamp\": \"2026-03-09T11:55:10.058915Z\",\n                \"status\": \"delivered\",\n                \"note\": \"Status changed from pending to delivered\",\n                \"user_id\": 401,\n                \"courier_id\": 401\n            }\n        ]\n    }\n}"
+                        },
+                        {
+                            "name": "404 - Delivery Not Found",
+                            "status": "Not Found",
+                            "code": 404,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Delivery not found\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Upload Delivery Media",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": [],
+                                    "description": "Image file (jpeg, jpg, png) or PDF. Max 10MB."
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "pod",
+                                    "type": "text",
+                                    "description": "Must be one of: pod, selfie, recipient, recipient_signature"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/deliveries/:barcode/media",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "deliveries", ":barcode", "media"],
+                            "variable": [
+                                {
+                                    "key": "barcode",
+                                    "value": "FSI56D4FB35"
+                                }
+                            ]
+                        },
+                        "description": "Upload media for a delivery by barcode value. This endpoint handles the actual file upload to S3 and returns the URLs (including signed URLs) for the uploaded media. These URLs should then be passed to the 'Update Delivery Status' endpoint in the 'delivery_images' or 'recipient_signature' fields.\n\n### Required Multipart Fields:\n- **file**: Image (jpeg, png, jpg) or PDF, max 10MB.\n- **type**: Must be one of: pod, selfie, recipient, recipient_signature.\n\nNote: The upload endpoint stores the file in S3 and returns the raw URL for the courier app's internal reference only. Image URLs are not echoed back in subsequent GET/PATCH delivery responses — image viewing is handled exclusively by the web portal using signed URLs."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Media Uploaded",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"url\": \"https://s3.amazonaws.com/bucket/deliveries/306/images/delivery_306_pod_20260309115510.jpg\",\n        \"type\": \"pod\",\n        \"filename\": \"delivery_306_pod_20260309115510.jpg\"\n    }\n}"
+                        },
+                        {
+                            "name": "404 - Not Found",
+                            "status": "Not Found",
+                            "code": 404,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Delivery not found or unauthorized\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Delivery Status",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Request-ID",
+                                "value": "{{$guid}}",
+                                "description": "v2.1 — UUID per sync operation. Server caches the response for 24h and returns it immediately on replay (idempotent retry). Generate a fresh UUID per delivery action."
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"delivery_status\": \"DELIVERED\",\n    \"delivered_date\": \"2026-04-02T08:30:00.000Z\",\n    \"note\": \"Package delivered successfully\",\n    \"recipient\": \"John Doe\",\n    \"relationship\": \"Self\",\n    \"placement_type\": \"received\",\n    \"delivery_images\": [\n        {\n            \"file\": \"https://s3.example.com/images/pod.jpg\",\n            \"type\": \"pod\"\n        }\n    ],\n    \"recipient_signature\": \"https://s3.example.com/signatures/sig.jpg\",\n    \"latitude\": 14.5995,\n    \"longitude\": 120.9842,\n    \"geo_accuracy\": 10.5\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/deliveries/:barcode",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "deliveries", ":barcode"],
+                            "variable": [
+                                {
+                                    "key": "barcode",
+                                    "value": "FSI56D4FB35"
+                                }
+                            ]
+                        },
+                        "description": "Update delivery status by barcode value. delivery_status must be one of: PENDING, DELIVERED, RTS, OSA.\n\n### v2.1 — Offline Sync: `delivered_date`\n- **Optional ISO 8601 UTC string.** Send the device timestamp captured at the moment the rider tapped Delivered/RTS/OSA.\n- The server uses this as the authoritative `transaction_at` and `delivered_date` instead of `NOW()`, so offline rides sync the real action time, not the upload time.\n- Applies to all terminal statuses: DELIVERED, RTS, OSA.\n- **Validation**: rejected only if unparseable or more than 24 hours in the future. Past dates (hours or days ago) are accepted.\n\n### v2.1 — Idempotency: `X-Request-ID`\n- Send a fresh UUID in the `X-Request-ID` header for each delivery action.\n- If the same UUID arrives again (retry/replay), the server returns the previously stored 200 result without reprocessing.\n- Cache window: 24 hours.\n\n### Conditional Fields:\n- **DELIVERED**: Requires `recipient` (string). `relationship` and `placement_type` are highly recommended.\n- **OSA / RTS**: Requires `reason` (string) for tracking.\n\n### Media Handling:\n- `delivery_images` and `recipient_signature` can accept BOTH file uploads (as multipart/form-data) or pre-uploaded URL strings (as JSON raw).\n- URL strings are preferred for mobile apps that already uploaded to S3 via the /media endpoint.\n- Note: After a successful status update, the response no longer includes media, recipient_signature, or image data in rts_attempts. These are accessible via the web portal only.\n\n### Geolocation:\nOptional fields (latitude, longitude, geo_accuracy) capture the courier's GPS coordinates at the time of the update."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Status Updated (with delivered_date)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Delivery status updated successfully\",\n    \"delivery_id\": 306,\n    \"old_status\": \"pending\",\n    \"new_status\": \"delivered\",\n    \"updated_at\": \"2026-04-02T08:30:05.000000Z\",\n    \"data\": {\n        \"barcode_value\": \"FSIEE586361\",\n        \"delivery_status\": \"delivered\",\n        \"note\": \"Package delivered successfully\",\n        \"recipient\": \"MA ELIZA CRIZALDO LANUZA\",\n        \"relationship\": \"sister_in_law\",\n        \"placement_type\": \"received\",\n        \"transaction_at\": \"2026-04-02T08:30:00.000000Z\",\n        \"delivered_date\": \"2026-04-02T08:30:00.000000Z\",\n        \"latitude\": 14.5995,\n        \"longitude\": 120.9842,\n        \"geo_accuracy\": 10.5,\n        \"rts_count\": 0,\n        \"rts_attempts\": []\n    }\n}"
+                        },
+                        {
+                            "name": "200 - RTS (with delivered_date)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Delivery status updated successfully\",\n    \"delivery_id\": 306,\n    \"old_status\": \"pending\",\n    \"new_status\": \"rts\",\n    \"updated_at\": \"2026-04-02T08:30:05.000000Z\",\n    \"data\": {\n        \"barcode_value\": \"FSIEE586361\",\n        \"delivery_status\": \"rts\",\n        \"note\": \"Recipient not home\",\n        \"recipient\": null,\n        \"relationship\": null,\n        \"placement_type\": null,\n        \"transaction_at\": \"2026-04-02T08:30:00.000000Z\",\n        \"delivered_date\": null,\n        \"latitude\": 14.5995,\n        \"longitude\": 120.9842,\n        \"geo_accuracy\": 10.5,\n        \"rts_count\": 1,\n        \"rts_attempts\": [\n            {\n                \"attempt\": 1,\n                \"timestamp\": \"2026-04-02T08:30:00.000000Z\",\n                \"reason\": \"Recipient not home\",\n                \"geolocation\": {\n                    \"latitude\": 14.5995,\n                    \"longitude\": 120.9842,\n                    \"accuracy\": 10.5\n                }\n            }\n        ]\n    }\n}"
+                        },
+                        {
+                            "name": "400 - Immutable Status",
+                            "status": "Bad Request",
+                            "code": 400,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Cannot change status of DELIVERED items. DELIVERED status is final and immutable.\"\n}"
+                        },
+                        {
+                            "name": "400 - Invalid Transition",
+                            "status": "Bad Request",
+                            "code": 400,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Invalid status transition from 'PENDING' to 'PENDING'\"\n}"
+                        },
+                        {
+                            "name": "422 - Invalid delivered_date",
+                            "status": "Unprocessable Content",
+                            "code": 422,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"message\": \"The delivered_date cannot be more than 24 hours in the future.\",\n    \"errors\": {\n        \"delivered_date\": [\n            \"The delivered_date cannot be more than 24 hours in the future.\"\n        ]\n    }\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Payment & Dashboard (Authenticated)",
+            "item": [
+                {
+                    "name": "Preview Payment Request",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/payment-request",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "payment-request"]
+                        },
+                        "description": "Preview the upcoming payment request for the authenticated courier. Call this GET before the POST to let the courier review what will be included.\n\n### Consolidation Logic:\n1. **Cumulative Selection**: The system automatically bundles ALL successful deliveries (`delivered` or `rts` with pay) from the earliest unpaid date up to today.\n2. **Exclusion Rule**: Deliveries already associated with an existing (pending/approved/paid) payment request are strictly excluded.\n3. **One Request Per Day**: Couriers are restricted to one payout request submission per day. If a request was already submitted today, `has_existing_request_today` will be `true` and the POST endpoint will be blocked.\n\n### Response Fields:\n- `coverage_period`: { `from_date`, `to_date` } — Derived from actual earliest and latest eligible deliveries.\n- `eligible_delivery_count`: Number of new items to be included.\n- `already_requested_count`: Items excluded because they are already in another request.\n- `estimated_net_payable`: The final amount the courier expects to receive after all deductions.\n- `daily_breakdown`: ASC sorted list of days, each containing a full delivery sub-list with rates and penalties."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Payment Preview",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"coverage_period\": {\n            \"from_date\": \"2026-02-10\",\n            \"to_date\": \"2026-03-10\"\n        },\n        \"eligible_delivery_count\": 25,\n        \"already_requested_count\": 5,\n        \"has_existing_request_today\": false,\n        \"estimated_gross_amount\": 5000,\n        \"estimated_total_penalties\": 250,\n        \"estimated_coordinator_incentive\": 500,\n        \"estimated_net_payable\": 4250,\n        \"daily_breakdown\": [\n            {\n                \"date\": \"2026-03-10\",\n                \"delivery_count\": 2,\n                \"day_total\": 150,\n                \"deliveries\": [\n                    {\n                        \"barcode\": \"FSIEE586361\",\n                        \"name\": \"ROMEO CRIZALDO LANUZA\",\n                        \"address\": \"BLK 10 LOT 5 GRANDSTRIKEVILLE 4\",\n                        \"delivery_status\": \"delivered\",\n                        \"rate_type\": \"express\",\n                        \"rate\": 200,\n                        \"penalty_amount\": 50,\n                        \"coordinator_incentive\": 20,\n                        \"net_amount\": 130\n                    },\n                    {\n                        \"barcode\": \"HSKFIWHUFF\",\n                        \"name\": \"JOEMAR JANE\",\n                        \"address\": \"CABUYAO LAGUNA\",\n                        \"delivery_status\": \"RTS\",\n                        \"rate_type\": \"traditional\",\n                        \"rate\": 10,\n                        \"penalty_amount\": 0,\n                        \"coordinator_incentive\": 0,\n                        \"net_amount\": 10\n                    }\n                ]\n            }\n        ]\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Payment Request",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"from_date\": \"2025-01-01\",\n    \"to_date\": \"2025-01-31\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/payment-request",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "payment-request"]
+                        },
+                        "description": "Create a new payment request for the authenticated courier. This consolidates all eligible unpaid deliveries into a single 'pending' request.\n\n### Business Rules:\n- **Dates are Optional**: If `from_date` or `to_date` are omitted, the system defaults to 'ALL previous unpaid deliveries' (cumulative).\n- **Submission Limit**: Restricted to **one** submission per day. Attempting a second request will return a `400 Bad Request`.\n- **Status Lifecycle**: New requests start as `pending`. They move to `ops_approved` after Operations review, then to `hr_approved` and finally `paid`.\n\n### Request Body:\n- `from_date` (optional): Start of range (Y-m-d).\n- `to_date` (optional): End of range (Y-m-d)."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Payment Request Created",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Payment request created successfully\",\n    \"data\": {\n        \"payment_request_id\": 1001,\n        \"reference\": \"PR-2026-001001\",\n        \"courier_id\": 543,\n        \"from_date\": \"2026-02-10\",\n        \"to_date\": \"2026-03-10\",\n        \"amount\": 4250,\n        \"delivery_count\": 25,\n        \"status\": \"PENDING\"\n    }\n}"
+                        },
+                        {
+                            "name": "400 - No Deliveries",
+                            "status": "Bad Request",
+                            "code": 400,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"No completed deliveries found for the specified date range\"\n}"
+                        },
+                        {
+                            "name": "400 - Already Requested Today",
+                            "status": "Bad Request",
+                            "code": 400,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"You have already submitted a payment request today. Please try again tomorrow.\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Dashboard Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/dashboard-summary?paid=all",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "dashboard-summary"],
+                            "query": [
+                                {
+                                    "key": "paid",
+                                    "value": "all",
+                                    "description": "NEW v2.0 — true | false | all (default: all). Filters delivered_today count by payment status."
+                                }
+                            ]
+                        },
+                        "description": "Get dashboard summary for authenticated courier. Returns: pending_dispatches, delivered_today, rts count, osa count, and pending_deliveries (accepted but not yet delivered).\n\nv2.0 Changes:\n- NEW: paid query param (true | false | all, default all) — filters the delivered_today counter by payment status.\n- delivered_today with paid=false returns only unpaid deliveries completed today.\n- delivered_today with paid=all (default) returns all deliveries completed today regardless of payment status."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Dashboard (all)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"courier_id\": 543,\n        \"pending_dispatches\": 1,\n        \"delivered_today\": 5,\n        \"rts\": 0,\n        \"osa\": 0,\n        \"pending_deliveries\": 1,\n        \"last_updated\": \"2026-03-10T15:39:52.147198Z\"\n    }\n}"
+                        },
+                        {
+                            "name": "200 - Dashboard (paid=false)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"courier_id\": 543,\n        \"pending_dispatches\": 1,\n        \"delivered_today\": 3,\n        \"rts\": 0,\n        \"osa\": 0,\n        \"pending_deliveries\": 1,\n        \"last_updated\": \"2026-03-10T15:39:52.147198Z\"\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Wallet Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/wallet-summary",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "wallet-summary"]
+                        },
+                        "description": "Get a high-level wallet summary for the authenticated courier.\n\n### Key Metrics:\n- `total_earnings`: Cumulative sum of all requests with status `paid`.\n- `tentative_pending_payout`: Sum of all requests currently in `pending`, `ops_approved`, or `hr_approved` status. This represents 'money on the way'.\n- `latest_request`: Full details and earnings breakdown for the courier's most recent submission."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Wallet Summary",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"total_earnings\": 4250,\n        \"tentative_pending_payout\": 150,\n        \"latest_request\": {\n            \"id\": 7,\n            \"reference\": \"PR-2026-005\",\n            \"amount\": 150,\n            \"status\": \"PENDING\",\n            \"from_date\": \"2026-03-10\",\n            \"to_date\": \"2026-03-12\",\n            \"payment_mode\": null,\n            \"requested_at\": \"2026-03-12T12:40:29+08:00\",\n            \"total_items\": 5,\n            \"breakdown\": {\n                \"base_earnings\": 150,\n                \"penalties_deducted\": 0,\n                \"coordinator_incentive\": 0,\n                \"ops_adjustments\": 0\n            }\n        },\n        \"payout_history\": {\n            \"data\": [\n                {\n                    \"date\": \"2026-03-12\",\n                    \"reference\": \"PR-2026-005\",\n                    \"status\": \"PENDING\",\n                    \"amount\": 150,\n                    \"requested_at\": \"2026-03-12T12:40:29+08:00\"\n                }\n            ],\n            \"meta\": {\n                \"current_page\": 1,\n                \"per_page\": 10,\n                \"total\": 1,\n                \"last_page\": 1\n            }\n        }\n    }\n}"
+                        },
+                        {
+                            "name": "500 - Wallet Summary Error",
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Failed to retrieve wallet summary\",\n    \"error_code\": \"WALLET_ERROR\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Wallet By Reference",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/wallet/:reference?page=1&per_page=10",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "wallet", ":reference"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for daily_breakdown pagination"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10",
+                                    "description": "Days per page (max 31)"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "reference",
+                                    "value": "PR-2026-001"
+                                }
+                            ]
+                        },
+                        "description": "Get payment request details by reference.\n\nResponse shape:\n- reference, amount, status, from_date, to_date, requested_at, approved_at, paid_at, total_items\n- breakdown: { base_earnings, penalties_deducted, coordinator_incentive, ops_adjustments }\n- transaction_history[]: { event, label, timestamp, by, remarks }\n- daily_breakdown: paginated by day\n  { data: [{ date, count, day_total, deliveries[] }], meta: { current_page, per_page, total_days, last_page } }\n\nNote: top-level deliveries[] has been removed — use daily_breakdown.data[].deliveries instead."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Wallet Detail",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"id\": 7,\n        \"reference\": \"PR-2026-005\",\n        \"amount\": 150,\n        \"status\": \"PENDING\",\n        \"from_date\": \"2026-03-10\",\n        \"to_date\": \"2026-03-12\",\n        \"requested_at\": \"2026-03-12T12:40:29+08:00\",\n        \"total_items\": 5,\n        \"breakdown\": {\n            \"base_earnings\": 150,\n            \"penalties_deducted\": 0,\n            \"coordinator_incentive\": 0,\n            \"ops_adjustments\": 0\n        },\n        \"transaction_history\": [\n            {\n                \"event\": \"submitted\",\n                \"label\": \"Payout Requested\",\n                \"timestamp\": \"2026-03-12T12:40:29+08:00\",\n                \"by\": \"jema896\",\n                \"remarks\": null\n            }\n        ],\n        \"daily_breakdown\": {\n            \"data\": [\n                {\n                    \"date\": \"2026-03-12\",\n                    \"count\": 5,\n                    \"day_total\": 150,\n                    \"deliveries\": [\n                        {\n                            \"barcode_value\": \"FSIEE586361\",\n                            \"name\": \"ROMEO CRIZALDO LANUZA\",\n                            \"address\": \"BLK 10 LOT 5 GRANDSTRIKEVILLE 4\",\n                            \"delivery_status\": \"DELIVERED\",\n                            \"rate\": 30,\n                            \"late_penalty\": 0,\n                            \"total\": 30\n                        }\n                    ]\n                }\n            ],\n            \"meta\": {\n                \"current_page\": 1,\n                \"per_page\": 10,\n                \"total_days\": 1,\n                \"last_page\": 1\n            }\n        }\n    }\n}"
+                        },
+                        {
+                            "name": "404 - Not Found",
+                            "status": "Not Found",
+                            "code": 404,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Payment request not found.\",\n    \"error_code\": \"WALLET_NOT_FOUND\"\n}"
+                        },
+                        {
+                            "name": "500 - Wallet Detail Error",
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Failed to retrieve payment request\",\n    \"error_code\": \"WALLET_ERROR\"\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Profile (Authenticated)",
+            "item": [
+                {
+                    "name": "Get My Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/me",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "me"]
+                        },
+                        "description": "NEW v2.1 — Returns the full profile of the authenticated courier.\n\nUse this endpoint when the Profile screen opens (online only) to refresh the locally cached courier object. The result should overwrite the courier data stored in secure storage so subsequent cold-starts have up-to-date name, branch, and profile photo without another API call.\n\n- No request body or path param needed — identity comes from the Sanctum token.\n- `profile_picture_url` is a signed S3 URL or null; show an avatar placeholder when null.\n- `branch.branch_code` is now included (was missing from earlier responses)."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Courier Profile",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"id\": 543,\n        \"courier_code\": \"GEOFM00543\",\n        \"courier_type\": \"fm\",\n        \"name\": \"MARIA SANTOS\",\n        \"first_name\": \"MARIA\",\n        \"middle_name\": null,\n        \"last_name\": \"SANTOS\",\n        \"email\": \"maria.santos@example.com\",\n        \"phone_number\": \"09208019846\",\n        \"profile_picture_url\": null,\n        \"branch\": {\n            \"id\": 5,\n            \"branch_name\": \"QUEZON CITY BRANCH\",\n            \"branch_code\": \"QC001\"\n        }\n    }\n}"
+                        },
+                        {
+                            "name": "404 - No Courier Account",
+                            "status": "Not Found",
+                            "code": 404,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"User is not associated with a courier account.\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Profile",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"achilles543\",\n    \"first_name\": \"ACHILLES\",\n    \"middle_name\": \"ACOJIDO\",\n    \"last_name\": \"CARACUEL\",\n    \"email\": \"achilles@example.com\",\n    \"profile_picture_url\": \"https://s3.amazonaws.com/bucket/couriers/me/profile/pic.jpg\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/me",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "me"]
+                        },
+                        "description": "Update the authenticated courier's profile information. Maps name/first_name/middle_name/last_name/email/profile_picture_url to the users table.\n\n- `name` is required and must be unique (username).\n- `email` is optional and must be unique.\n- `profile_picture_url` is optional. If supplied, it overwrites the stored profile_picture column (useful for mobile apps using direct S3 upload)."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Profile Updated",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"id\": 543,\n        \"courier_code\": \"CC00543\",\n        \"courier_type\": \"fm\",\n        \"name\": \"achilles543\",\n        \"first_name\": \"ACHILLES\",\n        \"middle_name\": \"ACOJIDO\",\n        \"last_name\": \"CARACUEL\",\n        \"email\": \"achilles@example.com\",\n        \"phone_number\": \"09208019846\",\n        \"profile_picture_url\": \"https://gdtms.fsi.com.ph/storage/profiles/photo.jpg\",\n        \"branch\": {\n            \"id\": 5,\n            \"branch_name\": \"QUEZON CITY BRANCH\",\n            \"branch_code\": \"QC001\"\n        }\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Upload Profile Media",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": [],
+                                    "description": "Image file (jpeg, png, jpg, webp). Max 10MB."
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "profile_picture",
+                                    "type": "text",
+                                    "description": "Must be: profile_picture"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/me/media",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "me", "media"]
+                        },
+                        "description": "Upload a profile picture for the authenticated courier. Handles the file upload to S3 and persists the URL to the user's profile.\n\n### Required Multipart Fields:\n- **file**: Image (jpeg, png, jpg, webp), max 10MB.\n- **type**: Must be 'profile_picture'."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Profile Media Uploaded",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"url\": \"https://gdtms.fsi.com.ph/storage/profiles/photo.jpg\"\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Payment Method",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/me/payment-method",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "me", "payment-method"]
+                        },
+                        "description": "NEW v2.2 — Returns the authenticated courier's active bank account information for payouts.\n\n- `has_active_payment_method: true` — Courier has an active bank on file. Use the returned details to display their payout account in the app.\n- `has_active_payment_method: false` — No active bank found. The `message` field explains that a default GCash (00000000) account will be **automatically set up** the moment the courier submits a payout request. No manual action from the courier is required.\n\n### When to call this\n- On the Payout / Wallet screen to show the courier which bank their payment will be sent to.\n- Before showing the 'Request Payout' button to pre-warn users who need a bank update (though the system will auto-provision GCash as a fallback)."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Active Bank (e.g. EWB)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"has_active_payment_method\": true,\n        \"bank_name\": \"EastWest Bank\",\n        \"account_name\": \"MARIA SANTOS\",\n        \"account_number\": \"1234567890\",\n        \"bank_status\": \"active\"\n    }\n}"
+                        },
+                        {
+                            "name": "200 - No Active Bank (Auto-Fallback Info)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"has_active_payment_method\": false,\n        \"bank_name\": \"EastWest Bank\",\n        \"account_name\": \"MARIA SANTOS\",\n        \"account_number\": \"1234567890\",\n        \"bank_status\": \"inactive\",\n        \"reason\": \"bank_inactive\",\n        \"message\": \"You do not have an active bank account on file. A default GCash account will be automatically set up for you when you submit a payout request.\"\n    }\n}"
+                        },
+                        {
+                            "name": "200 - No Bank on File (Auto-Fallback Info)",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"has_active_payment_method\": false,\n        \"bank_name\": null,\n        \"account_name\": null,\n        \"account_number\": null,\n        \"bank_status\": null,\n        \"reason\": \"no_bank_on_file\",\n        \"message\": \"You do not have an active bank account on file. A default GCash account will be automatically set up for you when you submit a payout request.\"\n    }\n}"
+                        },
+                        {
+                            "name": "404 - No Courier Account",
+                            "status": "Not Found",
+                            "code": 404,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"User is not associated with a courier account.\"\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Real-Time Tracking (Authenticated)",
+            "item": [
+                {
+                    "name": "Update Courier Geolocation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"latitude\": 14.5995,\n    \"longitude\": 120.9842,\n    \"accuracy\": 12.5,\n    \"timestamp\": \"2026-03-18T08:38:27Z\",\n    \"is_buffered\": false\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/location",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "location"]
+                        },
+                        "description": "Send a background location ping for authenticated courier. Used to power real-time ops mapping and calculate online presence."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Location Received",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Location updated\"\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Notifications (Authenticated)",
+            "item": [
+                {
+                    "name": "Get Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/notifications?page=1&per_page=10",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "notifications"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10",
+                                    "description": "Max 50"
+                                }
+                            ]
+                        },
+                        "description": "Get paginated notifications for authenticated courier (most recent first).\n\nEach notification:\n- id: UUID\n- type: payout_requested | payout_approved | payout_rejected | transaction_due_soon | transaction_due_today\n- message: human-readable string\n- transaction_reference: payment request reference (e.g. PR-2026-001) or null\n- delivery_references[]: array of barcode strings\n- amount: float or null\n- date: ISO 8601 timestamp\n- read: boolean\n- read_at: ISO 8601 timestamp or null\n\nAlso returns unread_count and meta (pagination)."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Notifications",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"id\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n            \"type\": \"payout_requested\",\n            \"message\": \"Your payout request PR-2026-001001 has been submitted\",\n            \"transaction_reference\": \"PR-2026-001001\",\n            \"delivery_references\": [\n                \"FSIEE586361\",\n                \"FSIEE512300\"\n            ],\n            \"amount\": 4250,\n            \"date\": \"2026-03-10T14:30:00.000000Z\",\n            \"read\": false,\n            \"read_at\": null\n        },\n        {\n            \"id\": \"b2c3d4e5-f6a7-8901-bcde-f12345678901\",\n            \"type\": \"transaction_due_today\",\n            \"message\": \"3 deliveries are due today\",\n            \"transaction_reference\": null,\n            \"delivery_references\": [\n                \"FSIEE586361\",\n                \"FSIEE586362\",\n                \"FSIEE586363\"\n            ],\n            \"amount\": null,\n            \"date\": \"2026-03-10T08:00:00.000000Z\",\n            \"read\": true,\n            \"read_at\": \"2026-03-10T09:15:00.000000Z\"\n        }\n    ],\n    \"meta\": {\n        \"current_page\": 1,\n        \"per_page\": 10,\n        \"total\": 2,\n        \"last_page\": 1\n    },\n    \"unread_count\": 1\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Unread Count",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/notifications/unread-count",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "notifications", "unread-count"]
+                        },
+                        "description": "Get count of unread notifications for authenticated courier. Use for badge display."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Unread Count",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"count\": 3\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Mark Notification As Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/notifications/:id/mark-as-read",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "notifications", ":id", "mark-as-read"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "00000000-0000-0000-0000-000000000000",
+                                    "description": "Notification UUID"
+                                }
+                            ]
+                        },
+                        "description": "Mark a single notification as read by its UUID."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Marked As Read",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Notification marked as read\"\n}"
+                        },
+                        {
+                            "name": "404 - Not Found",
+                            "status": "Not Found",
+                            "code": 404,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Notification not found\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Mark All As Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/notifications/mark-all-as-read",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "notifications", "mark-all-as-read"]
+                        },
+                        "description": "Mark all unread notifications as read for authenticated courier."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - All Read",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"All notifications marked as read\"\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Support (Authenticated)",
+            "item": [
+                {
+                    "name": "Submit Bug Report",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"type\": \"bug\",\n    \"severity\": \"high\",\n    \"app_version\": \"1.2.3\",\n    \"platform\": \"android\",\n    \"device_model\": \"Samsung Galaxy S22\",\n    \"os_version\": \"14.0\",\n    \"device_id\": \"12345ABCDE\",\n    \"message\": \"App crash during sync\",\n    \"user_message\": \"I tried to upload my delivery but the app closed.\",\n    \"logs\": [\n        {\n            \"level\": \"ERROR\",\n            \"context\": \"SyncAgent\",\n            \"message\": \"Timeout uploading multipart\",\n            \"created_at\": 1712293020\n        }\n    ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/courier/reports",
+                            "host": ["{{baseURL}}"],
+                            "path": ["api", "mbl", "courier", "reports"]
+                        },
+                        "description": "Submit a bug report from the courier mobile app. Requires authentication.\n\nThe payload expects flat device-info fields and a structured logs array. `type` must be one of: bug, enhancement, task, feedback. The response returns HTTP 201 with the generated `report_id` in RPT-xxxx format."
+                    },
+                    "response": [
+                        {
+                            "name": "201 - Report Submitted",
+                            "status": "Created",
+                            "code": 201,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Report received.\",\n    \"report_id\": \"RPT-1001\"\n}"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{authToken}}",
+                "type": "string"
+            }
+        ]
+    }
+}

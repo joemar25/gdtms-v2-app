@@ -1,3 +1,5 @@
+// DOCS: docs/shared/widgets.md — update that file when you edit this one.
+
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';

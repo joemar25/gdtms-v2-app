@@ -1,3 +1,5 @@
+// DOCS: docs/core/models.md — update that file when you edit this one.
+
 class PhotoEntry {
   const PhotoEntry({required this.id, required this.file, required this.type});
 

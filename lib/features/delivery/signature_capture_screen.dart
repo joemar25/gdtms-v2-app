@@ -1,3 +1,5 @@
+// DOCS: docs/features/delivery.md — update that file when you edit this one.
+
 // =============================================================================
 // signature_capture_screen.dart
 // =============================================================================

@@ -1,3 +1,5 @@
+// DOCS: docs/shared/helpers.md — update that file when you edit this one.
+
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 
 /// Centralized logic to determine if a delivery is in a "locked" (read-only) state.

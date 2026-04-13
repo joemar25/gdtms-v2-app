@@ -1,3 +1,5 @@
+// DOCS: docs/core/services.md — update that file when you edit this one.
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 

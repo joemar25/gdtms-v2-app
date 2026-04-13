@@ -1,3 +1,5 @@
+// DOCS: docs/shared/helpers.md — update that file when you edit this one.
+
 extension StatusStringFormat on String {
   String toDisplayStatus() {
     if (isEmpty) return '—';

@@ -1,3 +1,5 @@
+// DOCS: docs/core/database.md — update that file when you edit this one.
+
 import 'package:sqflite/sqflite.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';

@@ -1,3 +1,5 @@
+// DOCS: docs/shared/helpers.md — update that file when you edit this one.
+
 Map<String, dynamic> asStringDynamicMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) {

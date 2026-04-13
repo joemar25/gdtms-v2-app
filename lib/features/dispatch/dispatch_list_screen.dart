@@ -1,3 +1,5 @@
+// DOCS: docs/features/dispatch.md — update that file when you edit this one.
+
 // =============================================================================
 // dispatch_list_screen.dart
 // =============================================================================

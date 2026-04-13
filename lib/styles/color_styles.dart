@@ -1,3 +1,5 @@
+// DOCS: docs/styles.md — update that file when you edit this one.
+
 import 'package:flutter/material.dart';
 
 /// Modernized Color System for the FSI Courier App – iOS-inspired (2026)
