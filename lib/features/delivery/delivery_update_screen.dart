@@ -346,12 +346,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       final response = await _picker.retrieveLostData();
       if (response.isEmpty || response.file == null || !mounted) return;
 
-      // Since we don't know which slot (POD or Selfie) the user was intenting to 
-      // fill before the activity was killed, we'll try to guess or just 
-      // notify them. In this screen, POD is usually first, but it's safer to 
+      // Since we don't know which slot (POD or Selfie) the user was intenting to
+      // fill before the activity was killed, we'll try to guess or just
+      // notify them. In this screen, POD is usually first, but it's safer to
       // just show a message or let them re-pick if we can't be sure.
       // However, to be helpful, if both are empty, we can put it in POD.
-      
+
       final rawBytes = await response.file!.readAsBytes();
       final bytes = await FlutterImageCompress.compressWithList(
         rawBytes,
@@ -367,13 +367,19 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       );
 
       setState(() {
-         // Default to POD if empty, otherwise we just have the file ready
-         if (_podPhoto == null) {
-           _podPhoto = entry.type == 'recovered' ? PhotoEntry(id: entry.id, file: entry.file, type: 'pod') : entry;
-         }
+        // Default to POD if empty, otherwise we just have the file ready
+        if (_podPhoto == null) {
+          _podPhoto = entry.type == 'recovered'
+              ? PhotoEntry(id: entry.id, file: entry.file, type: 'pod')
+              : entry;
+        }
       });
 
-      showAppSnackbar(context, 'Successfully recovered image from camera.', type: SnackbarType.success);
+      showAppSnackbar(
+        context,
+        'Successfully recovered image from camera.',
+        type: SnackbarType.success,
+      );
     } catch (e) {
       debugPrint('Error recovering lost data: $e');
     }
@@ -395,11 +401,15 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     try {
       final isSelfie = slotType == 'selfie';
-      final picked = await _picker.pickImage(
-        source: source,
-        preferredCameraDevice: isSelfie ? CameraDevice.front : CameraDevice.rear,
-      ).timeout(const Duration(seconds: 30));
-      
+      final picked = await _picker
+          .pickImage(
+            source: source,
+            preferredCameraDevice: isSelfie
+                ? CameraDevice.front
+                : CameraDevice.rear,
+          )
+          .timeout(const Duration(seconds: 30));
+
       if (picked == null || !mounted) {
         setState(() => _isPickerActive = false);
         return;
@@ -407,7 +417,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
       final rawBytes = await picked.readAsBytes();
 
-      // Compression can sometimes fail on certain devices or in release mode 
+      // Compression can sometimes fail on certain devices or in release mode
       // due to Proguard/native issues. Wrap in try-catch to allow fallback.
       Uint8List bytes;
       try {
@@ -450,7 +460,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     } on PlatformException catch (e) {
       setState(() => _isPickerActive = false);
       if (e.code == 'already_active') return;
-      
+
       if (mounted) {
         showAppSnackbar(
           context,
@@ -628,10 +638,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     // Include any additional photos captured in the generic _photos list.
     for (var i = 0; i < _photos.length; i++) {
-        final photo = _photos[i];
-        // Use a suffix for duplicate types to keep keys unique in the map.
-        final key = photo.type + (i > 0 ? '_$i' : '');
-        pendingMediaPaths[key] = photo.file;
+      final photo = _photos[i];
+      // Use a suffix for duplicate types to keep keys unique in the map.
+      final key = photo.type + (i > 0 ? '_$i' : '');
+      pendingMediaPaths[key] = photo.file;
     }
 
     final opId = const Uuid().v4();
@@ -1387,27 +1397,33 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   _kFieldGap,
 
                                   GestureDetector(
-                                    onTap: _recipientIsOwner ? null : _openRelationshipPicker,
+                                    onTap: _recipientIsOwner
+                                        ? null
+                                        : _openRelationshipPicker,
                                     child: AbsorbPointer(
                                       child: TextFormField(
                                         key: ValueKey(_relationship),
-                                        initialValue: kRelationshipOptions.firstWhere(
-                                              (e) => e['value'] == _relationship,
+                                        initialValue: kRelationshipOptions
+                                            .firstWhere(
+                                              (e) =>
+                                                  e['value'] == _relationship,
                                               orElse: () => {'label': ''},
                                             )['label'],
-                                        decoration: deliveryFieldDecoration(
-                                          context,
-                                          labelText: _recipientIsOwner
-                                              ? 'RELATIONSHIP (LOCKED — OWNER)'
-                                              : 'RELATIONSHIP',
-                                          errorText: _errors['relationship'],
-                                        ).copyWith(
-                                          suffixIcon: Icon(
-                                            Icons.search_rounded,
-                                            size: 20,
-                                            color: Colors.grey.shade500,
-                                          ),
-                                        ),
+                                        decoration:
+                                            deliveryFieldDecoration(
+                                              context,
+                                              labelText: _recipientIsOwner
+                                                  ? 'RELATIONSHIP (LOCKED — OWNER)'
+                                                  : 'RELATIONSHIP',
+                                              errorText:
+                                                  _errors['relationship'],
+                                            ).copyWith(
+                                              suffixIcon: Icon(
+                                                Icons.search_rounded,
+                                                size: 20,
+                                                color: Colors.grey.shade500,
+                                              ),
+                                            ),
                                       ),
                                     ),
                                   ),
@@ -1484,17 +1500,18 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       child: TextFormField(
                                         key: ValueKey(_reason),
                                         initialValue: _reason,
-                                        decoration: deliveryFieldDecoration(
-                                          context,
-                                          labelText: 'SELECT REASON',
-                                          errorText: _errors['reason'],
-                                        ).copyWith(
-                                          suffixIcon: Icon(
-                                            Icons.search_rounded,
-                                            size: 20,
-                                            color: Colors.grey.shade500,
-                                          ),
-                                        ),
+                                        decoration:
+                                            deliveryFieldDecoration(
+                                              context,
+                                              labelText: 'SELECT REASON',
+                                              errorText: _errors['reason'],
+                                            ).copyWith(
+                                              suffixIcon: Icon(
+                                                Icons.search_rounded,
+                                                size: 20,
+                                                color: Colors.grey.shade500,
+                                              ),
+                                            ),
                                       ),
                                     ),
                                   ),

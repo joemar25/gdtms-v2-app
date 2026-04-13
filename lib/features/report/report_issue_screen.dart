@@ -287,7 +287,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                                   color: color.withValues(alpha: 0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
-                                )
+                                ),
                               ]
                             : null,
                       ),
@@ -297,7 +297,9 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: isSelected ? Colors.white : (isDark ? Colors.white54 : Colors.black54),
+                            color: isSelected
+                                ? Colors.white
+                                : (isDark ? Colors.white54 : Colors.black54),
                           ),
                         ),
                       ),

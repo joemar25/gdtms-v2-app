@@ -68,8 +68,9 @@ class ReportService {
           : [];
 
       // Use provided summary or fallback to generated message.
-      final apiMessage =
-          summary.trim().isNotEmpty ? summary : 'Courier submitted a $type report.';
+      final apiMessage = summary.trim().isNotEmpty
+          ? summary
+          : 'Courier submitted a $type report.';
 
       final payload = BugReportPayload(
         type: type,

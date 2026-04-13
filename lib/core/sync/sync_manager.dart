@@ -3,8 +3,8 @@
 // =============================================================================
 //
 // [IMPORTANT] Exclusive to Deliveries:
-//   This manager is strictly for synchronizing delivery status updates and 
-//   associated media (POD, Selfie, Signature). 
+//   This manager is strictly for synchronizing delivery status updates and
+//   associated media (POD, Selfie, Signature).
 //   DO NOT use this for profile changes or Courier authentication updates.
 // =============================================================================
 
@@ -221,7 +221,10 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               // selfie_2 -> selfie) while preserving compound types like
               // recipient_signature. split('_').first would wrongly reduce
               // recipient_signature -> recipient.
-              final baseType = kv.key.toString().replaceAll(RegExp(r'_\d+$'), '');
+              final baseType = kv.key.toString().replaceAll(
+                RegExp(r'_\d+$'),
+                '',
+              );
               final filePath = kv.value.toString();
 
               final file = File(filePath);
@@ -247,22 +250,22 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               final ext = filePath.endsWith('.png') ? 'png' : 'jpg';
               final filename = '$baseType.$ext';
 
-              ApiResult<Map<String, dynamic>> result =
-                  await api.uploadMedia<Map<String, dynamic>>(
-                uploadPath,
-                bytes: bytes,
-                filename: filename,
-                type: baseType,
-                parser: (d) {
-                  if (d is Map<String, dynamic>) {
-                    return d;
-                  }
-                  if (d is Map) {
-                    return d.map((k, v) => MapEntry(k.toString(), v));
-                  }
-                  return <String, dynamic>{};
-                },
-              );
+              ApiResult<Map<String, dynamic>> result = await api
+                  .uploadMedia<Map<String, dynamic>>(
+                    uploadPath,
+                    bytes: bytes,
+                    filename: filename,
+                    type: baseType,
+                    parser: (d) {
+                      if (d is Map<String, dynamic>) {
+                        return d;
+                      }
+                      if (d is Map) {
+                        return d.map((k, v) => MapEntry(k.toString(), v));
+                      }
+                      return <String, dynamic>{};
+                    },
+                  );
 
               if (result is ApiSuccess<Map<String, dynamic>>) {
                 final inner = result.data['data'];
@@ -283,10 +286,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                   } else {
                     // Build the delivery_images entry exactly per API spec:
                     // { "file": "<url>", "type": "<pod|selfie|recipient>" }
-                    uploadedImages.add({
-                      'file': url,
-                      'type': baseType,
-                    });
+                    uploadedImages.add({'file': url, 'type': baseType});
                   }
                 } else {
                   failedCount++;

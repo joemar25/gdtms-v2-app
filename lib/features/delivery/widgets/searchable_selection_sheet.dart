@@ -18,7 +18,8 @@ class SearchableSelectionSheet extends StatefulWidget {
   final bool isDark;
 
   @override
-  State<SearchableSelectionSheet> createState() => _SearchableSelectionSheetState();
+  State<SearchableSelectionSheet> createState() =>
+      _SearchableSelectionSheetState();
 
   /// Static helper to show the sheet.
   static Future<T?> show<T>({
@@ -242,7 +243,9 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: isSelected
-                                    ? ColorStyles.grabGreen.withValues(alpha: 0.5)
+                                    ? ColorStyles.grabGreen.withValues(
+                                        alpha: 0.5,
+                                      )
                                     : Colors.transparent,
                                 width: 1.5,
                               ),
@@ -260,8 +263,8 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                                       color: isSelected
                                           ? ColorStyles.grabGreen
                                           : (widget.isDark
-                                              ? Colors.white
-                                              : Colors.black87),
+                                                ? Colors.white
+                                                : Colors.black87),
                                     ),
                                   ),
                                 ),
