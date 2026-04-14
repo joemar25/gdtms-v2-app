@@ -50,6 +50,8 @@
 Do not skip steps 1–3. Touching app code before updating the collection means the collection is
 no longer the source of truth — that is documentation debt that causes future bugs.
 
+**Mobile requirements for backend team**: [mobile-api-requirements.md](mobile-api-requirements.md) — inconsistencies the app works around + what needs fixing on the server side.
+
 ---
 
 ## Changelog
