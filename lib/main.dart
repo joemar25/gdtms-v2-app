@@ -10,7 +10,10 @@ import 'app.dart';
 import 'core/config.dart';
 import 'core/database/app_database.dart';
 import 'core/services/app_version_service.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/sync/workmanager_setup.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +27,10 @@ Future<void> main() async {
 
   // Initialize background tasks
   await BackgroundSyncSetup.init();
+
+  // Initialize Firebase and background push notification handler
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await PushNotificationService.initBackgroundHandler();
 
   // ── Sentry crash monitoring ───────────────────────────────────────────────
   // Only active when SENTRY_DSN is provided at build time.

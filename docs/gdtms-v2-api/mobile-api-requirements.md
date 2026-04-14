@@ -174,12 +174,12 @@ All 409 Conflict responses must include a machine-readable `code` field:
 
 Suggested codes the mobile app cares about:
 
-| Code | Meaning |
-|------|---------|
-| `DELIVERY_IMMUTABLE` | Delivery is in a terminal state and cannot be changed |
-| `SAME_STATUS_TRANSITION` | Requested status is already the current status |
-| `DUPLICATE_REQUEST` | `X-Request-ID` already processed |
-| `UNSYNCED_DELIVERIES` | Courier has pending syncs, dispatch not allowed |
+| Code                     | Meaning                                               |
+| ------------------------ | ----------------------------------------------------- |
+| `DELIVERY_IMMUTABLE`     | Delivery is in a terminal state and cannot be changed |
+| `SAME_STATUS_TRANSITION` | Requested status is already the current status        |
+| `DUPLICATE_REQUEST`      | `X-Request-ID` already processed                      |
+| `UNSYNCED_DELIVERIES`    | Courier has pending syncs, dispatch not allowed       |
 
 ---
 
@@ -291,17 +291,17 @@ between "gone" and "permission denied".
 
 ## Summary Table
 
-| # | Severity | Endpoint(s) | Issue | Workaround in app |
-|---|----------|-------------|-------|-------------------|
-| 1 | CRITICAL | GET /deliveries, GET /deliveries/:barcode | Barcode field name inconsistency | Tries 3 field names |
-| 2 | CRITICAL | GET /deliveries, PATCH /deliveries/:barcode | Status casing inconsistency | `toUpperCase()` everywhere |
-| 3 | CRITICAL | POST /deliveries/:barcode/media | Only accepts `pod` and `selfie` types | Forces S3 for other types |
-| 4 | HIGH | POST /deliveries/:barcode/media, POST /me/media | URL field name inconsistency in response | Tries 4 field names |
-| 5 | HIGH | All paginated endpoints | Pagination key inconsistency (`pagination` vs `meta`) | Tries both keys |
-| 6 | HIGH | PATCH /deliveries/:barcode (409 response) | No machine-readable error codes | Parses error message strings |
-| 7 | HIGH | GET /deliveries | `updated_at` not always present | Delta sync may miss items |
-| 8 | HIGH | PATCH /deliveries/:barcode | `X-Request-ID` not deduplicated server-side | Risk of double processing |
-| 9 | HIGH | PATCH /deliveries/:barcode | `delivered_date` may be ignored | Falls back to server NOW() |
-| 10 | HIGH | POST /check-dispatch-eligibility | Device info not validated | App checks storage locally |
-| 11 | NICE | All rate-limited endpoints | No `Retry-After` header on 429 | Generic "please wait" shown |
-| 12 | NICE | GET /deliveries/:barcode | 403 vs 404 ambiguity for reassigned items | Left for Phase 2 cleanup |
+| #   | Severity | Endpoint(s)                                     | Issue                                                 | Workaround in app            |
+| --- | -------- | ----------------------------------------------- | ----------------------------------------------------- | ---------------------------- |
+| 1   | CRITICAL | GET /deliveries, GET /deliveries/:barcode       | Barcode field name inconsistency                      | Tries 3 field names          |
+| 2   | CRITICAL | GET /deliveries, PATCH /deliveries/:barcode     | Status casing inconsistency                           | `toUpperCase()` everywhere   |
+| 3   | CRITICAL | POST /deliveries/:barcode/media                 | Only accepts `pod` and `selfie` types                 | Forces S3 for other types    |
+| 4   | HIGH     | POST /deliveries/:barcode/media, POST /me/media | URL field name inconsistency in response              | Tries 4 field names          |
+| 5   | HIGH     | All paginated endpoints                         | Pagination key inconsistency (`pagination` vs `meta`) | Tries both keys              |
+| 6   | HIGH     | PATCH /deliveries/:barcode (409 response)       | No machine-readable error codes                       | Parses error message strings |
+| 7   | HIGH     | GET /deliveries                                 | `updated_at` not always present                       | Delta sync may miss items    |
+| 8   | HIGH     | PATCH /deliveries/:barcode                      | `X-Request-ID` not deduplicated server-side           | Risk of double processing    |
+| 9   | HIGH     | PATCH /deliveries/:barcode                      | `delivered_date` may be ignored                       | Falls back to server NOW()   |
+| 10  | HIGH     | POST /check-dispatch-eligibility                | Device info not validated                             | App checks storage locally   |
+| 11  | NICE     | All rate-limited endpoints                      | No `Retry-After` header on 429                        | Generic "please wait" shown  |
+| 12  | NICE     | GET /deliveries/:barcode                        | 403 vs 404 ambiguity for reassigned items             | Left for Phase 2 cleanup     |

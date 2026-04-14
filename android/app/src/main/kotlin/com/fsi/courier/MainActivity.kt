@@ -1,4 +1,4 @@
-package com.example.fsi_courier_app
+package com.fsi.courier
 
 import android.os.Environment
 import android.os.StatFs

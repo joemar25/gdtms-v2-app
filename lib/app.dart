@@ -17,6 +17,7 @@ import 'core/providers/notifications_provider.dart';
 import 'core/providers/sync_provider.dart';
 import 'core/services/location_ping_service.dart';
 import 'core/settings/app_settings.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/sync/delivery_bootstrap_service.dart';
 import 'core/database/cleanup_service.dart';
 import 'styles/color_styles.dart';
@@ -269,6 +270,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       _maybeTriggerSync(reason: 'startup');
       _locationPing.start(_sendLocationPing);
       ref.read(notificationsProvider.notifier).loadUnreadCount();
+      PushNotificationService.instance.init(ref.read(apiClientProvider));
     }
   }
 
@@ -410,6 +412,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
         _maybeTriggerSync(reason: 'login');
         _startPeriodicSync();
         ref.read(notificationsProvider.notifier).loadUnreadCount();
+        PushNotificationService.instance.init(ref.read(apiClientProvider));
       } else if (current.isAuthenticated == false) {
         _periodicTimer?.cancel();
         _locationPing.stop();

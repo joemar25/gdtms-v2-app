@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "39215040172",
+    "project_id": "gdtms-v2-app",
+    "storage_bucket": "gdtms-v2-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:39215040172:android:0d85e9101c4d08fd904109",
+        "android_client_info": {
+          "package_name": "com.example.fsi_courier_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuCvOLYbV3toKI0XqxLAbDHv48G_W6LtQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:39215040172:android:a2981cb733554f92904109",
+        "android_client_info": {
+          "package_name": "com.fsi.courier"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuCvOLYbV3toKI0XqxLAbDHv48G_W6LtQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -743,8 +743,8 @@ class _EarningsCard extends StatelessWidget {
     final pendingAmt = double.tryParse('$pendingRequestAmt') ?? 0.0;
     final displayAmt = tentativeAmt;
     final displayLabel = isLatestPending
-        ? 'Accumulated for next request'
-        : 'Available for Request';
+        ? 'Accumulated Earnings'
+        : 'Available for Payout';
 
     return Container(
       margin: EdgeInsets.zero,
@@ -782,10 +782,10 @@ class _EarningsCard extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          isLatestPending
-                              ? Icons.schedule_rounded
-                              : Icons.account_balance_wallet_rounded,
-                          color: Colors.white70,
+                          Icons.account_balance_wallet_rounded,
+                          color: Colors.white.withValues(
+                            alpha: UIStyles.alphaGlass,
+                          ),
                           size: 18,
                         ),
                         const SizedBox(width: 6),
@@ -880,8 +880,12 @@ class _EarningsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: UIStyles.alphaActiveAccent),
+        color: Colors.transparent,
         borderRadius: UIStyles.cardRadius,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: UIStyles.alphaBorder),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
