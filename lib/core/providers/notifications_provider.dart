@@ -16,6 +16,12 @@ class AppNotification {
     this.transactionReference,
     this.deliveryReferences = const [],
     this.amount,
+    this.stage,
+    this.rejectionReason,
+    this.dispatchCode,
+    this.partialCode,
+    this.deliveryCount,
+    this.action,
     required this.date,
     required this.read,
     this.readAt,
@@ -27,6 +33,18 @@ class AppNotification {
   final String? transactionReference;
   final List<String> deliveryReferences;
   final double? amount;
+  /// Approval stage — e.g. "ops", "finance". Present on payout_approved/rejected.
+  final String? stage;
+  /// Rejection reason text. Present on payout_rejected.
+  final String? rejectionReason;
+  /// Full dispatch code. Present on new_dispatch.
+  final String? dispatchCode;
+  /// Partial (scan) code used to open the eligibility screen. Present on new_dispatch.
+  final String? partialCode;
+  /// Number of deliveries in a dispatch. Present on new_dispatch.
+  final int? deliveryCount;
+  /// Machine-readable action hint, e.g. "new_dispatch". May duplicate type.
+  final String? action;
   final String date;
   final bool read;
   final String? readAt;
@@ -44,6 +62,14 @@ class AppNotification {
       amount: json['amount'] != null
           ? double.tryParse('${json['amount']}')
           : null,
+      stage: json['stage']?.toString(),
+      rejectionReason: json['rejection_reason']?.toString(),
+      dispatchCode: json['dispatch_code']?.toString(),
+      partialCode: json['partial_code']?.toString(),
+      deliveryCount: json['delivery_count'] != null
+          ? int.tryParse('${json['delivery_count']}')
+          : null,
+      action: json['action']?.toString(),
       date: json['date']?.toString() ?? '',
       read: json['read'] as bool? ?? false,
       readAt: json['read_at']?.toString(),
@@ -58,6 +84,12 @@ class AppNotification {
       transactionReference: transactionReference,
       deliveryReferences: deliveryReferences,
       amount: amount,
+      stage: stage,
+      rejectionReason: rejectionReason,
+      dispatchCode: dispatchCode,
+      partialCode: partialCode,
+      deliveryCount: deliveryCount,
+      action: action,
       date: date,
       read: read ?? this.read,
       readAt: readAt ?? this.readAt,

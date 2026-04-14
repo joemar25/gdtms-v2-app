@@ -180,8 +180,25 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     if (!n.read) {
       ref.read(notificationsProvider.notifier).markAsRead(n.id);
     }
+
+    // new_dispatch → open dispatch eligibility screen so courier can accept.
+    if (n.type == 'new_dispatch' && n.partialCode != null) {
+      context.push(
+        '/dispatches/eligibility',
+        extra: {'partial_code': n.partialCode, 'dispatch_code': n.dispatchCode},
+      );
+      return;
+    }
+
+    // Payout notifications → wallet detail.
     if (n.transactionReference != null && n.transactionReference!.isNotEmpty) {
       context.push('/wallet/${n.transactionReference}');
+      return;
+    }
+
+    // Single-barcode notifications → delivery detail.
+    if (n.deliveryReferences.length == 1) {
+      context.push('/deliveries/${n.deliveryReferences.first}');
     }
   }
 }
@@ -256,9 +273,51 @@ class _NotificationTile extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
+                  // Rejection reason (payout_rejected only).
+                  if (notification.rejectionReason != null) ...[
+                    Text(
+                      'Reason: ${notification.rejectionReason}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.red.shade400,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   Row(
                     children: [
-                      if (notification.transactionReference != null) ...[
+                      // Dispatch code (new_dispatch).
+                      if (notification.dispatchCode != null) ...[
+                        Flexible(
+                          child: Text(
+                            notification.dispatchCode!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue.shade600,
+                            ),
+                          ),
+                        ),
+                        if (notification.deliveryCount != null) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '· ${notification.deliveryCount} items',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(width: 8),
+                      ],
+                      // Transaction reference (payout_*).
+                      if (notification.transactionReference != null &&
+                          notification.dispatchCode == null) ...[
                         Flexible(
                           child: Text(
                             notification.transactionReference!,
@@ -301,9 +360,11 @@ class _TypeIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, color) = switch (type) {
+      'new_dispatch' => (Icons.local_shipping_rounded, Colors.blue.shade600),
       'payout_requested' => (Icons.send_rounded, Colors.blue.shade400),
       'payout_approved' => (Icons.check_circle_rounded, ColorStyles.grabGreen),
       'payout_rejected' => (Icons.cancel_rounded, Colors.red.shade400),
+      'payout_paid' => (Icons.payments_rounded, ColorStyles.grabGreen),
       'transaction_due_soon' => (
         Icons.schedule_rounded,
         Colors.orange.shade400,

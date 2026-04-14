@@ -21,7 +21,7 @@ This guide documents the Firebase Cloud Messaging (FCM) integration in GDTMS v2.
 
 ## Architecture Overview
 
-```
+```text
 Flutter App                     Laravel API                     Firebase FCM
     │                               │                               │
     │  POST /api/mbl/login           │                               │
@@ -92,7 +92,7 @@ Web UI (Delivery Reports)           │                               │
 
 ### 1. Package
 
-```
+```text
 kreait/laravel-firebase  v6.2.0
 kreait/firebase-php      v7.24.1
 ```
@@ -109,7 +109,7 @@ FIREBASE_CREDENTIALS=storage/app/firebase_credentials.json
 
 ### 3. Database Migration
 
-```
+```text
 database/migrations/2026_04_14_000000_add_fcm_token_to_users_table.php
 ```
 
@@ -220,7 +220,7 @@ The Flutter app handles the full notification lifecycle via `PushNotificationSer
 
 ### Initialization Flow
 
-```
+```text
 main.dart
   └─ Firebase.initializeApp()
   └─ PushNotificationService.initBackgroundHandler()   ← registers background isolate handler
@@ -352,7 +352,7 @@ The resource then maps these to the API response:
 
 ### Data Flow for the Notify Button
 
-```
+```text
 DeliveryRepository::withRelations()
   └─ user: select(fcm_token) + withCount('tokens')
       │
@@ -427,7 +427,7 @@ Follow this checklist when:
 
 Place the file at:
 
-```
+```text
 storage/app/firebase_credentials.json
 ```
 
@@ -537,6 +537,63 @@ The Flutter `_navigateFromMessage` requires `rootNavigatorKey.currentContext` to
 ### Google Cloud API Quota / Billing
 
 The Firebase HTTP v1 API (used by kreait) communicates with `fcm.googleapis.com`. For high-volume notification sending, check the Cloud Messaging API quotas in the Google Cloud Console under **APIs & Services → Firebase Cloud Messaging API**.
+
+---
+
+## FCM Token Resilience Contract
+
+This section documents the exact behaviour of the FCM token pipeline when tokens go stale, and the obligations on each side of the stack.
+
+### Why Tokens Go Stale
+
+A stored `fcm_token` becomes invalid when the courier:
+
+1. Uninstalls and reinstalls the app (Firebase issues a new token).
+2. Clears app data (token is regenerated on next launch).
+3. Logs in on a different device (the new token overwrites the old one, but the old device's token is now orphaned in the DB if the courier also uses the old device).
+4. Has their Firebase project rotated (all existing tokens are invalidated).
+5. Has not opened the app in several months (Firebase may expire long-idle tokens).
+
+### Backend Behaviour Table
+
+| Scenario | `users.fcm_token` | FCM result | Backend action |
+| -------- | ----------------- | ---------- | -------------- |
+| Token is `null` | `null` | (skipped) | Silently skips FCM; DB notify fires normally |
+| Token valid | non-null | `success` | Notification delivered |
+| Token stale — `UNREGISTERED` / `registration-token-not-registered` | non-null | FCM error | Token cleared to `null` in DB; DB notify fires normally; next open re-populates |
+| Token stale — any other `MessagingException` | non-null | FCM error | Logs warning; token **kept** (transient error, not a stale token) |
+
+**Invariant**: `$user->notify(...)` (database channel) fires **before** FCM in all notification methods — so the in-app notification list is always populated regardless of FCM outcome.
+
+### Mobile App Contract
+
+The Flutter app **must** call `POST /api/mbl/profile/fcm-token` in two places:
+
+1. **On every startup** (when authenticated + online) — catches the case where Firebase silently rotated the token while the app was closed.
+2. **On every `onTokenRefresh` event** — Firebase will call this whenever it decides to issue a new token.
+
+Both calls are implemented in `lib/core/services/push_notification_service.dart`:
+
+```dart
+// On init (step 3 + 4 inside init())
+final token = await _messaging.getToken();
+if (token != null) await _syncTokenToApi(token);
+
+_messaging.onTokenRefresh.listen((token) => _syncTokenToApi(token));
+```
+
+A failed sync is logged silently via `ErrorLogService.warning` and **never** blocks the login or delivery flow.
+
+### Web Dashboard Diagnostic Flags
+
+Two flags appear on every delivery row in the Delivery Reports table to help identify token issues without needing DB access:
+
+| Flag | Source | Meaning |
+| ---- | ------ | ------- |
+| `courier_has_fcm_token` | `users.fcm_token IS NOT NULL` | Device is registered for push |
+| `courier_has_active_session` | `tokens_count > 0` (Sanctum) | Courier is logged in |
+
+See [Web UI — Delivery Reports Notification](#web-ui--delivery-reports-notification) for the full button-state matrix.
 
 ---
 

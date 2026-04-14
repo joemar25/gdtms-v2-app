@@ -224,6 +224,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (mounted) context.go('/splash');
   }
 
+  Future<void> _logoutAll() async {
+    await ref
+        .read(apiClientProvider)
+        .post<Map<String, dynamic>>('/logout-all', parser: parseApiMap);
+    await AppDatabase.clearAllDeliveryData();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('_session_fingerprint');
+    await ref.read(authStorageProvider).clearAll();
+    await ref.read(authProvider.notifier).initialize();
+    if (mounted) context.go('/splash');
+  }
+
   String get _backendLabel {
     final host = Uri.tryParse(apiBaseUrl)?.host ?? apiBaseUrl;
     final env = apiBaseUrl.contains('staging') ? 'Staging' : 'Production';
@@ -332,6 +344,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           isDestructive: true,
                         );
                         if (confirmed == true && mounted) await _logout();
+                      },
+                    ),
+                    _CardDivider(isDark: isDark),
+                    _ActionTile(
+                      icon: Icons.devices_rounded,
+                      iconColor: Colors.red.shade700,
+                      label: 'Sign Out All Devices',
+                      subtitle: 'Revoke all active sessions on every device',
+                      isDark: isDark,
+                      isDestructive: true,
+                      onTap: () async {
+                        final confirmed = await ConfirmationDialog.show(
+                          context,
+                          title: 'Sign out all devices',
+                          subtitle:
+                              'This will end all active sessions on every device, including this one. You will need to log in again.',
+                          confirmLabel: 'Sign out all',
+                          cancelLabel: 'Cancel',
+                          isDestructive: true,
+                        );
+                        if (confirmed == true && mounted) await _logoutAll();
                       },
                     ),
                   ],
