@@ -40,8 +40,8 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCEeGVzFhrTeVmZejDK2Vw098-WdJQU_1Y',
+  static FirebaseOptions get web => FirebaseOptions(
+    apiKey: String.fromEnvironment('FIREBASE_API_KEY_WEB'),
     appId: '1:39215040172:web:2efd902cdbd5fd63904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',
@@ -50,16 +50,16 @@ class DefaultFirebaseOptions {
     measurementId: 'G-DJ85BKKDWN',
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDuCvOLYbV3toKI0XqxLAbDHv48G_W6LtQ',
+  static FirebaseOptions get android => FirebaseOptions(
+    apiKey: String.fromEnvironment('FIREBASE_API_KEY_ANDROID'),
     appId: '1:39215040172:android:a2981cb733554f92904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',
     storageBucket: 'gdtms-v2-app.firebasestorage.app',
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB9lfcInYp81tmtO-3xtxVbrEZ1an3Ym3I',
+  static FirebaseOptions get ios => FirebaseOptions(
+    apiKey: String.fromEnvironment('FIREBASE_API_KEY_IOS'),
     appId: '1:39215040172:ios:58174f0ff9f54fc0904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',
@@ -67,8 +67,8 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.fsi.courier',
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyB9lfcInYp81tmtO-3xtxVbrEZ1an3Ym3I',
+  static FirebaseOptions get macos => FirebaseOptions(
+    apiKey: String.fromEnvironment('FIREBASE_API_KEY_IOS'),
     appId: '1:39215040172:ios:58174f0ff9f54fc0904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',
@@ -76,8 +76,8 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.fsi.courier',
   );
 
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCEeGVzFhrTeVmZejDK2Vw098-WdJQU_1Y',
+  static FirebaseOptions get windows => FirebaseOptions(
+    apiKey: String.fromEnvironment('FIREBASE_API_KEY_WINDOWS'),
     appId: '1:39215040172:web:deb230016470bcdd904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',
