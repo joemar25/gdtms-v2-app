@@ -28,6 +28,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -321,7 +322,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                             style: FilledButton.styleFrom(
                               backgroundColor: ColorStyles.grabGreen,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: UIStyles.cardRadius,
                               ),
                             ),
                             child: const Text(
@@ -366,18 +367,18 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         prefixIcon: Icon(icon, size: 20),
         filled: true,
         fillColor: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.grey.withValues(alpha: 0.05),
+            ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
+            : Colors.grey.withValues(alpha: UIStyles.alphaSoft),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: UIStyles.cardRadius,
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: UIStyles.cardRadius,
           borderSide: BorderSide(color: Colors.transparent),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: UIStyles.cardRadius,
           borderSide: const BorderSide(
             color: ColorStyles.grabGreen,
             width: 1.5,

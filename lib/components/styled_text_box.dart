@@ -64,14 +64,7 @@ class _StyledTextBoxState extends State<StyledTextBox> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
-        ],
-      ),
+      margin: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
         controller: _controller,
         focusNode: _focusNode,
@@ -83,26 +76,17 @@ class _StyledTextBoxState extends State<StyledTextBox> {
               ? widget.activeLabel ?? widget.label
               : widget.label,
           labelStyle: TextStyle(
-            color: widget.labelColor ?? const Color(0xFFA6A7AE),
+            color: widget.labelColor, // let the theme handle default grey
           ),
           floatingLabelBehavior: FloatingLabelBehavior.auto,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
+          // Let theme provide filled & fillColor & borders
 
           // 🔐 Eye toggle
           suffixIcon: widget.obscureText
               ? IconButton(
                   icon: Icon(
                     _isObscured ? Icons.visibility : Icons.visibility_off,
-                    color: const Color(0xFF2E7D32),
+                    color: Theme.of(context).primaryColor,
                   ),
                   onPressed: () {
                     setState(() => _isObscured = !_isObscured);

@@ -39,6 +39,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -892,13 +893,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             color: hasPhoto
                 ? Colors.transparent
                 : (isDark ? ColorStyles.grabCardElevatedDark : Colors.white),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: UIStyles.cardRadius,
             border: Border.all(
               color: hasError
                   ? Colors.red
                   : hasPhoto
                   ? (isDark ? Colors.white10 : Colors.grey.shade200)
-                  : color.withValues(alpha: 0.45),
+                  : color.withValues(alpha: UIStyles.alphaBorder),
               width: hasError ? 1.5 : 1.2,
             ),
           ),
@@ -1004,13 +1005,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       child: Container(
         height: _kSignatureHeight,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: UIStyles.cardRadius,
           border: Border.all(
             color: hasError
                 ? Colors.red
                 : hasSignature
                 ? (isDark ? Colors.white10 : Colors.grey.shade200)
-                : ColorStyles.grabGreen.withValues(alpha: 0.45),
+                : ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaBorder),
             width: hasError ? 1.5 : 1.2,
           ),
         ),
@@ -1100,7 +1101,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   Icon(
                     Icons.draw_rounded,
                     size: 34,
-                    color: ColorStyles.grabGreen.withValues(alpha: 0.7),
+                    color: ColorStyles.grabGreen.withValues(
+                      alpha: UIStyles.alphaGlass,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -1108,7 +1111,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: ColorStyles.grabGreen.withValues(alpha: 0.8),
+                      color: ColorStyles.grabGreen.withValues(
+                        alpha: UIStyles.alphaGlass,
+                      ),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -1200,11 +1205,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             style: FilledButton.styleFrom(
               backgroundColor: ColorStyles.grabGreen,
               minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
               elevation: 6,
-              shadowColor: ColorStyles.grabGreen.withValues(alpha: 0.4),
+              shadowColor: ColorStyles.grabGreen.withValues(
+                alpha: UIStyles.alphaBorder,
+              ),
             ),
             onPressed: _loading ? null : _submit,
           ),
@@ -1756,10 +1761,10 @@ class _NotePresetChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedColor = ColorStyles.grabGreen;
     final unselectedBg = isDark
-        ? Colors.white.withValues(alpha: 0.06)
+        ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
         : Colors.grey.shade100;
     final unselectedBorder = isDark
-        ? Colors.white.withValues(alpha: 0.15)
+        ? Colors.white.withValues(alpha: UIStyles.alphaActiveAccent)
         : Colors.grey.shade300;
 
     return GestureDetector(
@@ -1769,12 +1774,12 @@ class _NotePresetChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: selected
-              ? selectedColor.withValues(alpha: 0.12)
+              ? selectedColor.withValues(alpha: UIStyles.alphaActiveAccent)
               : unselectedBg,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: UIStyles.cardRadius,
           border: Border.all(
             color: selected
-                ? selectedColor.withValues(alpha: 0.7)
+                ? selectedColor.withValues(alpha: UIStyles.alphaGlass)
                 : unselectedBorder,
             width: selected ? 1.4 : 1.0,
           ),
@@ -1844,7 +1849,7 @@ class _StatusSelectorState extends State<_StatusSelector> {
           height: 80,
           decoration: BoxDecoration(
             color: isDark ? Colors.white10 : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: UIStyles.cardRadius,
             border: Border.all(
               color: isDark ? Colors.white12 : Colors.grey.shade300,
               width: 1,
@@ -1869,10 +1874,12 @@ class _StatusSelectorState extends State<_StatusSelector> {
                       duration: const Duration(milliseconds: 300),
                       decoration: BoxDecoration(
                         color: activeMeta.color,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: UIStyles.cardRadius,
                         boxShadow: [
                           BoxShadow(
-                            color: activeMeta.color.withValues(alpha: 0.3),
+                            color: activeMeta.color.withValues(
+                              alpha: UIStyles.alphaDarkShadow,
+                            ),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),

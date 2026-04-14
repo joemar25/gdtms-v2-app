@@ -21,6 +21,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -113,7 +114,7 @@ class _TermsScreenState extends State<TermsScreen> {
                     margin: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: cardColor,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: UIStyles.cardRadius,
                     ),
                     child: SingleChildScrollView(
                       controller: _scrollCtrl,
@@ -159,7 +160,7 @@ class _TermsScreenState extends State<TermsScreen> {
                             ? Colors.white24
                             : Colors.black26,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: UIStyles.cardRadius,
                         ),
                         elevation: 0,
                       ),

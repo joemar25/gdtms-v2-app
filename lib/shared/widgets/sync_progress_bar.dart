@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
@@ -79,7 +80,7 @@ class SyncProgressBar extends ConsumerWidget {
                   ? syncState.processed / syncState.total
                   : null,
               minHeight: 3,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: UIStyles.pillRadius,
             ),
           ] else ...[
             Row(

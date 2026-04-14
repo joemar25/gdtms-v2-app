@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart' as geolocator;
 
@@ -45,41 +46,139 @@ class FsiCourierApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: appScaffoldMessengerKey,
       themeMode: auth.themeMode,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00B14F)),
-        useMaterial3: true,
-        scaffoldBackgroundColor: ColorStyles.scaffoldLight,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: ColorStyles.appBarLight,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
-        actionIconTheme: ActionIconThemeData(
-          backButtonIconBuilder: (BuildContext context) =>
-              const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00B14F),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        scaffoldBackgroundColor: ColorStyles.scaffoldDark,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: ColorStyles.appBarDark,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
-        actionIconTheme: ActionIconThemeData(
-          backButtonIconBuilder: (BuildContext context) =>
-              const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-      ),
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
       routerConfig: router,
       builder: (context, child) => _AutoSyncListener(child: child!),
+    );
+  }
+
+  ThemeData _buildTheme(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+
+    final scaffoldColor = isDark
+        ? ColorStyles.scaffoldDark
+        : ColorStyles.scaffoldLight;
+    final cardColor = isDark ? ColorStyles.cardDark : ColorStyles.cardLight;
+    final appBarColor = isDark
+        ? ColorStyles.appBarDark
+        : ColorStyles.appBarLight;
+    final primaryLabel = isDark
+        ? ColorStyles.labelPrimaryDark
+        : ColorStyles.labelPrimary;
+    final secondaryLabel = isDark
+        ? ColorStyles.labelSecondaryDark
+        : ColorStyles.labelSecondary;
+
+    // Core theme properties
+    return ThemeData(
+      brightness: brightness,
+      primaryColor: ColorStyles.primary,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: ColorStyles.grabGreen,
+        brightness: brightness,
+        primary: ColorStyles.primary,
+      ),
+      fontFamily: 'Montserrat',
+      useMaterial3: true,
+      scaffoldBackgroundColor: scaffoldColor,
+
+      // App Bar modern styling
+      appBarTheme: AppBarTheme(
+        backgroundColor: appBarColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        iconTheme: IconThemeData(color: primaryLabel),
+        titleTextStyle: TextStyle(
+          fontFamily: 'Montserrat',
+          color: primaryLabel,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+
+      actionIconTheme: ActionIconThemeData(
+        backButtonIconBuilder: (BuildContext context) =>
+            const Icon(Icons.arrow_back_ios_new_rounded),
+      ),
+
+      // Text Theme
+      textTheme: TextTheme(
+        bodyLarge: TextStyle(color: primaryLabel),
+        bodyMedium: TextStyle(color: primaryLabel),
+        bodySmall: TextStyle(color: secondaryLabel),
+        titleLarge: TextStyle(color: primaryLabel, fontWeight: FontWeight.w700),
+        titleMedium: TextStyle(
+          color: primaryLabel,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+
+      // Card Theme: no hard borders, soft styling
+      cardTheme: CardThemeData(
+        color: cardColor,
+        elevation: 0,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+      ),
+
+      // Elevated Buttons: pills
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: ColorStyles.primary,
+          foregroundColor: Colors.white,
+          elevation: 0, // Flat styling
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Montserrat',
+          ),
+          shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+        ),
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: ColorStyles.primary,
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Montserrat',
+          ),
+        ),
+      ),
+
+      // Inputs styling
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: isDark
+            ? ColorStyles.secondarySurfaceDark
+            : ColorStyles.secondarySurfaceLight,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: UIStyles.cardRadius,
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: UIStyles.cardRadius,
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: UIStyles.cardRadius,
+          borderSide: BorderSide(color: ColorStyles.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: UIStyles.cardRadius,
+          borderSide: BorderSide(color: ColorStyles.red, width: 1),
+        ),
+        labelStyle: TextStyle(color: secondaryLabel, fontFamily: 'Montserrat'),
+      ),
     );
   }
 }
@@ -421,7 +520,7 @@ class _SyncPillContent extends ConsumerWidget {
                     color: isDark
                         ? const Color(0xFF2C2C2E).withValues(alpha: 0.97)
                         : Colors.white.withValues(alpha: 0.97),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: UIStyles.circularRadius,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(

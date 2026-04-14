@@ -1,6 +1,7 @@
 // DOCS: docs/shared/helpers.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -216,10 +217,10 @@ class _InfoBanner extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: UIStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: UIStyles.alphaActiveAccent),
             blurRadius: 24,
             offset: const Offset(0, 6),
           ),
@@ -233,8 +234,8 @@ class _InfoBanner extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: color.withValues(alpha: UIStyles.alphaActiveAccent),
+              borderRadius: UIStyles.cardRadius,
             ),
             child: Icon(icon, color: color, size: 20),
           ),
@@ -295,10 +296,10 @@ class _SuccessBanner extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: UIStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: UIStyles.alphaActiveAccent),
             blurRadius: 24,
             offset: const Offset(0, 6),
           ),
@@ -312,8 +313,10 @@ class _SuccessBanner extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: ColorStyles.grabGreen.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: ColorStyles.grabGreen.withValues(
+                alpha: UIStyles.alphaActiveAccent,
+              ),
+              borderRadius: UIStyles.cardRadius,
             ),
             child: const Icon(
               Icons.check_circle_outline_rounded,

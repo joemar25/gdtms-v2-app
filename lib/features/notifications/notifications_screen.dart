@@ -24,6 +24,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -204,8 +205,12 @@ class _NotificationTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: isUnread
               ? (isDark
-                    ? ColorStyles.grabGreen.withValues(alpha: 0.08)
-                    : ColorStyles.grabGreen.withValues(alpha: 0.05))
+                    ? ColorStyles.grabGreen.withValues(
+                        alpha: UIStyles.alphaSoft,
+                      )
+                    : ColorStyles.grabGreen.withValues(
+                        alpha: UIStyles.alphaSoft,
+                      ))
               : null,
           border: isUnread
               ? Border(left: BorderSide(color: ColorStyles.grabGreen, width: 3))
@@ -311,7 +316,7 @@ class _TypeIcon extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: UIStyles.alphaActiveAccent),
         shape: BoxShape.circle,
       ),
       child: Icon(icon, size: 20, color: color),

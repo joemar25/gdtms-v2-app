@@ -1,6 +1,7 @@
 // DOCS: docs/entry-points.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -82,10 +83,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: UIStyles.circularRadius,
                 boxShadow: [
                   BoxShadow(
-                    color: ColorStyles.grabGreen.withValues(alpha: 0.45),
+                    color: ColorStyles.grabGreen.withValues(
+                      alpha: UIStyles.alphaBorder,
+                    ),
                     blurRadius: 40,
                     offset: const Offset(0, 12),
                   ),
@@ -101,11 +104,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(13),
+                          color: Colors.white.withValues(
+                            alpha: UIStyles.alphaActiveAccent,
+                          ),
+                          borderRadius: UIStyles.cardRadius,
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(13),
+                          borderRadius: UIStyles.cardRadius,
                           child: Image.asset(
                             'assets/icon.png',
                             width: 36,
@@ -125,7 +130,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                             Text(
                                   'FSI COURIER',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.75),
+                                    color: Colors.white.withValues(
+                                      alpha: UIStyles.alphaGlass,
+                                    ),
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 1.5,
@@ -211,7 +218,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             Text(
               'Fastrak Services Inc.',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.35),
+                color: Colors.white.withValues(alpha: UIStyles.alphaDarkShadow),
                 fontSize: 12,
                 letterSpacing: 0.5,
               ),
@@ -236,8 +243,8 @@ class _SplashChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withValues(alpha: UIStyles.alphaActiveAccent),
+        borderRadius: UIStyles.cardRadius,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

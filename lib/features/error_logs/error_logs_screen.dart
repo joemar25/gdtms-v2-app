@@ -1,6 +1,7 @@
 // DOCS: docs/features/error-logs.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
@@ -222,9 +223,11 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: color.withValues(alpha: UIStyles.alphaSoft),
+        borderRadius: UIStyles.cardRadius,
+        border: Border.all(
+          color: color.withValues(alpha: UIStyles.alphaDarkShadow),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -270,8 +273,10 @@ class _LogCardState extends State<_LogCard> {
     return Container(
       decoration: BoxDecoration(
         color: widget.isDark ? const Color(0xFF1E1E2E) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        borderRadius: UIStyles.cardRadius,
+        border: Border.all(
+          color: color.withValues(alpha: UIStyles.alphaDarkShadow),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.04),
@@ -372,7 +377,7 @@ class _LogCardState extends State<_LogCard> {
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.04),
+                  color: color.withValues(alpha: UIStyles.alphaSoft),
                   borderRadius: const BorderRadius.vertical(
                     bottom: Radius.circular(12),
                   ),
@@ -380,7 +385,12 @@ class _LogCardState extends State<_LogCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Divider(height: 16, color: color.withValues(alpha: 0.15)),
+                    Divider(
+                      height: 16,
+                      color: color.withValues(
+                        alpha: UIStyles.alphaActiveAccent,
+                      ),
+                    ),
                     Text(
                       e.detail!,
                       style: TextStyle(
@@ -431,8 +441,8 @@ class _ContextBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
+        color: color.withValues(alpha: UIStyles.alphaActiveAccent),
+        borderRadius: UIStyles.pillRadius,
       ),
       child: Text(
         context.replaceAll('_', ' ').toUpperCase(),

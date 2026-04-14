@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
@@ -172,13 +173,13 @@ class DeliveryCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: UIStyles.cardRadius,
         border: Border.all(color: cardBorder, width: 1),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withValues(alpha: 0.35)
-                : Colors.black.withValues(alpha: 0.06),
+                ? Colors.black.withValues(alpha: UIStyles.alphaDarkShadow)
+                : Colors.black.withValues(alpha: UIStyles.alphaSoft),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -188,10 +189,10 @@ class DeliveryCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: UIStyles.cardRadius,
           onTap: isChecking ? null : onTap,
-          splashColor: colorForStatus.withValues(alpha: 0.08),
-          highlightColor: colorForStatus.withValues(alpha: 0.04),
+          splashColor: colorForStatus.withValues(alpha: UIStyles.alphaSoft),
+          highlightColor: colorForStatus.withValues(alpha: UIStyles.alphaSoft),
           child: AnimatedOpacity(
             opacity: isChecking ? 0.55 : 1.0,
             duration: const Duration(milliseconds: 200),
@@ -255,8 +256,8 @@ class DeliveryCard extends StatelessWidget {
                                       decoration: BoxDecoration(
                                         color: const Color(
                                           0xFF2196F3,
-                                        ).withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(6),
+                                        ).withValues(alpha: UIStyles.alphaSoft),
+                                        borderRadius: UIStyles.pillRadius,
                                       ),
                                       child: Text(
                                         mailType,
@@ -283,8 +284,8 @@ class DeliveryCard extends StatelessWidget {
                                       decoration: BoxDecoration(
                                         color: const Color(
                                           0xFF2196F3,
-                                        ).withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(6),
+                                        ).withValues(alpha: UIStyles.alphaSoft),
+                                        borderRadius: UIStyles.pillRadius,
                                       ),
                                       child: Text(
                                         jobOrder,
@@ -625,8 +626,8 @@ class DeliveryCard extends StatelessWidget {
     if (!hasDetails) return const SizedBox.shrink();
 
     final dividerColor = isDark
-        ? Colors.white.withValues(alpha: 0.07)
-        : Colors.black.withValues(alpha: 0.07);
+        ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
+        : Colors.black.withValues(alpha: UIStyles.alphaSoft);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -715,15 +716,15 @@ class DeliveryCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 7),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: UIStyles.cardRadius,
         border: Border.all(
           color: isDark ? const Color(0xFF2A2A40) : const Color(0xFFE8EAF0),
         ),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withValues(alpha: 0.3)
-                : Colors.black.withValues(alpha: 0.04),
+                ? Colors.black.withValues(alpha: UIStyles.alphaDarkShadow)
+                : Colors.black.withValues(alpha: UIStyles.alphaSoft),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -741,7 +742,10 @@ class DeliveryCard extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [statusColor, statusColor.withValues(alpha: 0.4)],
+                  colors: [
+                    statusColor,
+                    statusColor.withValues(alpha: UIStyles.alphaBorder),
+                  ],
                 ),
               ),
             ),
@@ -886,9 +890,12 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+        color: color.withValues(alpha: UIStyles.alphaActiveAccent),
+        borderRadius: UIStyles.pillRadius,
+        border: Border.all(
+          color: color.withValues(alpha: UIStyles.alphaDarkShadow),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -931,7 +938,7 @@ class _MiniPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: UIStyles.pillRadius,
         border: Border.all(color: border),
       ),
       child: Row(
@@ -965,9 +972,11 @@ class _TinyPill extends StatelessWidget {
       margin: const EdgeInsets.only(left: 4),
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: color.withValues(alpha: UIStyles.alphaActiveAccent),
+        borderRadius: UIStyles.pillRadius,
+        border: Border.all(
+          color: color.withValues(alpha: UIStyles.alphaDarkShadow),
+        ),
       ),
       child: Text(
         label,

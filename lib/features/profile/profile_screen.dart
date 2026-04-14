@@ -31,6 +31,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -643,10 +644,12 @@ class _ProfileHeroCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: Colors.white.withValues(alpha: UIStyles.alphaBorder),
                     width: 2,
                   ),
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withValues(
+                    alpha: UIStyles.alphaActiveAccent,
+                  ),
                 ),
                 child: Hero(
                   tag: 'profile_avatar',
@@ -697,7 +700,9 @@ class _ProfileHeroCard extends StatelessWidget {
                       email,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: Colors.white.withValues(
+                          alpha: UIStyles.alphaGlass,
+                        ),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -709,8 +714,10 @@ class _ProfileHeroCard extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
+                        color: Colors.white.withValues(
+                          alpha: UIStyles.alphaActiveAccent,
+                        ),
+                        borderRadius: UIStyles.pillRadius,
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -745,16 +752,21 @@ class _ProfileHeroCard extends StatelessWidget {
                   size: 24,
                 ),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  backgroundColor: Colors.white.withValues(
+                    alpha: UIStyles.alphaActiveAccent,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: UIStyles.cardRadius,
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Divider(color: Colors.white.withValues(alpha: 0.15), height: 1),
+          Divider(
+            color: Colors.white.withValues(alpha: UIStyles.alphaActiveAccent),
+            height: 1,
+          ),
           const SizedBox(height: 16),
           // Compact Info Row
           Row(
@@ -835,8 +847,10 @@ class _AccountInactiveBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.08),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.25)),
+        color: Colors.red.withValues(alpha: UIStyles.alphaSoft),
+        border: Border.all(
+          color: Colors.red.withValues(alpha: UIStyles.alphaDarkShadow),
+        ),
         borderRadius: BorderRadius.circular(_Tokens.radiusSm),
       ),
       child: Row(
@@ -845,7 +859,7 @@ class _AccountInactiveBanner extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.12),
+              color: Colors.red.withValues(alpha: UIStyles.alphaActiveAccent),
               borderRadius: BorderRadius.circular(_Tokens.radiusXs),
             ),
             child: const Icon(
@@ -986,7 +1000,7 @@ class _ActionTile extends StatelessWidget {
               width: _Tokens.tileIconSize,
               height: _Tokens.tileIconSize,
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
+                color: iconColor.withValues(alpha: UIStyles.alphaActiveAccent),
                 borderRadius: BorderRadius.circular(_Tokens.radiusXs),
               ),
               child: Icon(icon, size: _Tokens.tileIconInner, color: iconColor),
@@ -1060,7 +1074,7 @@ class _ModernSwitchTile extends StatelessWidget {
             width: _Tokens.tileIconSize,
             height: _Tokens.tileIconSize,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
+              color: iconColor.withValues(alpha: UIStyles.alphaActiveAccent),
               borderRadius: BorderRadius.circular(_Tokens.radiusXs),
             ),
             child: Icon(icon, size: _Tokens.tileIconInner, color: iconColor),
@@ -1129,7 +1143,9 @@ class _SyncRetentionTile extends StatelessWidget {
                 width: _Tokens.tileIconSize,
                 height: _Tokens.tileIconSize,
                 decoration: BoxDecoration(
-                  color: _Tokens.accentTeal.withValues(alpha: 0.12),
+                  color: _Tokens.accentTeal.withValues(
+                    alpha: UIStyles.alphaActiveAccent,
+                  ),
                   borderRadius: BorderRadius.circular(_Tokens.radiusXs),
                 ),
                 child: Icon(
@@ -1217,7 +1233,9 @@ class _ThemeSegmentedTile extends StatelessWidget {
                 width: _Tokens.tileIconSize,
                 height: _Tokens.tileIconSize,
                 decoration: BoxDecoration(
-                  color: _Tokens.accentPurple.withValues(alpha: 0.12),
+                  color: _Tokens.accentPurple.withValues(
+                    alpha: UIStyles.alphaActiveAccent,
+                  ),
                   borderRadius: BorderRadius.circular(_Tokens.radiusXs),
                 ),
                 child: Icon(
@@ -1307,7 +1325,7 @@ class _DetailTile extends StatelessWidget {
             width: _Tokens.tileIconSize,
             height: _Tokens.tileIconSize,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
+              color: iconColor.withValues(alpha: UIStyles.alphaActiveAccent),
               borderRadius: BorderRadius.circular(_Tokens.radiusXs),
             ),
             child: Icon(icon, size: _Tokens.tileIconInner, color: iconColor),
@@ -1371,7 +1389,7 @@ class _ErrorLogsTile extends StatelessWidget {
               width: _Tokens.tileIconSize,
               height: _Tokens.tileIconSize,
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.10),
+                color: Colors.red.withValues(alpha: UIStyles.alphaSoft),
                 borderRadius: BorderRadius.circular(_Tokens.radiusXs),
               ),
               child: const Icon(
@@ -1410,7 +1428,7 @@ class _ErrorLogsTile extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.red.shade600,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: UIStyles.cardRadius,
                 ),
                 child: Text(
                   '$errorLogCount',
@@ -1458,9 +1476,11 @@ class _StorageBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
+        color: color.withValues(alpha: UIStyles.alphaSoft),
         borderRadius: BorderRadius.circular(_Tokens.radiusSm),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        border: Border.all(
+          color: color.withValues(alpha: UIStyles.alphaDarkShadow),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1469,7 +1489,7 @@ class _StorageBanner extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
+              color: color.withValues(alpha: UIStyles.alphaActiveAccent),
               borderRadius: BorderRadius.circular(_Tokens.radiusXs),
             ),
             child: Icon(Icons.warning_amber_rounded, color: color, size: 16),

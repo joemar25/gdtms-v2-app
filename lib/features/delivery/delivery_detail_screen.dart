@@ -31,6 +31,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -246,7 +247,7 @@ class _ContactAppSheet extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: _DS.spacingMD),
               decoration: BoxDecoration(
                 color: isDark ? Colors.white24 : Colors.black12,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: UIStyles.pillRadius,
               ),
             ),
           ),
@@ -315,10 +316,12 @@ class _AppTile extends StatelessWidget {
               height: 60,
               decoration: BoxDecoration(
                 color: app.color,
-                borderRadius: BorderRadius.circular(17),
+                borderRadius: UIStyles.cardRadius,
                 boxShadow: [
                   BoxShadow(
-                    color: app.color.withValues(alpha: 0.35),
+                    color: app.color.withValues(
+                      alpha: UIStyles.alphaDarkShadow,
+                    ),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -753,8 +756,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey.withValues(alpha: UIStyles.alphaSoft),
+                  borderRadius: UIStyles.cardRadius,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -799,8 +802,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.blueGrey.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.blueGrey.withValues(
+                      alpha: UIStyles.alphaSoft,
+                    ),
+                    borderRadius: UIStyles.cardRadius,
                   ),
                   child: Text(
                     _str('mail_type'),
@@ -1006,7 +1011,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: (isDark ? Colors.white : _DS.labelPrimary)
-                          .withValues(alpha: 0.08),
+                          .withValues(alpha: UIStyles.alphaSoft),
                       borderRadius: BorderRadius.circular(_DS.radiusBadge),
                     ),
                     child: Text(
@@ -1055,7 +1060,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.12),
+                            color: Colors.orange.withValues(
+                              alpha: UIStyles.alphaActiveAccent,
+                            ),
                             borderRadius: BorderRadius.circular(
                               _DS.radiusBadge,
                             ),
@@ -1453,7 +1460,7 @@ class _IosTappableRow extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.1),
+                  color: accentColor.withValues(alpha: UIStyles.alphaSoft),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 13, color: accentColor),
@@ -1519,13 +1526,17 @@ class _TimelineItem extends StatelessWidget {
                     color: isFirst
                         ? _DS.accent
                         : (isDark
-                              ? Colors.white.withValues(alpha: 0.08)
+                              ? Colors.white.withValues(
+                                  alpha: UIStyles.alphaSoft,
+                                )
                               : Colors.grey.shade100),
                     shape: BoxShape.circle,
                     boxShadow: isFirst
                         ? [
                             BoxShadow(
-                              color: _DS.accent.withValues(alpha: 0.3),
+                              color: _DS.accent.withValues(
+                                alpha: UIStyles.alphaDarkShadow,
+                              ),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -1588,7 +1599,7 @@ class _TimelineItem extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: (isDark ? Colors.white : Colors.black)
-                                .withValues(alpha: 0.06),
+                                .withValues(alpha: UIStyles.alphaSoft),
                             borderRadius: BorderRadius.circular(
                               _DS.radiusBadge,
                             ),
@@ -1620,8 +1631,12 @@ class _TimelineItem extends StatelessWidget {
                       style: _DS.body.copyWith(
                         fontSize: 13,
                         color: isDark
-                            ? _DS.labelPrimaryDark.withValues(alpha: 0.75)
-                            : _DS.labelPrimary.withValues(alpha: 0.75),
+                            ? _DS.labelPrimaryDark.withValues(
+                                alpha: UIStyles.alphaGlass,
+                              )
+                            : _DS.labelPrimary.withValues(
+                                alpha: UIStyles.alphaGlass,
+                              ),
                       ),
                     ),
                   ],

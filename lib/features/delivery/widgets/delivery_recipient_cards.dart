@@ -1,6 +1,7 @@
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 
 /// Renders quick-tap cards for the consignee (recipient) and authorized rep.
 ///
@@ -35,10 +36,14 @@ class DeliveryRecipientCards extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF007A36).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
+                color: const Color(
+                  0xFF007A36,
+                ).withValues(alpha: UIStyles.alphaSoft),
+                borderRadius: UIStyles.cardRadius,
                 border: Border.all(
-                  color: const Color(0xFF007A36).withValues(alpha: 0.3),
+                  color: const Color(
+                    0xFF007A36,
+                  ).withValues(alpha: UIStyles.alphaDarkShadow),
                 ),
               ),
               child: Row(
@@ -88,9 +93,13 @@ class DeliveryRecipientCards extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.purple.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+                color: Colors.purple.withValues(alpha: UIStyles.alphaSoft),
+                borderRadius: UIStyles.cardRadius,
+                border: Border.all(
+                  color: Colors.purple.withValues(
+                    alpha: UIStyles.alphaDarkShadow,
+                  ),
+                ),
               ),
               child: Row(
                 children: [

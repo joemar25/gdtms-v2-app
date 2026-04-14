@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -208,7 +209,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
         ? ColorStyles.grabCardElevatedDark
         : ColorStyles.grabCardLight;
     final cardBorder = isDark
-        ? ColorStyles.white.withValues(alpha: 0.10)
+        ? ColorStyles.white.withValues(alpha: UIStyles.alphaSoft)
         : ColorStyles.tertiary;
     final primaryText = isDark ? ColorStyles.white : ColorStyles.black;
 
@@ -325,7 +326,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                     width: 60,
                     decoration: BoxDecoration(
                       color: cardBg,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: UIStyles.cardRadius,
                       border: Border.all(color: cardBorder),
                     ),
                     child: const Center(
@@ -362,14 +363,18 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                           : hasDeliveries
                           ? cardBg
                           : subtleBg,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: UIStyles.cardRadius,
                       border: Border.all(
                         color: selected
                             ? ColorStyles.grabGreen
                             : isAnchor
-                            ? ColorStyles.grabGreen.withValues(alpha: 0.4)
+                            ? ColorStyles.grabGreen.withValues(
+                                alpha: UIStyles.alphaBorder,
+                              )
                             : hasDeliveries
-                            ? ColorStyles.subSecondary.withValues(alpha: 0.4)
+                            ? ColorStyles.subSecondary.withValues(
+                                alpha: UIStyles.alphaBorder,
+                              )
                             : cardBorder,
                       ),
                     ),
@@ -382,7 +387,9 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: selected
-                                ? Colors.white.withValues(alpha: 0.7)
+                                ? Colors.white.withValues(
+                                    alpha: UIStyles.alphaGlass,
+                                  )
                                 : ColorStyles.subSecondary.withValues(
                                     alpha: 0.7,
                                   ),
@@ -436,7 +443,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: subtleBg,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: UIStyles.pillRadius,
                 ),
                 child: Text(
                   widget.itemCountLabelBuilder != null

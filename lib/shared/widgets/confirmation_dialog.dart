@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -48,7 +49,7 @@ class ConfirmationDialog extends StatelessWidget {
         : ColorStyles.grabGreen;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
         child: Column(
@@ -76,7 +77,7 @@ class ConfirmationDialog extends StatelessWidget {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: UIStyles.cardRadius,
                 ),
               ),
               onPressed: () => Navigator.pop(context, true),
@@ -87,7 +88,7 @@ class ConfirmationDialog extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: UIStyles.cardRadius,
                 ),
               ),
               onPressed: () => Navigator.pop(context, false),

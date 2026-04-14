@@ -1,6 +1,7 @@
 // DOCS: docs/components.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 
 class StyledDropDown extends StatefulWidget {
@@ -113,8 +114,10 @@ class _StyledDropDownState extends State<StyledDropDown> {
           top: offset.dy + size.height + 4,
           width: size.width,
           child: Material(
-            elevation: 6,
-            borderRadius: BorderRadius.circular(12),
+            elevation: 8,
+            shadowColor: Colors.black.withValues(alpha: UIStyles.alphaSoft),
+            borderRadius: UIStyles.cardRadius,
+            color: Theme.of(context).cardTheme.color,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 200),
               child: ListView.builder(
@@ -132,8 +135,8 @@ class _StyledDropDownState extends State<StyledDropDown> {
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 16,
+                        vertical: 16,
+                        horizontal: 20,
                       ),
                       child: Text(item, style: const TextStyle(fontSize: 16)),
                     ),
@@ -150,14 +153,7 @@ class _StyledDropDownState extends State<StyledDropDown> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
-        ],
-      ),
+      margin: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
         controller: _controller,
         focusNode: _focusNode,
@@ -169,22 +165,14 @@ class _StyledDropDownState extends State<StyledDropDown> {
           labelText: _isActive
               ? widget.activeLabel ?? widget.label
               : widget.label,
-          labelStyle: TextStyle(
-            color: widget.labelColor ?? const Color(0xFFA6A7AE),
-          ),
+          labelStyle: TextStyle(color: widget.labelColor),
           floatingLabelBehavior: FloatingLabelBehavior.auto,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
+          // Let theme provide filled & fillColor & borders
           suffixIcon: widget.items != null
-              ? const Icon(Icons.arrow_drop_down, color: Colors.black45)
+              ? const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.black45,
+                )
               : null,
         ),
         style: const TextStyle(fontSize: 16),

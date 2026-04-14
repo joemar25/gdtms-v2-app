@@ -3,9 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
-//fontSize
-// const double textHeadline = 24.0;
-// const double textSubhead = 20.0;
 const double textTitle = 20.0;
 const double textSubtitle = 14.0;
 const double textBody = 14.0;
@@ -17,9 +14,12 @@ class TextStyles {
     double? fontSize,
     FontWeight? fontWeight,
   }) => TextStyle(
+    fontFamily: 'Montserrat',
     fontSize: fontSize ?? textTitle,
-    color: color ?? ColorStyles.primary,
+    color:
+        color ?? ColorStyles.labelPrimary, // Updated to a more sensible default
     fontWeight: fontWeight ?? FontWeight.w700,
+    letterSpacing: -0.5,
   );
 
   static TextStyle subTitle({
@@ -27,13 +27,16 @@ class TextStyles {
     double? fontSize,
     FontWeight? fontWeight,
   }) => TextStyle(
+    fontFamily: 'Montserrat',
     fontSize: fontSize ?? textSubtitle,
-    color: color ?? ColorStyles.primary,
-    fontWeight: fontWeight ?? FontWeight.w500,
+    color: color ?? ColorStyles.labelSecondary,
+    fontWeight: fontWeight ?? FontWeight.w600,
+    letterSpacing: -0.2,
   );
 
   static TextStyle caption({Color? color, double? fontSize}) => TextStyle(
+    fontFamily: 'Montserrat',
     fontSize: fontSize ?? textCaption,
-    color: color ?? ColorStyles.primary,
+    color: color ?? ColorStyles.labelTertiary,
   );
 }

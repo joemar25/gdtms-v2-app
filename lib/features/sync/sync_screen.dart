@@ -73,6 +73,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -1016,10 +1017,7 @@ class _StatusBadge extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-      ),
+      decoration: BoxDecoration(color: bg, borderRadius: UIStyles.pillRadius),
       child: Text(
         label,
         style: TextStyle(
@@ -1046,7 +1044,7 @@ class _Chip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: UIStyles.pillRadius,
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Text(
@@ -1071,7 +1069,7 @@ class _ArchivedChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: Colors.purple.shade50,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: UIStyles.pillRadius,
         border: Border.all(color: Colors.purple.shade200),
       ),
       child: Text(

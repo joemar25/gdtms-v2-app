@@ -1,6 +1,7 @@
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 /// A premium, searchable bottom sheet for selecting from a list of options.
@@ -106,7 +107,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: UIStyles.alphaDarkShadow),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -121,7 +122,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
             height: 4,
             decoration: BoxDecoration(
               color: widget.isDark ? Colors.white24 : Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: UIStyles.pillRadius,
             ),
           ),
           const SizedBox(height: 16),
@@ -157,7 +158,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
             child: Container(
               decoration: BoxDecoration(
                 color: surfaceColor,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: UIStyles.cardRadius,
                 border: Border.all(
                   color: widget.isDark ? Colors.white10 : Colors.grey.shade200,
                 ),
@@ -231,7 +232,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                         padding: const EdgeInsets.only(bottom: 8),
                         child: InkWell(
                           onTap: () => Navigator.pop(context, value),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: UIStyles.cardRadius,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
@@ -240,9 +241,11 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? ColorStyles.grabGreen.withValues(alpha: 0.1)
+                                  ? ColorStyles.grabGreen.withValues(
+                                      alpha: UIStyles.alphaSoft,
+                                    )
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: UIStyles.cardRadius,
                               border: Border.all(
                                 color: isSelected
                                     ? ColorStyles.grabGreen.withValues(

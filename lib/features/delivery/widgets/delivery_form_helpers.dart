@@ -1,6 +1,7 @@
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -21,15 +22,15 @@ InputDecoration deliveryFieldDecoration(
     filled: true,
     fillColor: fill,
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: UIStyles.cardRadius,
       borderSide: BorderSide(color: borderColor),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: UIStyles.cardRadius,
       borderSide: BorderSide(color: borderColor),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: UIStyles.cardRadius,
       borderSide: const BorderSide(color: ColorStyles.grabGreen, width: 1.5),
     ),
   );
@@ -79,12 +80,12 @@ class DeliveryPhotoSourceButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
           color: enabled
-              ? color.withValues(alpha: 0.08)
+              ? color.withValues(alpha: UIStyles.alphaSoft)
               : ColorStyles.grabCardElevatedDark,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: UIStyles.cardRadius,
           border: Border.all(
             color: enabled
-                ? color.withValues(alpha: 0.4)
+                ? color.withValues(alpha: UIStyles.alphaBorder)
                 : ColorStyles.grabCardDark,
           ),
         ),

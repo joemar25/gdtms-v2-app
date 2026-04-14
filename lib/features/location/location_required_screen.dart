@@ -1,6 +1,7 @@
 // DOCS: docs/features/location.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/providers/location_provider.dart';
@@ -90,7 +91,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(54),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: UIStyles.cardRadius,
                   ),
                 ),
                 child: Text(

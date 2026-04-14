@@ -3,6 +3,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -24,24 +25,24 @@ class FloatingBottomNavBar extends StatelessWidget {
 
     // iOS-style glass: semi-transparent bg layered over blur
     final glassBg = isDark
-        ? const Color(0xFF1C1C1E).withValues(alpha: 0.72)
-        : Colors.white.withValues(alpha: 0.72);
+        ? const Color(0xFF1C1C1E).withValues(alpha: UIStyles.alphaGlass)
+        : Colors.white.withValues(alpha: UIStyles.alphaGlass);
 
     final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.10)
-        : Colors.white.withValues(alpha: 0.60);
+        ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
+        : Colors.white.withValues(alpha: UIStyles.alphaBorder);
 
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: UIStyles.circularRadius,
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
             child: Container(
               decoration: BoxDecoration(
                 color: glassBg,
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: UIStyles.circularRadius,
                 border: Border.all(color: borderColor, width: 0.8),
                 boxShadow: [
                   BoxShadow(
@@ -157,9 +158,11 @@ class _NavItemState extends State<_NavItem>
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? ColorStyles.grabGreen.withValues(alpha: 0.12)
+                ? ColorStyles.grabGreen.withValues(
+                    alpha: UIStyles.alphaActiveAccent,
+                  )
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: UIStyles.cardRadius,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

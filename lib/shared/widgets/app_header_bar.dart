@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -179,14 +180,14 @@ class _Badge extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: isWide ? 6.5 : 5.5),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.error,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: UIStyles.cardRadius,
         border: Border.all(
           color: Theme.of(context).scaffoldBackgroundColor,
           width: 2.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
+            color: Colors.black.withValues(alpha: UIStyles.alphaActiveAccent),
             blurRadius: 3,
             offset: const Offset(0, 1),
           ),

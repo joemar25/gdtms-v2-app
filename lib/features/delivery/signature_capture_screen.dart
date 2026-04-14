@@ -24,6 +24,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:signature/signature.dart';
 
@@ -143,7 +144,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
                 ),
                 minimumSize: Size.zero,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: UIStyles.cardRadius,
                 ),
               ),
               onPressed: hasStrokes ? _done : null,

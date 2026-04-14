@@ -13,6 +13,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -127,10 +128,14 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: ColorStyles.grabGreen.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: ColorStyles.grabGreen.withValues(
+                  alpha: UIStyles.alphaSoft,
+                ),
+                borderRadius: UIStyles.cardRadius,
                 border: Border.all(
-                  color: ColorStyles.grabGreen.withValues(alpha: 0.3),
+                  color: ColorStyles.grabGreen.withValues(
+                    alpha: UIStyles.alphaDarkShadow,
+                  ),
                 ),
               ),
               child: Row(
@@ -164,7 +169,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: UIStyles.cardRadius,
                 border: Border.all(color: borderColor),
               ),
               child: TextFormField(
@@ -198,7 +203,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: UIStyles.cardRadius,
                 border: Border.all(color: borderColor),
               ),
               child: Column(
@@ -279,14 +284,16 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         color: isSelected ? color : cardColor,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: UIStyles.cardRadius,
                         border: Border.all(
                           color: isSelected ? color : borderColor,
                         ),
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: color.withValues(alpha: 0.3),
+                                  color: color.withValues(
+                                    alpha: UIStyles.alphaDarkShadow,
+                                  ),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
@@ -318,7 +325,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: UIStyles.cardRadius,
                 border: Border.all(color: borderColor),
               ),
               child: TextFormField(
@@ -351,7 +358,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: UIStyles.cardRadius,
                 border: Border.all(color: borderColor),
               ),
               child: CheckboxListTile(
@@ -379,7 +386,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                   vertical: 4,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: UIStyles.cardRadius,
                 ),
               ),
             ),
@@ -396,7 +403,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade400,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: UIStyles.cardRadius,
                   ),
                   elevation: 0,
                 ),

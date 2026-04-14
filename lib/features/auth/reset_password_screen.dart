@@ -26,6 +26,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -204,7 +205,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           color: isDark
                               ? ColorStyles.grabCardDark
                               : ColorStyles.white,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: UIStyles.cardRadius,
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(
@@ -230,10 +231,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 // Muted style when read-only to signal it's locked
                                 filled: widget.authenticatedMode,
                                 fillColor: isDark
-                                    ? ColorStyles.white.withValues(alpha: 0.05)
+                                    ? ColorStyles.white.withValues(
+                                        alpha: UIStyles.alphaSoft,
+                                      )
                                     : Colors.grey.shade100,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: UIStyles.cardRadius,
                                 ),
                                 suffixIcon: widget.authenticatedMode
                                     ? const Icon(
@@ -256,7 +259,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                   prefixIcon: const Icon(Icons.lock_outline),
                                   errorText: _errors['current_password'],
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: UIStyles.cardRadius,
                                   ),
                                   suffixIcon: IconButton(
                                     icon: Icon(
@@ -282,7 +285,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 prefixIcon: const Icon(Icons.lock_outline),
                                 errorText: _errors['new_password'],
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: UIStyles.cardRadius,
                                 ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
@@ -307,7 +310,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 prefixIcon: const Icon(Icons.lock_outline),
                                 errorText: _errors['new_password_confirmation'],
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: UIStyles.cardRadius,
                                 ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
@@ -331,7 +334,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(double.infinity, 52),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: UIStyles.cardRadius,
                                 ),
                               ),
                               onPressed: _loading ? null : _submit,

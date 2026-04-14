@@ -1,6 +1,7 @@
 // DOCS: docs/features/auth.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -241,7 +242,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: UIStyles.cardRadius,
                         ),
                         padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
                         child: Column(
@@ -251,8 +252,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               width: 64,
                               height: 64,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(16),
+                                color: Colors.white.withValues(
+                                  alpha: UIStyles.alphaDarkShadow,
+                                ),
+                                borderRadius: UIStyles.cardRadius,
                               ),
                               child: Icon(
                                 Icons.mail_outline,
@@ -274,7 +277,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Text(
                               'Sign in to your account',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.75),
+                                color: Colors.white.withValues(
+                                  alpha: UIStyles.alphaGlass,
+                                ),
                                 fontSize: 14,
                               ),
                             ),
@@ -289,7 +294,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: isDark
                               ? ColorStyles.grabCardDark
                               : ColorStyles.white,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: UIStyles.cardRadius,
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(
@@ -312,7 +317,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 prefixIcon: const Icon(Icons.phone_outlined),
                                 errorText: _errors['phone_number'],
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: UIStyles.cardRadius,
                                 ),
                               ),
                             ),
@@ -325,7 +330,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 prefixIcon: const Icon(Icons.lock_outline),
                                 errorText: _errors['password'],
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: UIStyles.cardRadius,
                                 ),
                                 suffixIcon: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 200),
@@ -364,7 +369,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(double.infinity, 52),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: UIStyles.cardRadius,
                                 ),
                               ),
                               onPressed: _loading || _rateLimitRemaining > 0

@@ -1,6 +1,7 @@
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:signature/signature.dart';
 
 class DeliverySignatureField extends StatelessWidget {
@@ -30,7 +31,7 @@ class DeliverySignatureField extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: UIStyles.cardRadius,
             border: Border.all(color: borderColor, width: 1.5),
           ),
           clipBehavior: Clip.antiAlias,

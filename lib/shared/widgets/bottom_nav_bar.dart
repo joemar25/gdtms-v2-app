@@ -2,6 +2,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -51,7 +52,7 @@ class AppBottomNavBar extends StatelessWidget {
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: UIStyles.circularRadius,
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
@@ -59,9 +60,11 @@ class AppBottomNavBar extends StatelessWidget {
                     color: backgroundColor.withValues(
                       alpha: isDark ? 0.85 : 0.92,
                     ),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: UIStyles.circularRadius,
                     border: Border.all(
-                      color: borderColor.withValues(alpha: 0.5),
+                      color: borderColor.withValues(
+                        alpha: UIStyles.alphaBorder,
+                      ),
                       width: 0.5,
                     ),
                   ),
@@ -82,8 +85,10 @@ class AppBottomNavBar extends StatelessWidget {
                               width: tabWidth * 0.8,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: activeColor.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(14),
+                                color: activeColor.withValues(
+                                  alpha: UIStyles.alphaSoft,
+                                ),
+                                borderRadius: UIStyles.cardRadius,
                               ),
                             ),
                           ),

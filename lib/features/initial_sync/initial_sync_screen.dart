@@ -1,6 +1,7 @@
 // DOCS: docs/features/initial-sync.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
 
@@ -104,7 +105,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                 const SizedBox(height: 32),
                 if (!_done)
                   LinearProgressIndicator(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: UIStyles.pillRadius,
                     color: colorScheme.primary,
                     backgroundColor: colorScheme.primary.withValues(
                       alpha: 0.15,

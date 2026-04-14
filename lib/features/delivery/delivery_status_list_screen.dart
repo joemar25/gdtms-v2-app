@@ -32,6 +32,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -517,7 +518,7 @@ class _DeliveryStatusListScreenState
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
+              color: Colors.black.withValues(alpha: UIStyles.alphaDarkShadow),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -533,7 +534,7 @@ class _DeliveryStatusListScreenState
               height: 4,
               decoration: BoxDecoration(
                 color: isDark ? Colors.white24 : Colors.black12,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: UIStyles.pillRadius,
               ),
             ),
             const SizedBox(height: 24),
@@ -546,7 +547,7 @@ class _DeliveryStatusListScreenState
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: rtsColor.withValues(alpha: 0.1),
+                      color: rtsColor.withValues(alpha: UIStyles.alphaSoft),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -601,9 +602,9 @@ class _DeliveryStatusListScreenState
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.03)
+                      ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
                       : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: UIStyles.cardRadius,
                   border: Border.all(
                     color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
                   ),
@@ -644,11 +645,11 @@ class _DeliveryStatusListScreenState
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      rtsColor.withValues(alpha: 0.15),
-                      rtsColor.withValues(alpha: 0.05),
+                      rtsColor.withValues(alpha: UIStyles.alphaActiveAccent),
+                      rtsColor.withValues(alpha: UIStyles.alphaSoft),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: UIStyles.cardRadius,
                 ),
                 child: Row(
                   children: [
@@ -660,8 +661,8 @@ class _DeliveryStatusListScreenState
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark
-                              ? rtsColor.withValues(alpha: 0.9)
-                              : rtsColor.withValues(alpha: 0.8),
+                              ? rtsColor.withValues(alpha: UIStyles.alphaGlass)
+                              : rtsColor.withValues(alpha: UIStyles.alphaGlass),
                           height: 1.4,
                           fontWeight: FontWeight.w500,
                         ),
@@ -770,17 +771,19 @@ class _EmptyState extends StatelessWidget {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.08),
+                    color: statusColor.withValues(alpha: UIStyles.alphaSoft),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: statusColor.withValues(alpha: 0.18),
+                      color: statusColor.withValues(
+                        alpha: UIStyles.alphaActiveAccent,
+                      ),
                       width: 1.5,
                     ),
                   ),
                   child: Icon(
                     iconData,
                     size: 28,
-                    color: statusColor.withValues(alpha: 0.45),
+                    color: statusColor.withValues(alpha: UIStyles.alphaBorder),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -827,20 +830,20 @@ class _StatusInfoBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = isDark
         ? ColorStyles.grabCardDark
-        : statusColor.withValues(alpha: 0.06);
+        : statusColor.withValues(alpha: UIStyles.alphaSoft);
     final border = isDark
-        ? statusColor.withValues(alpha: 0.25)
+        ? statusColor.withValues(alpha: UIStyles.alphaDarkShadow)
         : statusColor.withValues(alpha: 0.22);
     final textColor = isDark
-        ? statusColor.withValues(alpha: 0.85)
-        : statusColor.withValues(alpha: 0.9);
+        ? statusColor.withValues(alpha: UIStyles.alphaGlass)
+        : statusColor.withValues(alpha: UIStyles.alphaGlass);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: UIStyles.cardRadius,
         border: Border.all(color: border),
       ),
       child: Row(

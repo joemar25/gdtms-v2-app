@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:fsi_courier_app/shared/helpers/formatters.dart';
 
 class AppSearchBar extends StatefulWidget {
@@ -100,10 +101,10 @@ class _AppSearchBarState extends State<AppSearchBar> {
               color: isDark
                   ? const Color(0xFF2A2A3E)
                   : cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: UIStyles.circularRadius,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
+                  color: Colors.black.withValues(alpha: UIStyles.alphaSoft),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -121,7 +122,9 @@ class _AppSearchBarState extends State<AppSearchBar> {
               decoration: InputDecoration(
                 hintText: widget.hintText,
                 hintStyle: TextStyle(
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: cs.onSurfaceVariant.withValues(
+                    alpha: UIStyles.alphaBorder,
+                  ),
                   fontWeight: FontWeight.w500,
                   fontSize: 13,
                   letterSpacing: 0.4,
@@ -177,8 +180,10 @@ class _AppSearchBarState extends State<AppSearchBar> {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: cs.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
+                    color: cs.primary.withValues(
+                      alpha: UIStyles.alphaActiveAccent,
+                    ),
+                    borderRadius: UIStyles.cardRadius,
                   ),
                   child: Text(
                     '${widget.resultCount} RESULT${widget.resultCount == 1 ? '' : 'S'}',

@@ -1,6 +1,7 @@
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -31,12 +32,12 @@ class DeliveryGeoLocationField extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: UIStyles.cardRadius,
         border: Border.all(
           color: hasFix
-              ? const Color(0xFF007A36).withValues(alpha: 0.4)
+              ? const Color(0xFF007A36).withValues(alpha: UIStyles.alphaBorder)
               : isLoading
-              ? Colors.orange.withValues(alpha: 0.4)
+              ? Colors.orange.withValues(alpha: UIStyles.alphaBorder)
               : borderColor,
         ),
       ),
@@ -156,7 +157,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
                   ),
                   minimumSize: const Size.fromHeight(40),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: UIStyles.cardRadius,
                   ),
                 ),
                 onPressed: onCapture,

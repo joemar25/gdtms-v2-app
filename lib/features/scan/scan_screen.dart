@@ -28,6 +28,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -538,11 +539,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                     child: Container(
                       height: 2,
                       decoration: BoxDecoration(
-                        color: ColorStyles.grabGreen.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(2),
+                        color: ColorStyles.grabGreen.withValues(
+                          alpha: UIStyles.alphaGlass,
+                        ),
+                        borderRadius: UIStyles.pillRadius,
                         boxShadow: [
                           BoxShadow(
-                            color: ColorStyles.grabGreen.withValues(alpha: 0.5),
+                            color: ColorStyles.grabGreen.withValues(
+                              alpha: UIStyles.alphaBorder,
+                            ),
                             blurRadius: 8,
                           ),
                         ],
@@ -613,7 +618,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          Colors.black.withValues(alpha: 0.9),
+                          Colors.black.withValues(alpha: UIStyles.alphaGlass),
                           Colors.transparent,
                         ],
                       ),
@@ -674,10 +679,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.red.withValues(
+                                  alpha: UIStyles.alphaActiveAccent,
+                                ),
+                                borderRadius: UIStyles.cardRadius,
                                 border: Border.all(
-                                  color: Colors.red.withValues(alpha: 0.4),
+                                  color: Colors.red.withValues(
+                                    alpha: UIStyles.alphaBorder,
+                                  ),
                                 ),
                               ),
                               child: Row(
@@ -718,11 +727,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.4),
+                              color: Colors.white.withValues(
+                                alpha: UIStyles.alphaBorder,
+                              ),
                             ),
                             minimumSize: const Size(double.infinity, 48),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: UIStyles.cardRadius,
                             ),
                           ),
                           onPressed: _openManualSheet,
@@ -876,7 +887,7 @@ class _ManualInputArea extends StatelessWidget {
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: UIStyles.pillRadius,
               ),
             ),
           ),
@@ -900,9 +911,13 @@ class _ManualInputArea extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                  color: Colors.red.withValues(
+                    alpha: UIStyles.alphaActiveAccent,
+                  ),
+                  borderRadius: UIStyles.cardRadius,
+                  border: Border.all(
+                    color: Colors.red.withValues(alpha: UIStyles.alphaBorder),
+                  ),
                 ),
                 child: Text(
                   error!,
@@ -918,23 +933,29 @@ class _ManualInputArea extends StatelessWidget {
             inputFormatters: [UpperCaseFormatter()],
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+              hintStyle: TextStyle(
+                color: Colors.white.withValues(alpha: UIStyles.alphaDarkShadow),
+              ),
               filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.08),
+              fillColor: Colors.white.withValues(alpha: UIStyles.alphaSoft),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: UIStyles.cardRadius,
                 borderSide: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withValues(
+                    alpha: UIStyles.alphaActiveAccent,
+                  ),
                 ),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: UIStyles.cardRadius,
                 borderSide: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withValues(
+                    alpha: UIStyles.alphaActiveAccent,
+                  ),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: UIStyles.cardRadius,
                 borderSide: const BorderSide(
                   color: ColorStyles.grabGreen,
                   width: 1.5,
@@ -962,9 +983,7 @@ class _ManualInputArea extends StatelessWidget {
               backgroundColor: ColorStyles.grabGreen,
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
             ),
             onPressed: onSubmit,
           ),
@@ -1009,7 +1028,7 @@ class _SearchResultsSheet extends StatelessWidget {
                 height: 4,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: UIStyles.pillRadius,
                 ),
               ),
             ),
@@ -1074,7 +1093,9 @@ class _SearchResultsSheet extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: ColorStyles.grabGreen.withValues(alpha: 0.1),
+                        color: ColorStyles.grabGreen.withValues(
+                          alpha: UIStyles.alphaSoft,
+                        ),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -1118,8 +1139,10 @@ class _SearchResultsSheet extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey.withValues(
+                          alpha: UIStyles.alphaSoft,
+                        ),
+                        borderRadius: UIStyles.pillRadius,
                       ),
                       child: Text(
                         status.toUpperCase(),

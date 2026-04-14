@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class StatCard extends StatelessWidget {
@@ -36,7 +37,7 @@ class StatCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: UIStyles.cardRadius,
         border: Border.all(
           color: color.withValues(alpha: isDark ? 0.3 : 0.15),
           width: 1.5,
@@ -57,7 +58,7 @@ class StatCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withValues(alpha: UIStyles.alphaSoft),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: effectiveColor, size: 16),
@@ -116,7 +117,7 @@ class StatCard extends StatelessWidget {
           .animate(onPlay: (controller) => controller.repeat(reverse: true))
           .shimmer(
             duration: 3.seconds,
-            color: color.withValues(alpha: 0.1),
+            color: color.withValues(alpha: UIStyles.alphaSoft),
             delay: 2.seconds,
           )
           .animate(target: 0) // Reset targets for tap animation
@@ -168,18 +169,18 @@ class ScanButton extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      color.withValues(alpha: 0.15),
-                      color.withValues(alpha: 0.05),
+                      color.withValues(alpha: UIStyles.alphaActiveAccent),
+                      color.withValues(alpha: UIStyles.alphaSoft),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: UIStyles.cardRadius,
                   border: Border.all(
                     color: color.withValues(alpha: isDark ? 0.4 : 0.25),
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: color.withValues(alpha: 0.05),
+                      color: color.withValues(alpha: UIStyles.alphaSoft),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -190,7 +191,9 @@ class ScanButton extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
+                        color: color.withValues(
+                          alpha: UIStyles.alphaActiveAccent,
+                        ),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(icon, color: color, size: 28),
@@ -229,7 +232,7 @@ class ScanButton extends StatelessWidget {
               .animate(onPlay: (c) => c.repeat())
               .shimmer(
                 duration: 4.seconds,
-                color: color.withValues(alpha: 0.1),
+                color: color.withValues(alpha: UIStyles.alphaSoft),
               ),
     );
   }

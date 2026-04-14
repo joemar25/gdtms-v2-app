@@ -2,6 +2,7 @@
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -346,9 +347,11 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.2)
+                        ? Colors.white.withValues(
+                            alpha: UIStyles.alphaDarkShadow,
+                          )
                         : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: UIStyles.pillRadius,
                   ),
                 ),
               ),
@@ -497,9 +500,11 @@ class _SectionCard extends StatelessWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: UIStyles.cardRadius,
         side: BorderSide(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+          color: Theme.of(
+            context,
+          ).dividerColor.withValues(alpha: UIStyles.alphaBorder),
         ),
       ),
       child: Padding(
@@ -538,20 +543,26 @@ class _StatusBadgeLight extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (status.toUpperCase()) {
-      'PAID' => (Colors.white.withValues(alpha: 0.25), Colors.white),
-      'REJECTED' => (Colors.red.shade400.withValues(alpha: 0.3), Colors.white),
-      'PROCESSING' => (
-        Colors.orange.shade300.withValues(alpha: 0.3),
+      'PAID' => (
+        Colors.white.withValues(alpha: UIStyles.alphaDarkShadow),
         Colors.white,
       ),
-      _ => (Colors.white.withValues(alpha: 0.15), Colors.white70),
+      'REJECTED' => (
+        Colors.red.shade400.withValues(alpha: UIStyles.alphaDarkShadow),
+        Colors.white,
+      ),
+      'PROCESSING' => (
+        Colors.orange.shade300.withValues(alpha: UIStyles.alphaDarkShadow),
+        Colors.white,
+      ),
+      _ => (
+        Colors.white.withValues(alpha: UIStyles.alphaActiveAccent),
+        Colors.white70,
+      ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: bg, borderRadius: UIStyles.cardRadius),
       child: Text(
         status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
         style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
@@ -647,10 +658,12 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: UIStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: ColorStyles.grabGreen.withValues(alpha: 0.3),
+            color: ColorStyles.grabGreen.withValues(
+              alpha: UIStyles.alphaDarkShadow,
+            ),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -708,7 +721,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                 'Tap to reveal breakdown',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: Colors.white.withValues(alpha: UIStyles.alphaBorder),
                 ),
               ),
             ),
@@ -724,9 +737,11 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
         color: Theme.of(context).brightness == Brightness.dark
             ? ColorStyles.grabCardDark
             : ColorStyles.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: UIStyles.cardRadius,
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          color: Theme.of(
+            context,
+          ).dividerColor.withValues(alpha: UIStyles.alphaSoft),
         ),
       ),
       padding: const EdgeInsets.all(20),
@@ -820,7 +835,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
               'Tap to flip back',
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.grey.withValues(alpha: 0.8),
+                color: Colors.grey.withValues(alpha: UIStyles.alphaGlass),
               ),
             ),
           ),

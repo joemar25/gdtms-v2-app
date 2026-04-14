@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -51,7 +52,7 @@ class _ScanModeSheet extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: UIStyles.pillRadius,
               ),
             ),
           ),
@@ -108,7 +109,7 @@ class _ActionTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: UIStyles.cardRadius,
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -116,7 +117,7 @@ class _ActionTile extends StatelessWidget {
             color: isDark
                 ? ColorStyles.grabCardElevatedDark
                 : ColorStyles.grabCardLight,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: UIStyles.cardRadius,
           ),
           child: Row(
             children: [
@@ -124,8 +125,10 @@ class _ActionTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  color: iconColor.withValues(
+                    alpha: UIStyles.alphaActiveAccent,
+                  ),
+                  borderRadius: UIStyles.cardRadius,
                 ),
                 child: Icon(icon, color: iconColor, size: 22),
               ),

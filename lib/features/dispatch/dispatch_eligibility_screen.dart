@@ -25,6 +25,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -279,9 +280,7 @@ class _DispatchEligibilityScreenState
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
             title: const Row(
               children: [
                 Icon(Icons.warning_amber_rounded, color: Colors.red),
@@ -301,8 +300,8 @@ class _DispatchEligibilityScreenState
                   width: double.infinity,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.grey.withValues(alpha: UIStyles.alphaSoft),
+                    borderRadius: UIStyles.cardRadius,
                   ),
                   child: Text(
                     reason,
@@ -404,7 +403,7 @@ class _DispatchEligibilityScreenState
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: UIStyles.cardRadius,
                       border: Border.all(
                         color: isDark ? Colors.white12 : Colors.red.shade100,
                       ),
@@ -412,7 +411,9 @@ class _DispatchEligibilityScreenState
                           ? null
                           : [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
+                                color: Colors.black.withValues(
+                                  alpha: UIStyles.alphaSoft,
+                                ),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -426,8 +427,10 @@ class _DispatchEligibilityScreenState
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.red.withValues(
+                                  alpha: UIStyles.alphaSoft,
+                                ),
+                                borderRadius: UIStyles.cardRadius,
                               ),
                               child: const Icon(
                                 Icons.gpp_maybe_outlined,
@@ -465,10 +468,12 @@ class _DispatchEligibilityScreenState
                             filled: true,
                             fillColor: isDark
                                 ? const Color(0xFF12121A)
-                                : Colors.grey.withValues(alpha: 0.06),
+                                : Colors.grey.withValues(
+                                    alpha: UIStyles.alphaSoft,
+                                  ),
                             errorText: _rejectError,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: UIStyles.cardRadius,
                               borderSide: BorderSide(
                                 color: isDark
                                     ? Colors.white24
@@ -476,7 +481,7 @@ class _DispatchEligibilityScreenState
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: UIStyles.cardRadius,
                               borderSide: BorderSide(
                                 color: isDark
                                     ? Colors.white24
@@ -525,9 +530,9 @@ class _DispatchEligibilityScreenState
                         filled: true,
                         fillColor: isDark
                             ? const Color(0xFF12121A)
-                            : Colors.grey.withValues(alpha: 0.06),
+                            : Colors.grey.withValues(alpha: UIStyles.alphaSoft),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: UIStyles.cardRadius,
                           borderSide: BorderSide(
                             color: isDark
                                 ? Colors.white24
@@ -535,7 +540,7 @@ class _DispatchEligibilityScreenState
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: UIStyles.cardRadius,
                           borderSide: BorderSide(
                             color: isDark
                                 ? Colors.white24
@@ -555,10 +560,14 @@ class _DispatchEligibilityScreenState
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.orange.withValues(
+                        alpha: UIStyles.alphaSoft,
+                      ),
+                      borderRadius: UIStyles.cardRadius,
                       border: Border.all(
-                        color: Colors.orange.withValues(alpha: 0.35),
+                        color: Colors.orange.withValues(
+                          alpha: UIStyles.alphaDarkShadow,
+                        ),
                       ),
                     ),
                     child: Row(
@@ -602,7 +611,7 @@ class _DispatchEligibilityScreenState
                             backgroundColor: Colors.red.shade600,
                             minimumSize: const Size.fromHeight(48),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: UIStyles.cardRadius,
                             ),
                           ),
                           onPressed: _rejecting ? null : _submitReject,
@@ -629,10 +638,12 @@ class _DispatchEligibilityScreenState
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.red.withValues(alpha: UIStyles.alphaSoft),
+                        borderRadius: UIStyles.cardRadius,
                         border: Border.all(
-                          color: Colors.red.withValues(alpha: 0.3),
+                          color: Colors.red.withValues(
+                            alpha: UIStyles.alphaDarkShadow,
+                          ),
                         ),
                       ),
                       child: Row(
@@ -662,10 +673,14 @@ class _DispatchEligibilityScreenState
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.amber.withValues(
+                          alpha: UIStyles.alphaSoft,
+                        ),
+                        borderRadius: UIStyles.cardRadius,
                         border: Border.all(
-                          color: Colors.amber.withValues(alpha: 0.4),
+                          color: Colors.amber.withValues(
+                            alpha: UIStyles.alphaBorder,
+                          ),
                         ),
                       ),
                       child: Row(
@@ -699,7 +714,7 @@ class _DispatchEligibilityScreenState
                       backgroundColor: ColorStyles.grabGreen,
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: UIStyles.cardRadius,
                       ),
                     ),
                     onPressed: _loading ? null : _acceptDispatch,
@@ -713,7 +728,7 @@ class _DispatchEligibilityScreenState
                       side: const BorderSide(color: Colors.red),
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: UIStyles.cardRadius,
                       ),
                     ),
                     onPressed: () => setState(() => _showRejectForm = true),
@@ -910,7 +925,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -959,10 +974,10 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                       decoration: InputDecoration(
                         counterText: '',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: UIStyles.cardRadius,
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: UIStyles.cardRadius,
                           borderSide: const BorderSide(
                             color: ColorStyles.grabGreen,
                             width: 2,
@@ -1043,7 +1058,7 @@ class _DispatchInfoCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: UIStyles.cardRadius,
             border: Border.all(
               color: isDark ? Colors.white10 : Colors.grey.shade200,
             ),

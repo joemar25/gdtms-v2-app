@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 
 class PaginationBar extends StatelessWidget {
   const PaginationBar({
@@ -52,7 +53,9 @@ class PaginationBar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                    color: cs.onSurfaceVariant.withValues(
+                      alpha: UIStyles.alphaBorder,
+                    ),
                     letterSpacing: 1.1,
                   ),
                 ),
@@ -73,23 +76,25 @@ class PaginationBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.05)
+                    ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
                     : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: UIStyles.cardRadius,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (currentPage > 0)
                     InkWell(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: UIStyles.cardRadius,
                       onTap: () => onPageChanged(currentPage - 1),
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: Icon(
                           Icons.keyboard_arrow_left_rounded,
                           size: 16,
-                          color: cs.onSurface.withValues(alpha: 0.4),
+                          color: cs.onSurface.withValues(
+                            alpha: UIStyles.alphaBorder,
+                          ),
                         ),
                       ),
                     ),
@@ -109,14 +114,16 @@ class PaginationBar extends StatelessWidget {
 
                   if (currentPage < totalPages - 1)
                     InkWell(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: UIStyles.cardRadius,
                       onTap: () => onPageChanged(currentPage + 1),
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: Icon(
                           Icons.keyboard_arrow_right_rounded,
                           size: 16,
-                          color: cs.onSurface.withValues(alpha: 0.4),
+                          color: cs.onSurface.withValues(
+                            alpha: UIStyles.alphaBorder,
+                          ),
                         ),
                       ),
                     ),

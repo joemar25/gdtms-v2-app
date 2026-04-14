@@ -30,6 +30,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -129,7 +130,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
         title: Text(
           widget.isConsolidation
               ? 'Confirm Consolidated Request'
@@ -149,10 +150,14 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: ColorStyles.grabGreen.withValues(alpha: 0.07),
-                borderRadius: BorderRadius.circular(10),
+                color: ColorStyles.grabGreen.withValues(
+                  alpha: UIStyles.alphaSoft,
+                ),
+                borderRadius: UIStyles.cardRadius,
                 border: Border.all(
-                  color: ColorStyles.grabGreen.withValues(alpha: 0.25),
+                  color: ColorStyles.grabGreen.withValues(
+                    alpha: UIStyles.alphaDarkShadow,
+                  ),
                 ),
               ),
               child: Text(
@@ -179,9 +184,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: ColorStyles.grabGreen,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Submit'),
@@ -369,9 +372,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             style: FilledButton.styleFrom(
               backgroundColor: ColorStyles.grabGreen,
               minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
             ),
             onPressed:
                 (_submitting ||
@@ -446,9 +447,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+              color: Colors.amber.withValues(alpha: UIStyles.alphaSoft),
+              borderRadius: UIStyles.cardRadius,
+              border: Border.all(
+                color: Colors.amber.withValues(alpha: UIStyles.alphaDarkShadow),
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,9 +532,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              color: Colors.amber.withValues(alpha: UIStyles.alphaSoft),
+              borderRadius: UIStyles.cardRadius,
+              border: Border.all(
+                color: Colors.amber.withValues(alpha: UIStyles.alphaDarkShadow),
+              ),
             ),
             child: Row(
               children: [
@@ -559,9 +564,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+              color: Colors.grey.withValues(alpha: UIStyles.alphaSoft),
+              borderRadius: UIStyles.cardRadius,
+              border: Border.all(
+                color: Colors.grey.withValues(alpha: UIStyles.alphaDarkShadow),
+              ),
             ),
             child: const Row(
               children: [
@@ -588,9 +595,13 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: ColorStyles.red.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: ColorStyles.red.withValues(alpha: 0.3)),
+              color: ColorStyles.red.withValues(alpha: UIStyles.alphaSoft),
+              borderRadius: UIStyles.cardRadius,
+              border: Border.all(
+                color: ColorStyles.red.withValues(
+                  alpha: UIStyles.alphaDarkShadow,
+                ),
+              ),
             ),
             child: Text(
               _error!,
@@ -634,9 +645,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //     return Container(
 //       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
 //       decoration: BoxDecoration(
-//         color: ColorStyles.grabGreen.withValues(alpha: 0.08),
-//         borderRadius: BorderRadius.circular(12),
-//         border: Border.all(color: ColorStyles.grabGreen.withValues(alpha: 0.3)),
+//         color: ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaSoft),
+//         borderRadius: UIStyles.cardRadius,
+//         border: Border.all(color: ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaDarkShadow)),
 //       ),
 //       child: Row(
 //         children: [
@@ -674,8 +685,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //             Container(
 //               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
 //               decoration: BoxDecoration(
-//                 color: ColorStyles.grabGreen.withValues(alpha: 0.15),
-//                 borderRadius: BorderRadius.circular(20),
+//                 color: ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaActiveAccent),
+//                 borderRadius: UIStyles.cardRadius,
 //               ),
 //               child: Text(
 //                 '7 DAYS',
@@ -718,12 +729,12 @@ class _SummaryCard extends StatelessWidget {
     // Cards sit one layer above the scaffold — use grabCardDark / white.
     final cardBg = isDark ? ColorStyles.grabCardDark : ColorStyles.white;
     final cardBorder = isDark
-        ? Colors.white.withValues(alpha: 0.10)
+        ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
         : ColorStyles.tertiary;
     return Container(
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: UIStyles.cardRadius,
         border: Border.all(color: cardBorder),
         boxShadow: [
           BoxShadow(
@@ -771,7 +782,9 @@ class _SummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: ColorStyles.grabGreen.withValues(alpha: 0.05),
+              color: ColorStyles.grabGreen.withValues(
+                alpha: UIStyles.alphaSoft,
+              ),
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(16),
               ),

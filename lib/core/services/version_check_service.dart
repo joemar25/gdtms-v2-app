@@ -1,6 +1,7 @@
 // DOCS: docs/core/services.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -82,9 +83,7 @@ class VersionCheckService {
       builder: (_) => PopScope(
         canPop: false,
         child: AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
           title: const Text(
             'Update Required',
             style: TextStyle(fontWeight: FontWeight.w700),

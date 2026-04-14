@@ -18,6 +18,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class PaymentMethodCard extends StatelessWidget {
@@ -49,10 +50,10 @@ class PaymentMethodCard extends StatelessWidget {
         context: context,
         borderColor: isTransparent
             ? Colors.transparent
-            : ColorStyles.grabGreen.withValues(alpha: 0.35),
+            : ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaDarkShadow),
         bgColor: isTransparent
             ? Colors.transparent
-            : ColorStyles.grabGreen.withValues(alpha: 0.06),
+            : ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaSoft),
         icon: Icons.account_balance_rounded,
         iconColor: isTransparent ? Colors.white70 : ColorStyles.grabGreen,
         label: 'Payout Account',
@@ -74,10 +75,10 @@ class PaymentMethodCard extends StatelessWidget {
         context: context,
         borderColor: isTransparent
             ? Colors.transparent
-            : Colors.amber.withValues(alpha: 0.4),
+            : Colors.amber.withValues(alpha: UIStyles.alphaBorder),
         bgColor: isTransparent
             ? Colors.transparent
-            : Colors.amber.withValues(alpha: 0.06),
+            : Colors.amber.withValues(alpha: UIStyles.alphaSoft),
         icon: Icons.account_balance_rounded,
         iconColor: isTransparent ? Colors.white70 : Colors.amber.shade700,
         label: 'Payout Account',
@@ -161,7 +162,7 @@ class PaymentMethodCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: isTransparent
-                          ? Colors.white.withValues(alpha: 0.7)
+                          ? Colors.white.withValues(alpha: UIStyles.alphaGlass)
                           : Colors.grey.shade600,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -193,7 +194,7 @@ class PaymentMethodCard extends StatelessWidget {
                 footerIcon ?? Icons.info_outline_rounded,
                 size: 13,
                 color: isTransparent
-                    ? Colors.white.withValues(alpha: 0.8)
+                    ? Colors.white.withValues(alpha: UIStyles.alphaGlass)
                     : Colors.amber.shade700,
               ),
               const SizedBox(width: 6),
@@ -203,7 +204,7 @@ class PaymentMethodCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     color: isTransparent
-                        ? Colors.white.withValues(alpha: 0.8)
+                        ? Colors.white.withValues(alpha: UIStyles.alphaGlass)
                         : Colors.amber.shade700,
                   ),
                 ),
@@ -219,7 +220,7 @@ class PaymentMethodCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: UIStyles.cardRadius,
         border: Border.all(color: borderColor),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -260,7 +261,7 @@ class PaymentMethodCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: isTransparent
-                      ? Colors.white.withValues(alpha: 0.7)
+                      ? Colors.white.withValues(alpha: UIStyles.alphaGlass)
                       : Colors.amber.shade700,
                 ),
               ),
@@ -274,9 +275,11 @@ class PaymentMethodCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+        color: Colors.amber.withValues(alpha: UIStyles.alphaSoft),
+        borderRadius: UIStyles.cardRadius,
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: UIStyles.alphaBorder),
+        ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: content,
@@ -288,10 +291,7 @@ class PaymentMethodCard extends StatelessWidget {
     final base = isDark ? Colors.white12 : Colors.black12;
     return Container(
       height: 78,
-      decoration: BoxDecoration(
-        color: base,
-        borderRadius: BorderRadius.circular(14),
-      ),
+      decoration: BoxDecoration(color: base, borderRadius: UIStyles.cardRadius),
     );
   }
 
@@ -319,11 +319,13 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: isTransparent
-            ? Colors.white.withValues(alpha: 0.15)
-            : color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+            ? Colors.white.withValues(alpha: UIStyles.alphaActiveAccent)
+            : color.withValues(alpha: UIStyles.alphaActiveAccent),
+        borderRadius: UIStyles.cardRadius,
         border: isTransparent
-            ? Border.all(color: Colors.white.withValues(alpha: 0.3))
+            ? Border.all(
+                color: Colors.white.withValues(alpha: UIStyles.alphaDarkShadow),
+              )
             : null,
       ),
       child: Text(

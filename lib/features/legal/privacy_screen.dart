@@ -12,6 +12,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 
 import 'package:fsi_courier_app/features/legal/terms_screen.dart'
@@ -65,7 +66,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               margin: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: UIStyles.cardRadius,
               ),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),

@@ -91,7 +91,9 @@ class _HeaderState extends State<Header> {
                 _time,
                 style: TextStyle(
                   fontSize: timeFontSize,
-                  fontWeight: FontWeight.w300,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: 'Montserrat',
+                  letterSpacing: -1.0,
                 ),
               ),
               const SizedBox(width: 6),
@@ -108,14 +110,19 @@ class _HeaderState extends State<Header> {
                     _date,
                     style: TextStyle(
                       fontSize: dateFontSize,
-                      fontWeight: FontWeight.w300,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Montserrat',
                     ),
                   ),
                   Text(
                     _day,
                     style: TextStyle(
                       fontSize: dateFontSize,
-                      color: Colors.black54,
+                      color:
+                          Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.black54,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Montserrat',
                     ),
                   ),
                 ],
