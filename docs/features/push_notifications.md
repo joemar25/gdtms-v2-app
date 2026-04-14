@@ -21,7 +21,7 @@ This guide documents the Firebase Cloud Messaging (FCM) integration in GDTMS v2.
 
 ## Architecture Overview
 
-```text
+```
 Flutter App                     Laravel API                     Firebase FCM
     │                               │                               │
     │  POST /api/mbl/login           │                               │
@@ -92,7 +92,7 @@ Web UI (Delivery Reports)           │                               │
 
 ### 1. Package
 
-```text
+```
 kreait/laravel-firebase  v6.2.0
 kreait/firebase-php      v7.24.1
 ```
@@ -109,7 +109,7 @@ FIREBASE_CREDENTIALS=storage/app/firebase_credentials.json
 
 ### 3. Database Migration
 
-```text
+```
 database/migrations/2026_04_14_000000_add_fcm_token_to_users_table.php
 ```
 
@@ -150,16 +150,16 @@ sendToToken(string $fcmToken, string $title, string $body, array $data = []): bo
 ```json
 // Request body
 {
-  "fcm_token": "<device FCM token string>",
-  "device_type": "android" // optional: android | ios | web
+    "fcm_token": "<device FCM token string>",
+    "device_type": "android" // optional: android | ios | web
 }
 ```
 
 ```json
 // Response (200)
 {
-  "success": true,
-  "message": "FCM token updated successfully."
+    "success": true,
+    "message": "FCM token updated successfully."
 }
 ```
 
@@ -204,9 +204,9 @@ The Flutter app must call this endpoint on every login and every `onTokenRefresh
 
 ```json
 {
-  "barcode": "<barcode_value>",
-  "delivery_id": "<id>",
-  "action": "view_delivery"
+    "barcode": "<barcode_value>",
+    "delivery_id": "<id>",
+    "action": "view_delivery"
 }
 ```
 
@@ -220,7 +220,7 @@ The Flutter app handles the full notification lifecycle via `PushNotificationSer
 
 ### Initialization Flow
 
-```text
+```
 main.dart
   └─ Firebase.initializeApp()
   └─ PushNotificationService.initBackgroundHandler()   ← registers background isolate handler
@@ -352,7 +352,7 @@ The resource then maps these to the API response:
 
 ### Data Flow for the Notify Button
 
-```text
+```
 DeliveryRepository::withRelations()
   └─ user: select(fcm_token) + withCount('tokens')
       │
@@ -407,19 +407,19 @@ Follow this checklist when:
 2. Under **Firebase Admin SDK**, click **Generate new private key**.
 3. Download the JSON file. It will look like:
 
-   ```json
-   {
-     "type": "service_account",
-     "project_id": "gdtms-v2-app",
-     "private_key_id": "...",
-     "private_key": "-----BEGIN RSA PRIVATE KEY-----\n...",
-     "client_email": "firebase-adminsdk-fbsvc@gdtms-v2-app.iam.gserviceaccount.com",
-     "client_id": "...",
-     "auth_uri": "...",
-     "token_uri": "...",
-     ...
-   }
-   ```
+    ```json
+    {
+      "type": "service_account",
+      "project_id": "gdtms-v2-app",
+      "private_key_id": "...",
+      "private_key": "-----BEGIN RSA PRIVATE KEY-----\n...",
+      "client_email": "firebase-adminsdk-fbsvc@gdtms-v2-app.iam.gserviceaccount.com",
+      "client_id": "...",
+      "auth_uri": "...",
+      "token_uri": "...",
+      ...
+    }
+    ```
 
 4. Rename it to `firebase_credentials.json`.
 
@@ -427,7 +427,7 @@ Follow this checklist when:
 
 Place the file at:
 
-```text
+```
 storage/app/firebase_credentials.json
 ```
 
@@ -540,63 +540,6 @@ The Firebase HTTP v1 API (used by kreait) communicates with `fcm.googleapis.com`
 
 ---
 
-## FCM Token Resilience Contract
-
-This section documents the exact behaviour of the FCM token pipeline when tokens go stale, and the obligations on each side of the stack.
-
-### Why Tokens Go Stale
-
-A stored `fcm_token` becomes invalid when the courier:
-
-1. Uninstalls and reinstalls the app (Firebase issues a new token).
-2. Clears app data (token is regenerated on next launch).
-3. Logs in on a different device (the new token overwrites the old one, but the old device's token is now orphaned in the DB if the courier also uses the old device).
-4. Has their Firebase project rotated (all existing tokens are invalidated).
-5. Has not opened the app in several months (Firebase may expire long-idle tokens).
-
-### Backend Behaviour Table
-
-| Scenario | `users.fcm_token` | FCM result | Backend action |
-| -------- | ----------------- | ---------- | -------------- |
-| Token is `null` | `null` | (skipped) | Silently skips FCM; DB notify fires normally |
-| Token valid | non-null | `success` | Notification delivered |
-| Token stale — `UNREGISTERED` / `registration-token-not-registered` | non-null | FCM error | Token cleared to `null` in DB; DB notify fires normally; next open re-populates |
-| Token stale — any other `MessagingException` | non-null | FCM error | Logs warning; token **kept** (transient error, not a stale token) |
-
-**Invariant**: `$user->notify(...)` (database channel) fires **before** FCM in all notification methods — so the in-app notification list is always populated regardless of FCM outcome.
-
-### Mobile App Contract
-
-The Flutter app **must** call `POST /api/mbl/profile/fcm-token` in two places:
-
-1. **On every startup** (when authenticated + online) — catches the case where Firebase silently rotated the token while the app was closed.
-2. **On every `onTokenRefresh` event** — Firebase will call this whenever it decides to issue a new token.
-
-Both calls are implemented in `lib/core/services/push_notification_service.dart`:
-
-```dart
-// On init (step 3 + 4 inside init())
-final token = await _messaging.getToken();
-if (token != null) await _syncTokenToApi(token);
-
-_messaging.onTokenRefresh.listen((token) => _syncTokenToApi(token));
-```
-
-A failed sync is logged silently via `ErrorLogService.warning` and **never** blocks the login or delivery flow.
-
-### Web Dashboard Diagnostic Flags
-
-Two flags appear on every delivery row in the Delivery Reports table to help identify token issues without needing DB access:
-
-| Flag | Source | Meaning |
-| ---- | ------ | ------- |
-| `courier_has_fcm_token` | `users.fcm_token IS NOT NULL` | Device is registered for push |
-| `courier_has_active_session` | `tokens_count > 0` (Sanctum) | Courier is logged in |
-
-See [Web UI — Delivery Reports Notification](#web-ui--delivery-reports-notification) for the full button-state matrix.
-
----
-
 ## Frequently Asked Questions (FAQ)
 
 **Q: Do I need a `.env` file or `firebase_credentials.json` in the Flutter Mobile App?**  
@@ -647,3 +590,131 @@ See [Web UI — Delivery Reports Notification](#web-ui--delivery-reports-notific
 | `lib/app.dart`                                     | Calls `init()` on startup and on fresh login                      |
 | `android/app/google-services.json`                 | Android Firebase config (safe to commit)                          |
 | `ios/Runner/GoogleService-Info.plist`              | iOS Firebase config (safe to commit)                              |
+
+---
+
+## FCM Token Resilience Contract
+
+> Covers the scenario: **a courier has an active Sanctum session but their FCM token is stale, null, or permanently invalid.**
+
+### Why Tokens Go Stale
+
+FCM device tokens are not permanent. A courier's stored token becomes invalid when:
+
+| Scenario                                                            | Effect on stored token                                               |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| App uninstalled / reinstalled                                       | Firebase deregisters the old token (UNREGISTERED)                    |
+| Firebase internally rotates the token                               | Old token stops working; `onTokenRefresh` fires on device            |
+| Courier denies notification permission on first run                 | Token is never generated; `users.fcm_token` stays `null`             |
+| Token was never synced (app opened before backend endpoint existed) | `users.fcm_token` is `null` despite courier being logged in          |
+| Courier hasn't opened the app since a token rotation                | Stored token is stale; device has the new one but hasn't sent it yet |
+
+### What the Backend Does Automatically
+
+`PushNotificationService::sendToUser()` handles each scenario:
+
+| Condition                                                          | Behaviour                                                                                                                                                   |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users.fcm_token` is `null`                                        | Skips FCM silently (returns `false`). Notification is **still stored** in the `database` channel.                                                           |
+| FCM responds `UNREGISTERED` or `registration-token-not-registered` | **Clears `users.fcm_token` to `null`** so no further retries waste FCM quota. Logs a `warning`. Notification is **still stored** in the `database` channel. |
+| Any other `MessagingException` (network, quota, misconfiguration)  | Logs a `warning`, returns `false`. Token is **not** cleared (transient error). Notification is **still stored** in the `database` channel.                  |
+| FCM send succeeds                                                  | Returns `true`. Notification is stored **and** FCM delivery is confirmed.                                                                                   |
+
+Key invariant: **the `database` channel notification (`$user->notify(...)`) is always written first, before the FCM call.** A broken FCM token can never drop a notification — the courier will always see it in the in-app notification list on their next app open.
+
+### Mobile App Contract (required from `fsi-courier-app`)
+
+The mobile app MUST uphold this contract to keep the token current:
+
+1. **On every app startup** (not just first login) — call `POST /api/mbl/profile/fcm-token` with the result of `FirebaseMessaging.instance.getToken()`.
+    ```dart
+    // lib/app.dart — _AutoSyncListener
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token != null) {
+      await apiClient.post('/api/mbl/profile/fcm-token', body: {
+        'fcm_token':   token,
+        'device_type': Platform.isIOS ? 'ios' : 'android',
+      });
+    }
+    ```
+2. **On `onTokenRefresh`** — re-POST whenever Firebase rotates the token in the background.
+    ```dart
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      await apiClient.post('/api/mbl/profile/fcm-token', body: {
+        'fcm_token':   newToken,
+        'device_type': Platform.isIOS ? 'ios' : 'android',
+      });
+    });
+    ```
+3. **On fresh login** — `init()` always calls `getToken()` and POSTs even if the courier was previously logged in. This covers the case where the app was reinstalled between sessions.
+4. **Errors are swallowed** — A failed token sync must never block login or any delivery workflow. Log to `ErrorLogService` and continue.
+
+### Token Validity Diagnostic (Web Dashboard)
+
+The Delivery Reports table exposes two flags per courier row for diagnosing push delivery issues:
+
+| Flag                                                                 | Value                   | Meaning                                                                                                                                     |
+| -------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `courier_has_fcm_token: true`                                        | Token in DB             | FCM delivery will be attempted                                                                                                              |
+| `courier_has_fcm_token: false` + `courier_has_active_session: true`  | No token, logged in     | Courier is online but notification permission was denied, or `onTokenRefresh` hasn't fired yet. Ask them to fully close and reopen the app. |
+| `courier_has_fcm_token: false` + `courier_has_active_session: false` | No token, not logged in | Courier hasn't logged in to the mobile app yet.                                                                                             |
+
+If `fcm_token` was cleared by the UNREGISTERED handler and the courier subsequently reopens the app, the startup token sync will re-populate `users.fcm_token` automatically — no manual intervention required.
+
+### Source: `app/Services/PushNotificationService.php`
+
+- `sendToUser(User, title, body, data)` — checks null → sends → catches UNREGISTERED → clears token
+- `isTokenPermanentlyInvalid(string)` — private; matches `UNREGISTERED`, `registration-token-not-registered`, `Requested entity was not found`
+- Token-sync endpoint: `POST /api/mbl/profile/fcm-token` → `CourierMobileController@updateFcmToken` → `UpdateFcmTokenRequest`
+
+---
+
+## Notification API Response Shape (v2.4)
+
+> **Reference**: `GET /api/mbl/notifications` — `app/Http/Controllers/Dashboard/CourierManagement/CourierNotificationController.php`
+
+Every item in the `data[]` array has this shape. Fields null when not applicable to the notification type.
+
+```jsonc
+{
+    "id": "UUID", // use for mark-as-read
+    "type": "string", // see type table below
+    "message": "string", // human-readable
+    "transaction_reference": "string|null",
+    "delivery_references": ["string"], // barcodes, may be empty
+    "amount": 1234.5, // float | null
+    // Payout approval / rejection only:
+    "stage": "ops|hr|null",
+    "rejection_reason": "string|null",
+    // Dispatch (new_dispatch type) only:
+    "dispatch_code": "string|null",
+    "partial_code": "string|null",
+    "delivery_count": 15, // int | null
+    "action": "new_dispatch|null",
+    // Read state:
+    "date": "2026-04-14T08:00:00.000000Z",
+    "read": false,
+    "read_at": "ISO 8601|null",
+}
+```
+
+### Notification Types
+
+| `type`                  | Trigger                                  | Key fields                                                     |
+| ----------------------- | ---------------------------------------- | -------------------------------------------------------------- |
+| `new_dispatch`          | DOP batch dispatched to courier          | `dispatch_code`, `partial_code`, `delivery_count`, `action`    |
+| `payout_requested`      | Courier submits payout request           | `transaction_reference`, `delivery_references`, `amount`       |
+| `payout_approved`       | OPS or HR approves payout                | `transaction_reference`, `amount`, `stage` (`ops`\|`hr`)       |
+| `payout_rejected`       | OPS or HR rejects payout                 | `transaction_reference`, `amount`, `stage`, `rejection_reason` |
+| `payout_paid`           | HR marks payout as paid (money released) | `transaction_reference`, `delivery_references`, `amount`       |
+| `transaction_due_today` | Deliveries due today                     | `delivery_references`                                          |
+| `transaction_due_soon`  | Deliveries due soon                      | `delivery_references`                                          |
+
+### Notification Endpoints
+
+| Method | Path                                       | Description                                                                                                        |
+| ------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `GET`  | `/api/mbl/notifications`                   | Paginated list (most recent first). Query: `page`, `per_page` (max 50). Response includes `unread_count` + `meta`. |
+| `GET`  | `/api/mbl/notifications/unread-count`      | Badge count — `{ success, count }`                                                                                 |
+| `POST` | `/api/mbl/notifications/{id}/mark-as-read` | Mark single by UUID                                                                                                |
+| `POST` | `/api/mbl/notifications/mark-all-as-read`  | Mark all unread as read                                                                                            |
