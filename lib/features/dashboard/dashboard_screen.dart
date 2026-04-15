@@ -341,21 +341,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             child:
                                 StatCard(
                                       label: 'SYNC',
-                                      count:
-                                          '$syncedTotalCount / ${pendingSyncCount + syncedTotalCount}',
+                                      count: pendingSyncCount > 0
+                                          ? '$pendingSyncCount'
+                                          : '$syncedTotalCount',
                                       icon: Icons.sync_rounded,
                                       color: pendingSyncCount > 0
                                           ? Colors.blueAccent
                                           : Colors.blueGrey,
                                       onTap: () => context.push('/sync'),
-                                      subdued:
-                                          pendingSyncCount == 0 &&
+                                      subdued: pendingSyncCount == 0 &&
                                           syncedTotalCount == 0,
                                       details: pendingSyncCount > 0
-                                          ? '$pendingSyncCount pending updates.'
+                                          ? 'Pending updates.'
                                           : (syncedTotalCount > 0
-                                                ? '$syncedTotalCount synced.'
-                                                : 'All caught up.'),
+                                              ? 'All synced.'
+                                              : 'No activity.'),
                                     )
                                     .animate()
                                     .fadeIn(delay: 700.ms)
