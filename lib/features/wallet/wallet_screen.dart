@@ -323,17 +323,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         ),
 
                       // ── Earnings / Payout Flip Card ────────────────────────
-                      if (tentativePayout > 0 || isLatestPending)
-                        _WalletFlipCard(
-                              tentativePayout: tentativePayout,
-                              pendingRequestAmt: pendingRequestAmt,
-                              isLatestPending: isLatestPending,
-                              showPending: isOnline,
-                              paymentMethod: _paymentMethod,
-                            )
-                            .animate()
-                            .fadeIn(duration: 500.ms)
-                            .slideY(begin: 0.1, end: 0),
+                      _WalletFlipCard(
+                            tentativePayout: tentativePayout,
+                            pendingRequestAmt: pendingRequestAmt,
+                            isLatestPending: isLatestPending,
+                            showPending: isOnline,
+                            paymentMethod: _paymentMethod,
+                          )
+                          .animate()
+                          .fadeIn(duration: 500.ms)
+                          .slideY(begin: 0.1, end: 0),
 
                       const SizedBox(height: 20),
 

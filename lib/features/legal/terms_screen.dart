@@ -80,7 +80,11 @@ class _TermsScreenState extends State<TermsScreen> {
     await prefs.setString('terms_accepted_version', kTermsVersion);
     if (!mounted) return;
     setState(() => _accepting = false);
-    context.go('/dashboard');
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/dashboard');
+    }
   }
 
   @override

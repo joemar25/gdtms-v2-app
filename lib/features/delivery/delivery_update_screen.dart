@@ -356,7 +356,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       // However, to be helpful, if both are empty, we can put it in POD.
 
       final rawBytes = await response.file!.readAsBytes();
-      final bytes = await FlutterImageCompress.compressWithList(
+      await FlutterImageCompress.compressWithList(
         rawBytes,
         minWidth: 600,
         quality: 70,
@@ -677,7 +677,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     showSuccessNotification(context, 'Delivery status updated successfully.');
     // Fire-and-forget: may trigger the native in-app review sheet.
     ReviewPromptService.instance.onDeliveryCompleted();
-    context.go('/dashboard');
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/dashboard');
+    }
   }
 
   void _clearDeliveredFields() {

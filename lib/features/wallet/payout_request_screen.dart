@@ -218,7 +218,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         'Payout request submitted.',
         type: SnackbarType.success,
       );
-      context.go('/wallet');
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/wallet');
+      }
     } else if (result is ApiValidationError<Map<String, dynamic>>) {
       final firstError = result.errors.values.isNotEmpty
           ? result.errors.values.first.first
