@@ -4,7 +4,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/services/error_log_service.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:go_router/go_router.dart';

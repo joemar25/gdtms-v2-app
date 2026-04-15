@@ -268,7 +268,7 @@ class _DeliveryStatusListScreenState
         searchBtn,
         IconButton(
           icon: const Icon(Icons.help_outline_rounded),
-          tooltip: 'RTS Logic',
+          tooltip: 'Failed Delivery Logic',
           onPressed: () => _showRtsHelpBottomSheet(context),
         ),
         IconButton(
@@ -285,7 +285,7 @@ class _DeliveryStatusListScreenState
     'PENDING' => 'No active deliveries.',
     'DELIVERED' => 'No delivered items today.',
     'DISPATCHED' => 'No dispatched items.',
-    'RTS' => 'No RTS mailpacks today.',
+    'RTS' => 'No failed deliveries today.',
     'OSA' => 'No OSA mailpacks today.',
     _ => 'No items found.',
   };
@@ -441,10 +441,20 @@ class _DeliveryStatusListScreenState
                             final deliveryStatus =
                                 d['delivery_status']?.toString() ?? 'PENDING';
                             final isLocked = checkIsLockedFromMap(d);
+                            final canUpdate =
+                                identifier.isNotEmpty &&
+                                !isLocked &&
+                                deliveryStatus.toUpperCase() != 'OSA';
+
                             return DeliveryCard(
                               delivery: d,
                               compact: isCompact,
                               showChevron: !isLocked,
+                              onUpdateTap: canUpdate
+                                  ? () => context.push(
+                                      '/deliveries/$identifier/update',
+                                    )
+                                  : null,
                               onTap: (identifier.isEmpty)
                                   ? () {}
                                   : (isLocked)
@@ -469,12 +479,12 @@ class _DeliveryStatusListScreenState
                                       } else if (s == 'RTS' &&
                                           attemptsCount >= 3) {
                                         msg =
-                                            'This RTS item has reached the maximum number of attempts and is locked.';
+                                            'This failed delivery has reached the maximum number of attempts and is locked.';
                                       } else if (s == 'RTS' &&
                                           (v == 'verified_with_pay' ||
                                               v == 'verified_no_pay')) {
                                         msg =
-                                            'This RTS item has already been verified and is no longer actionable.';
+                                            'This failed delivery has already been verified and is no longer actionable.';
                                       }
                                       showInfoNotification(context, msg);
                                     }
@@ -562,7 +572,7 @@ class _DeliveryStatusListScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'RTS Logic & Payments',
+                          'Failed Delivery & Payments',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -615,7 +625,7 @@ class _DeliveryStatusListScreenState
                       icon: Icons.inventory_2_outlined,
                       title: 'Delivery Back to FSI',
                       description:
-                          'If an RTS item is delivered back to FSI, it will be automatically validated for payment by the site team.',
+                          'If a failed delivery is returned to FSI, it will be automatically validated for payment by the site team.',
                       isDark: isDark,
                     ),
                     const Padding(
@@ -626,7 +636,8 @@ class _DeliveryStatusListScreenState
                       icon: Icons.account_balance_wallet_outlined,
                       title: 'Automatic Consolidation',
                       description:
-                          'If validated "With Pay", the item will be automatically consolidated into your existing old payment request, if one is available.',
+                          // 'If validated "With Pay", the item will be automatically consolidated into your existing old payment request, if one is available.',
+                          'If validated, the item will be automatically consolidated into your existing payment request, if one is available.',
                       isDark: isDark,
                     ),
                   ],
@@ -715,7 +726,7 @@ class _DeliveryStatusListScreenState
       return _StatusInfoBanner(
         icon: Icons.assignment_return_rounded,
         message:
-            'RTS items can be re-delivered if still with you, unless already verified on-site.',
+            'Failed attempts can be re-delivered if still with you, unless already verified on-site.',
         statusColor: DeliveryCard.statusColor('RTS'),
         isDark: isDark,
       );

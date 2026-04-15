@@ -10,7 +10,11 @@
     lib/core/services/review_prompt_service.dart
     lib/core/services/version_check_service.dart
 
-  Update this document whenever you change any of those files.
+  Time-enforcement services are documented separately:
+    lib/core/services/time_validation_service.dart  →  docs/time-enforcement.md
+    lib/core/services/platform_settings.dart        →  docs/time-enforcement.md
+
+  Update this document whenever you change any of the files listed above.
   Each of those files carries a header comment: "DOCS: docs/core/services.md"
   ══════════════════════════════════════════════════════════════════════════════
 -->

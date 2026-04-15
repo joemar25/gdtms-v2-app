@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/styles/ui_styles.dart';
 
 class StatusBadge extends StatelessWidget {
@@ -21,7 +22,7 @@ class StatusBadge extends StatelessWidget {
       _ => Colors.grey,
     };
 
-    final displayStatus = status.replaceAll('_', ' ').toUpperCase();
+    final displayStatus = status.toDisplayStatus();
 
     return Chip(
       label: Text(displayStatus),

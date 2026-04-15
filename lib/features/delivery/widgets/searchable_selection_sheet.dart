@@ -95,7 +95,6 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final bgColor = widget.isDark ? const Color(0xFF1A1A2E) : Colors.white;
     final surfaceColor = widget.isDark ? Colors.white12 : Colors.grey.shade50;

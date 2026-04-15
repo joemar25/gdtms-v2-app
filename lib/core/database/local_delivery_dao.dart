@@ -558,17 +558,15 @@ class LocalDeliveryDao {
     return rows.map(LocalDelivery.fromDb).toList();
   }
 
-  /// Variant of [searchByQuery] restricted to deliveries that are currently
-  /// visible in one of the courier's active list screens.
+  /// Variant of [searchByQuery] restricted to deliveries that are actionable
+  /// for delivery — PENDING or unverified RTS only.
   ///
-  /// Used by the scan (POD) screen as a UX pre-filter. The single SQL query
-  /// mirrors the four buckets of [isVisibleToRider] exactly:
+  /// Used by the scan (POD) screen as a UX pre-filter. DELIVERED and OSA are
+  /// intentionally excluded: they are not valid delivery targets.
   ///
   ///   • PENDING   — any non-archived pending record
-  ///   • DELIVERED — delivered_at is today AND paid_at = 0 (unpaid)
   ///   • RTS       — completed_at is today AND rts_verification_status NOT IN
   ///                 ('verified_with_pay', 'verified_no_pay')
-  ///   • OSA       — completed_at is today
   ///
   /// [DeliveryDetailScreen._load] still calls [isVisibleToRider] as the
   /// canonical hard gate — this method is purely a performance and UX
@@ -591,8 +589,6 @@ class LocalDeliveryDao {
       now.month,
       now.day + 1,
     ).millisecondsSinceEpoch;
-    // NOTE: if you update isVisibleToRider, update this query too — they must
-    // stay in sync or the scan pre-filter will diverge from the hard gate.
     final rows = await db.rawQuery(
       '''
       SELECT * FROM local_deliveries
@@ -602,19 +598,11 @@ class LocalDeliveryDao {
           -- PENDING: any non-archived pending record
           (delivery_status COLLATE NOCASE = 'PENDING')
 
-          -- DELIVERED: today only (paid status does not restrict viewing)
-          OR (delivery_status COLLATE NOCASE = 'DELIVERED'
-              AND delivered_at  >= $todayStart AND delivered_at  < $tomorrowStart)
-
           -- RTS: today only, unverified
           OR (delivery_status COLLATE NOCASE = 'RTS'
               AND completed_at >= $todayStart AND completed_at < $tomorrowStart
               AND COALESCE(rts_verification_status, 'unvalidated')
                   NOT IN ('verified_with_pay', 'verified_no_pay'))
-
-          -- OSA: today only
-          OR (delivery_status COLLATE NOCASE = 'OSA'
-              AND completed_at >= $todayStart AND completed_at < $tomorrowStart)
         )
       ORDER BY updated_at DESC
       LIMIT $limit

@@ -36,7 +36,7 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
+// 'dart:typed_data' is available through flutter/services when needed
 
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/styles/ui_styles.dart';
@@ -45,6 +45,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -91,11 +92,11 @@ const _kStatusMeta = {
     color: Color(0xFF00B14F),
   ),
   'RTS': (
-    label: 'RTS',
+    label: 'FAILED',
     icon: Icons.keyboard_return_rounded,
     color: Colors.purple,
   ),
-  'OSA': (label: 'OSA', icon: Icons.inbox_rounded, color: Colors.amber),
+  'OSA': (label: 'MISROUTED', icon: Icons.inbox_rounded, color: Colors.amber),
 };
 
 class DeliveryUpdateScreen extends ConsumerStatefulWidget {
@@ -156,6 +157,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   // Signature file path for delivered status
   String? _signaturePath;
+
+  // Signature slot visibility (hidden by default; shown when checkbox is ticked)
+  bool _showSignatureSlot = false;
+
+  // Delivery confirmation code (required for DELIVERED, 6-char alphanumeric, all caps)
+  final _confirmationCode = TextEditingController();
+  final _confirmationCodeFocus = FocusNode();
 
   // Geo location
   double? _latitude;
@@ -231,6 +239,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _recipient.dispose();
     _relationshipSpecify.dispose();
     _reasonSpecify.dispose();
+    _confirmationCode.dispose();
+    _confirmationCodeFocus.dispose();
     super.dispose();
   }
 
@@ -371,13 +381,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
       setState(() {
         // Default to POD if empty, otherwise we just have the file ready
-        if (_podPhoto == null) {
-          _podPhoto = entry.type == 'recovered'
-              ? PhotoEntry(id: entry.id, file: entry.file, type: 'pod')
-              : entry;
-        }
+        _podPhoto ??= entry.type == 'recovered'
+            ? PhotoEntry(id: entry.id, file: entry.file, type: 'pod')
+            : entry;
       });
 
+      if (!mounted) return;
       showAppSnackbar(
         context,
         'Successfully recovered image from camera.',
@@ -547,6 +556,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (_selfiePhoto == null) {
         _errors['selfie_photo'] = 'Selfie photo is required.';
       }
+      if (_confirmationCode.text.trim().isEmpty) {
+        _errors['confirmation_code'] =
+            'Delivery confirmation code is required.';
+      }
     }
 
     if (_status == 'RTS' || _status == 'OSA') {
@@ -632,6 +645,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       payload['recipient'] = _recipient.text.trim();
       payload['relationship'] = resolvedRelationship;
       payload['placement_type'] = _placement;
+      payload['delivery_confirmation_code'] = _confirmationCode.text.trim();
     } else {
       payload['reason'] = resolvedReason;
       if (_selfiePhoto != null) {
@@ -677,11 +691,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     showSuccessNotification(context, 'Delivery status updated successfully.');
     // Fire-and-forget: may trigger the native in-app review sheet.
     ReviewPromptService.instance.onDeliveryCompleted();
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go('/dashboard');
-    }
+    context.go('/dashboard');
   }
 
   void _clearDeliveredFields() {
@@ -693,6 +703,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _podPhoto = null;
     _selfiePhoto = null;
     _signaturePath = null;
+    _showSignatureSlot = false;
+    _confirmationCode.clear();
+    _confirmationCodeFocus.unfocus();
     _photos.clear();
     _errors.clear();
   }
@@ -1148,7 +1161,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       _podPhoto != null ||
       _selfiePhoto != null ||
       _photos.isNotEmpty ||
-      _signaturePath != null;
+      _signaturePath != null ||
+      _confirmationCode.text.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -1182,8 +1196,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             ],
           ),
         );
-        // ignore: use_build_context_synchronously
-        if (leave == true && mounted) context.pop();
+        if (leave == true) {
+          rootNavigatorKey.currentState?.maybePop();
+        }
       },
       child: Scaffold(
         // Inherits scaffoldBackgroundColor from global theme.
@@ -1476,6 +1491,66 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     ),
                                   ],
 
+                                  // ── Delivery confirmation code (required) ──────
+                                  _kFieldGap,
+                                  ValueListenableBuilder<TextEditingValue>(
+                                    valueListenable: _confirmationCode,
+                                    builder: (context, value, _) => TextFormField(
+                                      controller: _confirmationCode,
+                                      focusNode: _confirmationCodeFocus,
+                                      maxLength: 6,
+                                      maxLengthEnforcement:
+                                          MaxLengthEnforcement.enforced,
+                                      buildCounter:
+                                          (
+                                            _, {
+                                            required currentLength,
+                                            required isFocused,
+                                            maxLength,
+                                          }) => null,
+                                      textCapitalization:
+                                          TextCapitalization.characters,
+                                      inputFormatters: [
+                                        TextInputFormatter.withFunction(
+                                          (old, newVal) => newVal.copyWith(
+                                            text: newVal.text.toUpperCase(),
+                                          ),
+                                        ),
+                                        FilteringTextInputFormatter.allow(
+                                          RegExp(r'[A-Z0-9]'),
+                                        ),
+                                      ],
+                                      keyboardType: TextInputType.text,
+                                      decoration:
+                                          deliveryFieldDecoration(
+                                            context,
+                                            labelText:
+                                                'DELIVERY CONFIRMATION CODE',
+                                            hintText: 'e.g. AB1C2D',
+                                            errorText:
+                                                _errors['confirmation_code'],
+                                          ).copyWith(
+                                            suffixIcon: value.text.isNotEmpty
+                                                ? IconButton(
+                                                    icon: const Icon(
+                                                      Icons.clear_rounded,
+                                                      size: 18,
+                                                    ),
+                                                    color: Colors.grey.shade500,
+                                                    onPressed: () => setState(
+                                                      () => _confirmationCode
+                                                          .clear(),
+                                                    ),
+                                                  )
+                                                : null,
+                                          ),
+                                      onChanged: (_) => setState(
+                                        () =>
+                                            _errors.remove('confirmation_code'),
+                                      ),
+                                    ),
+                                  ),
+
                                   _kFieldGap,
                                   DropdownButtonFormField<String>(
                                     initialValue: _placement,
@@ -1594,7 +1669,77 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 12),
-                                  _buildSignatureSlot(isDark),
+                                  // ── Signature checkbox ─────────────────────
+                                  Row(
+                                    children: [
+                                      Checkbox(
+                                        value: _showSignatureSlot,
+                                        activeColor: ColorStyles.grabGreen,
+                                        onChanged: (checked) async {
+                                          if (checked == true) {
+                                            final confirmed = await showDialog<bool>(
+                                              context: context,
+                                              builder: (ctx) => AlertDialog(
+                                                title: const Text(
+                                                  'ADD SIGNATURE?',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 15,
+                                                  ),
+                                                ),
+                                                content: const Text(
+                                                  'Do you want to capture the recipient\'s signature?',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.of(
+                                                          ctx,
+                                                        ).pop(false),
+                                                    child: const Text('CANCEL'),
+                                                  ),
+                                                  FilledButton(
+                                                    style:
+                                                        FilledButton.styleFrom(
+                                                          backgroundColor:
+                                                              ColorStyles
+                                                                  .grabGreen,
+                                                        ),
+                                                    onPressed: () =>
+                                                        Navigator.of(
+                                                          ctx,
+                                                        ).pop(true),
+                                                    child: const Text('YES'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                            if (confirmed == true && mounted) {
+                                              setState(
+                                                () => _showSignatureSlot = true,
+                                              );
+                                            }
+                                          } else {
+                                            setState(() {
+                                              _showSignatureSlot = false;
+                                              _signaturePath = null;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                      const Text(
+                                        'Include recipient signature',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                  if (_showSignatureSlot) ...[
+                                    const SizedBox(height: 8),
+                                    _buildSignatureSlot(isDark),
+                                  ],
                                 ],
 
                                 // ── SELFIE PHOTO (rts / osa) ─────────────────────

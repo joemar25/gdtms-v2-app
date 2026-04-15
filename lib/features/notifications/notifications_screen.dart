@@ -27,9 +27,12 @@ import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
+import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
@@ -181,12 +184,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       ref.read(notificationsProvider.notifier).markAsRead(n.id);
     }
 
-    // new_dispatch → open dispatch eligibility screen so courier can accept.
+    // new_dispatch → fetch dispatch data then open eligibility screen.
     if (n.type == 'new_dispatch' && n.dispatchCode != null) {
-      context.push(
-        '/dispatches/eligibility',
-        extra: {'dispatch_code': n.dispatchCode},
-      );
+      _handleDispatchNotificationTap(n.dispatchCode!);
       return;
     }
 
@@ -201,15 +201,89 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       context.push('/deliveries/${n.deliveryReferences.first}');
     }
   }
+
+  Future<void> _handleDispatchNotificationTap(String dispatchCode) async {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Dialog(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading dispatch details...'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      const uuid = Uuid();
+      final requestId = uuid.v4();
+
+      final result = await ref
+          .read(apiClientProvider)
+          .post<Map<String, dynamic>>(
+            '/check-dispatch-eligibility',
+            data: {
+              'dispatch_code': dispatchCode.trim(),
+              'client_request_id': requestId,
+            },
+            parser: parseApiMap,
+          );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
+        if (mounted) {
+          context.push(
+            '/dispatches/eligibility',
+            extra: {
+              'dispatch_code': dispatchCode.trim(),
+              'eligibility_response': data,
+            },
+          );
+        }
+      } else {
+        final errorMessage = switch (result) {
+          ApiBadRequest(:final message) => message,
+          ApiValidationError(:final message) => message ?? 'Validation error',
+          ApiNetworkError(:final message) => message,
+          ApiRateLimited(:final message) => message,
+          ApiConflict(:final message) => message,
+          ApiServerError(:final message) => message,
+          _ => 'Could not load dispatch details',
+        };
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
 }
 
 // ─ Helper functions ───────────────────────────────────────────────────────────
-
-/// Mask a dispatch code to show only last 4 characters
-String _maskDispatchCode(String code) {
-  if (code.length <= 4) return code;
-  return '${code.substring(0, code.length - 4)}****';
-}
 
 // ─── Notification tile ────────────────────────────────────────────────────────
 

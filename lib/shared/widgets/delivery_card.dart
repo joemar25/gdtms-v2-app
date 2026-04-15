@@ -20,6 +20,7 @@ class DeliveryCard extends StatelessWidget {
     this.isChecking = false,
     this.showLockIcon = true,
     this.isPrivacyMode = false,
+    this.onUpdateTap,
   });
 
   final Map<String, dynamic> delivery;
@@ -32,6 +33,10 @@ class DeliveryCard extends StatelessWidget {
   final bool isChecking;
   final bool showLockIcon;
   final bool isPrivacyMode;
+
+  /// When non-null an "Update" action is rendered inside the card.
+  /// Pass null to hide it (locked / non-updatable items).
+  final VoidCallback? onUpdateTap;
 
   static Color statusColor(String status) {
     return switch (status.toUpperCase()) {
@@ -321,7 +326,7 @@ class DeliveryCard extends StatelessWidget {
                                     padding: const EdgeInsets.only(left: 6),
                                     child: _MiniPill(
                                       label: status == 'DELIVERED'
-                                          ? 'RTS-ATTEMPTS: $attemptsCount'
+                                          ? 'FAILED ATTEMPTS: $attemptsCount'
                                           : 'ATTEMPTS: $attemptsCount',
                                       icon: Icons.autorenew_rounded,
                                       bg: attemptsCount >= 3
@@ -583,6 +588,38 @@ class DeliveryCard extends StatelessWidget {
                       // ── Detail section (Auto-visible if not compact) ────────────────────────
                       if (isExpanded && !isPrivacyMode)
                         _buildDetailSection(delivery, isDark, subtextColor),
+
+                      // ── Update action button (expanded only) ─────────────────────────────────
+                      if (onUpdateTap != null &&
+                          !isPrivacyMode &&
+                          isExpanded) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: onUpdateTap,
+                            icon: const Icon(Icons.edit_rounded, size: 14),
+                            label: const Text('UPDATE'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 36),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: UIStyles.pillRadius,
+                              ),
+                              side: BorderSide(color: colorForStatus),
+                              backgroundColor: colorForStatus.withValues(
+                                alpha: UIStyles.alphaActiveAccent,
+                              ),
+                              foregroundColor: colorForStatus,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -826,7 +863,7 @@ class DeliveryCard extends StatelessWidget {
                             if (attemptsCount > 0)
                               _TinyPill(
                                 label: status == 'DELIVERED'
-                                    ? 'RTS-A:$attemptsCount'
+                                    ? 'FA:$attemptsCount'
                                     : 'A:$attemptsCount',
                                 color: attemptsCount >= 3
                                     ? Colors.red.shade600
@@ -860,6 +897,47 @@ class DeliveryCard extends StatelessWidget {
                             Icons.chevron_right_rounded,
                             size: 16,
                             color: subtextColor,
+                          ),
+                        ),
+                      // Update icon pill (compact mode)
+                      if (onUpdateTap != null && !isPrivacyMode)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Material(
+                            color: statusColor.withValues(
+                              alpha: UIStyles.alphaActiveAccent,
+                            ),
+                            borderRadius: UIStyles.pillRadius,
+                            child: InkWell(
+                              onTap: onUpdateTap,
+                              borderRadius: UIStyles.pillRadius,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 4,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.edit_rounded,
+                                      size: 11,
+                                      color: statusColor,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'UPDATE',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        color: statusColor,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                     ],

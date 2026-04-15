@@ -23,6 +23,7 @@ import 'core/database/cleanup_service.dart';
 import 'styles/color_styles.dart';
 import 'shared/router/app_router.dart';
 import 'shared/router/router_keys.dart';
+import 'shared/widgets/time_enforcer.dart';
 
 // How often to automatically re-sync data in the background while online.
 const _kAutoSyncInterval = Duration(minutes: 3);
@@ -50,7 +51,8 @@ class FsiCourierApp extends ConsumerWidget {
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
       routerConfig: router,
-      builder: (context, child) => _AutoSyncListener(child: child!),
+      builder: (context, child) =>
+          TimeEnforcer(child: _AutoSyncListener(child: child!)),
     );
   }
 

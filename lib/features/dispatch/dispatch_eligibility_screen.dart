@@ -90,65 +90,16 @@ class _DispatchEligibilityScreenState
   bool _rejecting = false;
   String? _selectedRejectReason;
   int _currentPage = 0;
-  late Map<String, dynamic> _fetchedEligibilityResponse;
 
   String get _resolvedDispatchCode => widget.dispatchCode.trim();
 
-  /// Get eligibility response: use fetched one if available, otherwise use widget's
-  Map<String, dynamic> get _eligibilityResponse =>
-      _fetchedEligibilityResponse.isNotEmpty
-      ? _fetchedEligibilityResponse
-      : widget.eligibilityResponse;
+  /// Get eligibility response from widget (data fetched before navigation)
+  Map<String, dynamic> get _eligibilityResponse => widget.eligibilityResponse;
 
   @override
   void initState() {
     super.initState();
-    _fetchedEligibilityResponse = {};
-    // If eligibility response is empty (e.g., from notification tap),
-    // auto-fetch the eligibility data
-    if (widget.eligibilityResponse.isEmpty) {
-      _fetchEligibilityData();
-    }
-  }
-
-  Future<void> _fetchEligibilityData() async {
-    setState(() => _loading = true);
-    try {
-      const uuid = Uuid();
-      final requestId = uuid.v4();
-
-      final result = await ref
-          .read(apiClientProvider)
-          .post<Map<String, dynamic>>(
-            '/check-dispatch-eligibility',
-            data: {
-              'dispatch_code': _resolvedDispatchCode,
-              'client_request_id': requestId,
-            },
-            parser: parseApiMap,
-          );
-
-      if (!mounted) return;
-
-      if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
-        setState(() {
-          _fetchedEligibilityResponse = data;
-        });
-      } else {
-        final errorMessage = switch (result) {
-          ApiBadRequest(:final message) => message,
-          ApiValidationError(:final message) => message ?? 'Validation error',
-          ApiNetworkError(:final message) => message,
-          ApiRateLimited(:final message) => message,
-          ApiConflict(:final message) => message,
-          ApiServerError(:final message) => message,
-          _ => 'Could not fetch eligibility. Please try again.',
-        };
-        setState(() => _error = errorMessage);
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    // No need to fetch - data passed from notifications screen navigation
   }
 
   @override
@@ -389,10 +340,7 @@ class _DispatchEligibilityScreenState
 
   @override
   Widget build(BuildContext context) {
-    // Track if this is initial load from notification (no data fetched yet)
-    // Show nothing (loading) until we have a response from the API
-    final hasResponse = _eligibilityResponse.isNotEmpty;
-
+    // Data is guaranteed to be present (fetched before navigation)
     final eligible = _eligibilityResponse['eligible'] == true;
     // Response is flat (not nested under 'data')
     final info = _eligibilityResponse;
@@ -418,8 +366,12 @@ class _DispatchEligibilityScreenState
           }).toList()
         : <Map<String, dynamic>>[];
 
-    return WillPopScope(
-      onWillPop: _handleBack,
+    return PopScope(
+      canPop: GoRouter.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _handleBack();
+      },
       child: Scaffold(
         appBar: AppHeaderBar(
           leading: BackButton(onPressed: () => _handleBack()),
@@ -440,8 +392,8 @@ class _DispatchEligibilityScreenState
               ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Only show error/ineligible states after API response received
-                  if (hasResponse && _error != null) ...[
+                  // Show error state if API call failed
+                  if (_error != null) ...[
                     const SizedBox(height: 40),
                     Icon(
                       Icons.error_rounded,
@@ -465,7 +417,7 @@ class _DispatchEligibilityScreenState
                       onPressed: _handleBack,
                       child: const Text('BACK'),
                     ),
-                  ] else if (hasResponse && !eligible) ...[
+                  ] else if (!eligible) ...[
                     const SizedBox(height: 40),
                     Icon(
                       Icons.cancel_rounded,

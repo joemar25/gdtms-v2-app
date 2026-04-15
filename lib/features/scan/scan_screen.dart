@@ -320,15 +320,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   Future<void> _handlePod(String code) async {
     // ── SCAN GATE (pre-filter) ────────────────────────────────────────────────
-    // We use searchVisibleByQuery instead of the broad searchByQuery so that
-    // only deliveries currently active in one of the courier's list screens are
-    // even considered. This mirrors the rules in LocalDeliveryDao.isVisibleToRider:
-    //
-    //   • PENDING   — any non-archived pending record
-    //   • DELIVERED — today's unpaid delivered items
-    //   • RTS       — today's RTS items that are NOT yet verified
-    //   • OSA       — today's OSA items
-    //
+    // Only PENDING and unverified RTS are valid delivery targets.
+    // DELIVERED and OSA are excluded — they are not actionable here.
     // DeliveryDetailScreen._load() runs isVisibleToRider again as the canonical
     // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
     // message before ever navigating, and avoids N+1 per-row checks.
@@ -358,22 +351,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     }
 
     if (matches.length > 1) {
-      // Multiple visible hits — let the courier pick the correct one.
-      // OSA items are visible in the list but cannot be tapped individually,
-      // so filter them out from the picker just like the list screen does.
-      final actionable = matches
-          .where((m) => m.deliveryStatus.toUpperCase() != 'OSA')
-          .toList();
-      if (actionable.isEmpty) {
-        setState(
-          () => _inlineError = 'No active deliveries found for "$code".',
-        );
-        if (_hasPermission) await _scannerController.start();
-        return;
-      }
+      // Multiple hits — all results are already PENDING/RTS actionable,
+      // so show the picker directly.
       final chosen = await _showSearchResults(
         code,
-        actionable.map((m) => m.toDeliveryMap()).toList(),
+        matches.map((m) => m.toDeliveryMap()).toList(),
       );
       if (!mounted) return;
       if (chosen != null) {

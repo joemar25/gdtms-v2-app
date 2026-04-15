@@ -4,6 +4,9 @@
   This file documents all files under:
     lib/shared/widgets/
 
+  Exception — time enforcement widget is documented separately:
+    lib/shared/widgets/time_enforcer.dart  →  docs/time-enforcement.md
+
   Update this document whenever you change any widget in that folder.
   Each of those files carries a header comment: "DOCS: docs/shared/widgets.md"
   ══════════════════════════════════════════════════════════════════════════════

@@ -3,6 +3,9 @@
 extension StatusStringFormat on String {
   String toDisplayStatus() {
     if (isEmpty) return '—';
+    // RTS = Return to Sender (returned to FSI) — couriers see it as a failed delivery.
+    // The raw API value 'RTS' is preserved everywhere; only the display label changes.
+    if (toUpperCase() == 'RTS') return 'FAILED DELIVERY';
     return replaceAll('_', ' ').toUpperCase();
   }
 }

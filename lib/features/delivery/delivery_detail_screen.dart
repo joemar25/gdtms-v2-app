@@ -418,7 +418,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           (rtsVerif == 'verified_with_pay' || rtsVerif == 'verified_no_pay')) {
         // RULE: Verified RTS items are fully settled — no further action needed.
         reason =
-            'This RTS item has already been verified and is no longer actionable.';
+            'This failed delivery has already been verified and is no longer actionable.';
       } else {
         // RULE: Item not in today's active window (e.g. yesterday's DELIVERED/RTS/OSA).
         reason = 'This delivery is not in your active list.';
@@ -589,6 +589,16 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       appBar: AppHeaderBar(
         titleWidget: _buildAppBarTitle(context, status, isDark),
         backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
       ),
       floatingActionButton: showFab
           ? FloatingActionButton.extended(
@@ -996,7 +1006,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               child: Row(
                 children: [
                   Text(
-                    'RETURN ATTEMPTS',
+                    'DELIVERY ATTEMPTS',
                     style: _DS.labelCaps.copyWith(
                       color: isDark
                           ? _DS.labelSecondaryDark

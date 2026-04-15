@@ -176,6 +176,7 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
             alignment: Alignment.topCenter,
             children: [
               ...previousChildren,
+              // ignore: use_null_aware_elements
               if (currentChild != null) currentChild,
             ],
           );
@@ -222,8 +223,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // After auth, before anything else: ensure the courier has accepted T&C.
       if (!isLegalRoute && !isAuthRoute) {
         final prefs = await SharedPreferences.getInstance();
-        final accepted = prefs.getString('terms_accepted_version');
-        if (accepted != kTermsVersion) return '/terms';
+        if (prefs.getString('terms_accepted_version') != kTermsVersion)
+          return '/terms';
       }
 
       // ── GLOBAL PERMISSIONS GUARD (location → camera → notifications) ──
@@ -373,8 +374,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/dispatches/eligibility',
         pageBuilder: (_, state) {
           final extra = asStringDynamicMap(state.extra);
-          // If eligibility_response is provided in extras, use it (may be empty)
-          // If completely missing, pass empty map so initState() will auto-fetch
+          // eligibility_response is fetched before navigation in notifications_screen
           final response = extra.containsKey('eligibility_response')
               ? asStringDynamicMap(extra['eligibility_response'])
               : <String, dynamic>{};
@@ -441,7 +441,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/rts',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
-          child: const DeliveryStatusListScreen(status: 'rts', title: 'RTS'),
+          child: const DeliveryStatusListScreen(status: 'rts', title: 'Failed Deliveries'),
           extra: state.extra,
         ),
       ),

@@ -45,7 +45,6 @@ import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
-import 'package:fsi_courier_app/shared/widgets/floating_bottom_nav_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/stat_widgets.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
@@ -298,7 +297,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Expanded(
                             child:
                                 StatCard(
-                                      label: 'RTS',
+                                      label: 'FAILED',
                                       count: '$rtsCount',
                                       icon: Icons.assignment_return_outlined,
                                       color: Colors.red,
@@ -307,7 +306,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                           : () => context.push('/rts'),
                                       subdued: true,
                                       details:
-                                          "Today's return to sender items.",
+                                          "Today's re-deliveries and returns.",
                                     )
                                     .animate()
                                     .fadeIn(delay: 500.ms)

@@ -74,6 +74,7 @@ const List<String> kReasons = [
 const List<String> kDeliveredNotePresets = [
   'Received by Cardholder/Owner',
   'Package in good condition',
+  'Allowed by ch/owner',
   'Received by guard',
   'Received by receptionist',
   'Left at front door',
@@ -127,6 +128,7 @@ const List<Map<String, String>> kRelationshipOptions = [
   {'value': 'STAFF', 'label': 'STAFF'},
   {'value': 'TENANT', 'label': 'TENANT'},
   {'value': 'UNCLE', 'label': 'UNCLE'},
+  {'value': 'WIFE', 'label': 'WIFE'},
   // ── catch-all — always last ──────────────────────────────────────────────
   {'value': 'OTHERS', 'label': 'OTHERS — Please Specify'},
 ];
