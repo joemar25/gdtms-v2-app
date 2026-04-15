@@ -29,7 +29,13 @@ Future<void> main() async {
   await BackgroundSyncSetup.init();
 
   // Initialize Firebase and background push notification handler
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } on FirebaseException catch (e) {
+    // During hot restart, native Firebase persists while Dart side resets.
+    // Gracefully ignore duplicate-app errors and continue.
+    if (e.code != 'duplicate-app') rethrow;
+  }
   await PushNotificationService.initBackgroundHandler();
 
   // ── Sentry crash monitoring ───────────────────────────────────────────────

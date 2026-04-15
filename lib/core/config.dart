@@ -26,8 +26,8 @@ const String packageId = 'com.fsi.courier';
 /// - Prod:  flutter build apk --dart-define-from-file=dart_defines.json
 const String apiBaseUrl = String.fromEnvironment(
   // 'API_BASE_URL_PROD',
-  'API_BASE_URL_DEMO',
-  // 'API_BASE_URL',
+  // 'API_BASE_URL_DEMO',
+  'API_BASE_URL',
   defaultValue: 'http://YOUR_API_BASE_URL/api/mbl',
 );
 
@@ -95,6 +95,42 @@ const String awsBucket = String.fromEnvironment(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Firebase Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Firebase Web API key.
+///
+/// Set via --dart-define=FIREBASE_API_KEY_WEB at build/run time.
+const String firebaseApiKeyWeb = String.fromEnvironment(
+  'FIREBASE_API_KEY_WEB',
+  defaultValue: '',
+);
+
+/// Firebase Android API key.
+///
+/// Set via --dart-define=FIREBASE_API_KEY_ANDROID at build/run time.
+const String firebaseApiKeyAndroid = String.fromEnvironment(
+  'FIREBASE_API_KEY_ANDROID',
+  defaultValue: '',
+);
+
+/// Firebase iOS API key.
+///
+/// Set via --dart-define=FIREBASE_API_KEY_IOS at build/run time.
+const String firebaseApiKeyIos = String.fromEnvironment(
+  'FIREBASE_API_KEY_IOS',
+  defaultValue: '',
+);
+
+/// Firebase Windows API key.
+///
+/// Set via --dart-define=FIREBASE_API_KEY_WINDOWS at build/run time.
+const String firebaseApiKeyWindows = String.fromEnvironment(
+  'FIREBASE_API_KEY_WINDOWS',
+  defaultValue: '',
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Sentry Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -138,7 +174,3 @@ bool isWithinPayoutRequestWindow() {
 // ─────────────────────────────────────────────────────────────────────────────
 //  End of config.dart
 // ─────────────────────────────────────────────────────────────────────────────
-
-// to emphasize:
-// rule - if payout na yung delivery, then atleast 1 day yung retainability neto sa database before it was to be cleared.
-// or if delivery is paid, strictly no need to put it in the database so if system detected if the dlelivery is paid then no need for it to be in the our local database unless it was today for record only but cannot be opened since we have locked it.

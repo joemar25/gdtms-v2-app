@@ -434,7 +434,7 @@ const _kPillHiddenRoutes = {
   '/splash',
   '/login',
   '/reset-password',
-  '/location-required',
+  '/location-required', // also covers camera + notification permission screens
 };
 
 class _SyncFloatingPill extends ConsumerWidget {

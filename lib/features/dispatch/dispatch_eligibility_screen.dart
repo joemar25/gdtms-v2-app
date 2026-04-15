@@ -120,6 +120,15 @@ class _DispatchEligibilityScreenState
         false;
   }
 
+  Future<bool> _handleBack() async {
+    if (GoRouter.of(context).canPop()) {
+      context.pop();
+      return false;
+    }
+    context.go('/dashboard');
+    return false;
+  }
+
   Future<void> _acceptDispatch() async {
     if (!widget.skipPinDialog) {
       final confirmed = await _showPinDialog();
@@ -353,295 +362,225 @@ class _DispatchEligibilityScreenState
           }).toList()
         : <Map<String, dynamic>>[];
 
-    return Scaffold(
-      appBar: AppHeaderBar(
-        title: 'DISPATCH DETAILS',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-            tooltip: 'Scan Dispatch',
-            onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
-          ),
-        ],
-      ),
-      body: LoadingOverlay(
-        isLoading: _loading,
-        child: Stack(
-          children: [
-            ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (!eligible) ...[
-                  const SizedBox(height: 40),
-                  Icon(
-                    Icons.cancel_rounded,
-                    color: Colors.red.shade400,
-                    size: 64,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'NOT ELIGIBLE',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
-                      letterSpacing: 1,
+    return WillPopScope(
+      onWillPop: _handleBack,
+      child: Scaffold(
+        appBar: AppHeaderBar(
+          leading: BackButton(onPressed: () => _handleBack()),
+          title: 'DISPATCH DETAILS',
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              tooltip: 'Scan Dispatch',
+              onPressed: () =>
+                  context.push('/scan', extra: {'mode': 'dispatch'}),
+            ),
+          ],
+        ),
+        body: LoadingOverlay(
+          isLoading: _loading,
+          child: Stack(
+            children: [
+              ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (!eligible) ...[
+                    const SizedBox(height: 40),
+                    Icon(
+                      Icons.cancel_rounded,
+                      color: Colors.red.shade400,
+                      size: 64,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(reason, textAlign: TextAlign.center),
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: () => context.go('/dispatches'),
-                    child: const Text('BACK TO DISPATCHES'),
-                  ),
-                ] else if (_showRejectForm) ...[
-                  // ── Reject Form ─────────────────────────────────────────
-                  _SectionHeader(label: 'REJECT DISPATCH'),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-                      borderRadius: UIStyles.cardRadius,
-                      border: Border.all(
-                        color: isDark ? Colors.white12 : Colors.red.shade100,
-                      ),
-                      boxShadow: isDark
-                          ? null
-                          : [
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: UIStyles.alphaSoft,
-                                ),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(
-                                  alpha: UIStyles.alphaSoft,
-                                ),
-                                borderRadius: UIStyles.cardRadius,
-                              ),
-                              child: const Icon(
-                                Icons.gpp_maybe_outlined,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                maskedCode,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Select a rejection reason.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedRejectReason,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: 'REJECTION REASON *',
-                            prefixIcon: const Icon(Icons.list_alt_rounded),
-                            filled: true,
-                            fillColor: isDark
-                                ? const Color(0xFF12121A)
-                                : Colors.grey.withValues(
-                                    alpha: UIStyles.alphaSoft,
-                                  ),
-                            errorText: _rejectError,
-                            border: OutlineInputBorder(
-                              borderRadius: UIStyles.cardRadius,
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? Colors.white24
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: UIStyles.cardRadius,
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? Colors.white24
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                          ),
-                          hint: const Text('Select reason'),
-                          items:
-                              [
-                                ..._predefinedRejectReasons,
-                                _otherRejectReason,
-                              ].map((reason) {
-                                return DropdownMenuItem<String>(
-                                  value: reason,
-                                  child: Text(reason),
-                                );
-                              }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedRejectReason = value;
-                              _rejectError = null;
-                              if (value != _otherRejectReason) {
-                                _rejectReasonController.clear();
-                              }
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_selectedRejectReason == _otherRejectReason) ...[
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _rejectReasonController,
-                      maxLength: 100,
-                      maxLines: 3,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: InputDecoration(
-                        labelText: 'SPECIFY REASON *',
-                        hintText: 'STATE YOUR REASON HERE...',
-                        prefixIcon: const Padding(
-                          padding: EdgeInsets.only(bottom: 40),
-                          child: Icon(Icons.edit_note_rounded),
-                        ),
-                        filled: true,
-                        fillColor: isDark
-                            ? const Color(0xFF12121A)
-                            : Colors.grey.withValues(alpha: UIStyles.alphaSoft),
-                        border: OutlineInputBorder(
-                          borderRadius: UIStyles.cardRadius,
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? Colors.white24
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: UIStyles.cardRadius,
-                          borderSide: BorderSide(
-                            color: isDark
-                                ? Colors.white24
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        alignLabelWithHint: true,
-                      ),
-                      onChanged: (_) {
-                        if (_rejectError != null) {
-                          setState(() => _rejectError = null);
-                        }
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(
-                        alpha: UIStyles.alphaSoft,
-                      ),
-                      borderRadius: UIStyles.cardRadius,
-                      border: Border.all(
-                        color: Colors.orange.withValues(
-                          alpha: UIStyles.alphaDarkShadow,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.shield_outlined,
-                          color: Colors.orange,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'You will be asked to confirm once more before submitting rejection.',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.orange.shade800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(48),
-                          ),
-                          onPressed: _rejecting
-                              ? null
-                              : () => setState(() => _showRejectForm = false),
-                          child: const Text('BACK'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Colors.red.shade600,
-                            minimumSize: const Size.fromHeight(48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: UIStyles.cardRadius,
-                            ),
-                          ),
-                          onPressed: _rejecting ? null : _submitReject,
-                          child: _rejecting
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text('SUBMIT REJECTION'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  // ── Dispatch Info Card ───────────────────────────────────
-                  _DispatchInfoCard(maskedCode: maskedCode, info: info),
-
-                  if (_error != null) ...[
                     const SizedBox(height: 12),
+                    const Text(
+                      'NOT ELIGIBLE',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(reason, textAlign: TextAlign.center),
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: _handleBack,
+                      child: const Text('BACK'),
+                    ),
+                  ] else if (_showRejectForm) ...[
+                    // ── Reject Form ─────────────────────────────────────────
+                    _SectionHeader(label: 'REJECT DISPATCH'),
+                    const SizedBox(height: 10),
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: UIStyles.alphaSoft),
+                        color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
                         borderRadius: UIStyles.cardRadius,
                         border: Border.all(
-                          color: Colors.red.withValues(
+                          color: isDark ? Colors.white12 : Colors.red.shade100,
+                        ),
+                        boxShadow: isDark
+                            ? null
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: UIStyles.alphaSoft,
+                                  ),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withValues(
+                                    alpha: UIStyles.alphaSoft,
+                                  ),
+                                  borderRadius: UIStyles.cardRadius,
+                                ),
+                                child: const Icon(
+                                  Icons.gpp_maybe_outlined,
+                                  color: Colors.red,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  maskedCode,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Select a rejection reason.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            initialValue: _selectedRejectReason,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: 'REJECTION REASON *',
+                              prefixIcon: const Icon(Icons.list_alt_rounded),
+                              filled: true,
+                              fillColor: isDark
+                                  ? const Color(0xFF12121A)
+                                  : Colors.grey.withValues(
+                                      alpha: UIStyles.alphaSoft,
+                                    ),
+                              errorText: _rejectError,
+                              border: OutlineInputBorder(
+                                borderRadius: UIStyles.cardRadius,
+                                borderSide: BorderSide(
+                                  color: isDark
+                                      ? Colors.white24
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: UIStyles.cardRadius,
+                                borderSide: BorderSide(
+                                  color: isDark
+                                      ? Colors.white24
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                            ),
+                            hint: const Text('Select reason'),
+                            items:
+                                [
+                                  ..._predefinedRejectReasons,
+                                  _otherRejectReason,
+                                ].map((reason) {
+                                  return DropdownMenuItem<String>(
+                                    value: reason,
+                                    child: Text(reason),
+                                  );
+                                }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRejectReason = value;
+                                _rejectError = null;
+                                if (value != _otherRejectReason) {
+                                  _rejectReasonController.clear();
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_selectedRejectReason == _otherRejectReason) ...[
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _rejectReasonController,
+                        maxLength: 100,
+                        maxLines: 3,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: InputDecoration(
+                          labelText: 'SPECIFY REASON *',
+                          hintText: 'STATE YOUR REASON HERE...',
+                          prefixIcon: const Padding(
+                            padding: EdgeInsets.only(bottom: 40),
+                            child: Icon(Icons.edit_note_rounded),
+                          ),
+                          filled: true,
+                          fillColor: isDark
+                              ? const Color(0xFF12121A)
+                              : Colors.grey.withValues(
+                                  alpha: UIStyles.alphaSoft,
+                                ),
+                          border: OutlineInputBorder(
+                            borderRadius: UIStyles.cardRadius,
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? Colors.white24
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: UIStyles.cardRadius,
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? Colors.white24
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
+                          alignLabelWithHint: true,
+                        ),
+                        onChanged: (_) {
+                          if (_rejectError != null) {
+                            setState(() => _rejectError = null);
+                          }
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(
+                          alpha: UIStyles.alphaSoft,
+                        ),
+                        borderRadius: UIStyles.cardRadius,
+                        border: Border.all(
+                          color: Colors.orange.withValues(
                             alpha: UIStyles.alphaDarkShadow,
                           ),
                         ),
@@ -649,188 +588,267 @@ class _DispatchEligibilityScreenState
                       child: Row(
                         children: [
                           const Icon(
-                            Icons.error_outline,
-                            color: Colors.red,
+                            Icons.shield_outlined,
+                            color: Colors.orange,
                             size: 16,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              _error!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  if (!widget.skipPinDialog) ...[
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withValues(
-                          alpha: UIStyles.alphaSoft,
-                        ),
-                        borderRadius: UIStyles.cardRadius,
-                        border: Border.all(
-                          color: Colors.amber.withValues(
-                            alpha: UIStyles.alphaBorder,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.lock_outline,
-                            color: Colors.amber,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'To confirm acceptance, you will need to enter the last 4 digits of the dispatch code.',
+                              'You will be asked to confirm once more before submitting rejection.',
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.amber.shade700,
+                                fontSize: 11,
+                                color: Colors.orange.shade800,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 20),
-
-                  FilledButton.icon(
-                    icon: const Icon(Icons.check_circle_outline_rounded),
-                    label: const Text('ACCEPT DISPATCH'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: ColorStyles.grabGreen,
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: UIStyles.cardRadius,
-                      ),
-                    ),
-                    onPressed: _loading ? null : _acceptDispatch,
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.cancel_outlined),
-                    label: const Text('REJECT DISPATCH'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: UIStyles.cardRadius,
-                      ),
-                    ),
-                    onPressed: () => setState(() => _showRejectForm = true),
-                  ),
-
-                  // ── Deliveries list below actions ───────────────────────
-                  if (deliveries.isNotEmpty) ...[
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'DELIVERIES (${deliveries.length})',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.grey.shade500,
-                            letterSpacing: 1.5,
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                            ),
+                            onPressed: _rejecting
+                                ? null
+                                : () => setState(() => _showRejectForm = false),
+                            child: const Text('BACK'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.red.shade600,
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: UIStyles.cardRadius,
+                              ),
+                            ),
+                            onPressed: _rejecting ? null : _submitReject,
+                            child: _rejecting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('SUBMIT REJECTION'),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                  ] else ...[
+                    // ── Dispatch Info Card ───────────────────────────────────
+                    _DispatchInfoCard(maskedCode: maskedCode, info: info),
 
-                    // Local Pagination for Preview
-                    // Using kCompactDeliveriesPerPage (20)
-                    Builder(
-                      builder: (context) {
-                        final pageSize = kCompactDeliveriesPerPage;
-                        final total = deliveries.length;
-                        final totalPages = (total / pageSize).ceil();
-                        final start = _currentPage * pageSize;
-                        final end = (start + pageSize > total)
-                            ? total
-                            : start + pageSize;
-                        final visibleDeliveries = deliveries.sublist(
-                          start,
-                          end,
-                        );
-
-                        return GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onHorizontalDragEnd: (details) {
-                            final velocity = details.primaryVelocity ?? 0;
-                            if (velocity < -500 &&
-                                _currentPage < totalPages - 1) {
-                              HapticFeedback.mediumImpact();
-                              setState(() => _currentPage++);
-                            } else if (velocity > 500 && _currentPage > 0) {
-                              HapticFeedback.mediumImpact();
-                              setState(() => _currentPage--);
-                            }
-                          },
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ...visibleDeliveries.map(
-                                (d) => DeliveryCard(
-                                  delivery: d,
-                                  compact: true,
-                                  isPrivacyMode:
-                                      true, // Only barcode and product
-                                  showChevron: false,
-                                  enableHoldToReveal: false,
-                                  onTap: null,
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(
+                            alpha: UIStyles.alphaSoft,
+                          ),
+                          borderRadius: UIStyles.cardRadius,
+                          border: Border.all(
+                            color: Colors.red.withValues(
+                              alpha: UIStyles.alphaDarkShadow,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
                                 ),
                               ),
-                              if (totalPages > 1) ...[
-                                const SizedBox(height: 12),
-                                PaginationBar(
-                                  currentPage: _currentPage,
-                                  totalPages: totalPages,
-                                  firstItem: start + 1,
-                                  lastItem: end,
-                                  totalCount: total,
-                                  onPageChanged: (p) =>
-                                      setState(() => _currentPage = p),
-                                ),
-                              ],
-                            ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    if (!widget.skipPinDialog) ...[
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(
+                            alpha: UIStyles.alphaSoft,
                           ),
-                        );
-                      },
+                          borderRadius: UIStyles.cardRadius,
+                          border: Border.all(
+                            color: Colors.amber.withValues(
+                              alpha: UIStyles.alphaBorder,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.lock_outline,
+                              color: Colors.amber,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'To confirm acceptance, you will need to enter the last 4 digits of the dispatch code.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.amber.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+
+                    FilledButton.icon(
+                      icon: const Icon(Icons.check_circle_outline_rounded),
+                      label: const Text('ACCEPT DISPATCH'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: ColorStyles.grabGreen,
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: UIStyles.cardRadius,
+                        ),
+                      ),
+                      onPressed: _loading ? null : _acceptDispatch,
                     ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text('REJECT DISPATCH'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: UIStyles.cardRadius,
+                        ),
+                      ),
+                      onPressed: () => setState(() => _showRejectForm = true),
+                    ),
+
+                    // ── Deliveries list below actions ───────────────────────
+                    if (deliveries.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'DELIVERIES (${deliveries.length})',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade500,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Local Pagination for Preview
+                      // Using kCompactDeliveriesPerPage (20)
+                      Builder(
+                        builder: (context) {
+                          final pageSize = kCompactDeliveriesPerPage;
+                          final total = deliveries.length;
+                          final totalPages = (total / pageSize).ceil();
+                          final start = _currentPage * pageSize;
+                          final end = (start + pageSize > total)
+                              ? total
+                              : start + pageSize;
+                          final visibleDeliveries = deliveries.sublist(
+                            start,
+                            end,
+                          );
+
+                          return GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onHorizontalDragEnd: (details) {
+                              final velocity = details.primaryVelocity ?? 0;
+                              if (velocity < -500 &&
+                                  _currentPage < totalPages - 1) {
+                                HapticFeedback.mediumImpact();
+                                setState(() => _currentPage++);
+                              } else if (velocity > 500 && _currentPage > 0) {
+                                HapticFeedback.mediumImpact();
+                                setState(() => _currentPage--);
+                              }
+                            },
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ...visibleDeliveries.map(
+                                  (d) => DeliveryCard(
+                                    delivery: d,
+                                    compact: true,
+                                    isPrivacyMode:
+                                        true, // Only barcode and product
+                                    showChevron: false,
+                                    enableHoldToReveal: false,
+                                    onTap: null,
+                                  ),
+                                ),
+                                if (totalPages > 1) ...[
+                                  const SizedBox(height: 12),
+                                  PaginationBar(
+                                    currentPage: _currentPage,
+                                    totalPages: totalPages,
+                                    firstItem: start + 1,
+                                    lastItem: end,
+                                    totalCount: total,
+                                    onPageChanged: (p) =>
+                                        setState(() => _currentPage = p),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ],
                 ],
-              ],
-            ),
-            // Loading state handled by wrapper
-            if (_showSuccess)
-              SuccessOverlay(
-                onDone: () {
-                  if (!mounted) return;
-                  showAppSnackbar(
-                    context,
-                    'Dispatch accepted successfully!',
-                    type: SnackbarType.success,
-                  );
-                  context.go('/dashboard');
-                },
               ),
-          ],
+              // Loading state handled by wrapper
+              if (_showSuccess)
+                SuccessOverlay(
+                  onDone: () {
+                    if (!mounted) return;
+                    showAppSnackbar(
+                      context,
+                      'Dispatch accepted successfully!',
+                      type: SnackbarType.success,
+                    );
+                    context.go('/dashboard');
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );

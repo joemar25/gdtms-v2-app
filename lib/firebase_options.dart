@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:fsi_courier_app/core/config.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -40,8 +41,15 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // Firebase API keys are loaded from `lib/core/config.dart`.
+  //
+  // Developers must provide environment values at build/run time.
+  // Example: --dart-define=FIREBASE_API_KEY_WEB=your_web_api_key
+  //          --dart-define=FIREBASE_API_KEY_ANDROID=your_android_api_key
+  //          --dart-define=FIREBASE_API_KEY_IOS=your_ios_api_key
+  //          --dart-define=FIREBASE_API_KEY_WINDOWS=your_windows_api_key
   static FirebaseOptions get web => FirebaseOptions(
-    apiKey: String.fromEnvironment('FIREBASE_API_KEY_WEB'),
+    apiKey: firebaseApiKeyWeb,
     appId: '1:39215040172:web:2efd902cdbd5fd63904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',
@@ -51,7 +59,7 @@ class DefaultFirebaseOptions {
   );
 
   static FirebaseOptions get android => FirebaseOptions(
-    apiKey: String.fromEnvironment('FIREBASE_API_KEY_ANDROID'),
+    apiKey: firebaseApiKeyAndroid,
     appId: '1:39215040172:android:a2981cb733554f92904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',
@@ -59,7 +67,7 @@ class DefaultFirebaseOptions {
   );
 
   static FirebaseOptions get ios => FirebaseOptions(
-    apiKey: String.fromEnvironment('FIREBASE_API_KEY_IOS'),
+    apiKey: firebaseApiKeyIos,
     appId: '1:39215040172:ios:58174f0ff9f54fc0904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',
@@ -68,7 +76,7 @@ class DefaultFirebaseOptions {
   );
 
   static FirebaseOptions get macos => FirebaseOptions(
-    apiKey: String.fromEnvironment('FIREBASE_API_KEY_IOS'),
+    apiKey: firebaseApiKeyIos,
     appId: '1:39215040172:ios:58174f0ff9f54fc0904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',
@@ -77,7 +85,7 @@ class DefaultFirebaseOptions {
   );
 
   static FirebaseOptions get windows => FirebaseOptions(
-    apiKey: String.fromEnvironment('FIREBASE_API_KEY_WINDOWS'),
+    apiKey: firebaseApiKeyWindows,
     appId: '1:39215040172:web:deb230016470bcdd904109',
     messagingSenderId: '39215040172',
     projectId: 'gdtms-v2-app',

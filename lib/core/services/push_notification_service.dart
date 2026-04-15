@@ -32,20 +32,21 @@ class PushNotificationService {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
-  /// Called when the app starts up to request permissions and listen to messages.
+  /// Called when the app starts up to listen to messages.
+  /// Permission must already be granted by the user via the permissions screen
+  /// before this is called. We check the current status only — never prompt here.
   Future<void> init(ApiClient apiClient) async {
     _apiClient = apiClient;
 
     if (_initialized) return;
 
-    // 1. Request Permission (mainly for iOS, but good practice)
-    NotificationSettings settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    // Check current permission status without prompting the user.
+    // The permissions screen (LocationRequiredScreen) is responsible for
+    // requesting notification permission before the user reaches the dashboard.
+    final settings = await _messaging.getNotificationSettings();
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+    if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional) {
       debugPrint('[PUSH] User granted permission');
 
       // 2. Setup Foreground notification channels (Android)

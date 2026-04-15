@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/providers/location_provider.dart';
+import 'package:fsi_courier_app/core/providers/permissions_provider.dart';
 import 'package:fsi_courier_app/features/location/location_required_screen.dart';
 import 'package:fsi_courier_app/features/auth/login_screen.dart';
 import 'package:fsi_courier_app/features/auth/reset_password_screen.dart';
@@ -40,6 +41,10 @@ class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(Ref ref) {
     ref.listen<AuthState>(authProvider, (_, _) => notifyListeners());
     ref.listen<LocationState>(locationProvider, (_, _) => notifyListeners());
+    ref.listen<ExtraPermissionsState>(
+      extraPermissionsProvider,
+      (_, _) => notifyListeners(),
+    );
   }
 }
 
@@ -200,6 +205,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) async {
       final auth = ref.read(authProvider);
       final locationState = ref.read(locationProvider);
+      final permsState = ref.read(extraPermissionsProvider);
 
       final path = state.uri.path;
       final isAuthRoute =
@@ -220,15 +226,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         if (accepted != kTermsVersion) return '/terms';
       }
 
-      // ── GLOBAL GEOLOCATION GUARD ──
+      // ── GLOBAL PERMISSIONS GUARD (location → camera → notifications) ──
       final isUpdateRoute = path.contains('/update');
       if (path != '/splash' && !isUpdateRoute && !isLegalRoute) {
-        if (!locationState.isReady) {
-          if (path != '/location-required') {
-            return '/location-required';
-          }
+        final allReady = locationState.isReady && permsState.isReady;
+        if (!allReady) {
+          if (path != '/location-required') return '/location-required';
           return null;
-        } else if (path == '/location-required' && locationState.isReady) {
+        } else if (path == '/location-required') {
           return '/dashboard';
         }
       }
