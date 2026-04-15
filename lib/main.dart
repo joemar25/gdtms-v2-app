@@ -30,7 +30,9 @@ Future<void> main() async {
 
   // Initialize Firebase and background push notification handler
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } on FirebaseException catch (e) {
     // During hot restart, native Firebase persists while Dart side resets.
     // Gracefully ignore duplicate-app errors and continue.

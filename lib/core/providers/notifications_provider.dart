@@ -33,16 +33,22 @@ class AppNotification {
   final String? transactionReference;
   final List<String> deliveryReferences;
   final double? amount;
+
   /// Approval stage — e.g. "ops", "finance". Present on payout_approved/rejected.
   final String? stage;
+
   /// Rejection reason text. Present on payout_rejected.
   final String? rejectionReason;
+
   /// Full dispatch code. Present on new_dispatch.
   final String? dispatchCode;
+
   /// Partial (scan) code used to open the eligibility screen. Present on new_dispatch.
   final String? partialCode;
+
   /// Number of deliveries in a dispatch. Present on new_dispatch.
   final int? deliveryCount;
+
   /// Machine-readable action hint, e.g. "new_dispatch". May duplicate type.
   final String? action;
   final String date;

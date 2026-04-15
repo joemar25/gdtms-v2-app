@@ -71,7 +71,10 @@ class LocationRequiredScreen extends ConsumerWidget {
                     : _locationButtonLabel(locationState.status),
                 onTap: locationGranted
                     ? null
-                    : () => _handleLocation(locationState.status, locationNotifier),
+                    : () => _handleLocation(
+                        locationState.status,
+                        locationNotifier,
+                      ),
               ),
               const SizedBox(height: 12),
 
@@ -84,19 +87,19 @@ class LocationRequiredScreen extends ConsumerWidget {
                 description: cameraGranted
                     ? 'Granted'
                     : permsState.cameraStatus.isPermanentlyDenied
-                        ? 'Permanently denied — open Settings to enable'
-                        : 'Required to capture proof-of-delivery photos',
+                    ? 'Permanently denied — open Settings to enable'
+                    : 'Required to capture proof-of-delivery photos',
                 granted: cameraGranted,
                 buttonLabel: cameraGranted
                     ? 'Enabled'
                     : permsState.cameraStatus.isPermanentlyDenied
-                        ? 'Open Settings'
-                        : 'Grant Permission',
+                    ? 'Open Settings'
+                    : 'Grant Permission',
                 onTap: cameraGranted
                     ? null
                     : permsState.cameraStatus.isPermanentlyDenied
-                        ? () => permsNotifier.openSettings()
-                        : () => permsNotifier.requestCamera(),
+                    ? () => permsNotifier.openSettings()
+                    : () => permsNotifier.requestCamera(),
               ),
               const SizedBox(height: 12),
 
@@ -109,19 +112,19 @@ class LocationRequiredScreen extends ConsumerWidget {
                 description: notifGranted
                     ? 'Granted'
                     : permsState.notificationStatus.isPermanentlyDenied
-                        ? 'Permanently denied — open Settings to enable'
-                        : 'Required for dispatch assignments and delivery alerts',
+                    ? 'Permanently denied — open Settings to enable'
+                    : 'Required for dispatch assignments and delivery alerts',
                 granted: notifGranted,
                 buttonLabel: notifGranted
                     ? 'Enabled'
                     : permsState.notificationStatus.isPermanentlyDenied
-                        ? 'Open Settings'
-                        : 'Grant Permission',
+                    ? 'Open Settings'
+                    : 'Grant Permission',
                 onTap: notifGranted
                     ? null
                     : permsState.notificationStatus.isPermanentlyDenied
-                        ? () => permsNotifier.openSettings()
-                        : () => permsNotifier.requestNotification(),
+                    ? () => permsNotifier.openSettings()
+                    : () => permsNotifier.requestNotification(),
               ),
 
               const SizedBox(height: 28),
@@ -202,7 +205,9 @@ class _PermissionCard extends StatelessWidget {
 
     final cardColor = isDark ? ColorStyles.cardDark : ColorStyles.cardLight;
     final iconColor = granted ? ColorStyles.grabGreen : ColorStyles.grabOrange;
-    final statusColor = granted ? ColorStyles.grabGreen : theme.colorScheme.onSurfaceVariant;
+    final statusColor = granted
+        ? ColorStyles.grabGreen
+        : theme.colorScheme.onSurfaceVariant;
 
     return Container(
       decoration: BoxDecoration(
@@ -251,13 +256,20 @@ class _PermissionCard extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           if (granted)
-            Icon(Icons.check_circle_rounded, color: ColorStyles.grabGreen, size: 26)
+            Icon(
+              Icons.check_circle_rounded,
+              color: ColorStyles.grabGreen,
+              size: 26,
+            )
           else
             TextButton(
               onPressed: onTap,
               style: TextButton.styleFrom(
                 foregroundColor: ColorStyles.grabOrange,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 textStyle: const TextStyle(
