@@ -373,12 +373,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/dispatches/eligibility',
         pageBuilder: (_, state) {
           final extra = asStringDynamicMap(state.extra);
-          final parsedResponse = asStringDynamicMap(
-            extra['eligibility_response'],
-          );
-          final response = parsedResponse.isNotEmpty
-              ? parsedResponse
-              : {'eligible': false, 'message': 'Eligibility data missing.'};
+          // If eligibility_response is provided in extras, use it (may be empty)
+          // If completely missing, pass empty map so initState() will auto-fetch
+          final response = extra.containsKey('eligibility_response')
+              ? asStringDynamicMap(extra['eligibility_response'])
+              : <String, dynamic>{};
           return _page(
             key: state.pageKey,
             child: DispatchEligibilityScreen(

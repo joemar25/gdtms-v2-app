@@ -182,10 +182,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
 
     // new_dispatch → open dispatch eligibility screen so courier can accept.
-    if (n.type == 'new_dispatch' && n.partialCode != null) {
+    if (n.type == 'new_dispatch' && n.dispatchCode != null) {
       context.push(
         '/dispatches/eligibility',
-        extra: {'partial_code': n.partialCode, 'dispatch_code': n.dispatchCode},
+        extra: {'dispatch_code': n.dispatchCode},
       );
       return;
     }
@@ -201,6 +201,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       context.push('/deliveries/${n.deliveryReferences.first}');
     }
   }
+}
+
+// ─ Helper functions ───────────────────────────────────────────────────────────
+
+/// Mask a dispatch code to show only last 4 characters
+String _maskDispatchCode(String code) {
+  if (code.length <= 4) return code;
+  return '${code.substring(0, code.length - 4)}****';
 }
 
 // ─── Notification tile ────────────────────────────────────────────────────────
@@ -289,32 +297,6 @@ class _NotificationTile extends StatelessWidget {
                   ],
                   Row(
                     children: [
-                      // Dispatch code (new_dispatch).
-                      if (notification.dispatchCode != null) ...[
-                        Flexible(
-                          child: Text(
-                            notification.dispatchCode!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue.shade600,
-                            ),
-                          ),
-                        ),
-                        if (notification.deliveryCount != null) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '· ${notification.deliveryCount} items',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(width: 8),
-                      ],
                       // Transaction reference (payout_*).
                       if (notification.transactionReference != null &&
                           notification.dispatchCode == null) ...[

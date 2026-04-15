@@ -51,6 +51,7 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
+import 'package:fsi_courier_app/core/services/push_notification_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
@@ -213,6 +214,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (forceLogout != true) return;
     }
 
+    await PushNotificationService.instance.clearToken();
     await ref
         .read(apiClientProvider)
         .post<Map<String, dynamic>>('/logout', parser: parseApiMap);
@@ -225,6 +227,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _logoutAll() async {
+    await PushNotificationService.instance.clearToken();
     await ref
         .read(apiClientProvider)
         .post<Map<String, dynamic>>('/logout-all', parser: parseApiMap);

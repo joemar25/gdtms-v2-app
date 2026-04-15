@@ -90,13 +90,65 @@ class _DispatchEligibilityScreenState
   bool _rejecting = false;
   String? _selectedRejectReason;
   int _currentPage = 0;
+  late Map<String, dynamic> _fetchedEligibilityResponse;
 
-  String get _resolvedPartialCode {
-    final responseCode = widget.eligibilityResponse['partial_code']?.toString();
-    if (responseCode != null && responseCode.trim().isNotEmpty) {
-      return responseCode.trim();
+  String get _resolvedDispatchCode => widget.dispatchCode.trim();
+
+  /// Get eligibility response: use fetched one if available, otherwise use widget's
+  Map<String, dynamic> get _eligibilityResponse =>
+      _fetchedEligibilityResponse.isNotEmpty
+      ? _fetchedEligibilityResponse
+      : widget.eligibilityResponse;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchedEligibilityResponse = {};
+    // If eligibility response is empty (e.g., from notification tap),
+    // auto-fetch the eligibility data
+    if (widget.eligibilityResponse.isEmpty) {
+      _fetchEligibilityData();
     }
-    return widget.dispatchCode.trim();
+  }
+
+  Future<void> _fetchEligibilityData() async {
+    setState(() => _loading = true);
+    try {
+      const uuid = Uuid();
+      final requestId = uuid.v4();
+
+      final result = await ref
+          .read(apiClientProvider)
+          .post<Map<String, dynamic>>(
+            '/check-dispatch-eligibility',
+            data: {
+              'dispatch_code': _resolvedDispatchCode,
+              'client_request_id': requestId,
+            },
+            parser: parseApiMap,
+          );
+
+      if (!mounted) return;
+
+      if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
+        setState(() {
+          _fetchedEligibilityResponse = data;
+        });
+      } else {
+        final errorMessage = switch (result) {
+          ApiBadRequest(:final message) => message,
+          ApiValidationError(:final message) => message ?? 'Validation error',
+          ApiNetworkError(:final message) => message,
+          ApiRateLimited(:final message) => message,
+          ApiConflict(:final message) => message,
+          ApiServerError(:final message) => message,
+          _ => 'Could not fetch eligibility. Please try again.',
+        };
+        setState(() => _error = errorMessage);
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -111,7 +163,7 @@ class _DispatchEligibilityScreenState
   }
 
   Future<bool> _showPinDialog() async {
-    final actual = _getMaskedLast4(_resolvedPartialCode);
+    final actual = _getMaskedLast4(_resolvedDispatchCode);
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
@@ -149,7 +201,7 @@ class _DispatchEligibilityScreenState
         .post<Map<String, dynamic>>(
           '/accept-dispatch',
           data: {
-            'partial_code': _resolvedPartialCode,
+            'dispatch_code': _resolvedDispatchCode,
             'client_request_id': acceptId,
             'device_info': await device.toMap(),
           },
@@ -168,7 +220,7 @@ class _DispatchEligibilityScreenState
       // The eligibility payload already contains the full deliveries list:
       // [{barcode_value, job_order, name, address, contact, product,
       //   special_instruction, delivery_status}, ...]
-      final rawDeliveries = widget.eligibilityResponse['deliveries'];
+      final rawDeliveries = _eligibilityResponse['deliveries'];
       if (rawDeliveries is List) {
         final deliveries = rawDeliveries
             .whereType<Map>()
@@ -177,7 +229,7 @@ class _DispatchEligibilityScreenState
         if (deliveries.isNotEmpty) {
           await LocalDeliveryDao.instance.insertAll(
             deliveries,
-            dispatchCode: _resolvedPartialCode,
+            dispatchCode: _resolvedDispatchCode,
           );
         }
       }
@@ -257,7 +309,7 @@ class _DispatchEligibilityScreenState
         .post<Map<String, dynamic>>(
           '/reject-dispatch',
           data: {
-            'partial_code': _resolvedPartialCode,
+            'dispatch_code': _resolvedDispatchCode,
             'client_request_id': requestId,
             'reason': reason,
             'device_info': await device.toMap(),
@@ -337,13 +389,17 @@ class _DispatchEligibilityScreenState
 
   @override
   Widget build(BuildContext context) {
-    final eligible = widget.eligibilityResponse['eligible'] == true;
+    // Track if this is initial load from notification (no data fetched yet)
+    // Show nothing (loading) until we have a response from the API
+    final hasResponse = _eligibilityResponse.isNotEmpty;
+
+    final eligible = _eligibilityResponse['eligible'] == true;
     // Response is flat (not nested under 'data')
-    final info = widget.eligibilityResponse;
+    final info = _eligibilityResponse;
     final reason =
-        widget.eligibilityResponse['message']?.toString() ??
+        _eligibilityResponse['message']?.toString() ??
         'You are not eligible for this dispatch.';
-    final dispatchCode = _resolvedPartialCode;
+    final dispatchCode = _resolvedDispatchCode;
     final last4 = _getMaskedLast4(dispatchCode);
     final maskedCode = widget.showFullCode
         ? dispatchCode
@@ -384,7 +440,32 @@ class _DispatchEligibilityScreenState
               ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (!eligible) ...[
+                  // Only show error/ineligible states after API response received
+                  if (hasResponse && _error != null) ...[
+                    const SizedBox(height: 40),
+                    Icon(
+                      Icons.error_rounded,
+                      color: Colors.orange.shade400,
+                      size: 64,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'ERROR',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: _handleBack,
+                      child: const Text('BACK'),
+                    ),
+                  ] else if (hasResponse && !eligible) ...[
                     const SizedBox(height: 40),
                     Icon(
                       Icons.cancel_rounded,

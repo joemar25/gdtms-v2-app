@@ -70,6 +70,8 @@ Web UI (Delivery Reports)           │                               │
 | Flutter push service          | `lib/core/services/push_notification_service.dart`                   | ✅ done                                                     |
 | Flutter Firebase init         | `lib/main.dart` — `Firebase.initializeApp` + background handler      | ✅ done                                                     |
 | Flutter token sync on login   | `lib/app.dart` — `_AutoSyncListener` login listener                  | ✅ done                                                     |
+| Flutter token sync on startup | `PushNotificationService.init()` — always re-syncs token             | ✅ done                                                     |
+| Flutter token clear on logout | `PushNotificationService.clearToken()` — called before `/logout`     | ✅ done                                                     |
 | Flutter deep-link on tap      | `PushNotificationService` — tap-to-delivery deep link                | ✅ done                                                     |
 
 ---
@@ -165,6 +167,8 @@ sendToToken(string $fcmToken, string $title, string $body, array $data = []): bo
 
 The Flutter app must call this endpoint on every login and every `onTokenRefresh` event from the Firebase SDK.
 
+Even if the courier is already authenticated from another device or session, the current mobile device must still send its own FCM token. The backend stores a single device token per user, so the active mobile client must register its token after login.
+
 ### 6. Notification Trigger Endpoint
 
 **Route**: `POST /delivery-reports/send-courier-notification`  
@@ -232,17 +236,18 @@ app.dart (_AutoSyncListener)
       └─ PushNotificationService.instance.init(apiClient)
 ```
 
-`init()` is idempotent — `_initialized` guard prevents double registration if called on both startup and login in the same session.
+`init()` always re-syncs the FCM token to the backend (startup + every login). Listener and channel setup is guarded by an `_initialized` flag so those are registered only once per app lifetime.
 
 ### What `init()` Does (in order)
 
-1. **Requests permission** — `alert`, `badge`, `sound` (required on iOS; shown as rationale on Android 13+).
-2. **Creates Android notification channel** — `high_importance_channel` / `Importance.max` for foreground alerts.
-3. **Initializes `flutter_local_notifications`** — used to display foreground messages as system notifications.
-4. **Fetches FCM token** — `FirebaseMessaging.instance.getToken()` and POSTs it to `/api/mbl/profile/fcm-token`.
-5. **Listens to `onTokenRefresh`** — re-syncs token to backend whenever Firebase rotates it.
-6. **Handles cold-start tap** — `getInitialMessage()` checks if the app was launched by tapping a notification; navigates to `/deliveries/:barcode` after a 500 ms delay (so the router is ready).
-7. **Handles warm-start tap** — `onMessageOpenedApp` fires when a notification is tapped while the app is backgrounded; navigates immediately to `/deliveries/:barcode`.
+1. **Checks permission** — reads current authorization status without prompting. The permissions screen handles the actual prompt before the courier reaches the dashboard.
+2. **Fetches and syncs FCM token** — `FirebaseMessaging.instance.getToken()` and POSTs it to `/api/mbl/profile/fcm-token` **on every call** (startup + login). This ensures the backend always holds the latest token even if Firebase rotated it silently between sessions.
+3. *(First call only)* **iOS foreground presentation** — `setForegroundNotificationPresentationOptions(alert, badge, sound)` so iOS shows banners and plays sound while the app is open.
+4. *(First call only)* **Creates Android notification channel** — `high_importance_channel` / `Importance.max` for foreground alerts.
+5. *(First call only)* **Initializes `flutter_local_notifications`** — used to display foreground messages as system notifications.
+6. *(First call only)* **Listens to `onTokenRefresh`** — re-syncs token to backend whenever Firebase rotates it.
+7. *(First call only)* **Handles cold-start tap** — `getInitialMessage()` checks if the app was launched by tapping a notification; navigates to `/deliveries/:barcode` after a 500 ms delay (so the router is ready).
+8. *(First call only)* **Handles warm-start tap** — `onMessageOpenedApp` fires when a notification is tapped while the app is backgrounded; navigates immediately to `/deliveries/:barcode`.
 
 ### Background Handler
 
@@ -292,16 +297,28 @@ The router navigates to `DeliveryDetailScreen` for the tapped barcode. Uses `pus
 
 Errors are silently swallowed and logged to `ErrorLogService` — a token sync failure must never block login or the delivery flow.
 
+### Token Clear on Logout
+
+`PushNotificationService.clearToken()` is called **before** the logout API call in both `_logout()` and `_logoutAll()` in `profile_screen.dart`. It performs three steps in order:
+
+1. **Deletes the Firebase token on-device** — `FirebaseMessaging.instance.deleteToken()`. The token becomes invalid immediately; any FCM delivery attempt by the backend using the old token will be rejected by Firebase even if the server-side clear fails.
+2. **Clears the token on the backend** — POSTs `{ "fcm_token": null }` to `/api/mbl/profile/fcm-token` so `users.fcm_token` is set to `null` and the Web UI notify button correctly shows the device as unregistered.
+3. **Resets `_initialized` to `false`** — ensures `init()` fully re-registers all listeners and channels on the next login.
+
+> [!IMPORTANT]
+> `clearToken()` is called before `/logout`, not after. This guarantees the token is invalidated even in the edge case where the logout API call itself fails or times out.
+
 ### Required Flutter Files
 
-| File                                               | Role                                                   |
-| -------------------------------------------------- | ------------------------------------------------------ |
-| `lib/core/services/push_notification_service.dart` | Full FCM lifecycle: permission, token, foreground, tap |
-| `lib/firebase_options.dart`                        | Auto-generated by `flutterfire configure`              |
-| `lib/main.dart`                                    | `Firebase.initializeApp` + background handler          |
-| `lib/app.dart`                                     | Calls `init()` on startup and on fresh login           |
-| `android/app/google-services.json`                 | Android Firebase config (public, safe to commit)       |
-| `ios/Runner/GoogleService-Info.plist`              | iOS Firebase config (public, safe to commit)           |
+| File                                               | Role                                                                 |
+| -------------------------------------------------- | -------------------------------------------------------------------- |
+| `lib/core/services/push_notification_service.dart` | Full FCM lifecycle: permission, token sync, clear on logout, tap     |
+| `lib/firebase_options.dart`                        | Auto-generated by `flutterfire configure`                            |
+| `lib/main.dart`                                    | `Firebase.initializeApp` + background handler                        |
+| `lib/app.dart`                                     | Calls `init()` on startup and on fresh login                         |
+| `lib/features/profile/profile_screen.dart`         | Calls `clearToken()` before `/logout` and `/logout-all`              |
+| `android/app/google-services.json`                 | Android Firebase config (public, safe to commit)                     |
+| `ios/Runner/GoogleService-Info.plist`              | iOS Firebase config (public, safe to commit)                         |
 
 > [!NOTE]
 > `google-services.json` and `firebase_options.dart` contain only public routing identifiers (Project ID, App ID, Messaging Sender ID). They are safe to commit. The `firebase_credentials.json` server-side file is **never** in the Flutter project.
@@ -505,6 +522,8 @@ Both `courier_has_fcm_token` and `courier_has_active_session` are `false`. The c
 
 **Resolution**: Ask the courier to close and reopen the mobile app. The Flutter app calls `/api/mbl/profile/fcm-token` on every login and on `onTokenRefresh`. Verify the mobile app is running a build that includes `PushNotificationService`.
 
+If the courier is already logged in on another device, that does not automatically register the current phone for push. The current mobile device still needs to send its own FCM token after login or token refresh.
+
 ### "Notification could not be delivered. The device token may be stale."
 
 The FCM token stored in the DB is no longer valid (device uninstalled the app, cleared app data, or reinstalled without re-syncing). The courier must re-login on the mobile app to refresh the token.
@@ -669,7 +688,44 @@ If `fcm_token` was cleared by the UNREGISTERED handler and the courier subsequen
 
 ---
 
-## Notification API Response Shape (v2.4)
+## Dispatch Code Convention (Mobile API Rule)
+
+> **Critical rule — do not violate this when editing dispatch notifications or API responses.**
+
+The `delivery_batches` table stores two code fields:
+
+| Field           | Format                   | Lifecycle                                    |
+| --------------- | ------------------------ | -------------------------------------------- |
+| `partial_code`  | `GEOTYPE{nums}TIMESTAMP` | Created at batch creation. Always present.   |
+| `dispatch_code` | `E-GEOTYPE…` / `T-GEOTYPE…` | Assigned at admin finalization. Nullable.   |
+
+**The mobile app (courier) only ever needs `partial_code`.** The courier scans the QR code (which encodes `partial_code`) to accept or reject a dispatch. The finalized `dispatch_code` with the `E-`/`T-` prefix is an admin/operations concept that has no meaning to the courier.
+
+### The Rule
+
+In every mobile-facing payload — notification database records, FCM data payloads, and all `/api/mbl/*` API responses — the field named `dispatch_code` MUST be set to the batch's `partial_code` value. The `partial_code` field itself is **not duplicated** as a separate key.
+
+```php
+// ✅ CORRECT — mobile-facing payload
+'dispatch_code' => $batch->partial_code,  // partial batch code is THE code for couriers
+
+// ❌ WRONG — do not expose the finalized dispatch_code to mobile
+'dispatch_code' => $batch->dispatch_code, // E-/T- prefix; internal admin concept only
+'partial_code'  => $batch->partial_code,  // do not duplicate; dispatch_code covers it
+```
+
+### Affected Files
+
+| File | Mobile payload |
+| ---- | -------------- |
+| `app/Notifications/Courier/DispatchSent.php` | `toArray()` — database channel |
+| `app/Services/BatchManagementService.php` | `notifyCourierDispatch()` — FCM data payload |
+| `app/Services/CourierDispatchAcceptanceService.php` | `getPendingDispatches()`, `checkDispatchEligibility()`, `buildSuccessResponse()`, `rejectDispatch()` |
+| `app/Services/CourierMobileApiService.php` | `getCourierDeliveries()`, `getDeliveryDetails()` |
+
+---
+
+## Notification API Response Shape (v2.6)
 
 > **Reference**: `GET /api/mbl/notifications` — `app/Http/Controllers/Dashboard/CourierManagement/CourierNotificationController.php`
 
@@ -687,8 +743,8 @@ Every item in the `data[]` array has this shape. Fields null when not applicable
     "stage": "ops|hr|null",
     "rejection_reason": "string|null",
     // Dispatch (new_dispatch type) only:
+    // dispatch_code = partial_code value — see § "Dispatch Code Convention" above
     "dispatch_code": "string|null",
-    "partial_code": "string|null",
     "delivery_count": 15, // int | null
     "action": "new_dispatch|null",
     // Read state:
@@ -702,7 +758,7 @@ Every item in the `data[]` array has this shape. Fields null when not applicable
 
 | `type`                  | Trigger                                  | Key fields                                                     |
 | ----------------------- | ---------------------------------------- | -------------------------------------------------------------- |
-| `new_dispatch`          | DOP batch dispatched to courier          | `dispatch_code`, `partial_code`, `delivery_count`, `action`    |
+| `new_dispatch`          | DOP batch dispatched to courier          | `dispatch_code` (= partial_code), `delivery_count`, `action`   |
 | `payout_requested`      | Courier submits payout request           | `transaction_reference`, `delivery_references`, `amount`       |
 | `payout_approved`       | OPS or HR approves payout                | `transaction_reference`, `amount`, `stage` (`ops`\|`hr`)       |
 | `payout_rejected`       | OPS or HR rejects payout                 | `transaction_reference`, `amount`, `stage`, `rejection_reason` |

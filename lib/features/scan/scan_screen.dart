@@ -200,7 +200,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         .read(apiClientProvider)
         .post<Map<String, dynamic>>(
           '/check-dispatch-eligibility',
-          data: {'partial_code': code, 'client_request_id': requestId},
+          data: {'dispatch_code': code, 'client_request_id': requestId},
           parser: parseApiMap,
         );
 
@@ -211,7 +211,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           .read(appSettingsProvider)
           .getAutoAcceptDispatch();
       if (!mounted) return;
-      final partialCode = data['partial_code']?.toString() ?? code;
+      final dispatchCode = data['dispatch_code']?.toString() ?? code;
 
       // If scanned, show full dispatch code and skip modal
       if (autoAccept && data['eligible'] == true) {
@@ -221,7 +221,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             .post<Map<String, dynamic>>(
               '/accept-dispatch',
               data: {
-                'partial_code': partialCode,
+                'dispatch_code': dispatchCode,
                 'client_request_id': requestId,
                 'device_info': await ref.read(deviceInfoProvider).toMap(),
               },
@@ -238,7 +238,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             if (deliveries.isNotEmpty) {
               await LocalDeliveryDao.instance.insertAll(
                 deliveries,
-                dispatchCode: partialCode,
+                dispatchCode: dispatchCode,
               );
             }
           }
@@ -265,7 +265,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       await context.push(
         '/dispatches/eligibility',
         extra: {
-          'dispatch_code': partialCode,
+          'dispatch_code': dispatchCode,
           'eligibility_response': data,
           'auto_accept': autoAccept,
           'eligible': data['eligible'] == true,

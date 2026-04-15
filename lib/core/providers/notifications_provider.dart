@@ -19,7 +19,6 @@ class AppNotification {
     this.stage,
     this.rejectionReason,
     this.dispatchCode,
-    this.partialCode,
     this.deliveryCount,
     this.action,
     required this.date,
@@ -40,11 +39,8 @@ class AppNotification {
   /// Rejection reason text. Present on payout_rejected.
   final String? rejectionReason;
 
-  /// Full dispatch code. Present on new_dispatch.
+  /// Dispatch code (partial batch code). Present on new_dispatch.
   final String? dispatchCode;
-
-  /// Partial (scan) code used to open the eligibility screen. Present on new_dispatch.
-  final String? partialCode;
 
   /// Number of deliveries in a dispatch. Present on new_dispatch.
   final int? deliveryCount;
@@ -71,7 +67,6 @@ class AppNotification {
       stage: json['stage']?.toString(),
       rejectionReason: json['rejection_reason']?.toString(),
       dispatchCode: json['dispatch_code']?.toString(),
-      partialCode: json['partial_code']?.toString(),
       deliveryCount: json['delivery_count'] != null
           ? int.tryParse('${json['delivery_count']}')
           : null,
@@ -93,7 +88,6 @@ class AppNotification {
       stage: stage,
       rejectionReason: rejectionReason,
       dispatchCode: dispatchCode,
-      partialCode: partialCode,
       deliveryCount: deliveryCount,
       action: action,
       date: date,

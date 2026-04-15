@@ -32,13 +32,16 @@ class PushNotificationService {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
-  /// Called when the app starts up to listen to messages.
-  /// Permission must already be granted by the user via the permissions screen
-  /// before this is called. We check the current status only — never prompt here.
+  /// Called on every app startup and every fresh login.
+  /// Permission must already be granted via the permissions screen before
+  /// this is called — we check current status only, never prompt here.
+  ///
+  /// The FCM token is **always** re-synced to the backend on every call so the
+  /// server always has a valid token (Firebase can rotate it silently between
+  /// sessions). Listener + channel setup is guarded by [_initialized] so those
+  /// are registered only once per app lifetime.
   Future<void> init(ApiClient apiClient) async {
     _apiClient = apiClient;
-
-    if (_initialized) return;
 
     // Check current permission status without prompting the user.
     // The permissions screen (LocationRequiredScreen) is responsible for
@@ -49,7 +52,33 @@ class PushNotificationService {
         settings.authorizationStatus == AuthorizationStatus.provisional) {
       debugPrint('[PUSH] User granted permission');
 
-      // 2. Setup Foreground notification channels (Android)
+      // Always re-sync the FCM token on every init call (startup + login).
+      // Firebase may silently rotate the token between sessions; the backend
+      // must always hold the latest token to be able to reach this device —
+      // even when the app is backgrounded or terminated.
+      try {
+        final token = await _messaging.getToken();
+        if (token != null) {
+          await _syncTokenToApi(token);
+        }
+      } catch (e) {
+        debugPrint('[PUSH] Failed to get FCM token: $e');
+      }
+
+      // Listeners + channel setup — register only once per app lifetime.
+      if (_initialized) return;
+
+      // Enable foreground notifications on iOS (alert + badge + sound).
+      // Without this iOS silently ignores notifications while the app is open.
+      if (!kIsWeb && Platform.isIOS) {
+        await _messaging.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      }
+
+      // Setup high-importance notification channel for Android foreground alerts.
       if (!kIsWeb && Platform.isAndroid) {
         const AndroidNotificationChannel channel = AndroidNotificationChannel(
           'high_importance_channel',
@@ -65,7 +94,7 @@ class PushNotificationService {
             ?.createNotificationChannel(channel);
       }
 
-      // Initialize local notifications for foreground alerts
+      // Initialize local notifications for foreground alerts.
       const InitializationSettings initializationSettings =
           InitializationSettings(
             android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -75,25 +104,15 @@ class PushNotificationService {
         settings: initializationSettings,
       );
 
-      // Listen to foreground messages
+      // Listen to foreground messages.
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
-      // 3. Get token and sync initially
-      try {
-        final token = await _messaging.getToken();
-        if (token != null) {
-          await _syncTokenToApi(token);
-        }
-      } catch (e) {
-        debugPrint('[PUSH] Failed to get FCM token: $e');
-      }
-
-      // 4. Listen to token refreshes
+      // Re-sync whenever Firebase silently rotates the token.
       _messaging.onTokenRefresh.listen((token) {
         _syncTokenToApi(token);
       });
 
-      // 5. Handle notification tap when app was terminated (cold start).
+      // Handle notification tap when app was terminated (cold start).
       final initialMessage = await _messaging.getInitialMessage();
       if (initialMessage != null) {
         // Delay navigation until after the first frame so the router is ready.
@@ -102,7 +121,7 @@ class PushNotificationService {
         });
       }
 
-      // 6. Handle notification tap when app is in the background (warm start).
+      // Handle notification tap when app is in the background (warm start).
       FirebaseMessaging.onMessageOpenedApp.listen((message) {
         _navigateFromMessage(message.data);
       });
@@ -151,6 +170,35 @@ class PushNotificationService {
         ),
       );
     }
+  }
+
+  /// Called on logout. Deletes the Firebase token on-device so the stored
+  /// backend token immediately becomes invalid, then clears it on the server.
+  /// Resets [_initialized] so [init] fully re-registers on the next login.
+  Future<void> clearToken() async {
+    // 1. Delete the Firebase token — any attempt by the backend to send a push
+    //    to the old token will be rejected by FCM even if the server clear fails.
+    try {
+      await _messaging.deleteToken();
+      debugPrint('[PUSH] FCM token deleted from device');
+    } catch (e) {
+      debugPrint('[PUSH] Failed to delete FCM token: $e');
+    }
+
+    // 2. Clear the token on the backend so the server knows this device is gone.
+    if (_apiClient != null) {
+      final deviceType = kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android');
+      await _apiClient!.post(
+        '/profile/fcm-token',
+        data: {'fcm_token': null, 'device_type': deviceType},
+        parser: (data) => data,
+      );
+      debugPrint('[PUSH] FCM token cleared on backend');
+    }
+
+    // 3. Reset so init() fully re-registers listeners on next login.
+    _initialized = false;
+    _apiClient = null;
   }
 
   Future<void> _syncTokenToApi(String token) async {

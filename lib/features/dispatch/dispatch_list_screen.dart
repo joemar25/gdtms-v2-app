@@ -92,7 +92,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
     return '${code.substring(0, code.length - 4)}****';
   }
 
-  Future<void> _openDispatch(int index, String partialCode) async {
+  Future<void> _openDispatch(int index, String dispatchCode) async {
     setState(() => _checkingIndex = index);
     try {
       const uuid = Uuid();
@@ -101,7 +101,10 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
           .read(apiClientProvider)
           .post<Map<String, dynamic>>(
             '/check-dispatch-eligibility',
-            data: {'partial_code': partialCode, 'client_request_id': requestId},
+            data: {
+              'dispatch_code': dispatchCode,
+              'client_request_id': requestId,
+            },
             parser: parseApiMap,
           );
       if (!mounted) return;
@@ -113,7 +116,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
         context.push(
           '/dispatches/eligibility',
           extra: {
-            'dispatch_code': data['partial_code']?.toString() ?? partialCode,
+            'dispatch_code': dispatchCode,
             'eligibility_response': data,
             'auto_accept': autoAccept,
           },
@@ -177,9 +180,9 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                       itemCount: _dispatches.length,
                       itemBuilder: (_, i) {
                         final item = _dispatches[i];
-                        final partialCode =
-                            item['partial_code']?.toString() ?? '';
-                        final maskedCode = _maskCode(partialCode);
+                        final dispatchCode =
+                            item['dispatch_code']?.toString() ?? '';
+                        final maskedCode = _maskCode(dispatchCode);
                         final branch = item['branch'] is Map
                             ? item['branch'] as Map
                             : <String, dynamic>{};
@@ -230,7 +233,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                           showLockIcon: false,
                           onTap: isChecking
                               ? null
-                              : () => _openDispatch(i, partialCode),
+                              : () => _openDispatch(i, dispatchCode),
                         );
                       },
                     ),
