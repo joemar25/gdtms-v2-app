@@ -37,8 +37,9 @@ final class ApiRateLimited<T> extends ApiResult<T> {
 }
 
 final class ApiConflict<T> extends ApiResult<T> {
-  const ApiConflict(this.message);
+  const ApiConflict(this.message, {this.data});
   final String message;
+  final dynamic data;
 }
 
 final class ApiServerError<T> extends ApiResult<T> {

@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
@@ -39,23 +40,21 @@ class DeliveryCard extends StatelessWidget {
   final VoidCallback? onUpdateTap;
 
   static Color statusColor(String status) {
-    return switch (status.toUpperCase()) {
-      'PENDING' => const Color(0xFFFF6E00),
-      'DELIVERED' => const Color(0xFF00B14F),
-      'RTS' => const Color(0xFFE53935),
-      'OSA' => const Color(0xFFFFB300),
-      'DISPATCHED' => const Color(0xFF2196F3),
+    return switch (DeliveryStatus.fromString(status)) {
+      DeliveryStatus.pending => const Color(0xFFFF6E00),
+      DeliveryStatus.delivered => const Color(0xFF00B14F),
+      DeliveryStatus.failedDelivery => const Color(0xFFE53935),
+      DeliveryStatus.osa => const Color(0xFFFFB300),
       _ => const Color(0xFF607D8B),
     };
   }
 
   static IconData statusIcon(String status) {
-    return switch (status.toUpperCase()) {
-      'PENDING' => Icons.schedule_rounded,
-      'DELIVERED' => Icons.check_circle_rounded,
-      'RTS' => Icons.assignment_return_rounded,
-      'OSA' => Icons.inventory_2_rounded,
-      'DISPATCHED' => Icons.local_shipping_rounded,
+    return switch (DeliveryStatus.fromString(status)) {
+      DeliveryStatus.pending => Icons.schedule_rounded,
+      DeliveryStatus.delivered => Icons.check_circle_rounded,
+      DeliveryStatus.failedDelivery => Icons.assignment_return_rounded,
+      DeliveryStatus.osa => Icons.inventory_2_rounded,
       _ => Icons.help_outline_rounded,
     };
   }
@@ -67,6 +66,7 @@ class DeliveryCard extends StatelessWidget {
     final barcode = resolveDeliveryIdentifier(delivery);
     final rawStatus = delivery['delivery_status']?.toString() ?? '';
     final status = rawStatus.toUpperCase().trim();
+    final ds = DeliveryStatus.fromString(status);
     final jobOrder =
         (delivery['job_order'] ?? delivery['tracking_number'] ?? '').toString();
     final product = (delivery['product'] ?? delivery['mail_type'] ?? '')
@@ -94,14 +94,20 @@ class DeliveryCard extends StatelessWidget {
         : statusColor(status);
     final iconForStatus = statusIcon(status);
 
-    final rtsVerifStatus =
+    final failedDeliveryVerifStatus =
         (delivery['_rts_verification_status']?.toString() ??
                 delivery['rts_verification_status']?.toString() ??
+                delivery['_failed_delivery_verification_status']?.toString() ??
+                delivery['failed_delivery_verification_status']?.toString() ??
                 'unvalidated')
             .toLowerCase();
-    final isRtsWithPay =
-        status == 'RTS' && rtsVerifStatus == 'verified_with_pay';
-    final isRtsNoPay = status == 'RTS' && rtsVerifStatus == 'verified_no_pay';
+    final rv = FailedDeliveryVerificationStatus.fromString(
+      failedDeliveryVerifStatus,
+    );
+    final isFailedWithPay = ds == DeliveryStatus.failedDelivery && rv.isWithPay;
+    final isFailedNoPay =
+        ds == DeliveryStatus.failedDelivery &&
+        rv == FailedDeliveryVerificationStatus.verifiedNoPay;
     final isPaid = delivery['_paid_at'] != null;
     final isLocked = checkIsLockedFromMap(delivery);
 
@@ -123,19 +129,19 @@ class DeliveryCard extends StatelessWidget {
 
     bool isVisible = false;
     if (!isArchived) {
-      if (status == 'PENDING' || status == '') {
+      if (ds == DeliveryStatus.pending || status == '') {
         isVisible = true;
-      } else if (status == 'DELIVERED') {
+      } else if (ds == DeliveryStatus.delivered) {
         final deliveredAt = delivery['_delivered_at'] as int? ?? 0;
         isVisible = deliveredAt >= todayStart && deliveredAt < tomorrowStart;
-      } else if (status == 'RTS') {
+      } else if (ds == DeliveryStatus.failedDelivery) {
         final completedAt = delivery['_completed_at'] as int? ?? 0;
         isVisible =
             completedAt >= todayStart &&
             completedAt < tomorrowStart &&
-            !isRtsWithPay &&
-            !isRtsNoPay;
-      } else if (status == 'OSA') {
+            !isFailedWithPay &&
+            !isFailedNoPay;
+      } else if (ds == DeliveryStatus.osa) {
         final completedAt = delivery['_completed_at'] as int? ?? 0;
         isVisible = completedAt >= todayStart && completedAt < tomorrowStart;
       }
@@ -151,8 +157,8 @@ class DeliveryCard extends StatelessWidget {
         name: name,
         isDirty: isDirty,
         isPaid: isPaid,
-        isRtsWithPay: isRtsWithPay,
-        isRtsNoPay: isRtsNoPay,
+        isFailedWithPay: isFailedWithPay,
+        isFailedNoPay: isFailedNoPay,
         isLocked: isLocked,
         isVisible: isVisible,
         inSyncQueue: inSyncQueue,
@@ -248,8 +254,8 @@ class DeliveryCard extends StatelessWidget {
                                 // in the header to avoid duplicating the product
                                 // which is already shown in the details below.
                                 if (!isPrivacyMode &&
-                                    (status == 'DELIVERED' ||
-                                        (status == 'RTS' &&
+                                    (ds == DeliveryStatus.delivered ||
+                                        (ds == DeliveryStatus.failedDelivery &&
                                             attemptsCount >= 3)) &&
                                     mailType.isNotEmpty)
                                   Flexible(
@@ -320,12 +326,12 @@ class DeliveryCard extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                                // Attempts pill for RTS items
+                                // Attempts pill for Failed Delivery items
                                 if (attemptsCount > 0)
                                   Padding(
                                     padding: const EdgeInsets.only(left: 6),
                                     child: _MiniPill(
-                                      label: status == 'DELIVERED'
+                                      label: ds == DeliveryStatus.delivered
                                           ? 'FAILED ATTEMPTS: $attemptsCount'
                                           : 'ATTEMPTS: $attemptsCount',
                                       icon: Icons.autorenew_rounded,
@@ -646,12 +652,14 @@ class DeliveryCard extends StatelessWidget {
 
     final rawStatus = delivery['delivery_status']?.toString() ?? '';
     final status = rawStatus.toUpperCase().trim();
+    final ds = DeliveryStatus.fromString(status);
     final attemptsCount = getAttemptsCountFromMap(delivery);
 
     // If the header already shows the mail type for delivered items or
-    // RTS items with max attempts, don't repeat it in the detail grid.
+    // failed-delivery items with max attempts, don't repeat it in the detail grid.
     final showProductMailType =
-        !((status == 'DELIVERED' || (status == 'RTS' && attemptsCount >= 3)) &&
+        !((ds == DeliveryStatus.delivered ||
+                (ds == DeliveryStatus.failedDelivery && attemptsCount >= 3)) &&
             mailType.isNotEmpty);
 
     final hasDetails =
@@ -734,8 +742,8 @@ class DeliveryCard extends StatelessWidget {
     required String name,
     required bool isDirty,
     required bool isPaid,
-    required bool isRtsWithPay,
-    required bool isRtsNoPay,
+    required bool isFailedWithPay,
+    required bool isFailedNoPay,
     required bool isLocked,
     required bool isVisible,
     required bool inSyncQueue,
@@ -743,6 +751,7 @@ class DeliveryCard extends StatelessWidget {
     required String address,
     required int attemptsCount,
   }) {
+    final ds = DeliveryStatus.fromString(status);
     final cardBg = isDark ? const Color(0xFF161625) : Colors.white;
     final subtextColor = isDark
         ? const Color(0xFF6B7280)
@@ -862,7 +871,7 @@ class DeliveryCard extends StatelessWidget {
                               ),
                             if (attemptsCount > 0)
                               _TinyPill(
-                                label: status == 'DELIVERED'
+                                label: ds == DeliveryStatus.delivered
                                     ? 'FA:$attemptsCount'
                                     : 'A:$attemptsCount',
                                 color: attemptsCount >= 3

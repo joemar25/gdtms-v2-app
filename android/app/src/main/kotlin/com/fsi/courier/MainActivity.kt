@@ -1,18 +1,28 @@
 package com.fsi.courier
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Environment
 import android.os.StatFs
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val storageChannel = "fsi_courier/storage"
+    private val timeChangeChannel = "fsi_courier/time_changes"
+
+    private var timeChangeSink: EventChannel.EventSink? = null
+    private var timeChangeReceiver: BroadcastReceiver? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // ── Storage + settings method channel ────────────────────────────────
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, storageChannel)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -33,7 +43,6 @@ class MainActivity : FlutterActivity() {
                             startActivity(intent)
                             result.success(null)
                         } catch (e: Exception) {
-                            // Fall back to general Settings if date/time page is restricted.
                             try {
                                 val fallback = Intent(Settings.ACTION_SETTINGS).apply {
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -48,5 +57,32 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // ── Time-change event channel ─────────────────────────────────────────
+        // Pushes an event to Dart whenever the user changes the device clock or
+        // timezone while the app is in the foreground, so TimeEnforcer can
+        // re-validate immediately without waiting for the periodic timer.
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, timeChangeChannel)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+                    timeChangeSink = events
+                    timeChangeReceiver = object : BroadcastReceiver() {
+                        override fun onReceive(context: Context, intent: Intent) {
+                            events.success(intent.action)
+                        }
+                    }
+                    val filter = IntentFilter().apply {
+                        addAction(Intent.ACTION_TIME_CHANGED)
+                        addAction(Intent.ACTION_TIMEZONE_CHANGED)
+                    }
+                    registerReceiver(timeChangeReceiver, filter)
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    timeChangeReceiver?.let { unregisterReceiver(it) }
+                    timeChangeReceiver = null
+                    timeChangeSink = null
+                }
+            })
     }
 }

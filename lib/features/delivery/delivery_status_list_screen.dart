@@ -6,7 +6,7 @@
 //
 // Purpose:
 //   A single reusable paginated list screen that displays deliveries filtered
-//   by a specific status (PENDING, DELIVERED, RTS, OSA, DISPATCHED). It is
+//   by a specific status (PENDING, DELIVERED, FAILED_DELIVERY, OSA, DISPATCHED). It is
 //   instantiated once per status tab on the dashboard.
 //
 // Key behaviours:
@@ -41,6 +41,7 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
@@ -58,7 +59,7 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/styles/color_styles.dart';
 
 /// A single list screen reused for every delivery status filter
-/// (pending, delivered, rts, osa, dispatched).
+/// (pending, delivered, failed_delivery, osa, dispatched).
 ///
 /// Data is always read from local SQLite — the app is offline-first.
 /// The list refreshes whenever [deliveryRefreshProvider] increments (on
@@ -129,7 +130,8 @@ class _DeliveryStatusListScreenState
     final rows = await _fetchPage(offset: offset);
     final total = switch (widget.status.toUpperCase()) {
       'DELIVERED' => await LocalDeliveryDao.instance.countVisibleDelivered(),
-      'RTS' => await LocalDeliveryDao.instance.countVisibleRts(),
+      'FAILED_DELIVERY' =>
+        await LocalDeliveryDao.instance.countVisibleFailedDelivery(),
       'OSA' => await LocalDeliveryDao.instance.countVisibleOsa(),
       _ => await LocalDeliveryDao.instance.countByStatus(widget.status),
     };
@@ -161,10 +163,11 @@ class _DeliveryStatusListScreenState
         limit: _kPageSize,
         offset: offset,
       ),
-      'RTS' => LocalDeliveryDao.instance.getVisibleRtsPaged(
-        limit: _kPageSize,
-        offset: offset,
-      ),
+      'FAILED_DELIVERY' =>
+        LocalDeliveryDao.instance.getVisibleFailedDeliveryPaged(
+          limit: _kPageSize,
+          offset: offset,
+        ),
       'OSA' => LocalDeliveryDao.instance.getVisibleOsaPaged(
         limit: _kPageSize,
         offset: offset,
@@ -264,12 +267,12 @@ class _DeliveryStatusListScreenState
           onPressed: () => context.push('/scan', extra: {'mode': 'pod'}),
         ),
       ],
-      'RTS' => [
+      'FAILED_DELIVERY' => [
         searchBtn,
         IconButton(
           icon: const Icon(Icons.help_outline_rounded),
           tooltip: 'Failed Delivery Logic',
-          onPressed: () => _showRtsHelpBottomSheet(context),
+          onPressed: () => _showFailedDeliveryHelpBottomSheet(context),
         ),
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -285,7 +288,7 @@ class _DeliveryStatusListScreenState
     'PENDING' => 'No active deliveries.',
     'DELIVERED' => 'No delivered items today.',
     'DISPATCHED' => 'No dispatched items.',
-    'RTS' => 'No failed deliveries today.',
+    'FAILED_DELIVERY' => 'No failed deliveries today.',
     'OSA' => 'No OSA mailpacks today.',
     _ => 'No items found.',
   };
@@ -462,27 +465,35 @@ class _DeliveryStatusListScreenState
                                       final s = deliveryStatus.toUpperCase();
                                       final v =
                                           (d['_rts_verification_status'] ??
+                                                  d['_failed_delivery_verification_status'] ??
                                                   'unvalidated')
                                               .toString()
                                               .toLowerCase();
                                       final attemptsCount =
                                           getAttemptsCountFromMap(d);
 
+                                      final ds = DeliveryStatus.fromString(s);
+                                      final rv =
+                                          FailedDeliveryVerificationStatus.fromString(
+                                            v,
+                                          );
                                       String msg =
-                                          'This delivery is ${s.toLowerCase()} and cannot be opened.';
-                                      if (s == 'OSA') {
+                                          'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
+                                      if (ds == DeliveryStatus.osa) {
                                         msg =
                                             'This item is marked OSA and cannot be opened.';
-                                      } else if (s == 'DELIVERED') {
+                                      } else if (ds ==
+                                          DeliveryStatus.delivered) {
                                         msg =
                                             'This item has already been delivered and is sealed.';
-                                      } else if (s == 'RTS' &&
+                                      } else if (ds ==
+                                              DeliveryStatus.failedDelivery &&
                                           attemptsCount >= 3) {
                                         msg =
                                             'This failed delivery has reached the maximum number of attempts and is locked.';
-                                      } else if (s == 'RTS' &&
-                                          (v == 'verified_with_pay' ||
-                                              v == 'verified_no_pay')) {
+                                      } else if (ds ==
+                                              DeliveryStatus.failedDelivery &&
+                                          rv.isVerified) {
                                         msg =
                                             'This failed delivery has already been verified and is no longer actionable.';
                                       }
@@ -513,10 +524,10 @@ class _DeliveryStatusListScreenState
     );
   }
 
-  void _showRtsHelpBottomSheet(BuildContext context) {
+  void _showFailedDeliveryHelpBottomSheet(BuildContext context) {
     HapticFeedback.mediumImpact();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final rtsColor = DeliveryCard.statusColor('RTS');
+    final failedDeliveryColor = DeliveryCard.statusColor('FAILED_DELIVERY');
 
     showModalBottomSheet(
       context: context,
@@ -557,12 +568,14 @@ class _DeliveryStatusListScreenState
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: rtsColor.withValues(alpha: UIStyles.alphaSoft),
+                      color: failedDeliveryColor.withValues(
+                        alpha: UIStyles.alphaSoft,
+                      ),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.assignment_return_rounded,
-                      color: rtsColor,
+                      color: failedDeliveryColor,
                       size: 28,
                     ),
                   ),
@@ -656,15 +669,21 @@ class _DeliveryStatusListScreenState
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      rtsColor.withValues(alpha: UIStyles.alphaActiveAccent),
-                      rtsColor.withValues(alpha: UIStyles.alphaSoft),
+                      failedDeliveryColor.withValues(
+                        alpha: UIStyles.alphaActiveAccent,
+                      ),
+                      failedDeliveryColor.withValues(alpha: UIStyles.alphaSoft),
                     ],
                   ),
                   borderRadius: UIStyles.cardRadius,
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, size: 18, color: rtsColor),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: failedDeliveryColor,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -672,8 +691,12 @@ class _DeliveryStatusListScreenState
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark
-                              ? rtsColor.withValues(alpha: UIStyles.alphaGlass)
-                              : rtsColor.withValues(alpha: UIStyles.alphaGlass),
+                              ? failedDeliveryColor.withValues(
+                                  alpha: UIStyles.alphaGlass,
+                                )
+                              : failedDeliveryColor.withValues(
+                                  alpha: UIStyles.alphaGlass,
+                                ),
                           height: 1.4,
                           fontWeight: FontWeight.w500,
                         ),
@@ -691,17 +714,17 @@ class _DeliveryStatusListScreenState
   }
 
   int _bannerCount(bool isOnline) {
-    final status = widget.status.toUpperCase();
+    final ds = DeliveryStatus.fromString(widget.status);
     int count = 0;
     if (!isOnline) count++;
-    if (status == 'OSA') count++;
-    if (status == 'RTS') count++;
-    if (status == 'DELIVERED') count++;
+    if (ds == DeliveryStatus.osa) count++;
+    if (ds == DeliveryStatus.failedDelivery) count++;
+    if (ds == DeliveryStatus.delivered) count++;
     return count;
   }
 
   Widget _buildBanner(int index, bool isOnline, bool isDark) {
-    final status = widget.status.toUpperCase();
+    final ds = DeliveryStatus.fromString(widget.status);
     int slot = 0;
 
     if (!isOnline) {
@@ -714,7 +737,7 @@ class _DeliveryStatusListScreenState
       slot++;
     }
 
-    if (status == 'OSA' && index == slot) {
+    if (ds == DeliveryStatus.osa && index == slot) {
       return _StatusInfoBanner(
         icon: Icons.inventory_2_rounded,
         message: 'OSA items can\'t be opened. Return to FSI for verification.',
@@ -722,16 +745,16 @@ class _DeliveryStatusListScreenState
         isDark: isDark,
       );
     }
-    if (status == 'RTS' && index == slot) {
+    if (ds == DeliveryStatus.failedDelivery && index == slot) {
       return _StatusInfoBanner(
         icon: Icons.assignment_return_rounded,
         message:
             'Failed attempts can be re-delivered if still with you, unless already verified on-site.',
-        statusColor: DeliveryCard.statusColor('RTS'),
+        statusColor: DeliveryCard.statusColor('FAILED_DELIVERY'),
         isDark: isDark,
       );
     }
-    if (status == 'DELIVERED' && index == slot) {
+    if (ds == DeliveryStatus.delivered && index == slot) {
       return _StatusInfoBanner(
         icon: Icons.check_circle_rounded,
         message: 'Delivered items are final and can\'t be reopened.',

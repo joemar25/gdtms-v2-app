@@ -26,7 +26,7 @@
 //   • "Reload" action re-bootstraps deliveries from server (online only).
 //   • "Sync Now" manually triggers the queue processor (online only).
 //   • Long-press an entry to delete it from the history (with confirmation).
-//   • Locked entries (DELIVERED, verified RTS, OSA) are non-navigable and show
+//   • Locked entries (DELIVERED, verified Failed Delivery, OSA) are non-navigable and show
 //     an informational message when tapped.
 //
 // Navigation:
@@ -44,7 +44,7 @@
 //   a sync control panel and an audit trail of all actions taken.
 //
 // Key behaviours:
-//   • Queue list — each entry shows the barcode, status badge (Delivered/RTS/
+//   • Queue list — each entry shows the barcode, status badge (Delivered/Failed Delivery/
 //     OSA), mail type, dispatch code, and three timestamps:
 //       - Delivered  : when the courier physically tapped SUBMIT (device-local
 //                      time via epoch ms — same timezone as Queued/Synced).
@@ -57,7 +57,7 @@
 //   • Pagination — swipe left/right with haptic feedback.
 //   • Long-press to delete a synced entry from the visual history.
 //   • Conflict entries show a red badge; tapping displays the server error.
-//   • Lock icon — terminal items (verified RTS, OSA, already-delivered) are
+//   • Lock icon — terminal items (verified Failed Delivery, OSA, already-delivered) are
 //     sealed and navigating to them is blocked.
 //
 // Data:
@@ -84,6 +84,7 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
@@ -533,17 +534,17 @@ class _EntryList extends ConsumerWidget {
     final endIndex = math.min(startIndex + pageSize, allEntries.length);
     final entries = allEntries.sublist(startIndex, endIndex);
 
-    // Count RTS attempts per barcode from ALL sync entries (not just current page).
-    // This is the most reliable source because rawJson may not contain rts_count.
-    final rtsCountByBarcode = <String, int>{};
+    // Count failed delivery attempts per barcode from ALL sync entries (not just current page).
+    // This is the most reliable source because rawJson may not contain failed_delivery_count.
+    final failedDeliveryCountByBarcode = <String, int>{};
     for (final e in allEntries) {
       if (e.operationType != 'UPDATE_STATUS') continue;
       try {
         final map = jsonDecode(e.payloadJson) as Map<String, dynamic>;
         final status = (map['delivery_status']?.toString() ?? '').toUpperCase();
-        if (status == 'RTS') {
-          rtsCountByBarcode[e.barcode] =
-              (rtsCountByBarcode[e.barcode] ?? 0) + 1;
+        if (status == 'FAILED_DELIVERY') {
+          failedDeliveryCountByBarcode[e.barcode] =
+              (failedDeliveryCountByBarcode[e.barcode] ?? 0) + 1;
         }
       } catch (_) {}
     }
@@ -558,7 +559,8 @@ class _EntryList extends ConsumerWidget {
         return _EntryTile(
           entry: entry,
           delivery: deliveries[entry.barcode],
-          rtsAttemptsCount: rtsCountByBarcode[entry.barcode] ?? 0,
+          failedDeliveryAttemptsCount:
+              failedDeliveryCountByBarcode[entry.barcode] ?? 0,
           isSyncing:
               syncState.isSyncing && syncState.currentBarcode == entry.barcode,
           onRetry: (entry.status == 'error' || entry.status == 'failed')
@@ -618,7 +620,7 @@ class _EntryTile extends StatelessWidget {
   const _EntryTile({
     required this.entry,
     required this.isSyncing,
-    required this.rtsAttemptsCount,
+    required this.failedDeliveryAttemptsCount,
     this.delivery,
     this.onRetry,
     this.onDismiss,
@@ -628,7 +630,7 @@ class _EntryTile extends StatelessWidget {
   final SyncOperation entry;
   final LocalDelivery? delivery;
   final bool isSyncing;
-  final int rtsAttemptsCount;
+  final int failedDeliveryAttemptsCount;
   final VoidCallback? onRetry;
   final VoidCallback? onDismiss;
   final VoidCallback? onDelete;
@@ -738,17 +740,19 @@ class _EntryTile extends StatelessWidget {
     final currentStatus = (delStatus != null && delStatus.isNotEmpty)
         ? delStatus
         : payloadStatus;
-    final currentRtsVerif = (delivery?.rtsVerificationStatus ?? '')
-        .toLowerCase();
-
-    // Use rtsAttemptsCount (derived from sync queue entries) as the authoritative
-    // attempt count. rawJson may not contain rts_count if the server hasn't
+    // Use failedDeliveryAttemptsCount (derived from sync queue entries) as the authoritative
+    // attempt count. rawJson may not contain failed_delivery_count if the server hasn't
     // returned it for this item yet, so counting queue entries is more reliable.
-    final attemptsCount = rtsAttemptsCount;
+    final attemptsCount = failedDeliveryAttemptsCount;
+
+    final currentFailedDeliveryVerif =
+        (delivery?.rtsVerificationStatus ?? 'unvalidated')
+            .toString()
+            .toLowerCase();
 
     final isLocked = checkIsLocked(
       status: currentStatus,
-      rtsVerificationStatus: currentRtsVerif,
+      rtsVerificationStatus: currentFailedDeliveryVerif,
       attempts: attemptsCount,
     );
 
@@ -756,20 +760,20 @@ class _EntryTile extends StatelessWidget {
       onTap: isLocked
           ? () {
               final s = currentStatus.toUpperCase();
-              final v = currentRtsVerif;
+              final v = currentFailedDeliveryVerif;
               String msg =
                   'This delivery is ${s.toLowerCase()} and cannot be opened.';
               if (s == 'OSA') {
                 msg = 'This item is marked OSA and cannot be opened.';
               } else if (s == 'DELIVERED') {
                 msg = 'This item has already been delivered and is sealed.';
-              } else if (s == 'RTS' && attemptsCount >= 3) {
+              } else if (s == 'FAILED_DELIVERY' && attemptsCount >= 3) {
                 msg =
-                    'This RTS item has reached the maximum number of attempts and is locked.';
-              } else if (s == 'RTS' &&
+                    'This failed delivery has reached the maximum number of attempts and is locked.';
+              } else if (s == 'FAILED_DELIVERY' &&
                   (v == 'verified_with_pay' || v == 'verified_no_pay')) {
                 msg =
-                    'This RTS item has already been verified and is no longer actionable.';
+                    'This failed delivery has already been verified and is no longer actionable.';
               }
               showInfoNotification(context, msg);
             }
@@ -1007,11 +1011,28 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (bg, fg, label) = switch (status.toLowerCase()) {
-      'delivered' => (Colors.green.shade50, Colors.green.shade700, 'Delivered'),
-      'pending' => (Colors.amber.shade50, Colors.amber.shade800, 'Pending'),
-      'rts' => (Colors.orange.shade50, Colors.orange.shade800, 'RTS'),
-      'osa' => (Colors.purple.shade50, Colors.purple.shade700, 'OSA'),
+    final ds = DeliveryStatus.fromString(status);
+    final (bg, fg, label) = switch (ds) {
+      DeliveryStatus.delivered => (
+        Colors.green.shade50,
+        Colors.green.shade700,
+        DeliveryStatus.delivered.displayName,
+      ),
+      DeliveryStatus.pending => (
+        Colors.amber.shade50,
+        Colors.amber.shade800,
+        DeliveryStatus.pending.displayName,
+      ),
+      DeliveryStatus.failedDelivery => (
+        Colors.orange.shade50,
+        Colors.orange.shade800,
+        DeliveryStatus.failedDelivery.displayName,
+      ),
+      DeliveryStatus.osa => (
+        Colors.purple.shade50,
+        Colors.purple.shade700,
+        DeliveryStatus.osa.displayName,
+      ),
       _ => (Colors.grey.shade100, Colors.grey.shade700, status.toUpperCase()),
     };
 

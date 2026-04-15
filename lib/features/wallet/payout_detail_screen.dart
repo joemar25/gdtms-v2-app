@@ -215,9 +215,9 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
             final status = (d['delivery_status'] ?? 'DELIVERED')
                 .toString()
                 .toUpperCase();
-            // RTS deliveries included in a payout are implicitly verified
+            // FAILED_DELIVERY deliveries included in a payout are implicitly verified
             // with pay — no chevron, no navigation (same as status list).
-            final defaultRtsVerif = status == 'RTS'
+            final defaultFailedDeliveryVerif = status == 'FAILED_DELIVERY'
                 ? 'verified_with_pay'
                 : 'unvalidated';
             return <String, dynamic>{
@@ -230,10 +230,11 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   d['transaction_at'] ?? d['delivered_date'] ?? d['paid_at'],
               'rts_verification_status':
                   d['rts_verification_status'] ??
+                  d['failed_delivery_verification_status'] ??
                   d['verification_status'] ??
-                  d['rts_verification'] ??
+                  d['failed_delivery_verification'] ??
                   d['status_verification'] ??
-                  defaultRtsVerif,
+                  defaultFailedDeliveryVerif,
             };
           }).toList() ??
           [];

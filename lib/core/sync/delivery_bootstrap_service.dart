@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 
 /// Fetches the courier's current delivery list from the server and seeds the
@@ -15,18 +16,18 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 /// When online, every locally-pending barcode is checked against the server
 /// immediately before the full sync. If the server's current pending list does
 /// NOT contain a barcode, its individual detail is fetched (GET /deliveries/:barcode)
-/// to determine whether it was updated (delivered/rts/osa) or removed entirely.
+/// to determine whether it was updated (delivered/failed-delivery/osa) or removed entirely.
 /// This ensures that manual web-app status changes are reflected without waiting
 /// for the full status sweep.
 ///
 /// ### Rule 2 — Never downgrade a courier's local delivery
-/// If the courier has recorded a terminal status (delivered/rts/osa) locally,
+/// If the courier has recorded a terminal status (delivered/failed-delivery/osa) locally,
 /// a server-returning-pending response does NOT overwrite it. The courier's
 /// own action is trusted until the server's terminal record wins.
 ///
 /// ### Rule 3 — Accept server authority for terminal status changes
 /// If the SERVER returns an item with a different terminal status than what is
-/// stored locally (e.g., web admin changed rts → osa), the local record is
+/// stored locally (e.g., web admin changed failed_delivery → osa), the local record is
 /// updated to match.
 ///
 /// ### Rule 4 — Remove genuinely gone items
@@ -40,7 +41,15 @@ class DeliveryBootstrapService {
 
   static const DeliveryBootstrapService instance = DeliveryBootstrapService._();
 
-  static const List<String> _statuses = ['PENDING', 'RTS', 'OSA', 'DELIVERED'];
+  /// API status buckets fetched during a full sync.
+  /// Derived from [DeliveryStatus] so the strings stay in sync with the enum.
+  static final List<String> _statuses = [
+    DeliveryStatus.pending.toApiString(), // 'PENDING'
+    DeliveryStatus.failedDelivery
+        .toApiString(), // 'FAILED_DELIVERY' (v2.7 contract)
+    DeliveryStatus.osa.toApiString(), // 'OSA'
+    DeliveryStatus.delivered.toApiString(), // 'DELIVERED'
+  ];
 
   // ── Public API ────────────────────────────────────────────────────────────
 
@@ -71,7 +80,7 @@ class DeliveryBootstrapService {
     } else {
       const statusLabels = {
         'PENDING': 'Fetching pending deliveries...',
-        'RTS': 'Fetching RTS orders...',
+        'FAILED_DELIVERY': 'Fetching failed deliveries...',
         'OSA': 'Fetching OSA orders...',
         'DELIVERED': 'Fetching delivered orders...',
       };

@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/connectivity_provider.dart';
@@ -14,14 +15,20 @@ import '../../styles/ui_styles.dart';
 /// How often to re-validate while the app is in the foreground.
 const _kPeriodicInterval = Duration(minutes: 5);
 
+// EventChannel pushed by native code whenever ACTION_TIME_CHANGED,
+// ACTION_TIMEZONE_CHANGED (Android) or NSSystemClockDidChangeNotification
+// (iOS) fires — so the app reacts the moment the user tampers with the clock.
+const _kTimeChangeChannel = EventChannel('fsi_courier/time_changes');
+
 /// Widget that enforces Philippine Standard Time (UTC+8 / Asia/Manila).
 ///
-/// Shows a full-screen loading indicator during the initial NTP check, then
+/// Shows a full-screen loading indicator during the initial check, then
 /// either renders [child] normally (valid) or overlays a blocking card
 /// (invalid) that guides the user to correct their device time.
 ///
 /// Re-validation is triggered automatically on:
 /// - App startup (first frame)
+/// - Device clock or timezone changed (via native EventChannel — immediate)
 /// - App resume from background
 /// - Connectivity restored (offline → online)
 /// - Periodic timer (every [_kPeriodicInterval])
@@ -42,6 +49,7 @@ class _TimeEnforcerState extends ConsumerState<TimeEnforcer>
   String _message = '';
   bool _checking = false;
   Timer? _periodicTimer;
+  StreamSubscription<dynamic>? _timeChangeSub;
 
   @override
   void initState() {
@@ -50,14 +58,33 @@ class _TimeEnforcerState extends ConsumerState<TimeEnforcer>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _validate();
       _startPeriodicTimer();
+      _subscribeToTimeChanges();
     });
   }
 
   @override
   void dispose() {
+    _timeChangeSub?.cancel();
     _periodicTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// Listens for native clock/timezone change events and re-validates
+  /// immediately — no waiting for the periodic timer or app resume.
+  void _subscribeToTimeChanges() {
+    _timeChangeSub = _kTimeChangeChannel.receiveBroadcastStream().listen(
+      (_) {
+        TimeValidationService.instance.invalidateCache();
+        _validate();
+      },
+      onError: (e) {
+        // Channel unavailable — native code not yet compiled (full rebuild
+        // needed after adding Kotlin/Swift EventChannel), or unsupported
+        // platform. Periodic timer + app-resume triggers remain active.
+        debugPrint('[TIME] time_changes channel unavailable: $e');
+      },
+    );
   }
 
   // Re-validate when app comes back to foreground.

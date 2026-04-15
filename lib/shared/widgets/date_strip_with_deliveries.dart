@@ -498,6 +498,8 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                     final v =
                         (d['rts_verification_status'] ??
                                 d['_rts_verification_status'] ??
+                                d['failed_delivery_verification_status'] ??
+                                d['_failed_delivery_verification_status'] ??
                                 'unvalidated')
                             .toString()
                             .toLowerCase();
@@ -508,10 +510,10 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                     } else if (s == 'DELIVERED') {
                       msg =
                           'This item has already been delivered and is sealed.';
-                    } else if (s == 'RTS' &&
+                    } else if (s == 'FAILED_DELIVERY' &&
                         (v == 'verified_with_pay' || v == 'verified_no_pay')) {
                       msg =
-                          'This RTS item has already been verified and is no longer actionable.';
+                          'This failed delivery has already been verified and is no longer actionable.';
                     }
                     showInfoNotification(context, msg);
                   },

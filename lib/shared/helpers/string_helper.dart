@@ -1,11 +1,18 @@
 // DOCS: docs/shared/helpers.md — update that file when you edit this one.
 
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
+
 extension StatusStringFormat on String {
+  /// Converts a delivery status string to a display label.
+  ///
+  /// Known [DeliveryStatus] values use their canonical [DeliveryStatus.displayName]
+  /// (e.g. 'FAILED_DELIVERY' → 'FAILED DELIVERY'). Unknown values fall back to
+  /// replacing underscores with spaces and uppercasing.
   String toDisplayStatus() {
     if (isEmpty) return '—';
-    // RTS = Return to Sender (returned to FSI) — couriers see it as a failed delivery.
-    // The raw API value 'RTS' is preserved everywhere; only the display label changes.
-    if (toUpperCase() == 'RTS') return 'FAILED DELIVERY';
+    final ds = DeliveryStatus.fromString(this);
+    if (ds != DeliveryStatus.unknown) return ds.displayName.toUpperCase();
+    // Fallback for non-delivery strings (e.g. timeline action labels).
     return replaceAll('_', ' ').toUpperCase();
   }
 }

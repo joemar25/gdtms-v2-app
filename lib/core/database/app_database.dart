@@ -29,7 +29,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     final db = await openDatabase(
       path,
-      version: 10,
+      version: 13,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -168,7 +168,7 @@ class AppDatabase {
     }
     if (oldVersion < 6) {
       // v6: add completed_at to local_deliveries.
-      // This timestamp is used for all terminal statuses (delivered, rts, osa)
+      // This timestamp is used for all terminal statuses (delivered, failed-delivery, osa)
       // so that the today-only filter can be applied consistently across
       // all of them.
       final cols = await db.rawQuery('PRAGMA table_info(local_deliveries)');
@@ -181,7 +181,7 @@ class AppDatabase {
       // Backfill completed_at from delivered_at or updated_at.
       await db.execute(
         "UPDATE local_deliveries SET completed_at = COALESCE(delivered_at, updated_at) "
-        "WHERE delivery_status IN ('delivered', 'rts', 'osa')",
+        "WHERE delivery_status IN ('delivered', 'FAILED_DELIVERY', 'osa')",
       );
     }
     if (oldVersion < 7) {
@@ -213,8 +213,8 @@ class AppDatabase {
       );
     }
     if (oldVersion < 8) {
-      // v8: add rts_verification_status to local_deliveries.
-      // Tracks RTS verification state. Note: this handles duplicate cases
+      // v8: add rts_verification_status (legacy) to local_deliveries.
+      // Tracks failed delivery verification state. Note: this handles duplicate cases
       // caused by hot-reload interruptions during previous DB upgrade runs.
       final cols = await db.rawQuery('PRAGMA table_info(local_deliveries)');
       final hasRtsStatus = cols.any(
@@ -247,6 +247,48 @@ class AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_sync_courier '
         'ON sync_operations(courier_id, status)',
       );
+    }
+    if (oldVersion < 11) {
+      // v11: rename legacy 'RTS' delivery_status values to 'FAILED_DELIVERY'
+      // to align with the v2.8 API contract. The backend returns FAILED_DELIVERY
+      // in all read responses; dual-value IN clauses in the DAO are removed.
+      await db.execute(
+        "UPDATE local_deliveries SET delivery_status = 'FAILED_DELIVERY' "
+        "WHERE delivery_status = 'RTS'",
+      );
+    }
+    if (oldVersion < 12) {
+      // v12: Keep rts_verification_status as per requirement.
+      // (This slot is preserved to maintain version numbering)
+    }
+    if (oldVersion < 13) {
+      // v13: Restore rts_verification_status if it was renamed to failed_delivery_verification_status
+      // in previous experimental builds.
+      final cols = await db.rawQuery('PRAGMA table_info(local_deliveries)');
+      final hasModern = cols.any(
+        (c) => c['name'] == 'failed_delivery_verification_status',
+      );
+      final hasLegacy = cols.any((c) => c['name'] == 'rts_verification_status');
+
+      if (hasModern && !hasLegacy) {
+        // SQLite does not support RENAME COLUMN on all platforms/versions used by sqflite,
+        // so we use the safest approach: alter table to add columns is fine, but renaming
+        // is tricky. However, most modern Android/iOS versions (SQLite 3.25+) support it.
+        // We'll wrap in try-catch to be safe.
+        try {
+          await db.execute(
+            'ALTER TABLE local_deliveries RENAME COLUMN failed_delivery_verification_status TO rts_verification_status',
+          );
+        } catch (e) {
+          debugPrint('[DB] Migration failed (rename): $e');
+          // If rename fails, we fallback to adding the column if it's really missing.
+          if (!hasLegacy) {
+            await db.execute(
+              "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
+            );
+          }
+        }
+      }
     }
   }
 

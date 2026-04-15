@@ -1,7 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/styles/ui_styles.dart';
 
 class StatusBadge extends StatelessWidget {
@@ -11,18 +11,18 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final normalized = status.toUpperCase();
-    final color = switch (normalized) {
-      'PENDING' => Colors.orange,
-      'DELIVERED' => Colors.green,
-      'FAILED_ATTEMPT' => Colors.deepOrange,
-      'RTS' => Colors.red,
-      'OSA' => Colors.amber,
-      'DISPATCHED' => Colors.blue,
+    final ds = DeliveryStatus.fromString(status);
+    final color = switch (ds) {
+      DeliveryStatus.pending => Colors.orange,
+      DeliveryStatus.delivered => Colors.green,
+      DeliveryStatus.failedDelivery => Colors.red,
+      DeliveryStatus.osa => Colors.amber,
       _ => Colors.grey,
     };
 
-    final displayStatus = status.toDisplayStatus();
+    final displayStatus = ds != DeliveryStatus.unknown
+        ? ds.displayName.toUpperCase()
+        : status.replaceAll('_', ' ').toUpperCase();
 
     return Chip(
       label: Text(displayStatus),

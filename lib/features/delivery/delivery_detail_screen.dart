@@ -43,6 +43,7 @@ import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
@@ -385,15 +386,15 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     //
     //   • PENDING   — any non-archived pending record
     //   • DELIVERED — delivered_at is today (paid status does not lock details)
-    //   • RTS       — completed_at is today AND rts_verification_status is
-    //                 NOT 'verified_with_pay' OR 'verified_no_pay'
+    //   • FAILED_DELIVERY — completed_at is today AND rts_verification_status is
+    //                        NOT 'verified_with_pay' OR 'verified_no_pay'
     //   • OSA       — completed_at is today
     //
     // This check MUST run before the API call so that:
     //   (a) a smart user who knows a barcode cannot reach it by scanning or
     //       typing it directly into the scan input.
-    //   (b) items that have fallen out of the active window (yesterday's RTS,
-    //       verified RTS) are never accessible, even if the API still returns data.
+    //   (b) items that have fallen out of the active window (yesterday's Failed Delivery,
+    //       verified Failed Delivery) are never accessible, even if the API still returns data.
     //
     // The scan screen also runs this check as a UX pre-filter, but the gate
     // HERE is the canonical, tamper-proof enforcement point.
@@ -411,16 +412,17 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       final rtsVerif = (local?.rtsVerificationStatus ?? 'unvalidated')
           .toLowerCase();
 
+      final ds = DeliveryStatus.fromString(status);
       String reason;
-      if (status == 'OSA') {
+      if (ds == DeliveryStatus.osa) {
         reason = 'OSA items cannot be opened.';
-      } else if (status == 'RTS' &&
+      } else if (ds == DeliveryStatus.failedDelivery &&
           (rtsVerif == 'verified_with_pay' || rtsVerif == 'verified_no_pay')) {
-        // RULE: Verified RTS items are fully settled — no further action needed.
+        // RULE: Verified failed-delivery items are fully settled — no further action needed.
         reason =
             'This failed delivery has already been verified and is no longer actionable.';
       } else {
-        // RULE: Item not in today's active window (e.g. yesterday's DELIVERED/RTS/OSA).
+        // RULE: Item not in today's active window (e.g. yesterday's DELIVERED/FAILED_DELIVERY/OSA).
         reason = 'This delivery is not in your active list.';
       }
 
@@ -548,21 +550,26 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     return int.tryParse(b.substring(slashIdx + 1).trim()) ?? 0;
   }
 
-  bool get _isRtsLocked {
-    final status = _str('delivery_status').toUpperCase();
-    if (status != 'RTS') return false;
-    final rtsStatus =
-        _delivery['rts_verification_status']?.toString() ?? 'unvalidated';
-    return rtsStatus == 'verified_with_pay' || rtsStatus == 'verified_no_pay';
+  DeliveryStatus get _ds => DeliveryStatus.fromString(_str('delivery_status'));
+
+  bool get _isFailedDeliveryLocked {
+    if (_ds != DeliveryStatus.failedDelivery) return false;
+    return FailedDeliveryVerificationStatus.fromString(
+      _delivery['rts_verification_status']?.toString() ??
+          _delivery['failed_delivery_verification_status']?.toString(),
+    ).isVerified;
   }
 
-  String get _rtsVerifStatus =>
-      _delivery['rts_verification_status']?.toString() ?? 'unvalidated';
+  String get _failedDeliveryVerifStatus =>
+      _delivery['rts_verification_status']?.toString() ??
+      _delivery['failed_delivery_verification_status']?.toString() ??
+      'unvalidated';
 
   bool get _canShowContactInfo {
-    final s = _str('delivery_status').toUpperCase();
-    if (s == 'PENDING') return true;
-    if (s == 'RTS' && !_isRtsLocked) return true;
+    if (_ds == DeliveryStatus.pending) return true;
+    if (_ds == DeliveryStatus.failedDelivery && !_isFailedDeliveryLocked) {
+      return true;
+    }
     return false;
   }
 
@@ -581,9 +588,13 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     // final bgColor = isDark ? _DS.bgDark : _DS.bg; // <- removed scaffold override
 
     // RULE: If status is 'OSA', do not ever show update status button here.
-    // NEW RULE: If status is 'RTS' and already verified OR attempts >= 3, hide the button.
+    // NEW RULE: If status is 'FAILED_DELIVERY' and already verified OR attempts >= 3, hide the button.
     final isLockedGlobal = checkIsLockedFromMap(_delivery);
-    final showFab = (status == 'PENDING' || status == 'RTS') && !isLockedGlobal;
+    // FAB shown for PENDING and unverified failedDelivery (courier can reattempt).
+    final showFab =
+        (_ds == DeliveryStatus.pending ||
+            _ds == DeliveryStatus.failedDelivery) &&
+        !isLockedGlobal;
 
     return Scaffold(
       appBar: AppHeaderBar(
@@ -687,7 +698,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                   ),
                                 ],
                                 // Address and contact are only shown when delivery
-                                // is still actionable (PENDING or unverified RTS).
+                                // is still actionable (PENDING or unverified FAILED_DELIVERY).
                                 if (_canShowContactInfo) ...[
                                   _IosRowDivider(isDark: isDark),
                                   _IosTappableRow(
@@ -731,8 +742,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         // ── Proof of delivery ─────────────────────────────
                         _buildDeliveredDetails(isDark),
 
-                        // ── RTS attempts ──────────────────────────────────
-                        _buildRtsAttempts(isDark),
+                        // ── Failed Delivery attempts ─────────────────────────────
+                        _buildFailedDeliveryAttempts(isDark),
 
                         // ── History timeline ──────────────────────────────
                         _buildTimeline(isDark),
@@ -772,13 +783,15 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Pay-status dot for validated RTS
-                    if (status == 'RTS' && _isRtsLocked) ...[
+                    // Pay-status dot for validated Failed Delivery
+                    if (_ds == DeliveryStatus.failedDelivery &&
+                        _isFailedDeliveryLocked) ...[
                       Container(
                         width: 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color: _rtsVerifStatus == 'verified_with_pay'
+                          color:
+                              _failedDeliveryVerifStatus == 'verified_with_pay'
                               ? Colors.green.shade500
                               : Colors.red.shade400,
                           shape: BoxShape.circle,
@@ -794,7 +807,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: status == 'DELIVERED'
+                          color: _ds == DeliveryStatus.delivered
                               ? ColorStyles.grabGreen
                               : Colors.grey.shade700,
                         ),
@@ -844,7 +857,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   // ─── Proof of delivery (all conditions preserved) ─────────────────────────
 
   Widget _buildDeliveredDetails(bool isDark) {
-    // Proof of Delivery is only meaningful for delivered items — RTS/OSA were
+    // Proof of Delivery is only meaningful for delivered items — FAILED_DELIVERY/OSA were
     // never physically delivered so there is nothing to prove.
     if (_str('delivery_status').toUpperCase() != 'DELIVERED') {
       return const SizedBox.shrink();
@@ -974,19 +987,23 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     );
   }
 
-  // ─── RTS attempts (all conditions preserved) ──────────────────────────────
+  // ─── Failed Delivery attempts (all conditions preserved) ─────────────────
 
-  Widget _buildRtsAttempts(bool isDark) {
-    final attempts = _delivery['rts_attempts'];
+  Widget _buildFailedDeliveryAttempts(bool isDark) {
+    final attempts =
+        _delivery['failed_delivery_attempts'] ?? _delivery['rts_attempts'];
     if (attempts is! List || attempts.isEmpty) return const SizedBox.shrink();
 
     final typedAttempts = attempts.whereType<Map>().toList();
     if (typedAttempts.isEmpty) return const SizedBox.shrink();
 
-    final rtsVerifStatus =
-        _delivery['rts_verification_status']?.toString() ?? 'unvalidated';
-    final isWithPay = rtsVerifStatus == 'verified_with_pay';
-    final isValidated = isWithPay || rtsVerifStatus == 'verified_no_pay';
+    final failedDeliveryVerifStatus =
+        _delivery['rts_verification_status']?.toString() ??
+        _delivery['failed_delivery_verification_status']?.toString() ??
+        'unvalidated';
+    final isWithPay = failedDeliveryVerifStatus == 'verified_with_pay';
+    final isValidated =
+        isWithPay || failedDeliveryVerifStatus == 'verified_no_pay';
 
     return Padding(
       padding: const EdgeInsets.only(top: _DS.spacingMD),
@@ -1506,7 +1523,7 @@ class _TimelineItem extends StatelessWidget {
       'received_by_courier' || 'received' => Icons.move_to_inbox_rounded,
       'delivered' => Icons.check_circle_rounded,
       'attempted' => Icons.redo_rounded,
-      'rts' => Icons.keyboard_return_rounded,
+      'failed_delivery' => Icons.keyboard_return_rounded,
       'osa' => Icons.inventory_2_rounded,
       _ => Icons.radio_button_unchecked_rounded,
     };

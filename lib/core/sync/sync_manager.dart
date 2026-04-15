@@ -397,9 +397,18 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                   }, // Use op UUID for idempotency
                   parser: parseApiMap,
                 );
-            if (res is ApiNetworkError ||
-                res is ApiServerError ||
-                res is ApiRateLimited) {
+            if (res is ApiRateLimited) {
+              // Respect the Retry-After header before letting retry() fire again.
+              final waitSecs = (res as ApiRateLimited).retryAfterSeconds ?? 60;
+              debugPrint(
+                '[SYNC] 429 rate-limited for ${entry.barcode} — waiting ${waitSecs}s (Retry-After)',
+              );
+              await Future.delayed(Duration(seconds: waitSecs));
+              throw Exception(
+                'Rate limited — retried after ${waitSecs}s: ${_errorMessage(res)}',
+              );
+            }
+            if (res is ApiNetworkError || res is ApiServerError) {
               throw Exception(
                 'Transient error during PATCH: ${_errorMessage(res)}',
               );
@@ -447,20 +456,33 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           // Terminal conflicts/errors from server -> abandon retry, mark as conflict or resolve automatically
           final errorMsg = _errorMessage(result);
 
-          // Auto-resolve cases where the server already reflects what the courier wanted:
-          //
-          // Case 1 — Immutable DELIVERED: server says item is already DELIVERED and
-          //   cannot be changed. If the courier intended DELIVERED, end-state matches.
-          final isDeliveredImmutable =
-              errorMsg.toLowerCase().contains('delivered') &&
-              errorMsg.toLowerCase().contains('immutable');
+          // API v2.7: machine-readable code takes precedence over string matching.
+          String? responseCode;
+          if (result is ApiConflict<Map<String, dynamic>>) {
+            final data = result.data;
+            if (data is Map) {
+              responseCode = data['code']?.toString();
+            }
+          }
+
+          // Case 1 — DELIVERY_IMMUTABLE (v2.7 code): item is in a terminal state;
+          //   no transition is possible. Always auto-resolve as synced — the courier's
+          //   action is moot regardless of intended status.
+          final isImmutableStop = responseCode == 'DELIVERY_IMMUTABLE';
+
+          // Case 1b — Legacy: string-match fallback for older API versions that lacked
+          //   the machine-readable code. Only auto-resolve for DELIVERED intent.
           final wasIntendingToDeliver =
               payload['delivery_status']?.toString().toUpperCase() ==
               'DELIVERED';
+          final isDeliveredImmutableLegacy =
+              !isImmutableStop &&
+              errorMsg.toLowerCase().contains('delivered') &&
+              errorMsg.toLowerCase().contains('immutable') &&
+              wasIntendingToDeliver;
 
-          // Case 2 — Same-status transition: server rejected because status is
-          //   already what the courier wanted (e.g. "Invalid status transition
-          //   from 'RTS' to 'RTS'"). Safe to mark as synced.
+          // Case 2 — Same-status transition: server rejected because the item is
+          //   already in the state the courier wanted. Safe to mark as synced.
           final targetStatus =
               payload['delivery_status']?.toString().toLowerCase() ?? '';
           final isSameStatusTransition =
@@ -468,7 +490,8 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               errorMsg.toLowerCase().contains('invalid status transition') &&
               errorMsg.toLowerCase().contains("to '$targetStatus'");
 
-          if ((isDeliveredImmutable && wasIntendingToDeliver) ||
+          if (isImmutableStop ||
+              isDeliveredImmutableLegacy ||
               isSameStatusTransition) {
             final now = DateTime.now().millisecondsSinceEpoch;
             await SyncOperationsDao.instance.updateStatus(

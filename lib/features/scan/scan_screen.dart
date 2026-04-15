@@ -320,7 +320,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   Future<void> _handlePod(String code) async {
     // ── SCAN GATE (pre-filter) ────────────────────────────────────────────────
-    // Only PENDING and unverified RTS are valid delivery targets.
+    // Only PENDING and unverified FAILED_DELIVERY are valid delivery targets.
     // DELIVERED and OSA are excluded — they are not actionable here.
     // DeliveryDetailScreen._load() runs isVisibleToRider again as the canonical
     // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
@@ -351,7 +351,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     }
 
     if (matches.length > 1) {
-      // Multiple hits — all results are already PENDING/RTS actionable,
+      // Multiple hits — all results are already PENDING/FAILED_DELIVERY actionable,
       // so show the picker directly.
       final chosen = await _showSearchResults(
         code,
@@ -369,7 +369,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     // 0 visible local results.
     // Before giving up, check if the barcode exists locally but is non-visible
-    // (e.g. verified RTS, paid delivered, old window) so we can give a better
+    // (e.g. verified Failed Delivery, paid delivered, old window) so we can give a better
     // error message than just "not found".
     final anyLocal = await LocalDeliveryDao.instance.getByBarcode(code);
     if (!mounted) return;
@@ -407,23 +407,24 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   }
 
   /// Returns a human-readable error message for a delivery that failed the
-  /// visibility check, based on its [status] and [rtsVerifStatus].
+  /// visibility check, based on its [status] and [failedDeliveryVerifStatus].
   ///
   /// Rule mapping (mirrors isVisibleToRider):
   ///   OSA                          → locked, never tappable
-  ///   RTS + verified (any)         → fully settled, no action needed
+  ///   FAILED_DELIVERY + verified (any) → fully settled, no action needed
   ///   anything else / out-of-date  → not in today's active window
-  String _blockedMessage(String status, String? rtsVerifStatus) {
+  String _blockedMessage(String status, String? failedDeliveryVerifStatus) {
     final s = status.toUpperCase();
-    final v = (rtsVerifStatus ?? 'unvalidated').toLowerCase();
+    final v = (failedDeliveryVerifStatus ?? 'unvalidated').toLowerCase();
     if (s == 'OSA') {
       return 'This item is marked OSA and cannot be opened.';
     }
     if (s == 'DELIVERED') {
       return 'This item has already been delivered and is sealed.';
     }
-    if (s == 'RTS' && (v == 'verified_with_pay' || v == 'verified_no_pay')) {
-      return 'This RTS item has already been verified and is no longer actionable.';
+    if (s == 'FAILED_DELIVERY' &&
+        (v == 'verified_with_pay' || v == 'verified_no_pay')) {
+      return 'This failed delivery has already been verified and is no longer actionable.';
     }
     return 'This delivery is not in your active list.';
   }

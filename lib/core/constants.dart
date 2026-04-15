@@ -1,5 +1,7 @@
 // DOCS: docs/core/settings.md — update that file when you edit this one.
 
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
+
 const int kDashboardPerPage = 5;
 const int kDeliveriesPerPage = 5;
 const int kCompletedPerPage = 5;
@@ -17,32 +19,28 @@ const int kMaxRecipientLength = 255;
 const int kMaxRelationshipLength = 100;
 const int kMaxPlacementTypeLength = 100;
 
-const List<String> kUpdateStatuses = ['DELIVERED', 'RTS', 'OSA'];
-
-const List<String> kAllDeliveryStatuses = [
-  'PENDING',
-  'DELIVERED',
-  'FAILED_ATTEMPT',
-  'RTS',
-  'OSA',
-  'ROLL-BACK',
-  'LOST',
-  'UNDELIVERED',
+/// Statuses the courier can submit via the update form.
+/// Derived from [DeliveryStatus] — do not hardcode strings here.
+final List<String> kUpdateStatuses = [
+  DeliveryStatus.delivered.toApiString(),
+  DeliveryStatus.failedDelivery.toApiString(),
+  DeliveryStatus.osa.toApiString(),
 ];
 
-const List<String> kImageTypes = [
-  'PACKAGE',
-  'RECIPIENT',
-  'LOCATION',
-  'DAMAGE',
-  'OTHER',
+/// Full set of delivery statuses known to the app.
+/// Derived from [DeliveryStatus] — do not hardcode strings here.
+final List<String> kAllDeliveryStatuses = [
+  DeliveryStatus.pending.toApiString(),
+  DeliveryStatus.delivered.toApiString(),
+  DeliveryStatus.failedDelivery.toApiString(),
+  DeliveryStatus.osa.toApiString(),
 ];
 
 /// Pre-defined photo types for delivered POD capture.
 /// Exactly two slots: one for the package (POD) and one for the courier selfie.
 const List<String> kPodDeliveredTypes = ['POD', 'SELFIE'];
 
-/// Reasons for non-delivery (RTS / OSA).
+/// Reasons for non-delivery ([DeliveryStatus.failedDelivery] / [DeliveryStatus.osa]).
 /// Sorted alphabetically; 'Others' is always last to keep it easy to scan.
 const List<String> kReasons = [
   'Closed / No Business',
@@ -69,7 +67,7 @@ const List<String> kReasons = [
 ];
 
 /// Quick-select note presets shown as chips above the free-text remarks field.
-/// Splitted into Delivered (Positive) and RTS/OSA (Negative) remarks.
+/// Split into Delivered (positive) and failed/misrouted (negative) remarks.
 
 const List<String> kDeliveredNotePresets = [
   'Received by Cardholder/Owner',

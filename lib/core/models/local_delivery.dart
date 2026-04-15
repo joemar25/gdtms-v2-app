@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
@@ -52,7 +53,7 @@ class LocalDelivery {
   final int? deliveredAt;
 
   /// Millisecond timestamp when this delivery transitioned to any terminal
-  /// status (delivered, rts, osa). used for today-only filtering.
+  /// status (delivered, failedDelivery, osa). used for today-only filtering.
   final int? completedAt;
 
   /// Timestamp of last server-side update.
@@ -64,8 +65,17 @@ class LocalDelivery {
   /// True if missing from server list
   final bool isArchived;
 
-  /// RTS verification: 'unvalidated', 'verified_with_pay', 'verified_no_pay'
+  /// Failed delivery verification: 'unvalidated', 'verified_with_pay', 'verified_no_pay'
   final String rtsVerificationStatus;
+
+  /// Typed [DeliveryStatus] for this delivery.
+  ///
+  /// Prefer this over comparing [deliveryStatus] string directly.
+  DeliveryStatus get statusEnum => DeliveryStatus.fromString(deliveryStatus);
+
+  /// Typed [FailedDeliveryVerificationStatus] for this delivery.
+  FailedDeliveryVerificationStatus get failedDeliveryVerifEnum =>
+      FailedDeliveryVerificationStatus.fromString(rtsVerificationStatus);
 
   /// Whether this delivery is in a non-actionable "locked" state.
   bool get isLocked => checkIsLocked(
@@ -100,8 +110,10 @@ class LocalDelivery {
       recipientName: _str(json, 'name'),
       // 'address' is the delivery address in the eligibility response.
       deliveryAddress: _str(json, 'address'),
-      deliveryStatus: (_str(json, 'delivery_status') ?? 'PENDING')
-          .toUpperCase(),
+      // API boundary: parse and normalise via DeliveryStatus (maps to failedDelivery).
+      deliveryStatus: DeliveryStatus.fromString(
+        _str(json, 'delivery_status') ?? 'PENDING',
+      ).toDbString(),
       // 'product' carries the mail/product type in the eligibility response.
       mailType: _str(json, 'product') ?? _str(json, 'mail_type'),
       dispatchCode: dispatchCode,
@@ -109,15 +121,15 @@ class LocalDelivery {
       createdAt: now,
       updatedAt: now,
       completedAt:
-          (json['delivery_status']?.toString().toUpperCase() == 'DELIVERED' ||
-              json['delivery_status']?.toString().toUpperCase() == 'RTS' ||
-              json['delivery_status']?.toString().toUpperCase() == 'OSA')
+          DeliveryStatus.fromString(json['delivery_status']?.toString()).isFinal
           ? now
           : null,
       syncStatus: 'clean',
       isArchived: false,
       rtsVerificationStatus:
-          _str(json, 'rts_verification_status') ?? 'unvalidated',
+          _str(json, 'failed_delivery_verification_status') ??
+          _str(json, 'rts_verification_status') ??
+          'unvalidated',
     );
   }
 
@@ -129,7 +141,7 @@ class LocalDelivery {
   /// `recipient_name`, `delivery_address`, `mail_type`).
   ///
   /// [serverStatus] — the status bucket this item was fetched from (e.g.
-  /// `'delivered'`, `'rts'`). Used as a fallback when the API item does not
+  /// `'delivered'`, `'failed_delivery'`). Used as a fallback when the API item does not
   /// include its own `delivery_status` field, ensuring timestamps are computed
   /// correctly even when the server omits the field from list responses.
   factory LocalDelivery.fromApiItem(
@@ -145,23 +157,29 @@ class LocalDelivery {
         '';
 
     // serverStatus is the endpoint bucket we fetched from ('PENDING', 'DELIVERED',
-    // 'RTS', 'OSA'). We previously used it as the primary status, which caused
+    // 'FAILED_DELIVERY', 'OSA'). We previously used it as the primary status, which caused
     // issues when the API item contains a more specific state like 'DISPATCHED'.
     //
     // New Rule: If the JSON contains a non-pending status, we trust it over the
     // bucket status to prevent regressions (e.g. DISPATCHED showing as DELIVERED
     // if the server inadvertently includes it in the wrong list).
+    // API boundary: resolve status from JSON field, falling back to the server
+    // bucket ('PENDING', 'FAILED_DELIVERY', etc.) when the item itself omits delivery_status.
+    // DeliveryStatus.fromString normalises 'FAILED_DELIVERY' (and 'FOR_DELIVERY'
+    // → pending) so no raw string comparisons are needed below.
     final jsonStatus = (_str(json, 'delivery_status') ?? '').toUpperCase();
-    final status =
+    final rawStatus =
         (jsonStatus.isNotEmpty &&
                     jsonStatus != 'PENDING' &&
                     jsonStatus != 'FOR_DELIVERY'
                 ? jsonStatus
                 : (serverStatus.isNotEmpty ? serverStatus : 'PENDING'))
             .toUpperCase();
+    // Normalise through the enum so any future API aliases are handled centrally.
+    final status = DeliveryStatus.fromString(rawStatus).toDbString();
 
     debugPrint(
-      '[API-STATUS] barcode=$barcode json=$jsonStatus bucket=$serverStatus → final=$status',
+      '[API-STATUS] barcode=$barcode json=$jsonStatus bucket=$serverStatus raw=$rawStatus → final=$status',
     );
 
     // Derive deliveredAt from server-provided date fields when available.
@@ -184,10 +202,10 @@ class LocalDelivery {
       }
     }
 
-    // completedAt is essentially the same as deliveredAt for 'DELIVERED',
-    // but also covers 'RTS' and 'OSA'.
+    // completedAt covers DELIVERED, failedDelivery, and OSA.
+    final ds = DeliveryStatus.fromString(status);
     int? completedAt = deliveredAt;
-    if (completedAt == null && (status == 'RTS' || status == 'OSA')) {
+    if (completedAt == null && ds.isFinal) {
       completedAt = now;
     }
 
@@ -218,7 +236,9 @@ class LocalDelivery {
       syncStatus: 'clean',
       isArchived: false,
       rtsVerificationStatus:
-          _str(json, 'rts_verification_status') ?? 'unvalidated',
+          _str(json, 'failed_delivery_verification_status') ??
+          _str(json, 'rts_verification_status') ??
+          'unvalidated',
     );
   }
 

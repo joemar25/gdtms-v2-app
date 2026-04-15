@@ -158,6 +158,7 @@ class ApiClient {
     if (status == 409) {
       return ApiConflict<T>(
         _extractMessage(response.data, fallback: 'Request conflict.'),
+        data: response.data,
       );
     }
 
@@ -192,6 +193,7 @@ class ApiClient {
         if (status == 409) {
           return ApiConflict<T>(
             _extractMessage(response.data, fallback: 'Conflict error.'),
+            data: response.data,
           );
         }
         if (status == 422) {

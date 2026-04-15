@@ -10,7 +10,7 @@
 //   navigation to every major feature of the app.
 //
 // Contents:
-//   • Summary stat cards — Pending, Delivered, RTS, OSA counts (tappable,
+//   • Summary stat cards — Pending, Delivered, Failed, OSA counts (tappable,
 //     each navigates to the corresponding filtered DeliveryStatusListScreen).
 //   • Shortcut cards — Scan, Dispatch, History (Sync), Wallet.
 //   • Offline banner & connectivity indicator.
@@ -95,10 +95,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final dao = LocalDeliveryDao.instance;
     final pending = await dao.countByStatus('PENDING');
     final delivered = await dao.countVisibleDelivered();
-    final rts = await dao.countVisibleRts();
+    final failedDelivery = await dao.countVisibleFailedDelivery();
     final osa = await dao.countVisibleOsa();
     debugPrint(
-      '[DASH] _loadInitial: pending=$pending delivered=$delivered rts=$rts osa=$osa',
+      '[DASH] _loadInitial: pending=$pending delivered=$delivered failed=$failedDelivery osa=$osa',
     );
 
     // pending_dispatches cannot be derived from SQLite — try API when online.
@@ -133,7 +133,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       'pending_dispatches': pendingDispatches,
       'pending_deliveries': pending,
       'delivered_today': delivered,
-      'rts': rts,
+      'failed_delivery': failedDelivery,
       'osa': osa,
       'pending_sync': pendingSync,
       'synced_total': syncedTotal,
@@ -155,7 +155,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final pendingDispatchCount = _summary['pending_dispatches'] ?? 0;
     final deliveriesCount = _summary['pending_deliveries'] ?? 0;
-    final rtsCount = _summary['rts'] ?? 0;
+    final failedDeliveryCount = _summary['failed_delivery'] ?? 0;
     final osaCount = _summary['osa'] ?? 0;
     final deliveredCount = _summary['delivered_today'] ?? 0;
 
@@ -297,16 +297,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Expanded(
                             child:
                                 StatCard(
-                                      label: 'FAILED',
-                                      count: '$rtsCount',
+                                      label: 'Attempted',
+                                      count: '$failedDeliveryCount',
                                       icon: Icons.assignment_return_outlined,
                                       color: Colors.red,
-                                      onTap: rtsCount == 0
+                                      onTap: failedDeliveryCount == 0
                                           ? null
-                                          : () => context.push('/rts'),
+                                          : () => context.push(
+                                              '/failed-deliveries',
+                                            ),
                                       subdued: true,
                                       details:
-                                          "Today's re-deliveries and returns.",
+                                          "Today's attempted deliveries or failed deliveries.",
                                     )
                                     .animate()
                                     .fadeIn(delay: 500.ms)

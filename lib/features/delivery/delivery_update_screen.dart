@@ -6,15 +6,15 @@
 //
 // Purpose:
 //   The primary action screen where a courier marks a delivery as DELIVERED,
-//   RTS (Return to Sender), or OSA (Out for Shipment Again). All form data is
+//   FAILED_DELIVERY (Failed Delivery), or OSA (Out of Serviceable Area). All form data is
 //   immediately persisted to the local sync queue — no live network call is
 //   made at submission time — making the flow fully offline-capable.
 //
 // Form fields (vary by status):
 //   DELIVERED — Recipient name, relationship, placement type, POD photo,
 //               selfie photo, recipient signature (optional), note.
-//   RTS       — Reason, selfie photo (optional), note.
-//   OSA       — Reason, note.
+//   FAILED_DELIVERY — Reason, selfie photo, note.
+//   OSA             — Reason, selfie photo, note.
 //
 // Offline-first flow:
 //   1. Courier fills the form and taps SUBMIT.
@@ -45,7 +45,6 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -56,6 +55,7 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/services/review_prompt_service.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
@@ -85,18 +85,24 @@ const _kPhotoHeight = 160.0; // photo slot height
 const _kSignatureHeight = 144.0; // signature slot height
 
 // ─── Status metadata ────────────────────────────────────────────────────────
-const _kStatusMeta = {
-  'DELIVERED': (
+// Keys are the API string values (from DeliveryStatus.toApiString()) so that
+// _kStatusMeta[_status] still works when _status holds the raw API string.
+final _kStatusMeta = {
+  DeliveryStatus.delivered.toApiString(): (
     label: 'DELIVERED',
     icon: Icons.check_circle_rounded,
-    color: Color(0xFF00B14F),
+    color: const Color(0xFF00B14F),
   ),
-  'RTS': (
+  DeliveryStatus.failedDelivery.toApiString(): (
     label: 'FAILED',
     icon: Icons.keyboard_return_rounded,
     color: Colors.purple,
   ),
-  'OSA': (label: 'MISROUTED', icon: Icons.inbox_rounded, color: Colors.amber),
+  DeliveryStatus.osa.toApiString(): (
+    label: 'MISROUTED',
+    icon: Icons.inbox_rounded,
+    color: Colors.amber,
+  ),
 };
 
 class DeliveryUpdateScreen extends ConsumerStatefulWidget {
@@ -129,7 +135,17 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   String? _reason;
   bool _loading = false;
   bool _isPickerActive = false;
+  bool _forcePop = false;
   double _dragStart = 0;
+
+  // ── Typed status helpers ─────────────────────────────────────────────────
+  DeliveryStatus get _ds => DeliveryStatus.fromString(_status);
+  bool get _isDelivered => _ds == DeliveryStatus.delivered;
+  bool get _isFailedDelivery => _ds == DeliveryStatus.failedDelivery;
+  bool get _isOsa => _ds == DeliveryStatus.osa;
+
+  /// True for statuses that require a non-delivery reason + selfie.
+  bool get _isNonDelivered => _isFailedDelivery || _isOsa;
 
   void _cycleStatus(int direction) {
     if (_loadingDelivery || _loading) return;
@@ -152,7 +168,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   PhotoEntry? _podPhoto;
   PhotoEntry? _selfiePhoto;
 
-  // Non-delivered photos (rts / osa) — camera + gallery, free type
+  // Non-delivered photos (failed delivery / osa) — camera + gallery, free type
   final _photos = <PhotoEntry>[];
 
   // Signature file path for delivered status
@@ -492,8 +508,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     }
   }
 
-  // ── Selfie picker for rts/osa — forces Camera ─────────────────────────────
-  Future<void> _pickSelfieForRtsOsa() async {
+  // ── Selfie picker for failed delivery/osa — forces Camera ────────────────
+  Future<void> _pickSelfieForFailedDeliveryOsa() async {
     await _pickPhotoForSlot('selfie', source: ImageSource.camera);
   }
 
@@ -537,7 +553,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       _errors['note'] = 'Note must not exceed $kMaxNoteLength characters.';
     }
 
-    if (_status == 'DELIVERED') {
+    if (_isDelivered) {
       if (_recipient.text.trim().isEmpty) {
         _errors['recipient'] = 'This field is required.';
       }
@@ -562,7 +578,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
     }
 
-    if (_status == 'RTS' || _status == 'OSA') {
+    if (_isNonDelivered) {
       if (_reason == null || _reason!.isEmpty) {
         _errors['reason'] = 'Reason is required.';
       } else if (_reason == 'Others' && _reasonSpecify.text.trim().isEmpty) {
@@ -632,7 +648,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     final pendingMediaPaths = <String, String>{};
 
-    if (_status == 'DELIVERED') {
+    if (_isDelivered) {
       if (_podPhoto != null) {
         pendingMediaPaths['pod'] = _podPhoto!.file;
       }
@@ -731,7 +747,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     final bool hasNonDeliveredData =
         _reason != null || _selfiePhoto != null || _photos.isNotEmpty;
 
-    if (_status == 'DELIVERED' && hasDeliveredData) {
+    if (_isDelivered && hasDeliveredData) {
       final confirmed = await _showSwitchConfirmDialog(
         context,
         from: 'DELIVERED',
@@ -740,7 +756,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       );
       if (confirmed != true || !mounted) return;
       _clearDeliveredFields();
-    } else if ((_status == 'RTS' || _status == 'OSA') && hasNonDeliveredData) {
+    } else if ((_isNonDelivered) && hasNonDeliveredData) {
       final confirmed = await _showSwitchConfirmDialog(
         context,
         from: _status,
@@ -846,7 +862,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         children: [
           Builder(
             builder: (context) {
-              final presets = _status == 'DELIVERED'
+              final presets = _isDelivered
                   ? kDeliveredNotePresets
                   : kNonDeliveredNotePresets;
               return Row(
@@ -1166,12 +1182,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool needsReason = _status == 'RTS' || _status == 'OSA';
+    final bool needsReason = _isNonDelivered;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isOnline = ref.read(isOnlineProvider);
 
     return PopScope(
-      canPop: !_isDirty,
+      canPop: _forcePop || !_isDirty,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final leave = await showDialog<bool>(
@@ -1196,8 +1212,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             ],
           ),
         );
-        if (leave == true) {
-          rootNavigatorKey.currentState?.maybePop();
+        if (leave == true && context.mounted) {
+          setState(() => _forcePop = true);
+          context.pop();
         }
       },
       child: Scaffold(
@@ -1332,7 +1349,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   ),
 
                                 // ── RECIPIENT INFO (delivered only) ─────────────
-                                if (_status == 'DELIVERED') ...[
+                                if (_isDelivered) ...[
                                   _kSectionGap,
                                   const DeliverySectionHeader(
                                     label: 'RECIPIENT INFO',
@@ -1573,7 +1590,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   ),
                                 ],
 
-                                // ── REASON FOR NON-DELIVERY (rts / osa) ─────────
+                                // ── REASON FOR NON-DELIVERY (failed delivery / osa) ─────────
                                 if (needsReason) ...[
                                   _kSectionGap,
                                   const DeliverySectionHeader(
@@ -1641,7 +1658,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 ],
 
                                 // ── PROOF OF DELIVERY (delivered) ────────────────
-                                if (_status == 'DELIVERED') ...[
+                                if (_isDelivered) ...[
                                   _kSectionGap,
                                   const DeliverySectionHeader(
                                     label: 'PROOF OF DELIVERY PHOTOS',
@@ -1742,7 +1759,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   ],
                                 ],
 
-                                // ── SELFIE PHOTO (rts / osa) ─────────────────────
+                                // ── SELFIE PHOTO (failed delivery / osa) ─────────────
                                 if (_status != 'DELIVERED') ...[
                                   _kSectionGap,
                                   const DeliverySectionHeader(
@@ -1758,7 +1775,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         icon: Icons.face_rounded,
                                         color: Colors.blueGrey,
                                         isDark: isDark,
-                                        onTapOverride: _pickSelfieForRtsOsa,
+                                        onTapOverride:
+                                            _pickSelfieForFailedDeliveryOsa,
                                       ),
                                     ],
                                   ),

@@ -21,13 +21,16 @@ The mobile app MUST run using Philippine Standard Time (UTC+8 / Asia/Manila). To
 
 ## Trigger points
 
-| Event                                        | Action                                              |
-| -------------------------------------------- | --------------------------------------------------- |
-| App startup (first frame)                    | Full HTTP time + timezone check                     |
-| App resume from background                   | Full HTTP time + timezone check                     |
-| Connectivity restored (offline → online)     | Full HTTP time + timezone check                     |
-| Periodic timer (every 5 minutes, foreground) | Full HTTP time + timezone check                     |
-| User taps Retry                              | Cache invalidated, fresh HTTP time + timezone check |
+| Event                                                                | Action                                              |
+| -------------------------------------------------------------------- | --------------------------------------------------- |
+| App startup (first frame)                                            | Full HTTP time + timezone check                     |
+| **Device clock/timezone changed** (native broadcast — **immediate**) | Cache invalidated, full HTTP time + timezone check  |
+| App resume from background                                           | Full HTTP time + timezone check                     |
+| Connectivity restored (offline → online)                             | Full HTTP time + timezone check                     |
+| Periodic timer (every 5 min, foreground)                             | Full HTTP time + timezone check                     |
+| User taps Retry                                                      | Cache invalidated, fresh HTTP time + timezone check |
+
+The native broadcast is the key real-time trigger. On Android, `ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED` fire the moment the system clock changes. On iOS, `NSSystemClockDidChangeNotification` fires for the same event. Both are delivered to Dart via the `fsi_courier/time_changes` `EventChannel` in `MainActivity.kt` / `AppDelegate.swift`.
 
 ---
 
@@ -93,12 +96,14 @@ Hint text: _"Enable 'Automatic date & time' and set timezone to Asia/Manila."_
 
 ## Implementation files
 
-| File                                             | Purpose                                                                |
-| ------------------------------------------------ | ---------------------------------------------------------------------- |
-| `lib/core/services/time_validation_service.dart` | HTTP + timezone check, result cache, Sentry reporting                  |
-| `lib/shared/widgets/time_enforcer.dart`          | Loading/blocking UI, periodic timer, connectivity listener             |
-| `lib/core/services/platform_settings.dart`       | Platform-specific Date & Time settings deep link                       |
-| `lib/app.dart`                                   | Integration point — root `builder` wraps all screens in `TimeEnforcer` |
+| File                                             | Purpose                                                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `lib/core/services/time_validation_service.dart` | HTTP + timezone check, result cache, Sentry reporting                                                  |
+| `lib/shared/widgets/time_enforcer.dart`          | Loading/blocking UI, periodic timer, native time-change listener                                       |
+| `lib/core/services/platform_settings.dart`       | Platform-specific Date & Time settings deep link                                                       |
+| `lib/app.dart`                                   | Integration point — root `builder` wraps all screens in `TimeEnforcer`                                 |
+| `android/app/src/main/kotlin/…/MainActivity.kt`  | `fsi_courier/time_changes` EventChannel — broadcasts `ACTION_TIME_CHANGED` / `ACTION_TIMEZONE_CHANGED` |
+| `ios/Runner/AppDelegate.swift`                   | `fsi_courier/time_changes` EventChannel — listens to `NSSystemClockDidChangeNotification`              |
 
 ---
 

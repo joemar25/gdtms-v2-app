@@ -140,7 +140,9 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
     if (currentIndex != _previousIndex) {
       // Will be reset after build.
       Future.microtask(() {
-        if (mounted) setState(() => _previousIndex = currentIndex);
+        if (mounted) {
+          setState(() => _previousIndex = currentIndex);
+        }
       });
     }
 
@@ -215,7 +217,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Allow unauthenticated users to access auth routes
       if (!auth.isAuthenticated) {
-        if (!isAuthRoute) return '/login';
+        if (!isAuthRoute) {
+          return '/login';
+        }
         return null;
       }
 
@@ -223,8 +227,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // After auth, before anything else: ensure the courier has accepted T&C.
       if (!isLegalRoute && !isAuthRoute) {
         final prefs = await SharedPreferences.getInstance();
-        if (prefs.getString('terms_accepted_version') != kTermsVersion)
+        if (prefs.getString('terms_accepted_version') != kTermsVersion) {
           return '/terms';
+        }
       }
 
       // ── GLOBAL PERMISSIONS GUARD (location → camera → notifications) ──
@@ -232,7 +237,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (path != '/splash' && !isUpdateRoute && !isLegalRoute) {
         final allReady = locationState.isReady && permsState.isReady;
         if (!allReady) {
-          if (path != '/location-required') return '/location-required';
+          if (path != '/location-required') {
+            return '/location-required';
+          }
           return null;
         } else if (path == '/location-required') {
           return '/dashboard';
@@ -438,10 +445,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/rts',
+        path: '/failed-deliveries',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
-          child: const DeliveryStatusListScreen(status: 'rts', title: 'Failed Deliveries'),
+          child: const DeliveryStatusListScreen(
+            status: 'FAILED_DELIVERY',
+            title: 'Failed Deliveries',
+          ),
           extra: state.extra,
         ),
       ),

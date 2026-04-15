@@ -71,6 +71,13 @@ class TimeValidationService {
   TimeValidationResult? _cache;
   DateTime? _cacheAt;
 
+  // Monotonic clock started when the last valid result is cached.
+  // Unlike DateTime.now(), Stopwatch is based on the OS monotonic clock and
+  // cannot be changed by the user adjusting the device date/time settings.
+  // Comparing Stopwatch.elapsed to (DateTime.now() - _cacheAt) lets us detect
+  // manual clock changes even when the device is completely offline.
+  Stopwatch? _monotonicWatch;
+
   // Single Dio instance — no auth, just a quick HEAD to get the Date header.
   final _dio = Dio(
     BaseOptions(
@@ -87,6 +94,8 @@ class TimeValidationService {
   void invalidateCache() {
     _cache = null;
     _cacheAt = null;
+    _monotonicWatch?.stop();
+    _monotonicWatch = null;
   }
 
   /// Validate device time and timezone.
@@ -116,12 +125,41 @@ class TimeValidationService {
       return result;
     }
 
-    // ── 2. If offline, trust the timezone check and return valid ─────────────
-    // Couriers often work in areas with spotty signal. During a connectivity
-    // gap we cannot reach the time server but the timezone is already confirmed
-    // correct. We accept this and re-run the full check the moment they come
-    // back online.
+    // ── 2. If offline, use monotonic clock to detect clock rollbacks ────────────
+    // Couriers often work in areas with spotty signal. We cannot reach the HTTP
+    // time server, but we can still detect rollback tampering:
+    //   • If the app has a cached valid result, _monotonicWatch has been ticking
+    //     using the OS monotonic clock (CLOCK_MONOTONIC) since that cache was
+    //     stored. CLOCK_MONOTONIC cannot be changed by the user adjusting
+    //     device date/time settings, but it DOES stop during deep sleep.
+    //   • DateTime.now() CAN be changed by the user, and advances during sleep.
+    //   • We only flag when DateTime.now() is BEHIND the monotonic reference
+    //     (clock was rolled back). Forward drift is expected due to sleep.
     if (!isOnline) {
+      if (_monotonicWatch != null && _cacheAt != null) {
+        final expectedNow = _cacheAt!.add(_monotonicWatch!.elapsed);
+        // Only flag when the wall clock is BEHIND the monotonic reference —
+        // that is the signature of a manual clock rollback (real tampering).
+        // Forward drift (wall clock ahead of Stopwatch) is normal because
+        // CLOCK_MONOTONIC stops when the device enters deep sleep while
+        // DateTime.now() continues advancing — flagging it causes false
+        // positives every time the phone sleeps for more than allowedSkew.
+        final rollback = expectedNow.difference(DateTime.now());
+        if (rollback > allowedSkew) {
+          final result = _buildResult(
+            valid: false,
+            serverUtc: expectedNow.toUtc(),
+            deviceUtc: DateTime.now().toUtc(),
+            skew: rollback,
+            deviceOffset: deviceOffset,
+            message:
+                'Device clock was rolled back by ${rollback.inSeconds}s while offline. '
+                'Enable automatic date & time in your device settings.',
+          );
+          _reportToSentry(result);
+          return result;
+        }
+      }
       return _buildResult(
         valid: true,
         serverUtc: DateTime.now().toUtc(),
@@ -215,6 +253,10 @@ class TimeValidationService {
     if (result.valid) {
       _cache = result;
       _cacheAt = now;
+      // Start (or restart) the monotonic watch so offline tamper detection
+      // has a reference point from this exact moment.
+      _monotonicWatch?.stop();
+      _monotonicWatch = Stopwatch()..start();
     } else {
       invalidateCache();
       _reportToSentry(result);
