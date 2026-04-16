@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:lottie/lottie.dart';
 
 /// Wraps [child] and overlays a semi-transparent loading spinner when
@@ -34,7 +35,7 @@ class LoadingOverlay extends StatelessWidget {
                     width: 120,
                     height: 120,
                     child: Lottie.asset(
-                      'assets/anim/hour-glass.json',
+                      AppAssets.animHourGlass,
                       fit: BoxFit.contain,
                     ),
                   ),

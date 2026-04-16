@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 
@@ -73,14 +74,8 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                   width: 200,
                   height: 200,
                   child: _done
-                      ? Lottie.asset(
-                          'assets/anim/successfully-done.json',
-                          repeat: false,
-                        )
-                      : Lottie.asset(
-                          'assets/anim/hour-glass.json',
-                          repeat: true,
-                        ),
+                      ? Lottie.asset(AppAssets.animSuccess, repeat: false)
+                      : Lottie.asset(AppAssets.animHourGlass, repeat: true),
                 ),
                 const SizedBox(height: 24),
                 Text(

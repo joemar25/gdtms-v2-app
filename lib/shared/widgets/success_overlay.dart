@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:lottie/lottie.dart';
 
 class SuccessOverlay extends StatefulWidget {
@@ -33,12 +34,7 @@ class _SuccessOverlayState extends State<SuccessOverlay> {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.black45,
-      child: Center(
-        child: Lottie.asset(
-          'assets/anim/successfully-done.json',
-          repeat: false,
-        ),
-      ),
+      child: Center(child: Lottie.asset(AppAssets.animSuccess, repeat: false)),
     );
   }
 }

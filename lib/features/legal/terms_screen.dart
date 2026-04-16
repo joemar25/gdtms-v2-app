@@ -21,6 +21,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -62,7 +63,7 @@ class _TermsScreenState extends State<TermsScreen> {
   }
 
   Future<void> _loadContent() async {
-    final raw = await rootBundle.loadString('assets/legal/terms.md');
+    final raw = await rootBundle.loadString(AppAssets.legalTerms);
     if (mounted) setState(() => _content = raw);
   }
 

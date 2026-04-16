@@ -169,6 +169,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         if (data is Map<String, dynamic>) {
           await ref.read(authProvider.notifier).setAuthenticated(courier: data);
         }
+        if (!mounted) return;
         showSuccessNotification(context, 'Profile updated successfully.');
         Navigator.pop(context);
       } else {

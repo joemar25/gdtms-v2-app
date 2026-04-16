@@ -80,20 +80,12 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icon.png"
+  image_path: "assets/android-chrome-512x512.png"
 
 flutter_native_splash:
-  color: "#00B14F"
-  image: assets/logo.png
-
+  # Solid background only — no image. Colors match ColorStyles scaffold
+  # values so there is no flash before the Flutter SplashScreen renders.
+  color: "#F8F9FA"        # light mode  (ColorStyles.scaffoldLight)
+  color_dark: "#0B0D0F"  # dark mode   (ColorStyles.scaffoldDark)
   android: true
   ios: true
-
-  # Fit the image while keeping it centered
-  android_gravity: center
-  ios_content_mode: scaleAspectFit
-
-  android_12:
-    color: "#FFFFFF"
-    image: assets/logo.png
-    android_gravity: center

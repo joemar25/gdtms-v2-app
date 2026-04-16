@@ -1,13 +1,14 @@
 // DOCS: docs/components.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 
 class Header extends StatefulWidget {
   final String logoPath; // allow custom logo if needed
 
-  const Header({super.key, this.logoPath = 'assets/icon.png'});
+  const Header({super.key, this.logoPath = AppAssets.icon});
 
   @override
   State<Header> createState() => _HeaderState();

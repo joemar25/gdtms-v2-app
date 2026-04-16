@@ -817,7 +817,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     final authRep = _str('authorized_rep');
     final contactRep = _str('contact_rep');
     final recipient = _str('recipient');
-    final authRepIdNum = _str('authorized_rep_id');
     var relationship = _str('relationship');
     final placementType = _str('placement_type');
     final note = _str('note');

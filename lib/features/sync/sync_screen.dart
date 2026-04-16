@@ -81,6 +81,7 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
@@ -1211,7 +1212,7 @@ class _EmptyStateState extends State<_EmptyState>
               children: [
                 if (widget.isSyncing) ...[
                   Lottie.asset(
-                    'assets/anim/hour-glass.json',
+                    AppAssets.animHourGlass,
                     width: 160,
                     height: 160,
                     repeat: true,
@@ -1220,7 +1221,7 @@ class _EmptyStateState extends State<_EmptyState>
                   Text('Syncing…', style: theme.textTheme.titleMedium),
                 ] else ...[
                   Lottie.asset(
-                    'assets/anim/successfully-done.json',
+                    AppAssets.animSuccess,
                     width: 180,
                     height: 180,
                     controller: _controller,

@@ -2,6 +2,23 @@
 
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 
+/// Single source of truth for all asset paths used in the app.
+/// Update this class (and assets/mar.md) when adding or renaming assets.
+abstract final class AppAssets {
+  // ── Images ───────────────────────────────────────────────────────────────
+  static const String logo = 'assets/logo.png';
+  static const String icon = 'assets/favicon-32x32.png';
+
+  // ── Animations ───────────────────────────────────────────────────────────
+  static const String animHourGlass = 'assets/anim/hour-glass.json';
+  static const String animSuccess = 'assets/anim/successfully-done.json';
+  static const String animEmpty = 'assets/anim/empty.json';
+
+  // ── Legal ────────────────────────────────────────────────────────────────
+  static const String legalTerms = 'assets/legal/terms.md';
+  static const String legalPrivacy = 'assets/legal/privacy.md';
+}
+
 const int kDashboardPerPage = 5;
 const int kDeliveriesPerPage = 5;
 const int kCompletedPerPage = 5;

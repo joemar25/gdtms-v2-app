@@ -175,433 +175,443 @@ class DeliveryCard extends StatelessWidget {
         ? const Color(0xFF6B7280)
         : const Color(0xFF9CA3AF);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.fastOutSlowIn,
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: UIStyles.cardRadius,
-        border: Border.all(color: cardBorder, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: UIStyles.alphaDarkShadow)
-                : Colors.black.withValues(alpha: UIStyles.alphaSoft),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+    return _BouncingCardWrapper(
+      onTap: isChecking ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.fastOutSlowIn,
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: cardBg,
           borderRadius: UIStyles.cardRadius,
-          onTap: isChecking ? null : onTap,
-          splashColor: colorForStatus.withValues(alpha: UIStyles.alphaSoft),
-          highlightColor: colorForStatus.withValues(alpha: UIStyles.alphaSoft),
-          child: AnimatedOpacity(
-            opacity: isChecking ? 0.55 : 1.0,
-            duration: const Duration(milliseconds: 200),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Status accent bar ─────────────────────────────────────
-                Container(
-                  height: 3,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        colorForStatus,
-                        colorForStatus.withValues(alpha: 0.0),
-                      ],
+          border: Border.all(color: cardBorder, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withValues(alpha: UIStyles.alphaDarkShadow)
+                  : Colors.black.withValues(alpha: UIStyles.alphaSoft),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: UIStyles.cardRadius,
+            onTap: isChecking ? null : onTap,
+            splashColor: colorForStatus.withValues(alpha: UIStyles.alphaSoft),
+            highlightColor: colorForStatus.withValues(
+              alpha: UIStyles.alphaSoft,
+            ),
+            child: AnimatedOpacity(
+              opacity: isChecking ? 0.55 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Status accent bar ─────────────────────────────────────
+                  Container(
+                    height: 3,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          colorForStatus,
+                          colorForStatus.withValues(alpha: 0.0),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── Row 1: Status pill + Job Order + Chevron ─────────
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Status badge — hide if status is empty AND not dirty (Privacy mode also hides status)
-                          if (!isPrivacyMode && (status.isNotEmpty || isDirty))
-                            _StatusBadge(
-                              label: isDirty
-                                  ? 'UNSYNCED'
-                                  : status.replaceAll('_', ' '),
-                              color: colorForStatus,
-                              icon: isDirty
-                                  ? Icons.sync_problem_rounded
-                                  : iconForStatus,
-                            ),
-                          if (!isPrivacyMode && (status.isNotEmpty || isDirty))
-                            const SizedBox(width: 8),
-                          // Right side: job order / product + lock + chevron
-                          Expanded(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // For delivered items prefer showing the mail type
-                                // in the header to avoid duplicating the product
-                                // which is already shown in the details below.
-                                if (!isPrivacyMode &&
-                                    (ds == DeliveryStatus.delivered ||
-                                        (ds == DeliveryStatus.failedDelivery &&
-                                            attemptsCount >= 3)) &&
-                                    mailType.isNotEmpty)
-                                  Flexible(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 3,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Row 1: Status pill + Job Order + Chevron ─────────
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Status badge — hide if status is empty AND not dirty (Privacy mode also hides status)
+                            if (!isPrivacyMode &&
+                                (status.isNotEmpty || isDirty))
+                              _StatusBadge(
+                                label: isDirty
+                                    ? 'UNSYNCED'
+                                    : status.replaceAll('_', ' '),
+                                color: colorForStatus,
+                                icon: isDirty
+                                    ? Icons.sync_problem_rounded
+                                    : iconForStatus,
+                              ),
+                            if (!isPrivacyMode &&
+                                (status.isNotEmpty || isDirty))
+                              const SizedBox(width: 8),
+                            // Right side: job order / product + lock + chevron
+                            Expanded(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  // For delivered items prefer showing the mail type
+                                  // in the header to avoid duplicating the product
+                                  // which is already shown in the details below.
+                                  if (!isPrivacyMode &&
+                                      (ds == DeliveryStatus.delivered ||
+                                          (ds ==
+                                                  DeliveryStatus
+                                                      .failedDelivery &&
+                                              attemptsCount >= 3)) &&
+                                      mailType.isNotEmpty)
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF2196F3)
+                                              .withValues(
+                                                alpha: UIStyles.alphaSoft,
+                                              ),
+                                          borderRadius: UIStyles.pillRadius,
+                                        ),
+                                        child: Text(
+                                          mailType,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF2196F3),
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
                                       ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF2196F3,
-                                        ).withValues(alpha: UIStyles.alphaSoft),
-                                        borderRadius: UIStyles.pillRadius,
-                                      ),
+                                    )
+                                  else if (!isPrivacyMode &&
+                                      isLocked &&
+                                      product.isNotEmpty)
+                                    Flexible(
                                       child: Text(
-                                        mailType,
+                                        product,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF2196F3),
-                                          letterSpacing: 0.3,
+                                          fontWeight: FontWeight.w600,
+                                          color: subtextColor,
                                         ),
                                       ),
                                     ),
-                                  )
-                                else if (!isPrivacyMode &&
-                                    isLocked &&
-                                    product.isNotEmpty)
-                                  Flexible(
-                                    child: Text(
-                                      product,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: subtextColor,
+                                  // Attempts pill for Failed Delivery items
+                                  if (attemptsCount > 0)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 6),
+                                      child: _MiniPill(
+                                        label: ds == DeliveryStatus.delivered
+                                            ? 'FAILED ATTEMPTS: $attemptsCount'
+                                            : 'ATTEMPTS: $attemptsCount',
+                                        icon: Icons.autorenew_rounded,
+                                        bg: attemptsCount >= 3
+                                            ? Colors.red.shade50
+                                            : Colors.orange.shade50,
+                                        border: attemptsCount >= 3
+                                            ? Colors.red.shade300
+                                            : Colors.orange.shade300,
+                                        fg: attemptsCount >= 3
+                                            ? Colors.red.shade700
+                                            : Colors.orange.shade800,
                                       ),
                                     ),
-                                  ),
-                                // Attempts pill for Failed Delivery items
-                                if (attemptsCount > 0)
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 6),
-                                    child: _MiniPill(
-                                      label: ds == DeliveryStatus.delivered
-                                          ? 'FAILED ATTEMPTS: $attemptsCount'
-                                          : 'ATTEMPTS: $attemptsCount',
-                                      icon: Icons.autorenew_rounded,
-                                      bg: attemptsCount >= 3
-                                          ? Colors.red.shade50
-                                          : Colors.orange.shade50,
-                                      border: attemptsCount >= 3
-                                          ? Colors.red.shade300
-                                          : Colors.orange.shade300,
-                                      fg: attemptsCount >= 3
-                                          ? Colors.red.shade700
-                                          : Colors.orange.shade800,
-                                    ),
-                                  ),
-                                // Lock icon
-                                if (showLockIcon && (isLocked || !isVisible))
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 6),
-                                    child: Icon(
-                                      Icons.lock_outline_rounded,
-                                      color: isLocked
-                                          ? subtextColor
-                                          : Colors.red.shade400,
-                                      size: 15,
-                                    ),
-                                  ),
-                                // Minimal Chevron
-                                if (showChevron && !isChecking)
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 8),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: isDark
-                                            ? Colors.white.withValues(
-                                                alpha: 0.06,
-                                              )
-                                            : Colors.grey.shade100,
-                                        shape: BoxShape.circle,
-                                      ),
+                                  // Lock icon
+                                  if (showLockIcon && (isLocked || !isVisible))
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 6),
                                       child: Icon(
-                                        Icons.chevron_right_rounded,
-                                        color: subtextColor,
-                                        size: 17,
+                                        Icons.lock_outline_rounded,
+                                        color: isLocked
+                                            ? subtextColor
+                                            : Colors.red.shade400,
+                                        size: 15,
                                       ),
                                     ),
-                                  ),
-                              ],
+                                  // Minimal Chevron
+                                  if (showChevron && !isChecking)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.06,
+                                                )
+                                              : Colors.grey.shade100,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.chevron_right_rounded,
+                                          color: subtextColor,
+                                          size: 17,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // ── Row 2: Barcode (large) ────────────────────────────
+                        Text(
+                          barcode.isEmpty ? 'UNKNOWN' : barcode,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            letterSpacing: 1.2,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF111827),
                           ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // ── Row 2: Barcode (large) ────────────────────────────
-                      Text(
-                        barcode.isEmpty ? 'UNKNOWN' : barcode,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          letterSpacing: 1.2,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF111827),
                         ),
-                      ),
 
-                      // ── Row 3: Recipient name ────────────────────────────
-                      if (!isPrivacyMode && name.isNotEmpty && !isLocked) ...[
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.person_outline_rounded,
-                              size: 13,
-                              color: subtextColor,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? const Color(0xFFCBD5E1)
-                                      : const Color(0xFF374151),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      // ── Row 4: Address ───────────────────────────────────
-                      if (!isPrivacyMode &&
-                          address.isNotEmpty &&
-                          !isLocked) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 1),
-                              child: Icon(
-                                Icons.location_on_outlined,
-                                size: 12,
-                                color: subtextColor,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                address,
-                                maxLines: isExpanded ? null : 1,
-                                overflow: isExpanded
-                                    ? null
-                                    : TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  height: 1.4,
-                                  color: subtextColor,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      // ── Row 5: Privacy Mode Product Label ──────────────────
-                      if (isPrivacyMode && product.isNotEmpty) ...[
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.inventory_2_outlined,
-                              size: 13,
-                              color: subtextColor,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                product.toUpperCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: subtextColor,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      // ── Metadata chips ───────────────────────────────────
-                      if (!isPrivacyMode && delivery['metadata'] is List) ...[
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: (delivery['metadata'] as List).map((m) {
-                            final map = m as Map<String, dynamic>;
-                            return InfoChip(
-                              icon: map['icon'] as IconData,
-                              label: map['label'] as String,
-                              isDark: isDark,
-                            );
-                          }).toList(),
-                        ),
-                      ],
-
-                      // ── Sync / Paid pills row ────────────────────────────
-                      if (!isPrivacyMode &&
-                          (isDirty || isPaid || inSyncQueue)) ...[
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            if (isDirty)
-                              _MiniPill(
-                                label: 'UNSYNCED',
-                                icon: Icons.sync_problem_rounded,
-                                bg: Colors.amber.shade50,
-                                border: Colors.amber.shade300,
-                                fg: Colors.amber.shade800,
-                              ),
-                            if (isPaid)
-                              _MiniPill(
-                                label: 'PAID',
-                                icon: Icons.check_circle_outline_rounded,
-                                bg: Colors.green.shade50,
-                                border: Colors.green.shade200,
-                                fg: Colors.green.shade700,
-                              ),
-                            if (inSyncQueue)
-                              _MiniPill(
-                                label: 'PENDING SYNC',
-                                icon: Icons.sync_lock_rounded,
-                                bg: Colors.blue.shade50,
-                                border: Colors.blue.shade200,
-                                fg: Colors.blue.shade800,
-                              ),
-                          ],
-                        ),
-                      ],
-
-                      // ── Footer ───────────────────────────────────────────
-                      if (footerText != null || isChecking) ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            if (isChecking) ...[
-                              SizedBox(
-                                width: 11,
-                                height: 11,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    ColorStyles.grabOrange,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Checking eligibility…',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: subtextColor,
-                                ),
-                              ),
-                            ] else if (footerText != null) ...[
+                        // ── Row 3: Recipient name ────────────────────────────
+                        if (!isPrivacyMode && name.isNotEmpty && !isLocked) ...[
+                          const SizedBox(height: 5),
+                          Row(
+                            children: [
                               Icon(
-                                footerIcon ?? Icons.info_outline,
+                                Icons.person_outline_rounded,
                                 size: 13,
                                 color: subtextColor,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                footerText!,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: subtextColor,
+                              Flexible(
+                                child: Text(
+                                  name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? const Color(0xFFCBD5E1)
+                                        : const Color(0xFF374151),
+                                  ),
                                 ),
                               ),
                             ],
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
 
-                      // ── Detail section (Auto-visible if not compact) ────────────────────────
-                      if (isExpanded && !isPrivacyMode)
-                        _buildDetailSection(delivery, isDark, subtextColor),
+                        // ── Row 4: Address ───────────────────────────────────
+                        if (!isPrivacyMode &&
+                            address.isNotEmpty &&
+                            !isLocked) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 1),
+                                child: Icon(
+                                  Icons.location_on_outlined,
+                                  size: 12,
+                                  color: subtextColor,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  address,
+                                  maxLines: isExpanded ? null : 1,
+                                  overflow: isExpanded
+                                      ? null
+                                      : TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    height: 1.4,
+                                    color: subtextColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
 
-                      // ── Update action button (expanded only) ─────────────────────────────────
-                      if (onUpdateTap != null &&
-                          !isPrivacyMode &&
-                          isExpanded) ...[
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: onUpdateTap,
-                            icon: const Icon(Icons.edit_rounded, size: 14),
-                            label: const Text('UPDATE'),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 36),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              textStyle: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
+                        // ── Row 5: Privacy Mode Product Label ──────────────────
+                        if (isPrivacyMode && product.isNotEmpty) ...[
+                          const SizedBox(height: 5),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.inventory_2_outlined,
+                                size: 13,
+                                color: subtextColor,
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: UIStyles.pillRadius,
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  product.toUpperCase(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: subtextColor,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               ),
-                              side: BorderSide(color: colorForStatus),
-                              backgroundColor: colorForStatus.withValues(
-                                alpha: UIStyles.alphaActiveAccent,
+                            ],
+                          ),
+                        ],
+
+                        // ── Metadata chips ───────────────────────────────────
+                        if (!isPrivacyMode && delivery['metadata'] is List) ...[
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: (delivery['metadata'] as List).map((m) {
+                              final map = m as Map<String, dynamic>;
+                              return InfoChip(
+                                icon: map['icon'] as IconData,
+                                label: map['label'] as String,
+                                isDark: isDark,
+                              );
+                            }).toList(),
+                          ),
+                        ],
+
+                        // ── Sync / Paid pills row ────────────────────────────
+                        if (!isPrivacyMode &&
+                            (isDirty || isPaid || inSyncQueue)) ...[
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              if (isDirty)
+                                _MiniPill(
+                                  label: 'UNSYNCED',
+                                  icon: Icons.sync_problem_rounded,
+                                  bg: Colors.amber.shade50,
+                                  border: Colors.amber.shade300,
+                                  fg: Colors.amber.shade800,
+                                ),
+                              if (isPaid)
+                                _MiniPill(
+                                  label: 'PAID',
+                                  icon: Icons.check_circle_outline_rounded,
+                                  bg: Colors.green.shade50,
+                                  border: Colors.green.shade200,
+                                  fg: Colors.green.shade700,
+                                ),
+                              if (inSyncQueue)
+                                _MiniPill(
+                                  label: 'PENDING SYNC',
+                                  icon: Icons.sync_lock_rounded,
+                                  bg: Colors.blue.shade50,
+                                  border: Colors.blue.shade200,
+                                  fg: Colors.blue.shade800,
+                                ),
+                            ],
+                          ),
+                        ],
+
+                        // ── Footer ───────────────────────────────────────────
+                        if (footerText != null || isChecking) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              if (isChecking) ...[
+                                SizedBox(
+                                  width: 11,
+                                  height: 11,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation(
+                                      ColorStyles.grabOrange,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Checking eligibility…',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: subtextColor,
+                                  ),
+                                ),
+                              ] else if (footerText != null) ...[
+                                Icon(
+                                  footerIcon ?? Icons.info_outline,
+                                  size: 13,
+                                  color: subtextColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  footerText!,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: subtextColor,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+
+                        // ── Detail section (Auto-visible if not compact) ────────────────────────
+                        if (isExpanded && !isPrivacyMode)
+                          _buildDetailSection(delivery, isDark, subtextColor),
+
+                        // ── Update action button (expanded only) ─────────────────────────────────
+                        if (onUpdateTap != null &&
+                            !isPrivacyMode &&
+                            isExpanded) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: onUpdateTap,
+                              icon: const Icon(Icons.edit_rounded, size: 14),
+                              label: const Text('UPDATE'),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 36),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                textStyle: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: UIStyles.pillRadius,
+                                ),
+                                side: BorderSide(color: colorForStatus),
+                                backgroundColor: colorForStatus.withValues(
+                                  alpha: UIStyles.alphaActiveAccent,
+                                ),
+                                foregroundColor: colorForStatus,
                               ),
-                              foregroundColor: colorForStatus,
                             ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -929,6 +939,63 @@ class DeliveryCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BouncingCardWrapper extends StatefulWidget {
+  const _BouncingCardWrapper({required this.child, required this.onTap});
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  State<_BouncingCardWrapper> createState() => _BouncingCardWrapperState();
+}
+
+class _BouncingCardWrapperState extends State<_BouncingCardWrapper>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.98,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(_) {
+    if (widget.onTap != null) _controller.forward();
+  }
+
+  void _onTapUp(_) {
+    if (widget.onTap != null) _controller.reverse();
+  }
+
+  void _onTapCancel(_) {
+    if (widget.onTap != null) _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.onTap == null) return widget.child;
+    return Listener(
+      onPointerDown: _onTapDown,
+      onPointerUp: _onTapUp,
+      onPointerCancel: _onTapCancel,
+      child: ScaleTransition(scale: _scale, child: widget.child),
     );
   }
 }

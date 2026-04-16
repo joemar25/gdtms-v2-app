@@ -35,6 +35,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
@@ -209,7 +210,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: SizedBox(
                     width: 150,
                     height: 150,
-                    child: Lottie.asset('assets/anim/hour-glass.json'),
+                    child: Lottie.asset(AppAssets.animHourGlass),
                   ),
                 )
               : RefreshIndicator(

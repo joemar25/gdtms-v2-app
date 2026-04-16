@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/cleanup_service.dart';
 import 'package:fsi_courier_app/core/services/version_check_service.dart';
@@ -64,19 +65,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Widget _buildContent(BuildContext context) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final cardHorizontalPadding = screenWidth < 360 ? 20.0 : 28.0;
-
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ── Brand Card ───────────────────────────────────────────────
+            // ── Brand Card (smaller & centered) ──────────────────────────
             Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(cardHorizontalPadding),
+              width: 240,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF00B14F), Color(0xFF007A36)],
@@ -95,72 +93,60 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Icon + name row
-                  Row(
-                    children: [
-                      Container(
+                  // Centered icon
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(
+                        alpha: UIStyles.alphaActiveAccent,
+                      ),
+                      borderRadius: UIStyles.cardRadius,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: UIStyles.cardRadius,
+                      child: Image.asset(
+                        AppAssets.icon,
                         width: 48,
                         height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(
-                            alpha: UIStyles.alphaActiveAccent,
-                          ),
-                          borderRadius: UIStyles.cardRadius,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: UIStyles.cardRadius,
-                          child: Image.asset(
-                            'assets/icon.png',
-                            width: 36,
-                            height: 36,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ).animate().scale(
-                        duration: 600.ms,
-                        curve: Curves.easeOutBack,
+                        fit: BoxFit.cover,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                                  'FSI COURIER',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(
-                                      alpha: UIStyles.alphaGlass,
-                                    ),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.5,
-                                  ),
-                                )
-                                .animate()
-                                .fadeIn(delay: 200.ms)
-                                .slideX(begin: 0.2, end: 0),
-                            const Text(
-                                  'Delivery Management',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                )
-                                .animate()
-                                .fadeIn(delay: 300.ms)
-                                .slideX(begin: 0.2, end: 0),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
+                  ).animate().scale(
+                    duration: 600.ms,
+                    curve: Curves.easeOutBack,
                   ),
-                  const SizedBox(height: 24),
-                  // Feature chips — vertical layout avoids overflow on any screen
+                  const SizedBox(height: 12),
+                  // Title
+                  Text(
+                    'FSI COURIER',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(
+                        alpha: UIStyles.alphaGlass,
+                      ),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
+                  ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.2, end: 0),
+                  const SizedBox(height: 4),
+                  // Subtitle
+                  Text(
+                    'Delivery Management',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.2, end: 0),
+                  const SizedBox(height: 12),
+                  // Feature chips
                   IntrinsicHeight(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -175,7 +161,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                   .fadeIn(delay: 400.ms)
                                   .scaleXY(begin: 0.8, end: 1),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Expanded(
                           child:
                               _SplashChip(
@@ -186,7 +172,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                   .fadeIn(delay: 500.ms)
                                   .scaleXY(begin: 0.8, end: 1),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Expanded(
                           child:
                               _SplashChip(
@@ -209,10 +195,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             SizedBox(
               width: 80,
               height: 80,
-              child: Lottie.asset(
-                'assets/anim/hour-glass.json',
-                fit: BoxFit.contain,
-              ),
+              child: Lottie.asset(AppAssets.animHourGlass, fit: BoxFit.contain),
             ).animate().fadeIn(delay: 800.ms),
             const SizedBox(height: 18),
             Text(
@@ -241,7 +224,7 @@ class _SplashChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: UIStyles.alphaActiveAccent),
         borderRadius: UIStyles.cardRadius,
@@ -250,8 +233,8 @@ class _SplashChip extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 18),
-          const SizedBox(height: 5),
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(height: 3),
           Text(
             label,
             textAlign: TextAlign.center,
@@ -259,7 +242,7 @@ class _SplashChip extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 11,
+              fontSize: 9,
               fontWeight: FontWeight.w600,
             ),
           ),

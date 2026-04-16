@@ -28,6 +28,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -479,12 +480,28 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
               builder: (context, state, child) {
                 final isTorchOn = state.torchState == TorchState.on;
                 return IconButton(
-                  icon: Icon(
-                    isTorchOn
-                        ? Icons.flashlight_on_rounded
-                        : Icons.flashlight_off_rounded,
-                    color: isTorchOn ? ColorStyles.grabGreen : Colors.white,
-                  ),
+                  icon:
+                      Icon(
+                            isTorchOn
+                                ? Icons.flashlight_on_rounded
+                                : Icons.flashlight_off_rounded,
+                            color: isTorchOn
+                                ? ColorStyles.grabGreen
+                                : Colors.white,
+                          )
+                          .animate(key: ValueKey(isTorchOn))
+                          .scaleXY(
+                            begin: 1.2,
+                            end: 1.0,
+                            duration: 150.ms,
+                            curve: Curves.easeOutBack,
+                          )
+                          .rotate(
+                            begin: isTorchOn ? 0.1 : -0.1,
+                            end: 0,
+                            duration: 150.ms,
+                            curve: Curves.easeOutBack,
+                          ),
                   onPressed: () => _scannerController.toggleTorch(),
                 );
               },

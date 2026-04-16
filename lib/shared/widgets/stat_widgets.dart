@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class StatCard extends StatelessWidget {
+class StatCard extends StatefulWidget {
   const StatCard({
     super.key,
     required this.label,
@@ -27,11 +27,61 @@ class StatCard extends StatelessWidget {
   final String? heroTag;
 
   @override
+  State<StatCard> createState() => _StatCardState();
+}
+
+class _StatCardState extends State<StatCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+  late final Animation<Offset> _iconOffset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _iconOffset = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0, 0.12),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails _) {
+    if (widget.onTap != null) _controller.forward();
+  }
+
+  void _onTapUp(TapUpDetails _) {
+    if (widget.onTap != null) {
+      _controller.reverse();
+      widget.onTap!();
+    }
+  }
+
+  void _onTapCancel() {
+    if (widget.onTap != null) _controller.reverse();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
-    final effectiveColor = subdued ? color.withValues(alpha: 0.6) : color;
-    final isDisabled = onTap == null;
+    final effectiveColor = widget.subdued
+        ? widget.color.withValues(alpha: 0.6)
+        : widget.color;
+    final isDisabled = widget.onTap == null;
 
     final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
@@ -39,12 +89,12 @@ class StatCard extends StatelessWidget {
         color: cardBg,
         borderRadius: UIStyles.cardRadius,
         border: Border.all(
-          color: color.withValues(alpha: isDark ? 0.3 : 0.15),
+          color: widget.color.withValues(alpha: isDark ? 0.3 : 0.15),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: isDark ? 0.2 : 0.08),
+            color: widget.color.withValues(alpha: isDark ? 0.2 : 0.08),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -58,17 +108,20 @@ class StatCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: UIStyles.alphaSoft),
+                  color: widget.color.withValues(alpha: UIStyles.alphaSoft),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: effectiveColor, size: 16),
+                child: SlideTransition(
+                  position: _iconOffset,
+                  child: Icon(widget.icon, color: effectiveColor, size: 16),
+                ),
               ),
               const Spacer(),
             ],
           ),
           const SizedBox(height: 10),
           Text(
-            count,
+            widget.count,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -80,7 +133,7 @@ class StatCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            label,
+            widget.label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -90,10 +143,10 @@ class StatCard extends StatelessWidget {
               letterSpacing: 1.1,
             ),
           ),
-          if (details != null) ...[
+          if (widget.details != null) ...[
             const SizedBox(height: 8),
             Text(
-              details!,
+              widget.details!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -111,26 +164,24 @@ class StatCard extends StatelessWidget {
       return Opacity(opacity: 0.5, child: content);
     }
 
+    final animatedContent = content
+        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .shimmer(
+          duration: 3.seconds,
+          color: widget.color.withValues(alpha: UIStyles.alphaSoft),
+          delay: 2.seconds,
+        );
+
     final card = GestureDetector(
-      onTap: onTap,
-      child: content
-          .animate(onPlay: (controller) => controller.repeat(reverse: true))
-          .shimmer(
-            duration: 3.seconds,
-            color: color.withValues(alpha: UIStyles.alphaSoft),
-            delay: 2.seconds,
-          )
-          .animate(target: 0) // Reset targets for tap animation
-          .scaleXY(
-            begin: 1.0,
-            end: 0.95,
-            duration: 100.ms,
-            curve: Curves.easeInOut,
-          ),
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      behavior: HitTestBehavior.opaque,
+      child: ScaleTransition(scale: _scale, child: animatedContent),
     );
 
-    if (heroTag != null) {
-      return Hero(tag: heroTag!, child: card);
+    if (widget.heroTag != null) {
+      return Hero(tag: widget.heroTag!, child: card);
     }
     return card;
   }

@@ -12,6 +12,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter/services.dart';
 
@@ -35,7 +36,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   }
 
   Future<void> _loadContent() async {
-    final raw = await rootBundle.loadString('assets/legal/privacy.md');
+    final raw = await rootBundle.loadString(AppAssets.legalPrivacy);
     if (mounted) setState(() => _content = raw);
   }
 
