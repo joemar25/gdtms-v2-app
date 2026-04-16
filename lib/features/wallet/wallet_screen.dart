@@ -213,6 +213,22 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           'delivery_count': requests.length,
         };
       }).toList();
+
+      // Limit payout history to the last 7 days (today + 6 days back).
+      // This prevents couriers from browsing arbitrarily old payout requests.
+      final now = DateTime.now();
+      final cutoff = DateTime(now.year, now.month, now.day)
+          .subtract(const Duration(days: 6));
+      historyBreakdown = historyBreakdown.where((day) {
+        final dateStr = day['date'] as String? ?? '';
+        try {
+          final d = DateTime.parse(dateStr);
+          final normalized = DateTime(d.year, d.month, d.day);
+          return !normalized.isBefore(cutoff);
+        } catch (_) {
+          return true;
+        }
+      }).toList();
     }
 
     // Parse payment method result
@@ -946,7 +962,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
         onTap: onTap,
         borderRadius: UIStyles.cardRadius,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
