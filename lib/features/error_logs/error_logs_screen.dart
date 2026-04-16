@@ -124,44 +124,57 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                     warningCount: warningCount,
                   ),
                   // ── Level filter ───────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: SegmentedButton<String>(
-                        showSelectedIcon: false,
-                        segments: [
-                          ButtonSegment(
-                            value: 'all',
-                            label: Text('All (${_all.length})'),
-                          ),
-                          ButtonSegment(
-                            value: 'error',
-                            label: Text('Errors ($errorCount)'),
-                          ),
-                          ButtonSegment(
-                            value: 'warning',
-                            label: Text('Warnings ($warningCount)'),
-                          ),
-                        ],
-                        selected: {_selectedLevel},
-                        style: ButtonStyle(
-                          textStyle: WidgetStateProperty.all(
-                            const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
+                  if (_all.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: UIStyles.cardRadius,
+                          border: Border.all(
+                            color: Colors.grey.withValues(
+                              alpha: UIStyles.alphaDarkShadow,
                             ),
                           ),
                         ),
-                        onSelectionChanged: (val) {
-                          setState(() {
-                            _selectedLevel = val.first;
-                            _applyFilterAndResetIfNeeded();
-                          });
-                        },
+                        child: SegmentedButton<String>(
+                          showSelectedIcon: false,
+                          segments: [
+                            ButtonSegment(
+                              value: 'all',
+                              label: Text('All (${_all.length})'),
+                            ),
+                            ButtonSegment(
+                              value: 'error',
+                              label: Text('Errors ($errorCount)'),
+                            ),
+                            ButtonSegment(
+                              value: 'warning',
+                              label: Text('Warnings ($warningCount)'),
+                            ),
+                          ],
+                          selected: {_selectedLevel},
+                          style: ButtonStyle(
+                            textStyle: WidgetStateProperty.all(
+                              const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                            shape: WidgetStateProperty.all(
+                              RoundedRectangleBorder(
+                                borderRadius: UIStyles.cardRadius,
+                              ),
+                            ),
+                          ),
+                          onSelectionChanged: (val) {
+                            setState(() {
+                              _selectedLevel = val.first;
+                              _applyFilterAndResetIfNeeded();
+                            });
+                          },
+                        ),
                       ),
                     ),
-                  ),
                   // ── List ───────────────────────────────────────────────────
                   Expanded(
                     child: _filtered.isEmpty

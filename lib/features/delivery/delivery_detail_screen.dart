@@ -570,10 +570,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     ).isVerified;
   }
 
-  String get _failedDeliveryVerifStatus =>
-      _delivery['rts_verification_status']?.toString() ??
-      _delivery['failed_delivery_verification_status']?.toString() ??
-      'unvalidated';
+  // String get _failedDeliveryVerifStatus =>
+  //     _delivery['rts_verification_status']?.toString() ??
+  //     _delivery['failed_delivery_verification_status']?.toString() ??
+  //     'unvalidated';
 
   bool get _canShowContactInfo {
     if (_ds == DeliveryStatus.pending) return true;
@@ -793,75 +793,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 ),
               ),
               const SizedBox(width: 10),
-              // Status badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: UIStyles.alphaSoft),
-                  borderRadius: UIStyles.cardRadius,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Pay-status dot for validated Failed Delivery
-                    if (_ds == DeliveryStatus.failedDelivery &&
-                        _isFailedDeliveryLocked) ...[
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color:
-                              _failedDeliveryVerifStatus == 'verified_with_pay'
-                              ? Colors.green.shade500
-                              : Colors.red.shade400,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                    ],
-                    Flexible(
-                      child: Text(
-                        status.isEmpty ? 'PENDING' : status.toDisplayStatus(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: _ds == DeliveryStatus.delivered
-                              ? ColorStyles.grabGreen
-                              : Colors.grey.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              // Mail type badge
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blueGrey.withValues(
-                      alpha: UIStyles.alphaSoft,
-                    ),
-                    borderRadius: UIStyles.cardRadius,
-                  ),
-                  child: Text(
-                    _str('mail_type'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.blueGrey,
-                    ),
-                  ),
-                ),
-              ),
             ],
           )
         : Text(
