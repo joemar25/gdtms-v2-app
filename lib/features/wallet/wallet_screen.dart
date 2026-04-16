@@ -950,6 +950,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
 
     return Card(
       elevation: 0,
+      margin: const EdgeInsets.only(top: 8),
       shape: RoundedRectangleBorder(
         borderRadius: UIStyles.cardRadius,
         side: BorderSide(
