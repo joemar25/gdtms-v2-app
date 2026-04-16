@@ -129,64 +129,15 @@ class ScaffoldWithNavBar extends StatefulWidget {
 }
 
 class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
-  int _previousIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     final currentIndex = widget.navigationShell.currentIndex;
-    final isForward = currentIndex >= _previousIndex;
-
-    // Capture direction BEFORE rebuilding so the transition builder can read it.
-    if (currentIndex != _previousIndex) {
-      // Will be reset after build.
-      Future.microtask(() {
-        if (mounted) {
-          setState(() => _previousIndex = currentIndex);
-        }
-      });
-    }
 
     return Scaffold(
       extendBody: true,
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 380),
-        reverseDuration: const Duration(milliseconds: 320),
-        switchInCurve: Curves.easeOutQuart,
-        switchOutCurve: Curves.easeInQuart,
-        transitionBuilder: (child, animation) {
-          // Slide direction depends on whether we're going to a higher or lower index.
-          final slideIn = Tween<Offset>(
-            begin: Offset(isForward ? 1.0 : -1.0, 0.0),
-            end: Offset.zero,
-          ).animate(animation);
-          final slideOut = Tween<Offset>(
-            begin: Offset.zero,
-            end: Offset(isForward ? -0.3 : 0.3, 0.0),
-          ).animate(animation);
-
-          // The 'child' in transitionBuilder is either the new or the old widget.
-          // We slide the incoming page in and the outgoing page out slightly.
-          final isIncoming =
-              (child.key as ValueKey<int>?)?.value == currentIndex;
-          return SlideTransition(
-            position: isIncoming ? slideIn : slideOut,
-            child: FadeTransition(opacity: animation, child: child),
-          );
-        },
-        layoutBuilder: (currentChild, previousChildren) {
-          return Stack(
-            alignment: Alignment.topCenter,
-            children: [
-              ...previousChildren,
-              // ignore: use_null_aware_elements
-              if (currentChild != null) currentChild,
-            ],
-          );
-        },
-        child: KeyedSubtree(
-          key: ValueKey<int>(currentIndex),
-          child: widget.navigationShell,
-        ),
+      body: KeyedSubtree(
+        key: ValueKey<int>(currentIndex),
+        child: widget.navigationShell,
       ),
       bottomNavigationBar: AppBottomNavBar(
         navigationShell: widget.navigationShell,
