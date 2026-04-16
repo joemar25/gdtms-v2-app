@@ -42,6 +42,7 @@ import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_placeholder.dart';
+import 'package:fsi_courier_app/core/device/device_info.dart';
 
 class DispatchListScreen extends ConsumerStatefulWidget {
   const DispatchListScreen({super.key});
@@ -97,6 +98,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
     try {
       const uuid = Uuid();
       final requestId = uuid.v4();
+      final device = ref.read(deviceInfoProvider);
       final result = await ref
           .read(apiClientProvider)
           .post<Map<String, dynamic>>(
@@ -104,6 +106,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
             data: {
               'dispatch_code': dispatchCode,
               'client_request_id': requestId,
+              'device_info': await device.toMap(),
             },
             parser: parseApiMap,
           );

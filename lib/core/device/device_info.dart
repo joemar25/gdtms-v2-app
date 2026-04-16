@@ -68,9 +68,11 @@ class DeviceInfoService {
   }
 
   Future<Map<String, dynamic>> toMap() async => {
-    'os': os,
+    'device_type': os,
+    'os_version': await osVersion,
     'app_version': AppVersionService.version,
     'device_model': await deviceModel,
     'device_id': await deviceId,
+    'free_storage_gb': await getFreeStorageGb(),
   };
 }

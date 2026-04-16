@@ -196,11 +196,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     const uuid = Uuid();
     final requestId = uuid.v4();
 
+    final device = ref.read(deviceInfoProvider);
     final result = await ref
         .read(apiClientProvider)
         .post<Map<String, dynamic>>(
           '/check-dispatch-eligibility',
-          data: {'dispatch_code': code, 'client_request_id': requestId},
+          data: {
+            'dispatch_code': code,
+            'client_request_id': requestId,
+            'device_info': await device.toMap(),
+          },
           parser: parseApiMap,
         );
 
