@@ -33,18 +33,41 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
     setState(() => _loading = true);
     final entries = await ErrorLogDao.instance.getAll();
     if (!mounted) return;
+
     setState(() {
       _all = entries;
       _loading = false;
-      _applyFilter();
+      _applyFilterAndResetIfNeeded();
     });
   }
 
-  void _applyFilter() {
+  void _applyFilterAndResetIfNeeded() {
+    // Normalize all levels to lowercase for consistent filtering
+    final normalized = _all
+        .map(
+          (e) => ErrorLogEntry(
+            id: e.id,
+            level: e.level.toLowerCase(),
+            context: e.context,
+            message: e.message,
+            detail: e.detail,
+            barcode: e.barcode,
+            createdAt: e.createdAt,
+          ),
+        )
+        .toList();
+
+    // First apply the filter with current selection
     if (_selectedLevel == 'all') {
-      _filtered = List.from(_all);
+      _filtered = List.from(normalized);
     } else {
-      _filtered = _all.where((e) => e.level == _selectedLevel).toList();
+      _filtered = normalized.where((e) => e.level == _selectedLevel).toList();
+    }
+
+    // Edge case fix: If the selected filter now has no items, reset to 'all'
+    if (_selectedLevel != 'all' && _filtered.isEmpty) {
+      _selectedLevel = 'all';
+      _filtered = List.from(normalized);
     }
   }
 
@@ -59,22 +82,27 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
       isDestructive: true,
     );
     if (confirmed != true || !mounted) return;
+
     await ErrorLogDao.instance.clearAll();
     if (!mounted) return;
+
     showSuccessNotification(context, 'All error logs cleared');
-    await _load();
+    await _load(); // This will reset filter to 'all' automatically
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final errorCount = _all.where((e) => e.level == 'error').length;
-    final warningCount = _all.where((e) => e.level == 'warning').length;
+    final errorCount = _all
+        .where((e) => e.level.toLowerCase() == 'error')
+        .length;
+    final warningCount = _all
+        .where((e) => e.level.toLowerCase() == 'warning')
+        .length;
 
     return Scaffold(
       appBar: AppHeaderBar(
         title: 'Error Logs',
-        pageIcon: Icons.bug_report_outlined,
         actions: [
           if (_all.isNotEmpty)
             IconButton(
@@ -128,7 +156,7 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                         onSelectionChanged: (val) {
                           setState(() {
                             _selectedLevel = val.first;
-                            _applyFilter();
+                            _applyFilterAndResetIfNeeded();
                           });
                         },
                       ),
@@ -266,7 +294,7 @@ class _LogCardState extends State<_LogCard> {
   @override
   Widget build(BuildContext context) {
     final e = widget.entry;
-    final isError = e.level == 'error';
+    final isError = e.level.toLowerCase() == 'error';
     final color = isError ? Colors.red : Colors.orange;
     final fmt = DateFormat('MMM d, y HH:mm:ss');
 

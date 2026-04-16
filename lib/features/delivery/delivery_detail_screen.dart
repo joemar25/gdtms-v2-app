@@ -51,6 +51,7 @@ import 'package:fsi_courier_app/styles/color_styles.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Local design tokens for DeliveryDetailScreen.
@@ -540,6 +541,15 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
   String _str(String key) => _delivery[key]?.toString().trim() ?? '';
 
+  Future<void> _copyToClipboard(String text, String label) async {
+    if (text.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.mediumImpact();
+    if (mounted) {
+      showSuccessNotification(context, 'Copied $label to clipboard');
+    }
+  }
+
   /// Parses the piece count from a barcode that uses the `BASE/N` convention.
   /// e.g. "FSI123456/3" → 3 pieces total, "FSI123456/2" → 2 pieces.
   /// Returns 0 if the barcode has no slash or the part after is not a number.
@@ -686,6 +696,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                   value: _str('name'),
                                   bold: true,
                                   isDark: isDark,
+                                  onLongPress: () =>
+                                      _copyToClipboard(_str('name'), 'Name'),
                                 ),
                                 // ── Piece count badge (barcode with "/") ─────
                                 if (_pieceCountFromBarcode > 0) ...[
@@ -707,6 +719,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                     icon: Icons.map_rounded,
                                     accentColor: _DS.accentBlue,
                                     onTap: () => _launchMaps(_str('address')),
+                                    onLongPress: () => _copyToClipboard(
+                                      _str('address'),
+                                      'Address',
+                                    ),
                                     isDark: isDark,
                                   ),
                                   _IosRowDivider(isDark: isDark),
@@ -717,6 +733,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                     accentColor: _DS.accent,
                                     onTap: () => _onPhoneTap(
                                       _str('contact').cleanContactNumber(),
+                                    ),
+                                    onLongPress: () => _copyToClipboard(
+                                      _str('contact').cleanContactNumber(),
+                                      'Contact',
                                     ),
                                     isDark: isDark,
                                   ),
@@ -866,6 +886,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     final authRep = _str('authorized_rep');
     final contactRep = _str('contact_rep');
     final recipient = _str('recipient');
+    final authRepIdNum = _str('authorized_rep_id');
     var relationship = _str('relationship');
     final placementType = _str('placement_type');
     final note = _str('note');
@@ -927,11 +948,19 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 value: recipient,
                 bold: true,
                 isDark: isDark,
+                onLongPress: () =>
+                    _copyToClipboard(recipient, 'Recipient Name'),
               ),
             ],
             if (authRep.isNotEmpty) ...[
               _IosRowDivider(isDark: isDark),
-              _IosRow(label: 'Authorized Rep', value: authRep, isDark: isDark),
+              _IosRow(
+                label: 'Authorized Rep',
+                value: authRep,
+                isDark: isDark,
+                onLongPress: () =>
+                    _copyToClipboard(authRep, 'Authorized Rep Name'),
+              ),
             ],
             if (relationship.isNotEmpty) ...[
               _IosRowDivider(isDark: isDark),
@@ -953,6 +982,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 onTap: () => _onPhoneTap(
                   contactRep.cleanContactNumber(),
                   targetName: authRep,
+                ),
+                onLongPress: () => _copyToClipboard(
+                  contactRep.cleanContactNumber(),
+                  'Rep Contact',
                 ),
                 isDark: isDark,
               ),
@@ -1379,56 +1412,92 @@ class _IosRowDivider extends StatelessWidget {
   }
 }
 
-class _IosRow extends StatelessWidget {
+class _IosRow extends StatefulWidget {
   const _IosRow({
     required this.label,
     required this.value,
     required this.isDark,
     this.bold = false,
+    this.onLongPress,
   });
+
   final String label;
   final String value;
   final bool isDark;
   final bool bold;
+  final VoidCallback? onLongPress;
+
+  @override
+  State<_IosRow> createState() => _IosRowState();
+}
+
+class _IosRowState extends State<_IosRow> {
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    if (value.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: _DS.spacingMD,
-        vertical: 11,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              label,
-              style: _DS.bodyMedium.copyWith(
-                color: isDark ? _DS.labelSecondaryDark : _DS.labelSecondary,
-                fontSize: 13,
-              ),
+    if (widget.value.isEmpty) return const SizedBox.shrink();
+
+    return AnimatedScale(
+      scale: _isPressed ? 0.98 : 1.0,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.easeOutCubic,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
+          onLongPress: widget.onLongPress != null
+              ? () {
+                  HapticFeedback.lightImpact();
+                  widget.onLongPress?.call();
+                }
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: _DS.spacingMD,
+              vertical: 11,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 110,
+                  child: Text(
+                    widget.label,
+                    style: _DS.bodyMedium.copyWith(
+                      color: widget.isDark
+                          ? _DS.labelSecondaryDark
+                          : _DS.labelSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    widget.value,
+                    style: _DS.bodyMedium.copyWith(
+                      fontSize: 14,
+                      fontWeight: widget.bold
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: widget.isDark
+                          ? _DS.labelPrimaryDark
+                          : _DS.labelPrimary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: _DS.bodyMedium.copyWith(
-                fontSize: 14,
-                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-                color: isDark ? _DS.labelPrimaryDark : _DS.labelPrimary,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _IosTappableRow extends StatelessWidget {
+class _IosTappableRow extends StatefulWidget {
   const _IosTappableRow({
     required this.label,
     required this.value,
@@ -1436,6 +1505,7 @@ class _IosTappableRow extends StatelessWidget {
     required this.icon,
     required this.accentColor,
     this.onTap,
+    this.onLongPress,
   });
 
   final String label;
@@ -1444,55 +1514,81 @@ class _IosTappableRow extends StatelessWidget {
   final IconData icon;
   final Color accentColor;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  @override
+  State<_IosTappableRow> createState() => _IosTappableRowState();
+}
+
+class _IosTappableRowState extends State<_IosTappableRow> {
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    if (value.isEmpty) return const SizedBox.shrink();
+    if (widget.value.isEmpty) return const SizedBox.shrink();
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap?.call();
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: _DS.spacingMD,
-            vertical: 11,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 110,
-                child: Text(
-                  label,
-                  style: _DS.bodyMedium.copyWith(
-                    color: isDark ? _DS.labelSecondaryDark : _DS.labelSecondary,
-                    fontSize: 13,
+    return AnimatedScale(
+      scale: _isPressed ? 0.98 : 1.0,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.easeOutCubic,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            widget.onTap?.call();
+          },
+          onLongPress: widget.onLongPress != null
+              ? () {
+                  HapticFeedback.lightImpact();
+                  widget.onLongPress?.call();
+                }
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: _DS.spacingMD,
+              vertical: 11,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 110,
+                  child: Text(
+                    widget.label,
+                    style: _DS.bodyMedium.copyWith(
+                      color: widget.isDark
+                          ? _DS.labelSecondaryDark
+                          : _DS.labelSecondary,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Text(
-                  value,
-                  style: _DS.bodyMedium.copyWith(
-                    fontSize: 14,
-                    color: accentColor,
+                Expanded(
+                  child: Text(
+                    widget.value,
+                    style: _DS.bodyMedium.copyWith(
+                      fontSize: 14,
+                      color: widget.accentColor,
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: UIStyles.alphaSoft),
-                  shape: BoxShape.circle,
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: widget.accentColor.withValues(
+                      alpha: UIStyles.alphaSoft,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(widget.icon, size: 13, color: widget.accentColor),
                 ),
-                child: Icon(icon, size: 13, color: accentColor),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

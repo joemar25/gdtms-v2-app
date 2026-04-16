@@ -188,6 +188,21 @@ class SyncManagerNotifier extends Notifier<SyncState> {
         lastMessage: 'Updating delivery ${entry.barcode} to server…',
       );
 
+      // Profile updates are online-only direct API calls (PATCH /me).
+      // They must never enter the delivery sync pipeline. Auto-resolve any
+      // stale UPDATE_PROFILE entries so they disappear from the queue.
+      if (entry.operationType == 'UPDATE_PROFILE') {
+        await SyncOperationsDao.instance.updateStatus(
+          entry.id,
+          'synced',
+          lastAttemptAt: DateTime.now().millisecondsSinceEpoch,
+          lastError:
+              'Resolved: profile updates use direct API, not sync queue.',
+        );
+        state = state.copyWith(processed: state.processed + 1);
+        continue;
+      }
+
       final attemptAt = DateTime.now().millisecondsSinceEpoch;
       await SyncOperationsDao.instance.updateStatus(
         entry.id,

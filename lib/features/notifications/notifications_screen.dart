@@ -198,7 +198,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       context.push('/deliveries/${n.deliveryReferences.first}');
     }
   }
-
 }
 
 // ─ Helper functions ───────────────────────────────────────────────────────────

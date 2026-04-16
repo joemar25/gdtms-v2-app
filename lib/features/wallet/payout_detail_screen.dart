@@ -183,6 +183,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                     children: const [],
                   ),
 
+                  const SizedBox(height: 12),
+
                   // ── Daily breakdown ──────────────────────────────────────
                   ..._buildDateStripSection(),
                 ],
@@ -500,6 +502,7 @@ class _SectionCard extends StatelessWidget {
     final trailingWidget = trailing;
     return Card(
       elevation: 0,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: UIStyles.cardRadius,
         side: BorderSide(

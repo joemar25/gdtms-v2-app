@@ -150,7 +150,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
     final auth = ref.watch(authProvider);
     final firstName = auth.courier?['first_name']?.toString() ?? 'Courier';
-    final courierCode = auth.courier?['courier_code']?.toString() ?? '-';
+    // final courierCode = auth.courier?['courier_code']?.toString() ?? '-';
     final greeting = _getGreeting();
 
     final pendingDispatchCount = _summary['pending_dispatches'] ?? 0;
@@ -225,14 +225,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           )
                           .animate()
                           .fadeIn(duration: 400.ms)
-                          .slideX(begin: -0.1, end: 0),
-                      Text(
-                            courierCode,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Colors.grey.shade500),
-                          )
-                          .animate()
-                          .fadeIn(delay: 100.ms)
                           .slideX(begin: -0.1, end: 0),
                       const SizedBox(height: 20),
 
@@ -349,13 +341,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                           ? Colors.blueAccent
                                           : Colors.blueGrey,
                                       onTap: () => context.push('/sync'),
-                                      subdued: pendingSyncCount == 0 &&
+                                      subdued:
+                                          pendingSyncCount == 0 &&
                                           syncedTotalCount == 0,
                                       details: pendingSyncCount > 0
                                           ? 'Pending updates.'
                                           : (syncedTotalCount > 0
-                                              ? 'All synced.'
-                                              : 'No activity.'),
+                                                ? 'All synced.'
+                                                : 'No activity.'),
                                     )
                                     .animate()
                                     .fadeIn(delay: 700.ms)

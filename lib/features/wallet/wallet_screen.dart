@@ -217,8 +217,11 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       // Limit payout history to the last 7 days (today + 6 days back).
       // This prevents couriers from browsing arbitrarily old payout requests.
       final now = DateTime.now();
-      final cutoff = DateTime(now.year, now.month, now.day)
-          .subtract(const Duration(days: 6));
+      final cutoff = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(const Duration(days: 6));
       historyBreakdown = historyBreakdown.where((day) {
         final dateStr = day['date'] as String? ?? '';
         try {

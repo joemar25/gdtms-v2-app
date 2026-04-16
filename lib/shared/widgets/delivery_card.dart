@@ -67,8 +67,6 @@ class DeliveryCard extends StatelessWidget {
     final rawStatus = delivery['delivery_status']?.toString() ?? '';
     final status = rawStatus.toUpperCase().trim();
     final ds = DeliveryStatus.fromString(status);
-    final jobOrder =
-        (delivery['job_order'] ?? delivery['tracking_number'] ?? '').toString();
     final product = (delivery['product'] ?? delivery['mail_type'] ?? '')
         .toString();
     final mailType = (delivery['mail_type'] ?? '').toString();
@@ -237,7 +235,9 @@ class DeliveryCard extends StatelessWidget {
                           // Status badge — hide if status is empty AND not dirty (Privacy mode also hides status)
                           if (!isPrivacyMode && (status.isNotEmpty || isDirty))
                             _StatusBadge(
-                              label: isDirty ? 'UNSYNCED' : status,
+                              label: isDirty
+                                  ? 'UNSYNCED'
+                                  : status.replaceAll('_', ' '),
                               color: colorForStatus,
                               icon: isDirty
                                   ? Icons.sync_problem_rounded
@@ -272,34 +272,6 @@ class DeliveryCard extends StatelessWidget {
                                       ),
                                       child: Text(
                                         mailType,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF2196F3),
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                else if (!isPrivacyMode &&
-                                    !isLocked &&
-                                    jobOrder.isNotEmpty)
-                                  Flexible(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 3,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF2196F3,
-                                        ).withValues(alpha: UIStyles.alphaSoft),
-                                        borderRadius: UIStyles.pillRadius,
-                                      ),
-                                      child: Text(
-                                        jobOrder,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(

@@ -9,10 +9,12 @@
 //   including display name, phone number, and profile picture.
 //
 // Key behaviours:
-//   • Profile picture — picked from the camera or gallery, compressed, and
-//     queued for upload via the sync pipeline (S3 or API fallback).
+//   • Online-only — profile updates require an active internet connection.
+//     No sync queue is used; all changes are sent immediately via direct API.
+//   • Profile picture — picked from gallery, uploaded via POST /me/media
+//     (S3 or API fallback), then the returned URL is included in the PATCH.
 //   • Form fields — validated before submission; changes are sent via
-//     PATCH /couriers/me.
+//     PATCH /me.
 //   • Loading overlay — [LoadingOverlay] blocks input while the save request
 //     is in flight, preventing duplicate submissions.
 //   • Auth state refresh — after a successful save, [AuthProvider] is
@@ -24,7 +26,6 @@
 //   Pushed from: ProfileScreen
 // =============================================================================
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -32,14 +33,11 @@ import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:uuid/uuid.dart';
-import 'package:path_provider/path_provider.dart';
 
+import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
-import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
-import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
-import 'package:fsi_courier_app/core/providers/sync_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
@@ -65,7 +63,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   File? _profileImage;
   bool _loading = false;
   final _picker = ImagePicker();
-  final _uuid = const Uuid();
 
   @override
   void initState() {
@@ -104,13 +101,21 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final isOnline = ref.read(isOnlineProvider);
+    if (!isOnline) {
+      showErrorNotification(
+        context,
+        'Profile updates require an internet connection.',
+      );
+      return;
+    }
+
     setState(() => _loading = true);
 
     try {
-      final courier = ref.read(authProvider).courier;
-      final courierId = courier?['id']?.toString() ?? '';
+      final api = ref.read(apiClientProvider);
 
-      final payload = {
+      final payload = <String, dynamic>{
         'name': _usernameController.text.trim(),
         'first_name': _firstNameController.text.trim().toUpperCase(),
         'middle_name': _middleNameController.text.trim().toUpperCase(),
@@ -118,49 +123,66 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         'email': _emailController.text.trim(),
       };
 
-      String? mediaPathsJson;
+      // Upload profile picture first if changed, then include the returned URL.
       if (_profileImage != null) {
-        // Copy image to app docs for persistence during sync
-        final dir = await getApplicationDocumentsDirectory();
-        final filename = 'profile_picture_${_uuid.v4()}.jpg';
-        final savedPath = '${dir.path}/$filename';
-        await _profileImage!.copy(savedPath);
-
-        mediaPathsJson = jsonEncode({'profile_picture': savedPath});
+        final bytes = await _profileImage!.readAsBytes();
+        final uploadResult = await api.uploadMedia<Map<String, dynamic>>(
+          '/me/media',
+          bytes: bytes,
+          filename: 'profile_picture.jpg',
+          type: 'profile_picture',
+          parser: (d) {
+            if (d is Map<String, dynamic>) return d;
+            if (d is Map) return d.map((k, v) => MapEntry(k.toString(), v));
+            return <String, dynamic>{};
+          },
+        );
+        if (uploadResult is ApiSuccess<Map<String, dynamic>>) {
+          final inner = uploadResult.data['data'];
+          final url =
+              (inner is Map
+                      ? inner['url'] ?? inner['profile_picture_url']
+                      : uploadResult.data['url'])
+                  ?.toString();
+          if (url != null && url.isNotEmpty) {
+            payload['profile_picture_url'] = url;
+          }
+        } else {
+          if (!mounted) return;
+          showErrorNotification(
+            context,
+            'Profile picture upload failed. Text changes will still be saved.',
+          );
+        }
       }
 
-      final opId = _uuid.v4();
-      final now = DateTime.now().millisecondsSinceEpoch;
-
-      await SyncOperationsDao.instance.insert(
-        SyncOperation(
-          id: opId,
-          courierId: courierId,
-          barcode: 'PROFILE_$courierId', // Used as a key in sync
-          operationType: 'UPDATE_PROFILE',
-          payloadJson: jsonEncode(payload),
-          mediaPathsJson: mediaPathsJson,
-          status: 'pending',
-          createdAt: now,
-        ),
+      final result = await api.patch<Map<String, dynamic>>(
+        '/me',
+        data: payload,
+        parser: parseApiMap,
       );
-
-      final isOnline = ref.read(isOnlineProvider);
-      if (isOnline) {
-        // ignore: unawaited_futures
-        ref.read(syncManagerProvider.notifier).processQueue();
-      }
 
       if (!mounted) return;
-      showSuccessNotification(
-        context,
-        'Profile update queued for synchronization.',
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        showErrorNotification(context, 'Failed to save changes: $e');
+
+      if (result is ApiSuccess<Map<String, dynamic>>) {
+        final data = result.data['data'];
+        if (data is Map<String, dynamic>) {
+          await ref.read(authProvider.notifier).setAuthenticated(courier: data);
+        }
+        showSuccessNotification(context, 'Profile updated successfully.');
+        Navigator.pop(context);
+      } else {
+        final msg = switch (result) {
+          ApiValidationError<Map<String, dynamic>>(:final message) =>
+            message ?? 'Validation failed.',
+          ApiBadRequest<Map<String, dynamic>>(:final message) => message,
+          ApiNetworkError<Map<String, dynamic>>(:final message) => message,
+          _ => 'Failed to update profile.',
+        };
+        showErrorNotification(context, msg);
       }
+    } catch (e) {
+      if (mounted) showErrorNotification(context, 'Failed to save changes: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
