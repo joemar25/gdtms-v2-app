@@ -205,6 +205,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final subtitleColor = colorScheme.onSurfaceVariant;
+
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -249,23 +252,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 28),
 
                       // ── Title ────────────────────────────────────────
-                      const Text(
+                      Text(
                         'Sign In',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A1A2E),
+                          color: colorScheme.onSurface,
                           letterSpacing: -0.5,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
+                      Text(
                         'Enter your credentials to continue',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF6B7280),
+                          color: subtitleColor,
                         ),
                       ),
                       const SizedBox(height: 36),
@@ -348,11 +351,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
+                          Text(
                             'Having trouble? ',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF6B7280),
+                              color: subtitleColor,
                             ),
                           ),
                           GestureDetector(
@@ -387,10 +390,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget _fieldLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: Color(0xFF374151),
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }
