@@ -16,12 +16,25 @@ class AppDatabase {
   AppDatabase._();
 
   static Database? _instance;
+  static Future<Database>? _openFuture;
 
   /// Returns the open database, initializing it on first call.
   static Future<Database> getInstance() async {
     if (_instance != null && _instance!.isOpen) return _instance!;
-    _instance = await _open();
-    return _instance!;
+
+    // Case 1: An initialization is already in progress, wait for it.
+    if (_openFuture != null) return await _openFuture!;
+
+    // Case 2: No initialization in progress, start one.
+    _openFuture = _open();
+    try {
+      _instance = await _openFuture;
+      return _instance!;
+    } catch (e) {
+      // If opening fails, reset the future so we can retry on the next call.
+      _openFuture = null;
+      rethrow;
+    }
   }
 
   static Future<Database> _open() async {
@@ -44,16 +57,13 @@ class AppDatabase {
   /// Failures are non-fatal: the app continues with SQLite defaults.
   static Future<void> _applyPragmas(Database db) async {
     try {
-      // WAL mode: concurrent reads during writes; no corruption on force-close.
-      await db.execute('PRAGMA journal_mode=WAL');
-      // NORMAL: fsync only at WAL checkpoints, not every write.
+      // Use rawQuery for PRAGMAs that return results (like journal_mode)
+      // to avoid "Queries can be performed using SQLiteDatabase query or rawQuery
+      // methods only" DatabaseExceptions on Android.
+      await db.rawQuery('PRAGMA journal_mode=WAL');
       await db.execute('PRAGMA synchronous=NORMAL');
-      // Keep temp tables in memory rather than on disk.
       await db.execute('PRAGMA temp_store=MEMORY');
-      // 64 MB memory-mapped I/O for faster read-heavy list queries.
       await db.execute('PRAGMA mmap_size=67108864');
-      // 5-second busy timeout prevents SQLITE_BUSY when workmanager and the
-      // main isolate access the DB concurrently.
       await db.execute('PRAGMA busy_timeout=5000');
     } catch (e) {
       // Log but never crash — SQLite defaults are safe fallbacks.
@@ -271,23 +281,23 @@ class AppDatabase {
       final hasLegacy = cols.any((c) => c['name'] == 'rts_verification_status');
 
       if (hasModern && !hasLegacy) {
-        // SQLite does not support RENAME COLUMN on all platforms/versions used by sqflite,
-        // so we use the safest approach: alter table to add columns is fine, but renaming
-        // is tricky. However, most modern Android/iOS versions (SQLite 3.25+) support it.
-        // We'll wrap in try-catch to be safe.
+        // SQLite 3.25.0+ supports RENAME COLUMN. Android 10+ has SQLite 3.28.
         try {
           await db.execute(
             'ALTER TABLE local_deliveries RENAME COLUMN failed_delivery_verification_status TO rts_verification_status',
           );
         } catch (e) {
           debugPrint('[DB] Migration failed (rename): $e');
-          // If rename fails, we fallback to adding the column if it's really missing.
-          if (!hasLegacy) {
-            await db.execute(
-              "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
-            );
-          }
+          // If rename fails, fallback to adding it if missing.
+          await db.execute(
+            "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
+          );
         }
+      } else if (!hasLegacy) {
+        // Ensure it exists if neither the modern nor the legacy column was found.
+        await db.execute(
+          "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
+        );
       }
     }
   }

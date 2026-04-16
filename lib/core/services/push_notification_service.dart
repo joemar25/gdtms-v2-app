@@ -133,10 +133,7 @@ class PushNotificationService {
 
   void _navigateFromMessage(Map<String, dynamic> data) {
     final action = data['action'] as String?;
-    if (action != 'view_delivery') return;
-
-    final barcode = data['barcode'] as String?;
-    if (barcode == null || barcode.isEmpty) return;
+    if (action == null) return;
 
     final context = rootNavigatorKey.currentContext;
     if (context == null) {
@@ -144,8 +141,15 @@ class PushNotificationService {
       return;
     }
 
-    debugPrint('[PUSH] Navigating to delivery: $barcode');
-    GoRouter.of(context).push('/deliveries/$barcode');
+    if (action == 'view_delivery') {
+      final barcode = data['barcode'] as String?;
+      if (barcode == null || barcode.isEmpty) return;
+      debugPrint('[PUSH] Navigating to delivery: $barcode');
+      GoRouter.of(context).push('/deliveries/$barcode');
+    } else if (action == 'new_dispatch') {
+      debugPrint('[PUSH] Navigating to dispatch list');
+      GoRouter.of(context).push('/dispatches');
+    }
   }
 
   void _handleForegroundMessage(RemoteMessage message) {

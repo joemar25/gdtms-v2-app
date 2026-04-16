@@ -308,7 +308,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                             ),
                                       subdued: true,
                                       details:
-                                          "Today's attempted deliveries or failed deliveries.",
+                                          "Today's attempted or failed deliveries.",
                                     )
                                     .animate()
                                     .fadeIn(delay: 500.ms)
@@ -322,7 +322,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Expanded(
                             child:
                                 StatCard(
-                                      label: 'OSA',
+                                      label: 'Misrouted',
                                       count: '$osaCount',
                                       icon: Icons.lock_outline_rounded,
                                       color: Colors.grey,
@@ -330,7 +330,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                           ? null
                                           : () => context.push('/osa'),
                                       subdued: true,
-                                      details: "Today's out of service area.",
+                                      details: "Today's misrouted deliveries.",
                                     )
                                     .animate()
                                     .fadeIn(delay: 600.ms)
