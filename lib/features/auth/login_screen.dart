@@ -266,10 +266,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Enter your credentials to continue',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: subtitleColor,
-                        ),
+                        style: TextStyle(fontSize: 14, color: subtitleColor),
                       ),
                       const SizedBox(height: 36),
 
