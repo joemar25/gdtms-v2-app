@@ -1,7 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -11,7 +11,8 @@ import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 /// A horizontally-scrollable date strip paired with a delivery list for the
 /// selected day.
@@ -204,14 +205,12 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
 
   Widget _buildContent(BuildContext context, bool isCompact) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? ColorStyles.grabCardDark : ColorStyles.white;
-    final subtleBg = isDark
-        ? ColorStyles.grabCardElevatedDark
-        : ColorStyles.grabCardLight;
+    final cardBg = isDark ? DSColors.cardDark : DSColors.white;
+    final subtleBg = isDark ? DSColors.elevatedCardDark : DSColors.cardLight;
     final cardBorder = isDark
-        ? ColorStyles.white.withValues(alpha: UIStyles.alphaSoft)
-        : ColorStyles.tertiary;
-    final primaryText = isDark ? ColorStyles.white : ColorStyles.black;
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
+        : DSColors.tertiary;
+    final primaryText = isDark ? DSColors.white : DSColors.black;
 
     // Build a lookup index keyed by date string
     final breakdownIndex = <String, Map<String, dynamic>>{
@@ -326,7 +325,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                     width: 60,
                     decoration: BoxDecoration(
                       color: cardBg,
-                      borderRadius: UIStyles.cardRadius,
+                      borderRadius: DSStyles.cardRadius,
                       border: Border.all(color: cardBorder),
                     ),
                     child: const Center(
@@ -359,21 +358,21 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                     ),
                     decoration: BoxDecoration(
                       color: selected
-                          ? ColorStyles.grabGreen
+                          ? DSColors.primary
                           : hasDeliveries
                           ? cardBg
                           : subtleBg,
-                      borderRadius: UIStyles.cardRadius,
+                      borderRadius: DSStyles.cardRadius,
                       border: Border.all(
                         color: selected
-                            ? ColorStyles.grabGreen
+                            ? DSColors.primary
                             : isAnchor
-                            ? ColorStyles.grabGreen.withValues(
-                                alpha: UIStyles.alphaBorder,
+                            ? DSColors.primary.withValues(
+                                alpha: DSStyles.alphaBorder,
                               )
                             : hasDeliveries
-                            ? ColorStyles.subSecondary.withValues(
-                                alpha: UIStyles.alphaBorder,
+                            ? DSColors.subSecondary.withValues(
+                                alpha: DSStyles.alphaBorder,
                               )
                             : cardBorder,
                       ),
@@ -388,11 +387,9 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                             fontWeight: FontWeight.w600,
                             color: selected
                                 ? Colors.white.withValues(
-                                    alpha: UIStyles.alphaGlass,
+                                    alpha: DSStyles.alphaGlass,
                                   )
-                                : ColorStyles.subSecondary.withValues(
-                                    alpha: 0.7,
-                                  ),
+                                : DSColors.subSecondary.withValues(alpha: 0.7),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -411,9 +408,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: hasDeliveries
-                                ? (selected
-                                      ? Colors.white
-                                      : ColorStyles.grabGreen)
+                                ? (selected ? Colors.white : DSColors.primary)
                                 : Colors.transparent,
                           ),
                         ),
@@ -443,7 +438,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: subtleBg,
-                  borderRadius: UIStyles.pillRadius,
+                  borderRadius: DSStyles.pillRadius,
                 ),
                 child: Text(
                   widget.itemCountLabelBuilder != null
@@ -454,7 +449,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: ColorStyles.secondary,
+                    color: DSColors.secondary,
                   ),
                 ),
               ),
@@ -465,7 +460,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: ColorStyles.grabGreen,
+                    color: DSColors.primary,
                   ),
                 ),
               ],
@@ -475,50 +470,55 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
         ],
 
         // ── Delivery list ────────────────────────────────────────────────────
-        ...deliveries.map((d) {
-          if (widget.itemBuilder != null) {
-            return widget.itemBuilder!(context, d);
-          }
-          final barcode = resolveDeliveryIdentifier(d);
-          final status = (d['delivery_status']?.toString() ?? 'PENDING')
-              .toUpperCase();
-          final isLocked = checkIsLockedFromMap(d);
+        SlidableAutoCloseBehavior(
+          child: Column(
+            children: deliveries.map((d) {
+              if (widget.itemBuilder != null) {
+                return widget.itemBuilder!(context, d);
+              }
+              final barcode = resolveDeliveryIdentifier(d);
+              final status = (d['delivery_status']?.toString() ?? 'PENDING')
+                  .toUpperCase();
+              final isLocked = checkIsLockedFromMap(d);
 
-          final isPayoutLocked = widget.lockDeliveryNavigation || isLocked;
+              final isPayoutLocked = widget.lockDeliveryNavigation || isLocked;
 
-          return DeliveryCard(
-            delivery: d,
-            compact: isCompact,
-            showChevron: barcode.isNotEmpty && !isPayoutLocked,
-            enableHoldToReveal: widget.enableHoldToReveal,
-            onTap: (barcode.isNotEmpty && !isPayoutLocked)
-                ? () => context.push('/deliveries/$barcode')
-                : () {
-                    final s = status.toUpperCase();
-                    final v =
-                        (d['rts_verification_status'] ??
-                                d['_rts_verification_status'] ??
-                                d['failed_delivery_verification_status'] ??
-                                d['_failed_delivery_verification_status'] ??
-                                'unvalidated')
-                            .toString()
-                            .toLowerCase();
-                    String msg =
-                        'This delivery is ${s.toLowerCase()} and cannot be opened.';
-                    if (s == 'OSA') {
-                      msg = 'This item is marked OSA and cannot be opened.';
-                    } else if (s == 'DELIVERED') {
-                      msg =
-                          'This item has already been delivered and is sealed.';
-                    } else if (s == 'FAILED_DELIVERY' &&
-                        (v == 'verified_with_pay' || v == 'verified_no_pay')) {
-                      msg =
-                          'This failed delivery has already been verified and is no longer actionable.';
-                    }
-                    showInfoNotification(context, msg);
-                  },
-          );
-        }),
+              return DeliveryCard(
+                delivery: d,
+                compact: isCompact,
+                showChevron: barcode.isNotEmpty && !isPayoutLocked,
+                enableHoldToReveal: widget.enableHoldToReveal,
+                onTap: (barcode.isNotEmpty && !isPayoutLocked)
+                    ? () => context.push('/deliveries/$barcode')
+                    : () {
+                        final s = status.toUpperCase();
+                        final v =
+                            (d['rts_verification_status'] ??
+                                    d['_rts_verification_status'] ??
+                                    d['failed_delivery_verification_status'] ??
+                                    d['_failed_delivery_verification_status'] ??
+                                    'unvalidated')
+                                .toString()
+                                .toLowerCase();
+                        String msg =
+                            'This delivery is ${s.toLowerCase()} and cannot be opened.';
+                        if (s == 'OSA') {
+                          msg = 'This item is marked OSA and cannot be opened.';
+                        } else if (s == 'DELIVERED') {
+                          msg =
+                              'This item has already been delivered and is sealed.';
+                        } else if (s == 'FAILED_DELIVERY' &&
+                            (v == 'verified_with_pay' ||
+                                v == 'verified_no_pay')) {
+                          msg =
+                              'This failed delivery has already been verified and is no longer actionable.';
+                        }
+                        showInfoNotification(context, msg);
+                      },
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }

@@ -26,7 +26,6 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -35,7 +34,7 @@ import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key, this.authenticatedMode = false});
@@ -176,184 +175,191 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final title = widget.authenticatedMode
         ? 'Change Password'
         : 'Reset Password';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppHeaderBar(title: title),
+      appBar: AppHeaderBar(
+        title: title,
+        showNotificationBell: widget.authenticatedMode,
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          ColoredBox(
-            color: isDark
-                ? ColorStyles.scaffoldDark
-                : ColorStyles.scaffoldLight,
-          ),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? ColorStyles.grabCardDark
-                              : ColorStyles.white,
-                          borderRadius: UIStyles.cardRadius,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(
-                                alpha: isDark ? 0.25 : 0.06,
-                              ),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // ── Courier Code ───────────────────────────────
-                            TextField(
-                              controller: _code,
-                              readOnly: widget.authenticatedMode,
-                              decoration: InputDecoration(
-                                labelText: 'Courier Code',
-                                prefixIcon: const Icon(Icons.badge_outlined),
-                                errorText: _errors['courier_code'],
-                                // Muted style when read-only to signal it's locked
-                                filled: widget.authenticatedMode,
-                                fillColor: isDark
-                                    ? ColorStyles.white.withValues(
-                                        alpha: UIStyles.alphaSoft,
-                                      )
-                                    : Colors.grey.shade100,
-                                border: OutlineInputBorder(
-                                  borderRadius: UIStyles.cardRadius,
-                                ),
-                                suffixIcon: widget.authenticatedMode
-                                    ? const Icon(
-                                        Icons.lock_outline,
-                                        size: 16,
-                                        color: Colors.grey,
-                                      )
-                                    : null,
-                              ),
-                            ),
-                            const SizedBox(height: 14),
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Icon + heading ─────────────────────────────────
+                  Center(
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: DSColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(
+                        Icons.lock_reset_rounded,
+                        size: 32,
+                        color: DSColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? DSColors.labelPrimaryDark
+                          : DSColors.labelPrimary,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    widget.authenticatedMode
+                        ? 'Update your current password securely.'
+                        : 'Enter your courier code and new password.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
 
-                            // ── Current Password (auth mode only) ──────────
-                            if (widget.authenticatedMode) ...[
-                              TextField(
-                                controller: _currentPassword,
-                                obscureText: _obscureCurrent,
-                                decoration: InputDecoration(
-                                  labelText: 'Current Password',
-                                  prefixIcon: const Icon(Icons.lock_outline),
-                                  errorText: _errors['current_password'],
-                                  border: OutlineInputBorder(
-                                    borderRadius: UIStyles.cardRadius,
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureCurrent
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                    ),
-                                    onPressed: () => setState(
-                                      () => _obscureCurrent = !_obscureCurrent,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                            ],
+                  // ── Courier Code ───────────────────────────────────
+                  _fieldLabel(context, isDark, 'Courier Code'),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _code,
+                    readOnly: widget.authenticatedMode,
+                    decoration: InputDecoration(
+                      hintText: 'Your courier code',
+                      prefixIcon: const Icon(Icons.badge_outlined, size: 20),
+                      errorText: _errors['courier_code'],
+                      filled: widget.authenticatedMode,
+                      fillColor: isDark
+                          ? DSColors.secondarySurfaceDark
+                          : DSColors.secondarySurfaceLight,
+                      suffixIcon: widget.authenticatedMode
+                          ? Icon(
+                              Icons.lock_outline,
+                              size: 16,
+                              color: isDark
+                                  ? DSColors.labelTertiaryDark
+                                  : DSColors.labelTertiary,
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
-                            // ── New Password ───────────────────────────────
-                            TextField(
-                              controller: _newPassword,
-                              obscureText: _obscureNew,
-                              decoration: InputDecoration(
-                                labelText: 'New Password',
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                errorText: _errors['new_password'],
-                                border: OutlineInputBorder(
-                                  borderRadius: UIStyles.cardRadius,
-                                ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureNew
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                  ),
-                                  onPressed: () => setState(
-                                    () => _obscureNew = !_obscureNew,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // ── Confirm New Password ───────────────────────
-                            TextField(
-                              controller: _confirmPassword,
-                              obscureText: _obscureConfirm,
-                              decoration: InputDecoration(
-                                labelText: 'Confirm New Password',
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                errorText: _errors['new_password_confirmation'],
-                                border: OutlineInputBorder(
-                                  borderRadius: UIStyles.cardRadius,
-                                ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureConfirm
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                  ),
-                                  onPressed: () => setState(
-                                    () => _obscureConfirm = !_obscureConfirm,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
-                            FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size(double.infinity, 52),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: UIStyles.cardRadius,
-                                ),
-                              ),
-                              onPressed: _loading ? null : _submit,
-                              child: Text(
-                                widget.authenticatedMode
-                                    ? 'Change Password'
-                                    : 'Submit',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
+                  // ── Current Password (auth mode only) ──────────────
+                  if (widget.authenticatedMode) ...[
+                    _fieldLabel(context, isDark, 'Current Password'),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _currentPassword,
+                      obscureText: _obscureCurrent,
+                      decoration: InputDecoration(
+                        hintText: 'Your current password',
+                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                        errorText: _errors['current_password'],
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureCurrent
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            size: 20,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscureCurrent = !_obscureCurrent,
+                          ),
                         ),
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // ── New Password ───────────────────────────────────
+                  _fieldLabel(context, isDark, 'New Password'),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _newPassword,
+                    obscureText: _obscureNew,
+                    decoration: InputDecoration(
+                      hintText: 'At least 8 characters',
+                      prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                      errorText: _errors['new_password'],
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureNew
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureNew = !_obscureNew),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+
+                  // ── Confirm New Password ───────────────────────────
+                  _fieldLabel(context, isDark, 'Confirm New Password'),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _confirmPassword,
+                    obscureText: _obscureConfirm,
+                    decoration: InputDecoration(
+                      hintText: 'Re-enter your new password',
+                      prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                      errorText: _errors['new_password_confirmation'],
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirm
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // ── Submit Button ──────────────────────────────────
+                  FilledButton(
+                    onPressed: _loading ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      widget.authenticatedMode ? 'Change Password' : 'Submit',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -363,6 +369,17 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               child: Center(child: CircularProgressIndicator()),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _fieldLabel(BuildContext context, bool isDark, String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
       ),
     );
   }

@@ -3,7 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart' as geolocator;
 
@@ -20,10 +20,10 @@ import 'core/settings/app_settings.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/sync/delivery_bootstrap_service.dart';
 import 'core/database/cleanup_service.dart';
-import 'styles/color_styles.dart';
 import 'shared/router/app_router.dart';
 import 'shared/router/router_keys.dart';
 import 'shared/widgets/time_enforcer.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // How often to automatically re-sync data in the background while online.
 const _kAutoSyncInterval = Duration(minutes: 3);
@@ -60,27 +60,25 @@ class FsiCourierApp extends ConsumerWidget {
     final isDark = brightness == Brightness.dark;
 
     final scaffoldColor = isDark
-        ? ColorStyles.scaffoldDark
-        : ColorStyles.scaffoldLight;
-    final cardColor = isDark ? ColorStyles.cardDark : ColorStyles.cardLight;
-    final appBarColor = isDark
-        ? ColorStyles.appBarDark
-        : ColorStyles.appBarLight;
+        ? DSColors.scaffoldDark
+        : DSColors.scaffoldLight;
+    final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
+    final appBarColor = isDark ? DSColors.appBarDark : DSColors.appBarLight;
     final primaryLabel = isDark
-        ? ColorStyles.labelPrimaryDark
-        : ColorStyles.labelPrimary;
+        ? DSColors.labelPrimaryDark
+        : DSColors.labelPrimary;
     final secondaryLabel = isDark
-        ? ColorStyles.labelSecondaryDark
-        : ColorStyles.labelSecondary;
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
 
     // Core theme properties
     return ThemeData(
       brightness: brightness,
-      primaryColor: ColorStyles.primary,
+      primaryColor: DSColors.primary,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: ColorStyles.grabGreen,
+        seedColor: DSColors.primary,
         brightness: brightness,
-        primary: ColorStyles.primary,
+        primary: DSColors.primary,
       ),
       fontFamily: 'Montserrat',
       useMaterial3: true,
@@ -124,13 +122,13 @@ class FsiCourierApp extends ConsumerWidget {
         color: cardColor,
         elevation: 0,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+        shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
       ),
 
       // Elevated Buttons: pills
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: ColorStyles.primary,
+          backgroundColor: DSColors.primary,
           foregroundColor: Colors.white,
           elevation: 0, // Flat styling
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
@@ -139,13 +137,13 @@ class FsiCourierApp extends ConsumerWidget {
             fontWeight: FontWeight.w600,
             fontFamily: 'Montserrat',
           ),
-          shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+          shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
         ),
       ),
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: ColorStyles.primary,
+          foregroundColor: DSColors.primary,
           textStyle: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -158,27 +156,27 @@ class FsiCourierApp extends ConsumerWidget {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark
-            ? ColorStyles.secondarySurfaceDark
-            : ColorStyles.secondarySurfaceLight,
+            ? DSColors.secondarySurfaceDark
+            : DSColors.secondarySurfaceLight,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
           vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: UIStyles.cardRadius,
+          borderRadius: DSStyles.cardRadius,
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: UIStyles.cardRadius,
+          borderRadius: DSStyles.cardRadius,
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: UIStyles.cardRadius,
-          borderSide: BorderSide(color: ColorStyles.primary, width: 1.5),
+          borderRadius: DSStyles.cardRadius,
+          borderSide: BorderSide(color: DSColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: UIStyles.cardRadius,
-          borderSide: BorderSide(color: ColorStyles.red, width: 1),
+          borderRadius: DSStyles.cardRadius,
+          borderSide: BorderSide(color: DSColors.red, width: 1),
         ),
         labelStyle: TextStyle(color: secondaryLabel, fontFamily: 'Montserrat'),
       ),
@@ -525,7 +523,7 @@ class _SyncPillContent extends ConsumerWidget {
                     color: isDark
                         ? const Color(0xFF2C2C2E).withValues(alpha: 0.97)
                         : Colors.white.withValues(alpha: 0.97),
-                    borderRadius: UIStyles.circularRadius,
+                    borderRadius: DSStyles.circularRadius,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(

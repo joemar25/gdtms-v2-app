@@ -31,8 +31,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/constants.dart';
@@ -47,7 +47,7 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/stat_widgets.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -65,13 +65,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     _loadInitial();
-  }
-
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
   }
 
   /// Pull-to-refresh handler.
@@ -152,7 +145,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final auth = ref.watch(authProvider);
     final firstName = auth.courier?['first_name']?.toString() ?? 'Courier';
     // final courierCode = auth.courier?['courier_code']?.toString() ?? '-';
-    final greeting = _getGreeting();
 
     final pendingDispatchCount = _summary['pending_dispatches'] ?? 0;
     final deliveriesCount = _summary['pending_deliveries'] ?? 0;
@@ -198,19 +190,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         },
         child: Scaffold(
           extendBody: true,
-          appBar: const AppHeaderBar(
-            title: 'Dashboard',
-            pageIcon: Icons.dashboard_rounded,
-          ),
+          appBar: const DashboardHeaderBar(),
           // bottomNavigationBar: const FloatingBottomNavBar(
           //   currentPath: '/dashboard',
           // ),
           body: _loading
-              ? Center(
-                  child: SizedBox(
-                    width: 150,
-                    height: 150,
-                    child: Lottie.asset(AppAssets.animHourGlass),
+              ? const Center(
+                  child: SpinKitFadingCircle(
+                    color: Color(0xFF00B14F),
+                    size: 52,
                   ),
                 )
               : RefreshIndicator(
@@ -218,17 +206,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     children: [
-                      // ── Greeting ─────────────────────────────────────────────
-                      Text(
-                            '$greeting, $firstName!',
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          )
-                          .animate()
-                          .fadeIn(duration: 400.ms)
-                          .slideX(begin: -0.1, end: 0),
-                      const SizedBox(height: 20),
-
                       // ── 4 Summary Boxes ───────────────────────────────────────
                       Row(
                         children: [
@@ -238,7 +215,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       label: 'DISPATCH',
                                       count: '$pendingDispatchCount',
                                       icon: Icons.qr_code_rounded,
-                                      color: ColorStyles.grabOrange,
+                                      color: DSColors.red,
                                       onTap: pendingDispatchCount == 0
                                           ? null
                                           : () => context.push('/dispatches'),
@@ -255,7 +232,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       label: 'DELIVERIES',
                                       count: '$deliveriesCount',
                                       icon: Icons.local_shipping_outlined,
-                                      color: ColorStyles.grabGreen,
+                                      color: DSColors.primary,
                                       onTap: deliveriesCount == 0
                                           ? null
                                           : () => context.push('/deliveries'),
@@ -276,7 +253,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       label: 'DELIVERED',
                                       count: '$deliveredCount',
                                       icon: Icons.check_circle_outline_rounded,
-                                      color: ColorStyles.grabGreen,
+                                      color: DSColors.primary,
                                       onTap: deliveredCount == 0
                                           ? null
                                           : () => context.push('/delivered'),
@@ -300,8 +277,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                               '/failed-deliveries',
                                             ),
                                       subdued: true,
-                                      details:
-                                          "Today's attempted or failed deliveries.",
+                                      details: "Today's for failed or redel.",
                                     )
                                     .animate()
                                     .fadeIn(delay: 500.ms)
@@ -367,7 +343,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ScanButton(
                                       label: 'SCAN DISPATCH',
                                       icon: Icons.qr_code_scanner_rounded,
-                                      color: ColorStyles.grabOrange,
+                                      color: DSColors.red,
                                       onTap: () => context.push(
                                         '/scan',
                                         extra: {'mode': 'dispatch'},
@@ -388,7 +364,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ScanButton(
                                       label: 'SCAN POD',
                                       icon: Icons.qr_code_scanner_rounded,
-                                      color: ColorStyles.grabGreen,
+                                      color: DSColors.primary,
                                       onTap: () => context.push(
                                         '/scan',
                                         extra: {'mode': 'pod'},

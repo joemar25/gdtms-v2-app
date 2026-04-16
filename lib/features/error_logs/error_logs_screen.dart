@@ -1,7 +1,7 @@
 // DOCS: docs/features/error-logs.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
@@ -9,6 +9,7 @@ import 'package:fsi_courier_app/core/database/error_log_dao.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class ErrorLogsScreen extends StatefulWidget {
   const ErrorLogsScreen({super.key});
@@ -129,10 +130,10 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                       child: Container(
                         decoration: BoxDecoration(
-                          borderRadius: UIStyles.cardRadius,
+                          borderRadius: DSStyles.cardRadius,
                           border: Border.all(
                             color: Colors.grey.withValues(
-                              alpha: UIStyles.alphaDarkShadow,
+                              alpha: DSStyles.alphaDarkShadow,
                             ),
                           ),
                         ),
@@ -162,7 +163,7 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                             ),
                             shape: WidgetStateProperty.all(
                               RoundedRectangleBorder(
-                                borderRadius: UIStyles.cardRadius,
+                                borderRadius: DSStyles.cardRadius,
                               ),
                             ),
                           ),
@@ -264,10 +265,10 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: UIStyles.alphaSoft),
-        borderRadius: UIStyles.cardRadius,
+        color: color.withValues(alpha: DSStyles.alphaSoft),
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: color.withValues(alpha: UIStyles.alphaDarkShadow),
+          color: color.withValues(alpha: DSStyles.alphaDarkShadow),
         ),
       ),
       child: Row(
@@ -314,9 +315,9 @@ class _LogCardState extends State<_LogCard> {
     return Container(
       decoration: BoxDecoration(
         color: widget.isDark ? const Color(0xFF1E1E2E) : Colors.white,
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: color.withValues(alpha: UIStyles.alphaDarkShadow),
+          color: color.withValues(alpha: DSStyles.alphaDarkShadow),
         ),
         boxShadow: [
           BoxShadow(
@@ -418,7 +419,7 @@ class _LogCardState extends State<_LogCard> {
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: UIStyles.alphaSoft),
+                  color: color.withValues(alpha: DSStyles.alphaSoft),
                   borderRadius: const BorderRadius.vertical(
                     bottom: Radius.circular(12),
                   ),
@@ -429,7 +430,7 @@ class _LogCardState extends State<_LogCard> {
                     Divider(
                       height: 16,
                       color: color.withValues(
-                        alpha: UIStyles.alphaActiveAccent,
+                        alpha: DSStyles.alphaActiveAccent,
                       ),
                     ),
                     Text(
@@ -482,8 +483,8 @@ class _ContextBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: UIStyles.alphaActiveAccent),
-        borderRadius: UIStyles.pillRadius,
+        color: color.withValues(alpha: DSStyles.alphaActiveAccent),
+        borderRadius: DSStyles.pillRadius,
       ),
       child: Text(
         context.replaceAll('_', ' ').toUpperCase(),

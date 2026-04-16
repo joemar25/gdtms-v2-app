@@ -31,7 +31,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,11 +47,12 @@ import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Local design tokens for DeliveryDetailScreen.
@@ -103,9 +104,8 @@ class _DS {
   // Background: use [ColorStyles] tokens — do NOT hardcode raw Color() values.
   // These aliases keep existing references compiling while pointing to the
   // single source of truth.
-  static const Color surface = ColorStyles.white; // light card surface
-  static const Color surfaceDark =
-      ColorStyles.grabCardDark; // dark card surface
+  static const Color surface = DSColors.white; // light card surface
+  static const Color surfaceDark = DSColors.cardDark; // dark card surface
 
   // Dividers / separators
   static const Color separator = Color(0xFFE5E5EA);
@@ -118,7 +118,7 @@ class _DS {
   static const Color labelSecondaryDark = Color(0xFF8E8E93);
 
   // FSI brand accent (green CTA) and action blue — local aliases.
-  static const Color accent = ColorStyles.grabGreen;
+  static const Color accent = DSColors.primary;
   static const Color accentBlue = Color(0xFF007AFF);
 }
 
@@ -249,7 +249,7 @@ class _ContactAppSheet extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: _DS.spacingMD),
               decoration: BoxDecoration(
                 color: isDark ? Colors.white24 : Colors.black12,
-                borderRadius: UIStyles.pillRadius,
+                borderRadius: DSStyles.pillRadius,
               ),
             ),
           ),
@@ -318,11 +318,11 @@ class _AppTile extends StatelessWidget {
               height: 60,
               decoration: BoxDecoration(
                 color: app.color,
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
                 boxShadow: [
                   BoxShadow(
                     color: app.color.withValues(
-                      alpha: UIStyles.alphaDarkShadow,
+                      alpha: DSStyles.alphaDarkShadow,
                     ),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
@@ -1001,7 +1001,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: (isDark ? Colors.white : _DS.labelPrimary)
-                          .withValues(alpha: UIStyles.alphaSoft),
+                          .withValues(alpha: DSStyles.alphaSoft),
                       borderRadius: BorderRadius.circular(_DS.radiusBadge),
                     ),
                     child: Text(
@@ -1051,7 +1051,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(
-                              alpha: UIStyles.alphaActiveAccent,
+                              alpha: DSStyles.alphaActiveAccent,
                             ),
                             borderRadius: BorderRadius.circular(
                               _DS.radiusBadge,
@@ -1511,7 +1511,7 @@ class _IosTappableRowState extends State<_IosTappableRow> {
                   height: 28,
                   decoration: BoxDecoration(
                     color: widget.accentColor.withValues(
-                      alpha: UIStyles.alphaSoft,
+                      alpha: DSStyles.alphaSoft,
                     ),
                     shape: BoxShape.circle,
                   ),
@@ -1580,7 +1580,7 @@ class _TimelineItem extends StatelessWidget {
                         ? _DS.accent
                         : (isDark
                               ? Colors.white.withValues(
-                                  alpha: UIStyles.alphaSoft,
+                                  alpha: DSStyles.alphaSoft,
                                 )
                               : Colors.grey.shade100),
                     shape: BoxShape.circle,
@@ -1588,7 +1588,7 @@ class _TimelineItem extends StatelessWidget {
                         ? [
                             BoxShadow(
                               color: _DS.accent.withValues(
-                                alpha: UIStyles.alphaDarkShadow,
+                                alpha: DSStyles.alphaDarkShadow,
                               ),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
@@ -1652,7 +1652,7 @@ class _TimelineItem extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: (isDark ? Colors.white : Colors.black)
-                                .withValues(alpha: UIStyles.alphaSoft),
+                                .withValues(alpha: DSStyles.alphaSoft),
                             borderRadius: BorderRadius.circular(
                               _DS.radiusBadge,
                             ),
@@ -1685,10 +1685,10 @@ class _TimelineItem extends StatelessWidget {
                         fontSize: 13,
                         color: isDark
                             ? _DS.labelPrimaryDark.withValues(
-                                alpha: UIStyles.alphaGlass,
+                                alpha: DSStyles.alphaGlass,
                               )
                             : _DS.labelPrimary.withValues(
-                                alpha: UIStyles.alphaGlass,
+                                alpha: DSStyles.alphaGlass,
                               ),
                       ),
                     ),

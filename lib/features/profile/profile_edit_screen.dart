@@ -29,7 +29,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -42,8 +41,7 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/helpers/formatters.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
-import 'package:flutter/services.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({super.key});
@@ -191,7 +189,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final courier = ref.watch(authProvider).courier;
     final currentProfilePic = courier?['profile_picture_url']?.toString();
 
@@ -200,129 +197,164 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       child: Scaffold(
         appBar: const AppHeaderBar(title: 'Edit Profile'),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── Profile Picture ──────────────────────────────────────────
-                GestureDetector(
-                      onTap: _pickImage,
-                      child: Hero(
-                        tag: 'profile_avatar',
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white10
-                                    : Colors.grey.shade200,
-                                shape: BoxShape.circle,
-                                image: _profileImage != null
-                                    ? DecorationImage(
-                                        image: FileImage(_profileImage!),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : (currentProfilePic != null &&
-                                              currentProfilePic.isNotEmpty
-                                          ? DecorationImage(
-                                              image: NetworkImage(
-                                                currentProfilePic,
-                                              ),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : null),
-                                border: Border.all(
-                                  color: ColorStyles.grabGreen.withValues(
-                                    alpha: 0.5,
+                // ── Profile Picture ──────────────────────────────────────
+                Center(
+                  child:
+                      GestureDetector(
+                            onTap: _pickImage,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  width: 110,
+                                  height: 110,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.grey.shade100,
+                                    border: Border.all(
+                                      color: DSColors.primary.withValues(
+                                        alpha: 0.40,
+                                      ),
+                                      width: 2.5,
+                                    ),
+                                    image: _profileImage != null
+                                        ? DecorationImage(
+                                            image: FileImage(_profileImage!),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : (currentProfilePic != null &&
+                                                  currentProfilePic.isNotEmpty
+                                              ? DecorationImage(
+                                                  image: NetworkImage(
+                                                    currentProfilePic,
+                                                  ),
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : null),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.10,
+                                        ),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
                                   ),
-                                  width: 2,
+                                  child:
+                                      _profileImage == null &&
+                                          (currentProfilePic == null ||
+                                              currentProfilePic.isEmpty)
+                                      ? const Icon(
+                                          Icons.person_rounded,
+                                          size: 50,
+                                          color: Colors.grey,
+                                        )
+                                      : null,
                                 ),
-                              ),
-                              child:
-                                  _profileImage == null &&
-                                      (currentProfilePic == null ||
-                                          currentProfilePic.isEmpty)
-                                  ? const Icon(
-                                      Icons.person_rounded,
-                                      size: 60,
-                                      color: Colors.grey,
-                                    )
-                                  : null,
+                                Positioned(
+                                  bottom: 0,
+                                  right: 2,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: const BoxDecoration(
+                                      color: DSColors.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt_rounded,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                  color: ColorStyles.grabGreen,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt_rounded,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                    .animate()
-                    .fadeIn(duration: 400.ms)
-                    .scale(
-                      begin: const Offset(0.9, 0.9),
-                      end: const Offset(1, 1),
+                          )
+                          .animate()
+                          .fadeIn(duration: 400.ms)
+                          .scale(
+                            begin: const Offset(0.9, 0.9),
+                            end: const Offset(1, 1),
+                          ),
+                ),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text(
+                    'Tap to change photo',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: DSColors.labelSecondary,
                     ),
-                const SizedBox(height: 32),
+                  ),
+                ),
+                const SizedBox(height: 28),
 
-                // ── Fields ──────────────────────────────────────────────────
-                _buildTextField(
+                // ── Username ─────────────────────────────────────────────
+                _fieldLabel('Username'),
+                const SizedBox(height: 6),
+                TextFormField(
                   controller: _usernameController,
-                  label: 'Username',
-                  icon: Icons.alternate_email_rounded,
+                  decoration: const InputDecoration(
+                    hintText: 'Your display name',
+                  ),
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Username is required' : null,
                 ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),
                 const SizedBox(height: 16),
-                _buildTextField(
+
+                // ── First Name ───────────────────────────────────────────
+                _fieldLabel('First Name'),
+                const SizedBox(height: 6),
+                TextFormField(
                   controller: _firstNameController,
-                  label: 'First Name',
-                  icon: Icons.person_outline_rounded,
                   textCapitalization: TextCapitalization.characters,
                   inputFormatters: [UpperCaseFormatter()],
+                  decoration: const InputDecoration(hintText: 'e.g. JUAN'),
                   validator: (v) =>
                       v == null || v.isEmpty ? 'First name is required' : null,
                 ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
                 const SizedBox(height: 16),
-                _buildTextField(
+
+                // ── Middle Name ──────────────────────────────────────────
+                _fieldLabel('Middle Name'),
+                const SizedBox(height: 6),
+                TextFormField(
                   controller: _middleNameController,
-                  label: 'Middle Name',
-                  icon: Icons.person_outline_rounded,
                   textCapitalization: TextCapitalization.characters,
                   inputFormatters: [UpperCaseFormatter()],
+                  decoration: const InputDecoration(hintText: 'Optional'),
                 ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1, end: 0),
                 const SizedBox(height: 16),
-                _buildTextField(
+
+                // ── Last Name ────────────────────────────────────────────
+                _fieldLabel('Last Name'),
+                const SizedBox(height: 6),
+                TextFormField(
                   controller: _lastNameController,
-                  label: 'Last Name',
-                  icon: Icons.person_outline_rounded,
                   textCapitalization: TextCapitalization.characters,
                   inputFormatters: [UpperCaseFormatter()],
+                  decoration: const InputDecoration(hintText: 'e.g. DELA CRUZ'),
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Last name is required' : null,
                 ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1, end: 0),
                 const SizedBox(height: 16),
-                _buildTextField(
+
+                // ── Email ────────────────────────────────────────────────
+                _fieldLabel('Email'),
+                const SizedBox(height: 6),
+                TextFormField(
                   controller: _emailController,
-                  label: 'Email',
-                  icon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    hintText: 'you@example.com',
+                  ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Email is required';
                     if (!RegExp(
@@ -333,33 +365,22 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     return null;
                   },
                 ).animate().fadeIn(delay: 500.ms).slideX(begin: 0.1, end: 0),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
 
-                // ── Save Button ─────────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child:
-                      FilledButton(
-                            onPressed: _save,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: ColorStyles.grabGreen,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: UIStyles.cardRadius,
-                              ),
-                            ),
-                            child: const Text(
-                              'Save Changes',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          )
-                          .animate()
-                          .fadeIn(delay: 600.ms)
-                          .scaleXY(begin: 0.95, end: 1),
-                ),
+                // ── Save Button ──────────────────────────────────────────
+                FilledButton(
+                  onPressed: _save,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Save Changes',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ).animate().fadeIn(delay: 600.ms).scaleXY(begin: 0.95, end: 1),
                 const SizedBox(height: 20),
               ],
             ),
@@ -369,44 +390,13 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType? keyboardType,
-    TextCapitalization textCapitalization = TextCapitalization.none,
-    List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      textCapitalization: textCapitalization,
-      inputFormatters: inputFormatters,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 20),
-        filled: true,
-        fillColor: isDark
-            ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
-            : Colors.grey.withValues(alpha: UIStyles.alphaSoft),
-        border: OutlineInputBorder(
-          borderRadius: UIStyles.cardRadius,
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: UIStyles.cardRadius,
-          borderSide: BorderSide(color: Colors.transparent),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: UIStyles.cardRadius,
-          borderSide: const BorderSide(
-            color: ColorStyles.grabGreen,
-            width: 1.5,
-          ),
-        ),
+  Widget _fieldLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF374151),
       ),
     );
   }

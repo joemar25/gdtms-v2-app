@@ -22,12 +22,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/core/constants.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// The version string stored in prefs when terms are accepted.
 /// Bump this to force re-acceptance on the next Terms update.
@@ -119,7 +118,7 @@ class _TermsScreenState extends State<TermsScreen> {
                     margin: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: cardColor,
-                      borderRadius: UIStyles.cardRadius,
+                      borderRadius: DSStyles.cardRadius,
                     ),
                     child: SingleChildScrollView(
                       controller: _scrollCtrl,
@@ -156,7 +155,7 @@ class _TermsScreenState extends State<TermsScreen> {
                           ? _accept
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: ColorStyles.grabGreen,
+                        backgroundColor: DSColors.primary,
                         foregroundColor: Colors.white,
                         disabledBackgroundColor: isDark
                             ? Colors.grey.shade800
@@ -165,7 +164,7 @@ class _TermsScreenState extends State<TermsScreen> {
                             ? Colors.white24
                             : Colors.black26,
                         shape: RoundedRectangleBorder(
-                          borderRadius: UIStyles.cardRadius,
+                          borderRadius: DSStyles.cardRadius,
                         ),
                         elevation: 0,
                       ),
@@ -269,7 +268,7 @@ class LegalMarkdownText extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('• ', style: TextStyle(color: ColorStyles.grabGreen)),
+                Text('• ', style: TextStyle(color: DSColors.primary)),
                 Expanded(child: _buildInlineText(line.substring(2), baseColor)),
               ],
             ),

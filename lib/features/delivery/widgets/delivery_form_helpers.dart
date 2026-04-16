@@ -1,9 +1,7 @@
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
-
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─── Theme-aware field decoration ───────────────────────────────────────────
 InputDecoration deliveryFieldDecoration(
@@ -13,7 +11,7 @@ InputDecoration deliveryFieldDecoration(
   String? errorText,
 }) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
-  final fill = isDark ? ColorStyles.grabCardElevatedDark : Colors.white;
+  final fill = isDark ? DSColors.elevatedCardDark : Colors.white;
   final borderColor = isDark ? Colors.white12 : Colors.grey.shade300;
   return InputDecoration(
     labelText: labelText,
@@ -22,16 +20,16 @@ InputDecoration deliveryFieldDecoration(
     filled: true,
     fillColor: fill,
     border: OutlineInputBorder(
-      borderRadius: UIStyles.cardRadius,
+      borderRadius: DSStyles.cardRadius,
       borderSide: BorderSide(color: borderColor),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: UIStyles.cardRadius,
+      borderRadius: DSStyles.cardRadius,
       borderSide: BorderSide(color: borderColor),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: UIStyles.cardRadius,
-      borderSide: const BorderSide(color: ColorStyles.grabGreen, width: 1.5),
+      borderRadius: DSStyles.cardRadius,
+      borderSide: const BorderSide(color: DSColors.primary, width: 1.5),
     ),
   );
 }
@@ -80,13 +78,13 @@ class DeliveryPhotoSourceButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
           color: enabled
-              ? color.withValues(alpha: UIStyles.alphaSoft)
-              : ColorStyles.grabCardElevatedDark,
-          borderRadius: UIStyles.cardRadius,
+              ? color.withValues(alpha: DSStyles.alphaSoft)
+              : DSColors.elevatedCardDark,
+          borderRadius: DSStyles.cardRadius,
           border: Border.all(
             color: enabled
-                ? color.withValues(alpha: UIStyles.alphaBorder)
-                : ColorStyles.grabCardDark,
+                ? color.withValues(alpha: DSStyles.alphaBorder)
+                : DSColors.cardDark,
           ),
         ),
         child: Column(

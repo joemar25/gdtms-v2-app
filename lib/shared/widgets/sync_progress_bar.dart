@@ -1,11 +1,12 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// Inline sync status bar for use inside a screen's own layout.
 ///
@@ -80,7 +81,7 @@ class SyncProgressBar extends ConsumerWidget {
                   ? syncState.processed / syncState.total
                   : null,
               minHeight: 3,
-              borderRadius: UIStyles.pillRadius,
+              borderRadius: DSStyles.pillRadius,
             ),
           ] else ...[
             Row(

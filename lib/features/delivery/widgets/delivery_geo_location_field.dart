@@ -1,9 +1,7 @@
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
-
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class DeliveryGeoLocationField extends StatelessWidget {
   const DeliveryGeoLocationField({
@@ -24,7 +22,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? ColorStyles.grabCardElevatedDark : Colors.white;
+    final bgColor = isDark ? DSColors.elevatedCardDark : Colors.white;
     final borderColor = isDark ? Colors.white10 : Colors.grey.shade300;
     final hasFix = latitude != null && longitude != null;
 
@@ -32,12 +30,12 @@ class DeliveryGeoLocationField extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: hasFix
-              ? const Color(0xFF007A36).withValues(alpha: UIStyles.alphaBorder)
+              ? const Color(0xFF007A36).withValues(alpha: DSStyles.alphaBorder)
               : isLoading
-              ? Colors.orange.withValues(alpha: UIStyles.alphaBorder)
+              ? Colors.orange.withValues(alpha: DSStyles.alphaBorder)
               : borderColor,
         ),
       ),
@@ -151,13 +149,11 @@ class DeliveryGeoLocationField extends StatelessWidget {
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: ColorStyles.grabOrange,
-                  side: BorderSide(
-                    color: ColorStyles.grabOrange.withValues(alpha: 0.6),
-                  ),
+                  foregroundColor: DSColors.red,
+                  side: BorderSide(color: DSColors.red.withValues(alpha: 0.6)),
                   minimumSize: const Size.fromHeight(40),
                   shape: RoundedRectangleBorder(
-                    borderRadius: UIStyles.cardRadius,
+                    borderRadius: DSStyles.cardRadius,
                   ),
                 ),
                 onPressed: onCapture,

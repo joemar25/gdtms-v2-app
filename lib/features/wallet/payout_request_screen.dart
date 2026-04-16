@@ -30,7 +30,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -42,7 +42,7 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class PayoutRequestScreen extends ConsumerStatefulWidget {
   const PayoutRequestScreen({super.key, this.isConsolidation = false});
@@ -130,7 +130,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+        shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
         title: Text(
           widget.isConsolidation
               ? 'Confirm Consolidated Request'
@@ -150,13 +150,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: ColorStyles.grabGreen.withValues(
-                  alpha: UIStyles.alphaSoft,
-                ),
-                borderRadius: UIStyles.cardRadius,
+                color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
+                borderRadius: DSStyles.cardRadius,
                 border: Border.all(
-                  color: ColorStyles.grabGreen.withValues(
-                    alpha: UIStyles.alphaDarkShadow,
+                  color: DSColors.primary.withValues(
+                    alpha: DSStyles.alphaDarkShadow,
                   ),
                 ),
               ),
@@ -165,14 +163,14 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: ColorStyles.grabGreen,
+                  color: DSColors.primary,
                 ),
               ),
             ),
             const SizedBox(height: 10),
             const Text(
               'This action cannot be undone. Proceed?',
-              style: TextStyle(fontSize: 12, color: ColorStyles.subSecondary),
+              style: TextStyle(fontSize: 12, color: DSColors.subSecondary),
             ),
           ],
         ),
@@ -183,8 +181,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: ColorStyles.grabGreen,
-              shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+              backgroundColor: DSColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Submit'),
@@ -300,10 +298,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // Use the canonical theme tokens so this screen matches every other screen.
     // Do NOT hardcode raw Color() values here — use ColorStyles constants.
-    final scaffoldBg = isDark
-        ? ColorStyles.scaffoldDark
-        : ColorStyles.scaffoldLight;
-    final appBarBg = isDark ? ColorStyles.appBarDark : ColorStyles.appBarLight;
+    final scaffoldBg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
+    final appBarBg = isDark ? DSColors.appBarDark : DSColors.appBarLight;
 
     if (!isOnline) {
       return Scaffold(
@@ -319,11 +315,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.wifi_off_rounded,
-                size: 52,
-                color: ColorStyles.grabOrange,
-              ),
+              Icon(Icons.wifi_off_rounded, size: 52, color: DSColors.red),
               const SizedBox(height: 16),
               const Text(
                 'You\'re Offline',
@@ -333,7 +325,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               Text(
                 'Payout requests require an internet\nconnection. Please reconnect and try again.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: ColorStyles.secondary),
+                style: TextStyle(fontSize: 13, color: DSColors.secondary),
               ),
             ],
           ),
@@ -357,7 +349,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: ColorStyles.white,
+                      color: DSColors.white,
                     ),
                   )
                 : Icon(
@@ -375,9 +367,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               ),
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: ColorStyles.grabGreen,
+              backgroundColor: DSColors.primary,
               minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
             ),
             onPressed:
                 (_submitting ||
@@ -394,7 +386,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _fetchPreview,
-        color: ColorStyles.grabGreen,
+        color: DSColors.primary,
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _previewData == null
@@ -409,11 +401,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline_rounded, size: 48, color: ColorStyles.red),
+          Icon(Icons.error_outline_rounded, size: 48, color: DSColors.red),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Something went wrong.',
-            style: TextStyle(fontSize: 14, color: ColorStyles.secondary),
+            style: TextStyle(fontSize: 14, color: DSColors.secondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -452,10 +444,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: UIStyles.alphaSoft),
-              borderRadius: UIStyles.cardRadius,
+              color: Colors.amber.withValues(alpha: DSStyles.alphaSoft),
+              borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: Colors.amber.withValues(alpha: UIStyles.alphaDarkShadow),
+                color: Colors.amber.withValues(alpha: DSStyles.alphaDarkShadow),
               ),
             ),
             child: Row(
@@ -519,7 +511,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               fontSize: 11,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.2,
-              color: ColorStyles.secondary,
+              color: DSColors.secondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -537,10 +529,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: UIStyles.alphaSoft),
-              borderRadius: UIStyles.cardRadius,
+              color: Colors.amber.withValues(alpha: DSStyles.alphaSoft),
+              borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: Colors.amber.withValues(alpha: UIStyles.alphaDarkShadow),
+                color: Colors.amber.withValues(alpha: DSStyles.alphaDarkShadow),
               ),
             ),
             child: Row(
@@ -569,10 +561,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: UIStyles.alphaSoft),
-              borderRadius: UIStyles.cardRadius,
+              color: Colors.grey.withValues(alpha: DSStyles.alphaSoft),
+              borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: Colors.grey.withValues(alpha: UIStyles.alphaDarkShadow),
+                color: Colors.grey.withValues(alpha: DSStyles.alphaDarkShadow),
               ),
             ),
             child: const Row(
@@ -600,18 +592,16 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: ColorStyles.red.withValues(alpha: UIStyles.alphaSoft),
-              borderRadius: UIStyles.cardRadius,
+              color: DSColors.red.withValues(alpha: DSStyles.alphaSoft),
+              borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: ColorStyles.red.withValues(
-                  alpha: UIStyles.alphaDarkShadow,
-                ),
+                color: DSColors.red.withValues(alpha: DSStyles.alphaDarkShadow),
               ),
             ),
             child: Text(
               _error!,
               style: TextStyle(
-                color: ColorStyles.red,
+                color: DSColors.red,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -650,16 +640,16 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //     return Container(
 //       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
 //       decoration: BoxDecoration(
-//         color: ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaSoft),
-//         borderRadius: UIStyles.cardRadius,
-//         border: Border.all(color: ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaDarkShadow)),
+//         color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
+//         borderRadius: DSStyles.cardRadius,
+//         border: Border.all(color: DSColors.primary.withValues(alpha: DSStyles.alphaDarkShadow)),
 //       ),
 //       child: Row(
 //         children: [
 //           Icon(
 //             Icons.date_range_rounded,
 //             size: 18,
-//             color: ColorStyles.grabGreen,
+//             color: DSColors.primary,
 //           ),
 //           const SizedBox(width: 10),
 //           Expanded(
@@ -672,7 +662,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //                     fontSize: 10,
 //                     fontWeight: FontWeight.w700,
 //                     letterSpacing: 1.0,
-//                     color: ColorStyles.grabGreen,
+//                     color: DSColors.primary,
 //                   ),
 //                 ),
 //                 const SizedBox(height: 2),
@@ -690,15 +680,15 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //             Container(
 //               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
 //               decoration: BoxDecoration(
-//                 color: ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaActiveAccent),
-//                 borderRadius: UIStyles.cardRadius,
+//                 color: DSColors.primary.withValues(alpha: DSStyles.alphaActiveAccent),
+//                 borderRadius: DSStyles.cardRadius,
 //               ),
 //               child: Text(
 //                 '7 DAYS',
 //                 style: TextStyle(
 //                   fontSize: 10,
 //                   fontWeight: FontWeight.w800,
-//                   color: ColorStyles.grabGreen,
+//                   color: DSColors.primary,
 //                 ),
 //               ),
 //             ),
@@ -731,19 +721,18 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Cards sit one layer above the scaffold — use grabCardDark / white.
-    final cardBg = isDark ? ColorStyles.grabCardDark : ColorStyles.white;
+    final cardBg = isDark ? DSColors.cardDark : DSColors.white;
     final cardBorder = isDark
-        ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
-        : ColorStyles.tertiary;
+        ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
+        : DSColors.tertiary;
     return Container(
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(color: cardBorder),
         boxShadow: [
           BoxShadow(
-            color: ColorStyles.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            color: DSColors.black.withValues(alpha: isDark ? 0.25 : 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -758,7 +747,7 @@ class _SummaryCard extends StatelessWidget {
                 Icon(
                   Icons.local_shipping_rounded,
                   size: 16,
-                  color: ColorStyles.subSecondary,
+                  color: DSColors.subSecondary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -768,7 +757,7 @@ class _SummaryCard extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
-                      color: ColorStyles.subSecondary,
+                      color: DSColors.subSecondary,
                     ),
                   ),
                 ),
@@ -777,7 +766,7 @@ class _SummaryCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: ColorStyles.grabGreen,
+                    color: DSColors.primary,
                   ),
                 ),
               ],
@@ -787,9 +776,7 @@ class _SummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: ColorStyles.grabGreen.withValues(
-                alpha: UIStyles.alphaSoft,
-              ),
+              color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(16),
               ),
@@ -826,9 +813,7 @@ class _SummaryCard extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
-                        color: isDark
-                            ? ColorStyles.grabGreen
-                            : ColorStyles.grabDarkGreen,
+                        color: isDark ? DSColors.primary : DSColors.primary,
                       ),
                     ),
                     Text(
@@ -836,7 +821,7 @@ class _SummaryCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: ColorStyles.grabGreen,
+                        color: DSColors.primary,
                       ),
                     ),
                   ],
@@ -867,7 +852,7 @@ class _AmountRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = isDebug
         ? Colors.red.shade700
-        : (isDeduction ? ColorStyles.red : ColorStyles.secondary);
+        : (isDeduction ? DSColors.red : DSColors.secondary);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(

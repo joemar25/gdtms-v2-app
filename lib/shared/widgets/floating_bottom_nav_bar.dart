@@ -3,10 +3,9 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
-import 'package:go_router/go_router.dart';
 
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:go_router/go_router.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class FloatingBottomNavBar extends StatelessWidget {
   const FloatingBottomNavBar({super.key, required this.currentPath});
@@ -25,24 +24,24 @@ class FloatingBottomNavBar extends StatelessWidget {
 
     // iOS-style glass: semi-transparent bg layered over blur
     final glassBg = isDark
-        ? const Color(0xFF1C1C1E).withValues(alpha: UIStyles.alphaGlass)
-        : Colors.white.withValues(alpha: UIStyles.alphaGlass);
+        ? const Color(0xFF1C1C1E).withValues(alpha: DSStyles.alphaGlass)
+        : Colors.white.withValues(alpha: DSStyles.alphaGlass);
 
     final borderColor = isDark
-        ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
-        : Colors.white.withValues(alpha: UIStyles.alphaBorder);
+        ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
+        : Colors.white.withValues(alpha: DSStyles.alphaBorder);
 
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: ClipRRect(
-          borderRadius: UIStyles.circularRadius,
+          borderRadius: DSStyles.circularRadius,
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
             child: Container(
               decoration: BoxDecoration(
                 color: glassBg,
-                borderRadius: UIStyles.circularRadius,
+                borderRadius: DSStyles.circularRadius,
                 border: Border.all(color: borderColor, width: 0.8),
                 boxShadow: [
                   BoxShadow(
@@ -144,7 +143,7 @@ class _NavItemState extends State<_NavItem>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.isSelected ? ColorStyles.grabGreen : Colors.grey;
+    final color = widget.isSelected ? DSColors.primary : Colors.grey;
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -158,11 +157,9 @@ class _NavItemState extends State<_NavItem>
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? ColorStyles.grabGreen.withValues(
-                    alpha: UIStyles.alphaActiveAccent,
-                  )
+                ? DSColors.primary.withValues(alpha: DSStyles.alphaActiveAccent)
                 : Colors.transparent,
-            borderRadius: UIStyles.cardRadius,
+            borderRadius: DSStyles.cardRadius,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

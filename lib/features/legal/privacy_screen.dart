@@ -13,11 +13,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/core/constants.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
 
 import 'package:fsi_courier_app/features/legal/terms_screen.dart'
     show LegalMarkdownText;
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class PrivacyScreen extends StatefulWidget {
   const PrivacyScreen({super.key});
@@ -67,7 +68,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               margin: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
               ),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),

@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class StatusBadge extends StatelessWidget {
   const StatusBadge({super.key, required this.status});
@@ -26,10 +26,10 @@ class StatusBadge extends StatelessWidget {
 
     return Chip(
       label: Text(displayStatus),
-      backgroundColor: color.withValues(alpha: UIStyles.alphaActiveAccent),
+      backgroundColor: color.withValues(alpha: DSStyles.alphaActiveAccent),
       labelStyle: TextStyle(color: color.shade700, fontWeight: FontWeight.w600),
       side: BorderSide(
-        color: color.withValues(alpha: UIStyles.alphaDarkShadow),
+        color: color.withValues(alpha: DSStyles.alphaDarkShadow),
       ),
     );
   }

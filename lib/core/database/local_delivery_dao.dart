@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 
 /// Data access object for the [local_deliveries] table.
 class LocalDeliveryDao {
@@ -585,7 +586,11 @@ class LocalDeliveryDao {
   /// intentionally excluded: they are not valid delivery targets.
   ///
   ///   - `PENDING`          — any non-archived pending record
-  ///   - `FAILED_DELIVERY` — completed_at is today AND rts_verification_status is NOT verified
+  ///   - `FAILED_DELIVERY` (RTS) — completed_at is today AND
+  ///     rts_verification_status is NOT verified AND attempts < 3
+  ///
+  /// OSA, DELIVERED, and RTS with 3+ attempts are intentionally excluded —
+  /// those are terminal states the courier cannot act on via POD scan.
   ///
   /// [DeliveryDetailScreen._load] still calls [isVisibleToRider] as the
   /// canonical hard gate — this method is purely a performance and UX
@@ -617,7 +622,9 @@ class LocalDeliveryDao {
           -- PENDING: any non-archived pending record
           (delivery_status COLLATE NOCASE = 'PENDING')
 
-          -- FAILED_DELIVERY: today only, unverified
+          -- FAILED_DELIVERY (RTS): today only, unverified
+          -- Attempts >= 3 are excluded in the Dart post-filter below because
+          -- the count lives in raw_json, not a dedicated column.
           OR (delivery_status COLLATE NOCASE = 'FAILED_DELIVERY'
               AND completed_at >= $todayStart AND completed_at < $tomorrowStart
               AND COALESCE(rts_verification_status, 'unvalidated')
@@ -628,7 +635,15 @@ class LocalDeliveryDao {
       ''',
       [q, q],
     );
-    return rows.map(LocalDelivery.fromDb).toList();
+
+    final deliveries = rows.map(LocalDelivery.fromDb).toList();
+
+    // Post-filter: exclude RTS with 3+ attempts.
+    // OSA and DELIVERED are already excluded by the SQL WHERE clause.
+    return deliveries.where((d) {
+      if (d.deliveryStatus.toUpperCase() != 'FAILED_DELIVERY') return true;
+      return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
+    }).toList();
   }
 
   /// Returns delivered items whose [delivered_at] falls within today

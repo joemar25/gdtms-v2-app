@@ -2,10 +2,9 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
-import 'package:go_router/go_router.dart';
 
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:go_router/go_router.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({super.key, required this.navigationShell});
@@ -15,16 +14,14 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? ColorStyles.appBarDark
-        : ColorStyles.appBarLight;
+    final backgroundColor = isDark ? DSColors.appBarDark : DSColors.appBarLight;
     final borderColor = isDark
-        ? ColorStyles.separatorDark
-        : ColorStyles.separatorLight;
-    final activeColor = ColorStyles.grabGreen;
+        ? DSColors.separatorDark
+        : DSColors.separatorLight;
+    final activeColor = DSColors.primary;
     final inactiveColor = isDark
-        ? ColorStyles.labelSecondaryDark
-        : ColorStyles.labelSecondary;
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
 
     // Use padding to create the floating effect
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
@@ -52,7 +49,7 @@ class AppBottomNavBar extends StatelessWidget {
               ],
             ),
             child: ClipRRect(
-              borderRadius: UIStyles.circularRadius,
+              borderRadius: DSStyles.circularRadius,
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
@@ -60,10 +57,10 @@ class AppBottomNavBar extends StatelessWidget {
                     color: backgroundColor.withValues(
                       alpha: isDark ? 0.85 : 0.92,
                     ),
-                    borderRadius: UIStyles.circularRadius,
+                    borderRadius: DSStyles.circularRadius,
                     border: Border.all(
                       color: borderColor.withValues(
-                        alpha: UIStyles.alphaBorder,
+                        alpha: DSStyles.alphaBorder,
                       ),
                       width: 0.5,
                     ),
@@ -86,9 +83,9 @@ class AppBottomNavBar extends StatelessWidget {
                               height: 48,
                               decoration: BoxDecoration(
                                 color: activeColor.withValues(
-                                  alpha: UIStyles.alphaSoft,
+                                  alpha: DSStyles.alphaSoft,
                                 ),
-                                borderRadius: UIStyles.cardRadius,
+                                borderRadius: DSStyles.cardRadius,
                               ),
                             ),
                           ),
@@ -180,8 +177,8 @@ class _NavBarItem extends StatelessWidget {
     return Expanded(
       child: InkWell(
         onTap: isSelected ? null : onTap,
-        splashColor: ColorStyles.transparent,
-        highlightColor: ColorStyles.transparent,
+        splashColor: DSColors.transparent,
+        highlightColor: DSColors.transparent,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

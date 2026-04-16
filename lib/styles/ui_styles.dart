@@ -1,45 +1,26 @@
-// DOCS: docs/styles.md — update that file when you edit this one.
-
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/design_system/tokens/ds_styles.dart';
+import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
 
-/// Global UI Design System Tokens
-///
-/// Replaces arbitrary hardcoded constraints across the app with consistent
-/// logical tokens. Unifies border radiuses, soft opacities, and spacing.
+/// Backwards-compat shim for legacy UIStyles / ColorStyles usages.
+/// Maps old names to the new design-system tokens so transitional files
+/// compile until all references are migrated.
 class UIStyles {
-  // ── Border Radii ──────────────────────────────────────────────────────────
+  // Border radii
+  static final BorderRadius cardRadius = DSStyles.cardRadius;
+  static final BorderRadius pillRadius = DSStyles.pillRadius;
 
-  /// Primary containers (Cards, Modals, Bottom Sheets, Search Bars)
-  static const double radiusCard = 16.0;
-  static final BorderRadius cardRadius = BorderRadius.circular(radiusCard);
+  // Alpha tokens
+  static const double alphaSoft = DSStyles.alphaSoft;
+  static const double alphaActiveAccent = DSStyles.alphaActiveAccent;
+  static const double alphaBorder = DSStyles.alphaBorder;
+  static const double alphaDarkShadow = DSStyles.alphaDarkShadow;
+  static const double alphaGlass = DSStyles.alphaGlass;
+}
 
-  /// Secondary containers (Inner Pills, Tags, Badges)
-  static const double radiusPill = 8.0;
-  static final BorderRadius pillRadius = BorderRadius.circular(radiusPill);
-
-  /// Circular forms (Floating Nav)
-  static const double radiusCircular = 24.0;
-  static final BorderRadius circularRadius = BorderRadius.circular(
-    radiusCircular,
-  );
-
-  // ── Opacities / Alpha (Glassmorphism & Shadows) ───────────────────────────
-
-  /// The standard incredibly soft shadow / background fill alpha
-  static const double alphaSoft = 0.05;
-
-  /// Background tone for active or highlighted UI tiles
-  static const double alphaActiveAccent = 0.12;
-
-  /// Strong borders or outlines
-  static const double alphaBorder = 0.20;
-
-  /// Base multiplier for dark mode shadow presence (stronger shadows in dark mode)
-  static const double alphaDarkShadow = 0.35;
-
-  /// Base multiplier for light mode shadow presence (softer shadows in light mode)
-  static const double alphaLightShadow = 0.04;
-
-  /// Base for glassmorphism panels (Nav bar)
-  static const double alphaGlass = 0.70;
+class ColorStyles {
+  // Transitional color tokens — choose closest semantic equivalents.
+  static const Color grabOrange = Color(0xFFFF6E00);
+  static const Color primary = DSColors.primary;
+  static const Color scaffoldLight = DSColors.scaffoldLight;
 }

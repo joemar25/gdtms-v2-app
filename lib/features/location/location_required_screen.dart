@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/providers/location_provider.dart';
 import 'package:fsi_courier_app/core/providers/permissions_provider.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+
 import 'package:permission_handler/permission_handler.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class LocationRequiredScreen extends ConsumerWidget {
   const LocationRequiredScreen({super.key});
@@ -32,11 +32,7 @@ class LocationRequiredScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(
-                Icons.security_rounded,
-                size: 56,
-                color: ColorStyles.grabOrange,
-              ),
+              Icon(Icons.security_rounded, size: 56, color: DSColors.red),
               const SizedBox(height: 20),
               Text(
                 'Permissions Required',
@@ -203,19 +199,19 @@ class _PermissionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final cardColor = isDark ? ColorStyles.cardDark : ColorStyles.cardLight;
-    final iconColor = granted ? ColorStyles.grabGreen : ColorStyles.grabOrange;
+    final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
+    final iconColor = granted ? DSColors.primary : DSColors.red;
     final statusColor = granted
-        ? ColorStyles.grabGreen
+        ? DSColors.primary
         : theme.colorScheme.onSurfaceVariant;
 
     return Container(
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: granted
-              ? ColorStyles.grabGreen.withValues(alpha: 0.35)
+              ? DSColors.primary.withValues(alpha: 0.35)
               : theme.dividerColor.withValues(alpha: 0.4),
           width: 1,
         ),
@@ -256,16 +252,12 @@ class _PermissionCard extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           if (granted)
-            Icon(
-              Icons.check_circle_rounded,
-              color: ColorStyles.grabGreen,
-              size: 26,
-            )
+            Icon(Icons.check_circle_rounded, color: DSColors.primary, size: 26)
           else
             TextButton(
               onPressed: onTap,
               style: TextButton.styleFrom(
-                foregroundColor: ColorStyles.grabOrange,
+                foregroundColor: DSColors.red,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 6,

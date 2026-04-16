@@ -1,11 +1,11 @@
 // DOCS: docs/entry-points.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/constants.dart';
@@ -14,7 +14,7 @@ import 'package:fsi_courier_app/core/database/cleanup_service.dart';
 import 'package:fsi_courier_app/core/services/version_check_service.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -59,7 +59,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ColorStyles.grabSurfaceDark,
+      backgroundColor: DSColors.scaffoldDark,
       body: SafeArea(child: _buildContent(context)),
     );
   }
@@ -81,11 +81,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: UIStyles.circularRadius,
+                borderRadius: DSStyles.circularRadius,
                 boxShadow: [
                   BoxShadow(
-                    color: ColorStyles.grabGreen.withValues(
-                      alpha: UIStyles.alphaBorder,
+                    color: DSColors.primary.withValues(
+                      alpha: DSStyles.alphaBorder,
                     ),
                     blurRadius: 40,
                     offset: const Offset(0, 12),
@@ -101,12 +101,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     height: 60,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(
-                        alpha: UIStyles.alphaActiveAccent,
+                        alpha: DSStyles.alphaActiveAccent,
                       ),
-                      borderRadius: UIStyles.cardRadius,
+                      borderRadius: DSStyles.cardRadius,
                     ),
                     child: ClipRRect(
-                      borderRadius: UIStyles.cardRadius,
+                      borderRadius: DSStyles.cardRadius,
                       child: Image.asset(
                         AppAssets.icon,
                         width: 48,
@@ -125,7 +125,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(
-                        alpha: UIStyles.alphaGlass,
+                        alpha: DSStyles.alphaGlass,
                       ),
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -193,15 +193,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
             // ── Loading indicator ────────────────────────────────────────
             SizedBox(
-              width: 80,
-              height: 80,
-              child: Lottie.asset(AppAssets.animHourGlass, fit: BoxFit.contain),
+              width: 56,
+              height: 56,
+              child: const SpinKitFadingCircle(color: Colors.white, size: 56),
             ).animate().fadeIn(delay: 800.ms),
             const SizedBox(height: 18),
             Text(
               'Fastrak Services Inc.',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: UIStyles.alphaDarkShadow),
+                color: Colors.white.withValues(alpha: DSStyles.alphaDarkShadow),
                 fontSize: 12,
                 letterSpacing: 0.5,
               ),
@@ -226,8 +226,8 @@ class _SplashChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: UIStyles.alphaActiveAccent),
-        borderRadius: UIStyles.cardRadius,
+        color: Colors.white.withValues(alpha: DSStyles.alphaActiveAccent),
+        borderRadius: DSStyles.cardRadius,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

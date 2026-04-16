@@ -34,7 +34,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,8 +50,8 @@ import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/payment_method_card.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 // confirmation_dialog not used in this file
-import 'package:fsi_courier_app/styles/color_styles.dart';
 
 class WalletScreen extends ConsumerStatefulWidget {
   const WalletScreen({super.key});
@@ -377,7 +377,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                 style: FilledButton.styleFrom(
                                   minimumSize: const Size.fromHeight(50),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: UIStyles.cardRadius,
+                                    borderRadius: DSStyles.cardRadius,
                                   ),
                                 ),
                               )
@@ -396,7 +396,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                               style: FilledButton.styleFrom(
                                 minimumSize: const Size.fromHeight(50),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: UIStyles.cardRadius,
+                                  borderRadius: DSStyles.cardRadius,
                                 ),
                               ),
                             ),
@@ -420,7 +420,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                               backgroundColor: Colors.amber.shade700,
                               minimumSize: const Size.fromHeight(50),
                               shape: RoundedRectangleBorder(
-                                borderRadius: UIStyles.cardRadius,
+                                borderRadius: DSStyles.cardRadius,
                               ),
                             ),
                           )
@@ -432,12 +432,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.amber.withValues(
-                                alpha: UIStyles.alphaSoft,
+                                alpha: DSStyles.alphaSoft,
                               ),
-                              borderRadius: UIStyles.cardRadius,
+                              borderRadius: DSStyles.cardRadius,
                               border: Border.all(
                                 color: Colors.amber.withValues(
-                                  alpha: UIStyles.alphaDarkShadow,
+                                  alpha: DSStyles.alphaDarkShadow,
                                 ),
                               ),
                             ),
@@ -518,11 +518,11 @@ class _PayoutWindowBanner extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.deepPurple.withValues(alpha: UIStyles.alphaSoft),
-          borderRadius: UIStyles.cardRadius,
+          color: Colors.deepPurple.withValues(alpha: DSStyles.alphaSoft),
+          borderRadius: DSStyles.cardRadius,
           border: Border.all(
             color: Colors.deepPurple.withValues(
-              alpha: UIStyles.alphaDarkShadow,
+              alpha: DSStyles.alphaDarkShadow,
             ),
           ),
         ),
@@ -552,22 +552,16 @@ class _PayoutWindowBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: ColorStyles.grabOrange.withValues(alpha: UIStyles.alphaSoft),
-        borderRadius: UIStyles.cardRadius,
+        color: DSColors.red.withValues(alpha: DSStyles.alphaSoft),
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: ColorStyles.grabOrange.withValues(
-            alpha: UIStyles.alphaDarkShadow,
-          ),
+          color: DSColors.red.withValues(alpha: DSStyles.alphaDarkShadow),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.lock_clock_rounded,
-            color: ColorStyles.grabOrange,
-            size: 18,
-          ),
+          Icon(Icons.lock_clock_rounded, color: DSColors.red, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -578,7 +572,7 @@ class _PayoutWindowBanner extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: ColorStyles.grabOrange,
+                    color: DSColors.red,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -590,9 +584,7 @@ class _PayoutWindowBanner extends StatelessWidget {
                   'Please come back during that window.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: ColorStyles.grabOrange.withValues(
-                      alpha: UIStyles.alphaGlass,
-                    ),
+                    color: DSColors.red.withValues(alpha: DSStyles.alphaGlass),
                     height: 1.4,
                   ),
                 ),
@@ -724,7 +716,7 @@ class _WalletFlipCardState extends State<_WalletFlipCard>
             'Tap to flip back',
             style: TextStyle(
               fontSize: 10,
-              color: Colors.white.withValues(alpha: UIStyles.alphaGlass),
+              color: Colors.white.withValues(alpha: DSStyles.alphaGlass),
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -772,12 +764,10 @@ class _EarningsCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: ColorStyles.grabGreen.withValues(
-              alpha: UIStyles.alphaDarkShadow,
-            ),
+            color: DSColors.primary.withValues(alpha: DSStyles.alphaDarkShadow),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -787,9 +777,9 @@ class _EarningsCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: UIStyles.cardRadius,
-          highlightColor: Colors.white.withValues(alpha: UIStyles.alphaSoft),
-          splashColor: Colors.white.withValues(alpha: UIStyles.alphaSoft),
+          borderRadius: DSStyles.cardRadius,
+          highlightColor: Colors.white.withValues(alpha: DSStyles.alphaSoft),
+          splashColor: Colors.white.withValues(alpha: DSStyles.alphaSoft),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             child:
@@ -802,7 +792,7 @@ class _EarningsCard extends StatelessWidget {
                         Icon(
                           Icons.account_balance_wallet_rounded,
                           color: Colors.white.withValues(
-                            alpha: UIStyles.alphaGlass,
+                            alpha: DSStyles.alphaGlass,
                           ),
                           size: 18,
                         ),
@@ -834,7 +824,7 @@ class _EarningsCard extends StatelessWidget {
                             '₱',
                             style: TextStyle(
                               color: Colors.white.withValues(
-                                alpha: UIStyles.alphaGlass,
+                                alpha: DSStyles.alphaGlass,
                               ),
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -860,7 +850,7 @@ class _EarningsCard extends StatelessWidget {
                         'Tap to view payout account',
                         style: TextStyle(
                           color: Colors.white.withValues(
-                            alpha: UIStyles.alphaBorder,
+                            alpha: DSStyles.alphaBorder,
                           ),
                           fontSize: 11,
                           fontStyle: FontStyle.italic,
@@ -899,9 +889,9 @@ class _EarningsCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: Colors.white.withValues(alpha: UIStyles.alphaBorder),
+          color: Colors.white.withValues(alpha: DSStyles.alphaBorder),
           width: 1,
         ),
       ),
@@ -955,16 +945,16 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
       elevation: 0,
       margin: const EdgeInsets.only(top: 8),
       shape: RoundedRectangleBorder(
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         side: BorderSide(
           color: Theme.of(
             context,
-          ).dividerColor.withValues(alpha: UIStyles.alphaBorder),
+          ).dividerColor.withValues(alpha: DSStyles.alphaBorder),
         ),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Column(
@@ -1015,8 +1005,8 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: ColorStyles.grabGreen.withValues(
-                              alpha: UIStyles.alphaGlass,
+                            color: DSColors.primary.withValues(
+                              alpha: DSStyles.alphaGlass,
                             ),
                           ),
                         ),
@@ -1025,7 +1015,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: ColorStyles.grabGreen,
+                                color: DSColors.primary,
                               ),
                         ),
                       ],
@@ -1048,7 +1038,7 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (status.toUpperCase()) {
-      'PAID' => (const Color(0xFFE6F9EE), ColorStyles.grabGreen),
+      'PAID' => (const Color(0xFFE6F9EE), DSColors.primary),
       'APPROVED' ||
       'OPS_APPROVED' ||
       'HR_APPROVED' => (const Color(0xFFE6F2FF), Colors.blue.shade700),
@@ -1059,7 +1049,7 @@ class _StatusBadge extends StatelessWidget {
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: UIStyles.cardRadius),
+      decoration: BoxDecoration(color: bg, borderRadius: DSStyles.cardRadius),
       child: Text(
         status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),

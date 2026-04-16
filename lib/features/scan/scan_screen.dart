@@ -29,7 +29,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,7 +51,7 @@ import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/formatters.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 enum ScanMode { dispatch, pod }
 
@@ -485,9 +485,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                             isTorchOn
                                 ? Icons.flashlight_on_rounded
                                 : Icons.flashlight_off_rounded,
-                            color: isTorchOn
-                                ? ColorStyles.grabGreen
-                                : Colors.white,
+                            color: isTorchOn ? DSColors.primary : Colors.white,
                           )
                           .animate(key: ValueKey(isTorchOn))
                           .scaleXY(
@@ -544,14 +542,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                     child: Container(
                       height: 2,
                       decoration: BoxDecoration(
-                        color: ColorStyles.grabGreen.withValues(
-                          alpha: UIStyles.alphaGlass,
+                        color: DSColors.primary.withValues(
+                          alpha: DSStyles.alphaGlass,
                         ),
-                        borderRadius: UIStyles.pillRadius,
+                        borderRadius: DSStyles.pillRadius,
                         boxShadow: [
                           BoxShadow(
-                            color: ColorStyles.grabGreen.withValues(
-                              alpha: UIStyles.alphaBorder,
+                            color: DSColors.primary.withValues(
+                              alpha: DSStyles.alphaBorder,
                             ),
                             blurRadius: 8,
                           ),
@@ -568,7 +566,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 right: viewfinderMargin,
                 height: viewfinderH,
                 child: CustomPaint(
-                  painter: _CornerPainter(color: ColorStyles.grabGreen),
+                  painter: _CornerPainter(color: DSColors.primary),
                 ),
               ),
 
@@ -623,7 +621,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          Colors.black.withValues(alpha: UIStyles.alphaGlass),
+                          Colors.black.withValues(alpha: DSStyles.alphaGlass),
                           Colors.transparent,
                         ],
                       ),
@@ -685,12 +683,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.red.withValues(
-                                  alpha: UIStyles.alphaActiveAccent,
+                                  alpha: DSStyles.alphaActiveAccent,
                                 ),
-                                borderRadius: UIStyles.cardRadius,
+                                borderRadius: DSStyles.cardRadius,
                                 border: Border.all(
                                   color: Colors.red.withValues(
-                                    alpha: UIStyles.alphaBorder,
+                                    alpha: DSStyles.alphaBorder,
                                   ),
                                 ),
                               ),
@@ -733,12 +731,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                             foregroundColor: Colors.white,
                             side: BorderSide(
                               color: Colors.white.withValues(
-                                alpha: UIStyles.alphaBorder,
+                                alpha: DSStyles.alphaBorder,
                               ),
                             ),
                             minimumSize: const Size(double.infinity, 48),
                             shape: RoundedRectangleBorder(
-                              borderRadius: UIStyles.cardRadius,
+                              borderRadius: DSStyles.cardRadius,
                             ),
                           ),
                           onPressed: _openManualSheet,
@@ -892,7 +890,7 @@ class _ManualInputArea extends StatelessWidget {
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.white24,
-                borderRadius: UIStyles.pillRadius,
+                borderRadius: DSStyles.pillRadius,
               ),
             ),
           ),
@@ -917,11 +915,11 @@ class _ManualInputArea extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: Colors.red.withValues(
-                    alpha: UIStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaActiveAccent,
                   ),
-                  borderRadius: UIStyles.cardRadius,
+                  borderRadius: DSStyles.cardRadius,
                   border: Border.all(
-                    color: Colors.red.withValues(alpha: UIStyles.alphaBorder),
+                    color: Colors.red.withValues(alpha: DSStyles.alphaBorder),
                   ),
                 ),
                 child: Text(
@@ -939,30 +937,30 @@ class _ManualInputArea extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: UIStyles.alphaDarkShadow),
+                color: Colors.white.withValues(alpha: DSStyles.alphaDarkShadow),
               ),
               filled: true,
-              fillColor: Colors.white.withValues(alpha: UIStyles.alphaSoft),
+              fillColor: Colors.white.withValues(alpha: DSStyles.alphaSoft),
               border: OutlineInputBorder(
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
                   color: Colors.white.withValues(
-                    alpha: UIStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaActiveAccent,
                   ),
                 ),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
                   color: Colors.white.withValues(
-                    alpha: UIStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaActiveAccent,
                   ),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
                 borderSide: const BorderSide(
-                  color: ColorStyles.grabGreen,
+                  color: DSColors.primary,
                   width: 1.5,
                 ),
               ),
@@ -985,10 +983,10 @@ class _ManualInputArea extends StatelessWidget {
               ),
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: ColorStyles.grabGreen,
+              backgroundColor: DSColors.primary,
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
             ),
             onPressed: onSubmit,
           ),
@@ -1033,7 +1031,7 @@ class _SearchResultsSheet extends StatelessWidget {
                 height: 4,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius: UIStyles.pillRadius,
+                  borderRadius: DSStyles.pillRadius,
                 ),
               ),
             ),
@@ -1098,14 +1096,14 @@ class _SearchResultsSheet extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: ColorStyles.grabGreen.withValues(
-                          alpha: UIStyles.alphaSoft,
+                        color: DSColors.primary.withValues(
+                          alpha: DSStyles.alphaSoft,
                         ),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.qr_code_rounded,
-                        color: ColorStyles.grabGreen,
+                        color: DSColors.primary,
                         size: 20,
                       ),
                     ),
@@ -1145,9 +1143,9 @@ class _SearchResultsSheet extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: Colors.grey.withValues(
-                          alpha: UIStyles.alphaSoft,
+                          alpha: DSStyles.alphaSoft,
                         ),
-                        borderRadius: UIStyles.pillRadius,
+                        borderRadius: DSStyles.pillRadius,
                       ),
                       child: Text(
                         status.toUpperCase(),

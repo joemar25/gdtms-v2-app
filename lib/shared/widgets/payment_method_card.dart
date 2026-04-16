@@ -18,8 +18,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class PaymentMethodCard extends StatelessWidget {
   /// Pass `null` while loading to show a skeleton.
@@ -50,17 +49,17 @@ class PaymentMethodCard extends StatelessWidget {
         context: context,
         borderColor: isTransparent
             ? Colors.transparent
-            : ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaDarkShadow),
+            : DSColors.primary.withValues(alpha: DSStyles.alphaDarkShadow),
         bgColor: isTransparent
             ? Colors.transparent
-            : ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaSoft),
+            : DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
         icon: Icons.account_balance_rounded,
-        iconColor: isTransparent ? Colors.white70 : ColorStyles.grabGreen,
+        iconColor: isTransparent ? Colors.white70 : DSColors.primary,
         label: 'Payout Account',
-        labelColor: isTransparent ? Colors.white70 : ColorStyles.grabGreen,
+        labelColor: isTransparent ? Colors.white70 : DSColors.primary,
         badge: _Badge(
           text: 'ACTIVE',
-          color: isTransparent ? Colors.white : ColorStyles.grabGreen,
+          color: isTransparent ? Colors.white : DSColors.primary,
           isTransparent: isTransparent,
         ),
         bankName: bankName ?? '—',
@@ -75,10 +74,10 @@ class PaymentMethodCard extends StatelessWidget {
         context: context,
         borderColor: isTransparent
             ? Colors.transparent
-            : Colors.amber.withValues(alpha: UIStyles.alphaBorder),
+            : Colors.amber.withValues(alpha: DSStyles.alphaBorder),
         bgColor: isTransparent
             ? Colors.transparent
-            : Colors.amber.withValues(alpha: UIStyles.alphaSoft),
+            : Colors.amber.withValues(alpha: DSStyles.alphaSoft),
         icon: Icons.account_balance_rounded,
         iconColor: isTransparent ? Colors.white70 : Colors.amber.shade700,
         label: 'Payout Account',
@@ -162,7 +161,7 @@ class PaymentMethodCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: isTransparent
-                          ? Colors.white.withValues(alpha: UIStyles.alphaGlass)
+                          ? Colors.white.withValues(alpha: DSStyles.alphaGlass)
                           : Colors.grey.shade600,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -194,7 +193,7 @@ class PaymentMethodCard extends StatelessWidget {
                 footerIcon ?? Icons.info_outline_rounded,
                 size: 13,
                 color: isTransparent
-                    ? Colors.white.withValues(alpha: UIStyles.alphaGlass)
+                    ? Colors.white.withValues(alpha: DSStyles.alphaGlass)
                     : Colors.amber.shade700,
               ),
               const SizedBox(width: 6),
@@ -204,7 +203,7 @@ class PaymentMethodCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     color: isTransparent
-                        ? Colors.white.withValues(alpha: UIStyles.alphaGlass)
+                        ? Colors.white.withValues(alpha: DSStyles.alphaGlass)
                         : Colors.amber.shade700,
                   ),
                 ),
@@ -220,7 +219,7 @@ class PaymentMethodCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(color: borderColor),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -261,7 +260,7 @@ class PaymentMethodCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: isTransparent
-                      ? Colors.white.withValues(alpha: UIStyles.alphaGlass)
+                      ? Colors.white.withValues(alpha: DSStyles.alphaGlass)
                       : Colors.amber.shade700,
                 ),
               ),
@@ -275,10 +274,10 @@ class PaymentMethodCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: UIStyles.alphaSoft),
-        borderRadius: UIStyles.cardRadius,
+        color: Colors.amber.withValues(alpha: DSStyles.alphaSoft),
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: Colors.amber.withValues(alpha: UIStyles.alphaBorder),
+          color: Colors.amber.withValues(alpha: DSStyles.alphaBorder),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -291,7 +290,7 @@ class PaymentMethodCard extends StatelessWidget {
     final base = isDark ? Colors.white12 : Colors.black12;
     return Container(
       height: 78,
-      decoration: BoxDecoration(color: base, borderRadius: UIStyles.cardRadius),
+      decoration: BoxDecoration(color: base, borderRadius: DSStyles.cardRadius),
     );
   }
 
@@ -319,12 +318,12 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: isTransparent
-            ? Colors.white.withValues(alpha: UIStyles.alphaActiveAccent)
-            : color.withValues(alpha: UIStyles.alphaActiveAccent),
-        borderRadius: UIStyles.cardRadius,
+            ? Colors.white.withValues(alpha: DSStyles.alphaActiveAccent)
+            : color.withValues(alpha: DSStyles.alphaActiveAccent),
+        borderRadius: DSStyles.cardRadius,
         border: isTransparent
             ? Border.all(
-                color: Colors.white.withValues(alpha: UIStyles.alphaDarkShadow),
+                color: Colors.white.withValues(alpha: DSStyles.alphaDarkShadow),
               )
             : null,
       ),

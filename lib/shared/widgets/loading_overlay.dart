@@ -1,8 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/core/constants.dart';
-import 'package:lottie/lottie.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 /// Wraps [child] and overlays a semi-transparent loading spinner when
 /// [isLoading] is true. Used on screens that perform async operations
@@ -32,12 +31,9 @@ class LoadingOverlay extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(
-                    width: 120,
-                    height: 120,
-                    child: Lottie.asset(
-                      AppAssets.animHourGlass,
-                      fit: BoxFit.contain,
-                    ),
+                    width: 56,
+                    height: 56,
+                    child: SpinKitFadingCircle(color: Colors.white, size: 56),
                   ),
                   if (message != null) ...[
                     const SizedBox(height: 16),

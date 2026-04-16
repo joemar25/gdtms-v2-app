@@ -39,7 +39,7 @@ import 'dart:io';
 // 'dart:typed_data' is available through flutter/services when needed
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,7 +75,7 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─── Consistent spacing constants ───────────────────────────────────────────
 const _kSectionGap = SizedBox(height: 24); // between major sections
@@ -925,14 +925,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           decoration: BoxDecoration(
             color: hasPhoto
                 ? Colors.transparent
-                : (isDark ? ColorStyles.grabCardElevatedDark : Colors.white),
-            borderRadius: UIStyles.cardRadius,
+                : (isDark ? DSColors.elevatedCardDark : Colors.white),
+            borderRadius: DSStyles.cardRadius,
             border: Border.all(
               color: hasError
                   ? Colors.red
                   : hasPhoto
                   ? (isDark ? Colors.white10 : Colors.grey.shade200)
-                  : color.withValues(alpha: UIStyles.alphaBorder),
+                  : color.withValues(alpha: DSStyles.alphaBorder),
               width: hasError ? 1.5 : 1.2,
             ),
           ),
@@ -1045,13 +1045,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       child: Container(
         height: _kSignatureHeight,
         decoration: BoxDecoration(
-          borderRadius: UIStyles.cardRadius,
+          borderRadius: DSStyles.cardRadius,
           border: Border.all(
             color: hasError
                 ? Colors.red
                 : hasSignature
                 ? (isDark ? Colors.white10 : Colors.grey.shade200)
-                : ColorStyles.grabGreen.withValues(alpha: UIStyles.alphaBorder),
+                : DSColors.primary.withValues(alpha: DSStyles.alphaBorder),
             width: hasError ? 1.5 : 1.2,
           ),
         ),
@@ -1147,8 +1147,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     Icon(
                       Icons.draw_rounded,
                       size: 34,
-                      color: ColorStyles.grabGreen.withValues(
-                        alpha: UIStyles.alphaGlass,
+                      color: DSColors.primary.withValues(
+                        alpha: DSStyles.alphaGlass,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -1157,8 +1157,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: ColorStyles.grabGreen.withValues(
-                          alpha: UIStyles.alphaGlass,
+                        color: DSColors.primary.withValues(
+                          alpha: DSStyles.alphaGlass,
                         ),
                         letterSpacing: 0.5,
                       ),
@@ -1253,12 +1253,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: ColorStyles.grabGreen,
+              backgroundColor: DSColors.primary,
               minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
               elevation: 6,
-              shadowColor: ColorStyles.grabGreen.withValues(
-                alpha: UIStyles.alphaBorder,
+              shadowColor: DSColors.primary.withValues(
+                alpha: DSStyles.alphaBorder,
               ),
             ),
             onPressed: _loading ? null : _submit,
@@ -1292,9 +1292,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               ),
             ],
           ),
-          backgroundColor: isDark
-              ? ColorStyles.appBarDark
-              : ColorStyles.appBarLight,
+          backgroundColor: isDark ? DSColors.appBarDark : DSColors.appBarLight,
         ),
         body: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -1685,7 +1683,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         label: 'POD',
                                         photo: _podPhoto,
                                         icon: Icons.inventory_2_rounded,
-                                        color: ColorStyles.grabGreen,
+                                        color: DSColors.primary,
                                         isDark: isDark,
                                       ),
                                       const SizedBox(width: 12),
@@ -1705,7 +1703,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     children: [
                                       Checkbox(
                                         value: _showSignatureSlot,
-                                        activeColor: ColorStyles.grabGreen,
+                                        activeColor: DSColors.primary,
                                         onChanged: (checked) async {
                                           if (checked == true) {
                                             final confirmed = await showDialog<bool>(
@@ -1736,8 +1734,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                     style:
                                                         FilledButton.styleFrom(
                                                           backgroundColor:
-                                                              ColorStyles
-                                                                  .grabGreen,
+                                                              DSColors.primary,
                                                         ),
                                                     onPressed: () =>
                                                         Navigator.of(
@@ -1940,12 +1937,12 @@ class _NotePresetChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedColor = ColorStyles.grabGreen;
+    final selectedColor = DSColors.primary;
     final unselectedBg = isDark
-        ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
+        ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
         : Colors.grey.shade100;
     final unselectedBorder = isDark
-        ? Colors.white.withValues(alpha: UIStyles.alphaActiveAccent)
+        ? Colors.white.withValues(alpha: DSStyles.alphaActiveAccent)
         : Colors.grey.shade300;
 
     return GestureDetector(
@@ -1955,12 +1952,12 @@ class _NotePresetChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: selected
-              ? selectedColor.withValues(alpha: UIStyles.alphaActiveAccent)
+              ? selectedColor.withValues(alpha: DSStyles.alphaActiveAccent)
               : unselectedBg,
-          borderRadius: UIStyles.cardRadius,
+          borderRadius: DSStyles.cardRadius,
           border: Border.all(
             color: selected
-                ? selectedColor.withValues(alpha: UIStyles.alphaGlass)
+                ? selectedColor.withValues(alpha: DSStyles.alphaGlass)
                 : unselectedBorder,
             width: selected ? 1.4 : 1.0,
           ),
@@ -2030,7 +2027,7 @@ class _StatusSelectorState extends State<_StatusSelector> {
           height: 80,
           decoration: BoxDecoration(
             color: isDark ? Colors.white10 : Colors.grey.shade200,
-            borderRadius: UIStyles.cardRadius,
+            borderRadius: DSStyles.cardRadius,
             border: Border.all(
               color: isDark ? Colors.white12 : Colors.grey.shade300,
               width: 1,
@@ -2055,11 +2052,11 @@ class _StatusSelectorState extends State<_StatusSelector> {
                       duration: const Duration(milliseconds: 300),
                       decoration: BoxDecoration(
                         color: activeMeta.color,
-                        borderRadius: UIStyles.cardRadius,
+                        borderRadius: DSStyles.cardRadius,
                         boxShadow: [
                           BoxShadow(
                             color: activeMeta.color.withValues(
-                              alpha: UIStyles.alphaDarkShadow,
+                              alpha: DSStyles.alphaDarkShadow,
                             ),
                             blurRadius: 6,
                             offset: const Offset(0, 3),

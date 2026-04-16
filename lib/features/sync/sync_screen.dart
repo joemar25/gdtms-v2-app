@@ -73,11 +73,12 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -98,6 +99,7 @@ import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class SyncScreen extends ConsumerStatefulWidget {
   const SyncScreen({super.key});
@@ -741,10 +743,15 @@ class _EntryTile extends StatelessWidget {
     final currentStatus = (delStatus != null && delStatus.isNotEmpty)
         ? delStatus
         : payloadStatus;
-    // Use failedDeliveryAttemptsCount (derived from sync queue entries) as the authoritative
-    // attempt count. rawJson may not contain failed_delivery_count if the server hasn't
-    // returned it for this item yet, so counting queue entries is more reliable.
-    final attemptsCount = failedDeliveryAttemptsCount;
+    // Use the higher of: queue-derived attempt count OR raw_json attempt count.
+    // The queue count is authoritative for in-progress items; raw_json is needed
+    // for deliveries whose older sync entries have already been auto-purged.
+    final rawJsonAttempts = delivery != null
+        ? getAttemptsCountFromMap(delivery!.toDeliveryMap())
+        : 0;
+    final attemptsCount = failedDeliveryAttemptsCount > rawJsonAttempts
+        ? failedDeliveryAttemptsCount
+        : rawJsonAttempts;
 
     final currentFailedDeliveryVerif =
         (delivery?.rtsVerificationStatus ?? 'unvalidated')
@@ -1039,7 +1046,7 @@ class _StatusBadge extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: bg, borderRadius: UIStyles.pillRadius),
+      decoration: BoxDecoration(color: bg, borderRadius: DSStyles.pillRadius),
       child: Text(
         label,
         style: TextStyle(
@@ -1066,7 +1073,7 @@ class _Chip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
-        borderRadius: UIStyles.pillRadius,
+        borderRadius: DSStyles.pillRadius,
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Text(
@@ -1091,7 +1098,7 @@ class _ArchivedChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: Colors.purple.shade50,
-        borderRadius: UIStyles.pillRadius,
+        borderRadius: DSStyles.pillRadius,
         border: Border.all(color: Colors.purple.shade200),
       ),
       child: Text(
@@ -1211,12 +1218,7 @@ class _EmptyStateState extends State<_EmptyState>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (widget.isSyncing) ...[
-                  Lottie.asset(
-                    AppAssets.animHourGlass,
-                    width: 160,
-                    height: 160,
-                    repeat: true,
-                  ),
+                  const SpinKitDoubleBounce(color: Color(0xFF00B14F), size: 80),
                   const SizedBox(height: 16),
                   Text('Syncing…', style: theme.textTheme.titleMedium),
                 ] else ...[

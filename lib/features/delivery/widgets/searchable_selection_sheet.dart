@@ -1,8 +1,7 @@
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// A premium, searchable bottom sheet for selecting from a list of options.
 /// Supports both simple [String] lists and [Map<String, String>] lists with 'label'/'value' keys.
@@ -106,7 +105,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: UIStyles.alphaDarkShadow),
+            color: Colors.black.withValues(alpha: DSStyles.alphaDarkShadow),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -121,7 +120,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
             height: 4,
             decoration: BoxDecoration(
               color: widget.isDark ? Colors.white24 : Colors.grey.shade300,
-              borderRadius: UIStyles.pillRadius,
+              borderRadius: DSStyles.pillRadius,
             ),
           ),
           const SizedBox(height: 16),
@@ -157,7 +156,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
             child: Container(
               decoration: BoxDecoration(
                 color: surfaceColor,
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
                 border: Border.all(
                   color: widget.isDark ? Colors.white10 : Colors.grey.shade200,
                 ),
@@ -231,7 +230,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                         padding: const EdgeInsets.only(bottom: 8),
                         child: InkWell(
                           onTap: () => Navigator.pop(context, value),
-                          borderRadius: UIStyles.cardRadius,
+                          borderRadius: DSStyles.cardRadius,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
@@ -240,16 +239,14 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? ColorStyles.grabGreen.withValues(
-                                      alpha: UIStyles.alphaSoft,
+                                  ? DSColors.primary.withValues(
+                                      alpha: DSStyles.alphaSoft,
                                     )
                                   : Colors.transparent,
-                              borderRadius: UIStyles.cardRadius,
+                              borderRadius: DSStyles.cardRadius,
                               border: Border.all(
                                 color: isSelected
-                                    ? ColorStyles.grabGreen.withValues(
-                                        alpha: 0.5,
-                                      )
+                                    ? DSColors.primary.withValues(alpha: 0.5)
                                     : Colors.transparent,
                                 width: 1.5,
                               ),
@@ -265,7 +262,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                                           ? FontWeight.w800
                                           : FontWeight.w500,
                                       color: isSelected
-                                          ? ColorStyles.grabGreen
+                                          ? DSColors.primary
                                           : (widget.isDark
                                                 ? Colors.white
                                                 : Colors.black87),
@@ -275,7 +272,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                                 if (isSelected)
                                   const Icon(
                                     Icons.check_circle_rounded,
-                                    color: ColorStyles.grabGreen,
+                                    color: DSColors.primary,
                                     size: 20,
                                   ),
                               ],

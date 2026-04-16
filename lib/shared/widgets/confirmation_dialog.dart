@@ -1,9 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
-
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class ConfirmationDialog extends StatelessWidget {
   const ConfirmationDialog({
@@ -44,12 +42,10 @@ class ConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final confirmColor = isDestructive
-        ? Colors.red.shade600
-        : ColorStyles.grabGreen;
+    final confirmColor = isDestructive ? Colors.red.shade600 : DSColors.primary;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: UIStyles.cardRadius),
+      shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
         child: Column(
@@ -77,7 +73,7 @@ class ConfirmationDialog extends StatelessWidget {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
-                  borderRadius: UIStyles.cardRadius,
+                  borderRadius: DSStyles.cardRadius,
                 ),
               ),
               onPressed: () => Navigator.pop(context, true),
@@ -88,7 +84,7 @@ class ConfirmationDialog extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
-                  borderRadius: UIStyles.cardRadius,
+                  borderRadius: DSStyles.cardRadius,
                 ),
               ),
               onPressed: () => Navigator.pop(context, false),

@@ -1,7 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// A reusable offline banner widget with two variants:
 /// - **Standard**: Full detailed message about what works offline
@@ -53,7 +53,7 @@ class _MinimalOfflineBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.orange.shade50,
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(color: Colors.orange.shade200, width: 1.2),
       ),
       child: Row(
@@ -88,10 +88,10 @@ class _StandardOfflineBanner extends StatelessWidget {
       margin: margin,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: UIStyles.alphaActiveAccent),
-        borderRadius: UIStyles.cardRadius,
+        color: Colors.orange.withValues(alpha: DSStyles.alphaActiveAccent),
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: Colors.orange.withValues(alpha: UIStyles.alphaBorder),
+          color: Colors.orange.withValues(alpha: DSStyles.alphaBorder),
         ),
       ),
       child: Row(

@@ -32,7 +32,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,7 +56,8 @@ import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/search_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 /// A single list screen reused for every delivery status filter
 /// (pending, delivered, failed_delivery, osa, dispatched).
@@ -69,10 +70,15 @@ class DeliveryStatusListScreen extends ConsumerStatefulWidget {
     super.key,
     required this.status,
     required this.title,
+    this.initialSearch,
   });
 
   final String status;
   final String title;
+
+  /// When set, the search bar is opened automatically with this query
+  /// pre-populated. Used when navigating from the dashboard header search.
+  final String? initialSearch;
 
   @override
   ConsumerState<DeliveryStatusListScreen> createState() =>
@@ -114,7 +120,15 @@ class _DeliveryStatusListScreenState
   @override
   void initState() {
     super.initState();
-    _load();
+    final q = widget.initialSearch?.trim() ?? '';
+    if (q.isNotEmpty) {
+      _showSearch = true;
+      _searchQuery = q;
+      _searchController.text = q;
+      _load().then((_) => _runSearch(q));
+    } else {
+      _load();
+    }
   }
 
   @override
@@ -330,8 +344,8 @@ class _DeliveryStatusListScreenState
       },
       child: Scaffold(
         backgroundColor: isDark
-            ? ColorStyles.scaffoldDark
-            : ColorStyles.scaffoldLight,
+            ? DSColors.scaffoldDark
+            : DSColors.scaffoldLight,
         appBar: AppHeaderBar(
           title: widget.title,
           actions: _buildActions(context),
@@ -402,22 +416,18 @@ class _DeliveryStatusListScreenState
               // ── List ───────────────────────────────────────────────────────────
               Expanded(
                 child: RefreshIndicator(
-                  color: ColorStyles.grabOrange,
+                  color: DSColors.red,
                   onRefresh: _onRefresh,
                   child: _loading
                       ? Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation(
-                              ColorStyles.grabOrange,
-                            ),
+                            valueColor: AlwaysStoppedAnimation(DSColors.red),
                           ),
                         )
                       : (_searchLoading && displayed.isEmpty)
                       ? Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation(
-                              ColorStyles.grabOrange,
-                            ),
+                            valueColor: AlwaysStoppedAnimation(DSColors.red),
                           ),
                         )
                       : displayed.isEmpty
@@ -429,80 +439,85 @@ class _DeliveryStatusListScreenState
                           isSearching: isSearching,
                           isDark: isDark,
                         )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                          itemCount: displayed.length + _bannerCount(isOnline),
-                          itemBuilder: (context, index) {
-                            final banners = _bannerCount(isOnline);
-                            if (index < banners) {
-                              return _buildBanner(index, isOnline, isDark);
-                            }
-                            final d = displayed[index - banners];
-                            final identifier = resolveDeliveryIdentifier(d);
-                            final deliveryStatus =
-                                d['delivery_status']?.toString() ?? 'PENDING';
-                            final isLocked = checkIsLockedFromMap(d);
-                            final canUpdate =
-                                identifier.isNotEmpty &&
-                                !isLocked &&
-                                deliveryStatus.toUpperCase() != 'OSA';
+                      : SlidableAutoCloseBehavior(
+                          // Ensure other Slidables close automatically when one opens
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                            itemCount:
+                                displayed.length + _bannerCount(isOnline),
+                            itemBuilder: (context, index) {
+                              final banners = _bannerCount(isOnline);
+                              if (index < banners) {
+                                return _buildBanner(index, isOnline, isDark);
+                              }
+                              final d = displayed[index - banners];
+                              final identifier = resolveDeliveryIdentifier(d);
+                              final deliveryStatus =
+                                  d['delivery_status']?.toString() ?? 'PENDING';
+                              final isLocked = checkIsLockedFromMap(d);
+                              final canUpdate =
+                                  identifier.isNotEmpty &&
+                                  !isLocked &&
+                                  deliveryStatus.toUpperCase() != 'OSA';
 
-                            return DeliveryCard(
-                              delivery: d,
-                              compact: isCompact,
-                              showChevron: !isLocked,
-                              onUpdateTap: canUpdate
-                                  ? () => context.push(
-                                      '/deliveries/$identifier/update',
-                                    )
-                                  : null,
-                              onTap: (identifier.isEmpty)
-                                  ? () {}
-                                  : (isLocked)
-                                  ? () {
-                                      final s = deliveryStatus.toUpperCase();
-                                      final v =
-                                          (d['_rts_verification_status'] ??
-                                                  d['_failed_delivery_verification_status'] ??
-                                                  'unvalidated')
-                                              .toString()
-                                              .toLowerCase();
-                                      final attemptsCount =
-                                          getAttemptsCountFromMap(d);
+                              return DeliveryCard(
+                                delivery: d,
+                                compact: isCompact,
+                                showChevron: !isLocked,
+                                onUpdateTap: canUpdate
+                                    ? () => context.push(
+                                        '/deliveries/$identifier/update',
+                                      )
+                                    : null,
+                                onTap: (identifier.isEmpty)
+                                    ? () {}
+                                    : (isLocked)
+                                    ? () {
+                                        final s = deliveryStatus.toUpperCase();
+                                        final v =
+                                            (d['_rts_verification_status'] ??
+                                                    d['_failed_delivery_verification_status'] ??
+                                                    'unvalidated')
+                                                .toString()
+                                                .toLowerCase();
+                                        final attemptsCount =
+                                            getAttemptsCountFromMap(d);
 
-                                      final ds = DeliveryStatus.fromString(s);
-                                      final rv =
-                                          FailedDeliveryVerificationStatus.fromString(
-                                            v,
-                                          );
-                                      String msg =
-                                          'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
-                                      if (ds == DeliveryStatus.osa) {
-                                        msg =
-                                            'This item is marked OSA and cannot be opened.';
-                                      } else if (ds ==
-                                          DeliveryStatus.delivered) {
-                                        msg =
-                                            'This item has already been delivered and is sealed.';
-                                      } else if (ds ==
-                                              DeliveryStatus.failedDelivery &&
-                                          attemptsCount >= 3) {
-                                        msg =
-                                            'This failed delivery has reached the maximum number of attempts and is locked.';
-                                      } else if (ds ==
-                                              DeliveryStatus.failedDelivery &&
-                                          rv.isVerified) {
-                                        msg =
-                                            'This failed delivery has already been verified and is no longer actionable.';
+                                        final ds = DeliveryStatus.fromString(s);
+                                        final rv =
+                                            FailedDeliveryVerificationStatus.fromString(
+                                              v,
+                                            );
+                                        String msg =
+                                            'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
+                                        if (ds == DeliveryStatus.osa) {
+                                          msg =
+                                              'This item is marked OSA and cannot be opened.';
+                                        } else if (ds ==
+                                            DeliveryStatus.delivered) {
+                                          msg =
+                                              'This item has already been delivered and is sealed.';
+                                        } else if (ds ==
+                                                DeliveryStatus.failedDelivery &&
+                                            attemptsCount >= 3) {
+                                          msg =
+                                              'This failed delivery has reached the maximum number of attempts and is locked.';
+                                        } else if (ds ==
+                                                DeliveryStatus.failedDelivery &&
+                                            rv.isVerified) {
+                                          msg =
+                                              'This failed delivery has already been verified and is no longer actionable.';
+                                        }
+                                        showInfoNotification(context, msg);
                                       }
-                                      showInfoNotification(context, msg);
-                                    }
-                                  : () =>
-                                        context.push('/deliveries/$identifier'),
-                            );
-                          },
+                                    : () => context.push(
+                                        '/deliveries/$identifier',
+                                      ),
+                              );
+                            },
+                          ),
                         ),
                 ),
               ),
@@ -539,7 +554,7 @@ class _DeliveryStatusListScreenState
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: UIStyles.alphaDarkShadow),
+              color: Colors.black.withValues(alpha: DSStyles.alphaDarkShadow),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -555,7 +570,7 @@ class _DeliveryStatusListScreenState
               height: 4,
               decoration: BoxDecoration(
                 color: isDark ? Colors.white24 : Colors.black12,
-                borderRadius: UIStyles.pillRadius,
+                borderRadius: DSStyles.pillRadius,
               ),
             ),
             const SizedBox(height: 24),
@@ -569,7 +584,7 @@ class _DeliveryStatusListScreenState
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: failedDeliveryColor.withValues(
-                        alpha: UIStyles.alphaSoft,
+                        alpha: DSStyles.alphaSoft,
                       ),
                       shape: BoxShape.circle,
                     ),
@@ -625,9 +640,9 @@ class _DeliveryStatusListScreenState
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withValues(alpha: UIStyles.alphaSoft)
+                      ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
                       : const Color(0xFFF8FAFC),
-                  borderRadius: UIStyles.cardRadius,
+                  borderRadius: DSStyles.cardRadius,
                   border: Border.all(
                     color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
                   ),
@@ -670,12 +685,12 @@ class _DeliveryStatusListScreenState
                   gradient: LinearGradient(
                     colors: [
                       failedDeliveryColor.withValues(
-                        alpha: UIStyles.alphaActiveAccent,
+                        alpha: DSStyles.alphaActiveAccent,
                       ),
-                      failedDeliveryColor.withValues(alpha: UIStyles.alphaSoft),
+                      failedDeliveryColor.withValues(alpha: DSStyles.alphaSoft),
                     ],
                   ),
-                  borderRadius: UIStyles.cardRadius,
+                  borderRadius: DSStyles.cardRadius,
                 ),
                 child: Row(
                   children: [
@@ -692,10 +707,10 @@ class _DeliveryStatusListScreenState
                           fontSize: 12,
                           color: isDark
                               ? failedDeliveryColor.withValues(
-                                  alpha: UIStyles.alphaGlass,
+                                  alpha: DSStyles.alphaGlass,
                                 )
                               : failedDeliveryColor.withValues(
-                                  alpha: UIStyles.alphaGlass,
+                                  alpha: DSStyles.alphaGlass,
                                 ),
                           height: 1.4,
                           fontWeight: FontWeight.w500,
@@ -805,11 +820,11 @@ class _EmptyState extends StatelessWidget {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: UIStyles.alphaSoft),
+                    color: statusColor.withValues(alpha: DSStyles.alphaSoft),
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: statusColor.withValues(
-                        alpha: UIStyles.alphaActiveAccent,
+                        alpha: DSStyles.alphaActiveAccent,
                       ),
                       width: 1.5,
                     ),
@@ -817,7 +832,7 @@ class _EmptyState extends StatelessWidget {
                   child: Icon(
                     iconData,
                     size: 28,
-                    color: statusColor.withValues(alpha: UIStyles.alphaBorder),
+                    color: statusColor.withValues(alpha: DSStyles.alphaBorder),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -863,21 +878,21 @@ class _StatusInfoBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = isDark
-        ? ColorStyles.grabCardDark
-        : statusColor.withValues(alpha: UIStyles.alphaSoft);
+        ? DSColors.cardDark
+        : statusColor.withValues(alpha: DSStyles.alphaSoft);
     final border = isDark
-        ? statusColor.withValues(alpha: UIStyles.alphaDarkShadow)
+        ? statusColor.withValues(alpha: DSStyles.alphaDarkShadow)
         : statusColor.withValues(alpha: 0.22);
     final textColor = isDark
-        ? statusColor.withValues(alpha: UIStyles.alphaGlass)
-        : statusColor.withValues(alpha: UIStyles.alphaGlass);
+        ? statusColor.withValues(alpha: DSStyles.alphaGlass)
+        : statusColor.withValues(alpha: DSStyles.alphaGlass);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(color: border),
       ),
       child: Row(

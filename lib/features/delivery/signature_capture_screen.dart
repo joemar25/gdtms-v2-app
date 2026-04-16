@@ -24,12 +24,12 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
 import 'package:signature/signature.dart';
 
-import 'package:fsi_courier_app/styles/color_styles.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// Full-screen signature capture screen (portrait default, auto-rotate enabled).
 ///
@@ -85,9 +85,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
     final hasStrokes = _controller.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? ColorStyles.scaffoldDark
-          : ColorStyles.scaffoldLight,
+      backgroundColor: isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight,
       appBar: AppHeaderBar(
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
@@ -133,7 +131,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
               ),
               style: FilledButton.styleFrom(
                 backgroundColor: hasStrokes
-                    ? ColorStyles.grabGreen
+                    ? DSColors.primary
                     : Colors.grey.shade300,
                 foregroundColor: hasStrokes
                     ? Colors.white
@@ -144,16 +142,14 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
                 ),
                 minimumSize: Size.zero,
                 shape: RoundedRectangleBorder(
-                  borderRadius: UIStyles.cardRadius,
+                  borderRadius: DSStyles.cardRadius,
                 ),
               ),
               onPressed: hasStrokes ? _done : null,
             ),
           ),
         ],
-        backgroundColor: isDark
-            ? ColorStyles.appBarDark
-            : ColorStyles.appBarLight,
+        backgroundColor: isDark ? DSColors.appBarDark : DSColors.appBarLight,
         showNotificationBell: false,
       ),
       body: Stack(

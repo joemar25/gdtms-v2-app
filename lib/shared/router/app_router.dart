@@ -355,14 +355,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/deliveries',
-        pageBuilder: (_, state) => _page(
-          key: state.pageKey,
-          child: const DeliveryStatusListScreen(
-            status: 'pending',
-            title: 'DELIVERIES',
-          ),
-          extra: state.extra,
-        ),
+        pageBuilder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final initialSearch = extra?['initialSearch'] as String?;
+          return _page(
+            key: state.pageKey,
+            child: DeliveryStatusListScreen(
+              status: 'pending',
+              title: 'DELIVERIES',
+              initialSearch: initialSearch,
+            ),
+            extra: state.extra,
+          );
+        },
       ),
       GoRoute(
         path: '/deliveries/:barcode',

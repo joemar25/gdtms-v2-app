@@ -9,8 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/connectivity_provider.dart';
 import '../../core/services/platform_settings.dart';
 import '../../core/services/time_validation_service.dart';
-import '../../styles/color_styles.dart';
-import '../../styles/ui_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// How often to re-validate while the app is in the foreground.
 const _kPeriodicInterval = Duration(minutes: 5);
@@ -167,15 +166,13 @@ class _LoadingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark
-          ? ColorStyles.scaffoldDark
-          : ColorStyles.scaffoldLight,
+      backgroundColor: isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const CircularProgressIndicator(
-              color: ColorStyles.primary,
+              color: DSColors.primary,
               strokeWidth: 2.5,
             ),
             const SizedBox(height: 16),
@@ -183,8 +180,8 @@ class _LoadingScreen extends StatelessWidget {
               'Verifying device time…',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: isDark
-                    ? ColorStyles.labelSecondaryDark
-                    : ColorStyles.labelSecondary,
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
               ),
             ),
           ],
@@ -219,8 +216,8 @@ class _BlockingOverlay extends StatelessWidget {
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: isDark ? ColorStyles.cardDark : ColorStyles.cardLight,
-              borderRadius: UIStyles.cardRadius,
+              color: isDark ? DSColors.cardDark : DSColors.cardLight,
+              borderRadius: DSStyles.cardRadius,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.12),
@@ -238,12 +235,12 @@ class _BlockingOverlay extends StatelessWidget {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: ColorStyles.grabOrange.withValues(alpha: 0.12),
+                    color: DSColors.red.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.access_time_filled_rounded,
-                    color: ColorStyles.grabOrange,
+                    color: DSColors.red,
                     size: 32,
                   ),
                 ),
@@ -260,8 +257,8 @@ class _BlockingOverlay extends StatelessWidget {
                   'This app requires Philippine Standard Time (UTC+8).',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: isDark
-                        ? ColorStyles.labelSecondaryDark
-                        : ColorStyles.labelSecondary,
+                        ? DSColors.labelSecondaryDark
+                        : DSColors.labelSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -271,17 +268,17 @@ class _BlockingOverlay extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? ColorStyles.red.withValues(alpha: 0.08)
-                        : ColorStyles.red.withValues(alpha: 0.06),
-                    borderRadius: UIStyles.pillRadius,
+                        ? DSColors.red.withValues(alpha: 0.08)
+                        : DSColors.red.withValues(alpha: 0.06),
+                    borderRadius: DSStyles.pillRadius,
                     border: Border.all(
-                      color: ColorStyles.red.withValues(alpha: 0.25),
+                      color: DSColors.red.withValues(alpha: 0.25),
                     ),
                   ),
                   child: Text(
                     message,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: ColorStyles.red,
+                      color: DSColors.red,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -296,10 +293,10 @@ class _BlockingOverlay extends StatelessWidget {
                         onPressed: _openSettings,
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
-                            color: ColorStyles.primary.withValues(alpha: 0.6),
+                            color: DSColors.primary.withValues(alpha: 0.6),
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: UIStyles.cardRadius,
+                            borderRadius: DSStyles.cardRadius,
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
@@ -311,11 +308,11 @@ class _BlockingOverlay extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: checking ? null : onRetry,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: ColorStyles.primary,
+                          backgroundColor: DSColors.primary,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: UIStyles.cardRadius,
+                            borderRadius: DSStyles.cardRadius,
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
@@ -338,8 +335,8 @@ class _BlockingOverlay extends StatelessWidget {
                   'Enable "Automatic date & time" and set timezone to Asia/Manila.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: isDark
-                        ? ColorStyles.labelSecondaryDark
-                        : ColorStyles.labelSecondary,
+                        ? DSColors.labelSecondaryDark
+                        : DSColors.labelSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),

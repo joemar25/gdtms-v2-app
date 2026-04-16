@@ -1,14 +1,17 @@
-// DOCS: docs/styles.md — update that file when you edit this one.
-
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
 
+// Font-size constants kept as top-level values for legacy compatibility.
 const double textTitle = 20.0;
 const double textSubtitle = 14.0;
 const double textBody = 14.0;
 const double textCaption = 12.0;
 
-class TextStyles {
+/// Design-system typography tokens.
+///
+/// Replaces the old `TextStyles` class. All text styles in the app should
+/// originate here.
+class DSTypography {
   static TextStyle title({
     Color? color,
     double? fontSize,
@@ -16,8 +19,7 @@ class TextStyles {
   }) => TextStyle(
     fontFamily: 'Montserrat',
     fontSize: fontSize ?? textTitle,
-    color:
-        color ?? ColorStyles.labelPrimary, // Updated to a more sensible default
+    color: color ?? DSColors.labelPrimary,
     fontWeight: fontWeight ?? FontWeight.w700,
     letterSpacing: -0.5,
   );
@@ -29,7 +31,7 @@ class TextStyles {
   }) => TextStyle(
     fontFamily: 'Montserrat',
     fontSize: fontSize ?? textSubtitle,
-    color: color ?? ColorStyles.labelSecondary,
+    color: color ?? DSColors.labelSecondary,
     fontWeight: fontWeight ?? FontWeight.w600,
     letterSpacing: -0.2,
   );
@@ -37,6 +39,6 @@ class TextStyles {
   static TextStyle caption({Color? color, double? fontSize}) => TextStyle(
     fontFamily: 'Montserrat',
     fontSize: fontSize ?? textCaption,
-    color: color ?? ColorStyles.labelTertiary,
+    color: color ?? DSColors.labelTertiary,
   );
 }

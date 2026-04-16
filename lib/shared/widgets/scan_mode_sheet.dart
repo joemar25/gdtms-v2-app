@@ -1,24 +1,30 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
-import 'package:go_router/go_router.dart';
 
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:go_router/go_router.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// Displays a bottom sheet for the FAB with two scan action options.
 void showScanModeSheet(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
+    // useRootNavigator: true ensures the modal is pushed onto the root
+    // navigator and its barrier covers the entire screen — including the
+    // floating bottom nav bar which lives in ScaffoldWithNavBar's
+    // bottomNavigationBar (outside the branch navigator).
+    useRootNavigator: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _ScanModeSheet(
+    // Use the builder's context (sheetCtx) for navigation so we never
+    // touch the caller's potentially-deactivated context inside callbacks.
+    builder: (sheetCtx) => _ScanModeSheet(
       onDispatch: () {
-        Navigator.pop(context);
-        context.push('/scan', extra: {'mode': 'dispatch'});
+        sheetCtx.pop();
+        sheetCtx.push('/scan', extra: {'mode': 'dispatch'});
       },
       onPod: () {
-        Navigator.pop(context);
-        context.push('/scan', extra: {'mode': 'pod'});
+        sheetCtx.pop();
+        sheetCtx.push('/scan', extra: {'mode': 'pod'});
       },
     ),
   );
@@ -52,7 +58,7 @@ class _ScanModeSheet extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
-                borderRadius: UIStyles.pillRadius,
+                borderRadius: DSStyles.pillRadius,
               ),
             ),
           ),
@@ -68,17 +74,17 @@ class _ScanModeSheet extends StatelessWidget {
           const SizedBox(height: 14),
           _ActionTile(
             icon: Icons.qr_code_scanner_rounded,
-            iconColor: ColorStyles.grabGreen,
+            iconColor: DSColors.primary,
             title: 'Accept incoming dispatch',
-            subtitle: 'Scan or enter a dispatch barcode',
+            subtitle: 'Scan or enter a dispatch code',
             onTap: onDispatch,
           ),
           const SizedBox(height: 8),
           _ActionTile(
             icon: Icons.inventory_2_outlined,
-            iconColor: ColorStyles.grabOrange,
+            iconColor: DSColors.red,
             title: 'Scan delivery',
-            subtitle: 'Scan a parcel barcode to update status',
+            subtitle: 'Scan a barcode to update status',
             onTap: onPod,
           ),
         ],
@@ -109,15 +115,13 @@ class _ActionTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: isDark
-                ? ColorStyles.grabCardElevatedDark
-                : ColorStyles.grabCardLight,
-            borderRadius: UIStyles.cardRadius,
+            color: isDark ? DSColors.elevatedCardDark : DSColors.cardLight,
+            borderRadius: DSStyles.cardRadius,
           ),
           child: Row(
             children: [
@@ -126,9 +130,9 @@ class _ActionTile extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: iconColor.withValues(
-                    alpha: UIStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaActiveAccent,
                   ),
-                  borderRadius: UIStyles.cardRadius,
+                  borderRadius: DSStyles.cardRadius,
                 ),
                 child: Icon(icon, color: iconColor, size: 22),
               ),

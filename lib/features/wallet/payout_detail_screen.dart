@@ -2,7 +2,7 @@
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -10,9 +10,10 @@ import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class PayoutDetailScreen extends ConsumerStatefulWidget {
   const PayoutDetailScreen({super.key, required this.reference});
@@ -171,7 +172,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                               transactionHistory,
                             ),
                             style: TextButton.styleFrom(
-                              foregroundColor: ColorStyles.grabGreen,
+                              foregroundColor: DSColors.primary,
                               textStyle: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -336,7 +337,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         minChildSize: 0.3,
         builder: (_, scrollCtrl) => Container(
           decoration: BoxDecoration(
-            color: isDark ? ColorStyles.grabCardDark : ColorStyles.white,
+            color: isDark ? DSColors.cardDark : DSColors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -351,10 +352,10 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.white.withValues(
-                            alpha: UIStyles.alphaDarkShadow,
+                            alpha: DSStyles.alphaDarkShadow,
                           )
                         : Colors.grey.shade300,
-                    borderRadius: UIStyles.pillRadius,
+                    borderRadius: DSStyles.pillRadius,
                   ),
                 ),
               ),
@@ -365,7 +366,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: isDark ? ColorStyles.white : ColorStyles.black,
+                    color: isDark ? DSColors.white : DSColors.black,
                   ),
                 ),
               ),
@@ -401,7 +402,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                   margin: const EdgeInsets.only(top: 3),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: ColorStyles.grabGreen,
+                                    color: DSColors.primary,
                                   ),
                                 ),
                                 if (!isLast)
@@ -411,7 +412,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                       margin: const EdgeInsets.symmetric(
                                         vertical: 4,
                                       ),
-                                      color: ColorStyles.grabGreen.withValues(
+                                      color: DSColors.primary.withValues(
                                         alpha: 0.25,
                                       ),
                                     ),
@@ -433,8 +434,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: isDark
-                                          ? ColorStyles.white
-                                          : ColorStyles.black,
+                                          ? DSColors.white
+                                          : DSColors.black,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -442,7 +443,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                     timestamp,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: ColorStyles.subSecondary,
+                                      color: DSColors.subSecondary,
                                     ),
                                   ),
                                   if (by != null && by.isNotEmpty) ...[
@@ -451,7 +452,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                       'By: $by',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: ColorStyles.secondary,
+                                        color: DSColors.secondary,
                                       ),
                                     ),
                                   ],
@@ -462,7 +463,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                       remarks,
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: ColorStyles.subSecondary,
+                                        color: DSColors.subSecondary,
                                         fontStyle: FontStyle.italic,
                                       ),
                                     ),
@@ -504,11 +505,11 @@ class _SectionCard extends StatelessWidget {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         side: BorderSide(
           color: Theme.of(
             context,
-          ).dividerColor.withValues(alpha: UIStyles.alphaBorder),
+          ).dividerColor.withValues(alpha: DSStyles.alphaBorder),
         ),
       ),
       child: Padding(
@@ -548,25 +549,25 @@ class _StatusBadgeLight extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, fg) = switch (status.toUpperCase()) {
       'PAID' => (
-        Colors.white.withValues(alpha: UIStyles.alphaDarkShadow),
+        Colors.white.withValues(alpha: DSStyles.alphaDarkShadow),
         Colors.white,
       ),
       'REJECTED' => (
-        Colors.red.shade400.withValues(alpha: UIStyles.alphaDarkShadow),
+        Colors.red.shade400.withValues(alpha: DSStyles.alphaDarkShadow),
         Colors.white,
       ),
       'PROCESSING' => (
-        Colors.orange.shade300.withValues(alpha: UIStyles.alphaDarkShadow),
+        Colors.orange.shade300.withValues(alpha: DSStyles.alphaDarkShadow),
         Colors.white,
       ),
       _ => (
-        Colors.white.withValues(alpha: UIStyles.alphaActiveAccent),
+        Colors.white.withValues(alpha: DSStyles.alphaActiveAccent),
         Colors.white70,
       ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: UIStyles.cardRadius),
+      decoration: BoxDecoration(color: bg, borderRadius: DSStyles.cardRadius),
       child: Text(
         status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
         style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
@@ -662,12 +663,10 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: UIStyles.cardRadius,
+        borderRadius: DSStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: ColorStyles.grabGreen.withValues(
-              alpha: UIStyles.alphaDarkShadow,
-            ),
+            color: DSColors.primary.withValues(alpha: DSStyles.alphaDarkShadow),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -725,7 +724,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                 'Tap to reveal breakdown',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.white.withValues(alpha: UIStyles.alphaBorder),
+                  color: Colors.white.withValues(alpha: DSStyles.alphaBorder),
                 ),
               ),
             ),
@@ -739,13 +738,13 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
-            ? ColorStyles.grabCardDark
-            : ColorStyles.white,
-        borderRadius: UIStyles.cardRadius,
+            ? DSColors.cardDark
+            : DSColors.white,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: Theme.of(
             context,
-          ).dividerColor.withValues(alpha: UIStyles.alphaSoft),
+          ).dividerColor.withValues(alpha: DSStyles.alphaSoft),
         ),
       ),
       padding: const EdgeInsets.all(20),
@@ -839,7 +838,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
               'Tap to flip back',
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.grey.withValues(alpha: UIStyles.alphaGlass),
+                color: Colors.grey.withValues(alpha: DSStyles.alphaGlass),
               ),
             ),
           ),

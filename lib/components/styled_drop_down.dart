@@ -1,8 +1,9 @@
 // DOCS: docs/components.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter/services.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class StyledDropDown extends StatefulWidget {
   final String label; // placeholder text
@@ -115,8 +116,8 @@ class _StyledDropDownState extends State<StyledDropDown> {
           width: size.width,
           child: Material(
             elevation: 8,
-            shadowColor: Colors.black.withValues(alpha: UIStyles.alphaSoft),
-            borderRadius: UIStyles.cardRadius,
+            shadowColor: Colors.black.withValues(alpha: DSStyles.alphaSoft),
+            borderRadius: DSStyles.cardRadius,
             color: Theme.of(context).cardTheme.color,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 200),

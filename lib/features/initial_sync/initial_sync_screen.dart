@@ -1,14 +1,16 @@
 // DOCS: docs/features/initial-sync.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class InitialSyncScreen extends ConsumerStatefulWidget {
   const InitialSyncScreen({super.key});
@@ -75,7 +77,10 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                   height: 200,
                   child: _done
                       ? Lottie.asset(AppAssets.animSuccess, repeat: false)
-                      : Lottie.asset(AppAssets.animHourGlass, repeat: true),
+                      : const SpinKitDoubleBounce(
+                          color: Color(0xFF00B14F),
+                          size: 80,
+                        ),
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -100,7 +105,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                 const SizedBox(height: 32),
                 if (!_done)
                   LinearProgressIndicator(
-                    borderRadius: UIStyles.pillRadius,
+                    borderRadius: DSStyles.pillRadius,
                     color: colorScheme.primary,
                     backgroundColor: colorScheme.primary.withValues(
                       alpha: 0.15,

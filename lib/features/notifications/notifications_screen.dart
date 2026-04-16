@@ -11,12 +11,11 @@
 //
 // Key behaviours:
 //   • Notifications are stored and served via [NotificationsProvider].
-//   • Each item shows a timestamp, type badge, and message body.
+//   • Items are grouped by Today / Yesterday / Earlier.
 //   • Tapping a notification marks it as read and navigates to the relevant
 //     screen if applicable (e.g. a delivery barcode deep-link).
 //   • An unread badge count is shown on the bell icon in AppHeaderBar.
-//   • Offline banner is shown when connectivity is unavailable (new
-//     notifications cannot be fetched but cached ones remain readable).
+//   • Offline banner is shown when connectivity is unavailable.
 //
 // Navigation:
 //   Route: /notifications
@@ -24,7 +23,8 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -32,8 +32,32 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
+
+// ─── Flat list entry model ────────────────────────────────────────────────────
+
+class _Entry {
+  const _Entry._({required this.kind, this.label, this.notification});
+
+  factory _Entry.header(String label) =>
+      _Entry._(kind: _Kind.header, label: label);
+  factory _Entry.tile(AppNotification n) =>
+      _Entry._(kind: _Kind.tile, notification: n);
+  factory _Entry.loadMore() => const _Entry._(kind: _Kind.loadMore);
+
+  final _Kind kind;
+  final String? label;
+  final AppNotification? notification;
+
+  bool get isHeader => kind == _Kind.header;
+  bool get isTile => kind == _Kind.tile;
+  bool get isLoadMore => kind == _Kind.loadMore;
+}
+
+enum _Kind { header, tile, loadMore }
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -47,41 +71,80 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    // Reload fresh data whenever the screen opens.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(notificationsProvider.notifier).load();
     });
   }
 
-  Future<void> _onMarkAllRead() async {
-    await ref.read(notificationsProvider.notifier).markAllAsRead();
+  void _handleTap(AppNotification n, bool isOnline) {
+    if (!isOnline) return;
+    if (!n.read) {
+      ref.read(notificationsProvider.notifier).markAsRead(n.id);
+    }
+    if (n.type == 'new_dispatch') {
+      context.push('/dispatches');
+      return;
+    }
+    if (n.transactionReference != null && n.transactionReference!.isNotEmpty) {
+      context.push('/wallet/${n.transactionReference}');
+      return;
+    }
+    if (n.deliveryReferences.length == 1) {
+      context.push('/deliveries/${n.deliveryReferences.first}');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(notificationsProvider);
     final isOnline = ref.watch(isOnlineProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? DSColors.scaffoldDark : const Color(0xFFF5F6FA),
       appBar: AppHeaderBar(
-        titleWidget: Text(
-          'Notifications',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
         showNotificationBell: false,
+        titleWidget: Row(
+          children: [
+            const SizedBox(width: 8),
+            Text(
+              'Notifications',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
+              ),
+            ),
+            if (state.unreadCount > 0) ...[
+              const SizedBox(width: 8),
+              _UnreadPill(count: state.unreadCount),
+            ],
+          ],
+        ),
         actions: [
           if (state.unreadCount > 0)
-            TextButton(
-              onPressed: _onMarkAllRead,
-              child: const Text('Mark all read'),
+            TextButton.icon(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                ref.read(notificationsProvider.notifier).markAllAsRead();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: DSColors.primary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              icon: const Icon(Icons.done_all_rounded, size: 15),
+              label: const Text('Mark all read'),
             ),
         ],
       ),
-      body: _buildBody(context, state, isOnline),
+      body: _buildBody(context, state, isOnline, isDark),
     );
   }
 
@@ -89,64 +152,65 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     BuildContext context,
     NotificationsState state,
     bool isOnline,
+    bool isDark,
   ) {
     Widget content;
 
     if (state.loading && state.entries.isEmpty) {
-      content = const Center(child: CircularProgressIndicator());
+      content = Center(
+        child: CircularProgressIndicator(
+          color: DSColors.primary,
+          strokeWidth: 2.5,
+        ),
+      );
     } else if (state.entries.isEmpty) {
-      content = LayoutBuilder(
-        builder: (context, constraints) {
-          return RefreshIndicator(
-            onRefresh: () => ref.read(notificationsProvider.notifier).load(),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Container(
-                height: constraints.maxHeight,
-                alignment: Alignment.center,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.notifications_none_rounded,
-                      size: 56,
-                      color: Colors.grey.shade300,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No notifications yet',
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+      content = _EmptyState(
+        onRefresh: () => ref.read(notificationsProvider.notifier).load(),
+        isDark: isDark,
       );
     } else {
+      // Precompute flat entry list once per build.
+      final entries = _buildEntries(state.entries, state.hasMore);
+
       content = RefreshIndicator(
         onRefresh: () => ref.read(notificationsProvider.notifier).load(),
-        child: ListView.separated(
+        color: DSColors.primary,
+        child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: state.entries.length + (state.hasMore ? 1 : 0),
-          separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
-          itemBuilder: (context, index) {
-            if (index == state.entries.length) {
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+          itemCount: entries.length,
+          itemBuilder: (context, i) {
+            final entry = entries[i];
+
+            if (entry.isHeader) {
+              return _SectionHeader(
+                label: entry.label!,
+              ).animate().fadeIn(duration: 250.ms, delay: (i * 15).ms);
+            }
+
+            if (entry.isLoadMore) {
               return _LoadMoreButton(
                 loading: state.loadingMore,
                 onTap: () =>
                     ref.read(notificationsProvider.notifier).loadMore(),
               );
             }
-            return _NotificationTile(
-              notification: state.entries[index],
-              onTap: () => _handleTap(state.entries[index], isOnline),
-            );
+
+            // Tile
+            final n = entry.notification!;
+            return _NotificationCard(
+                  notification: n,
+                  isDark: isDark,
+                  onTap: () => _handleTap(n, isOnline),
+                )
+                .animate()
+                .fadeIn(duration: 300.ms, delay: (i * 25).ms)
+                .slideY(
+                  begin: 0.06,
+                  end: 0,
+                  duration: 300.ms,
+                  curve: Curves.easeOut,
+                );
           },
         ),
       );
@@ -156,7 +220,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       return Column(
         children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: OfflineBanner(isMinimal: true, margin: EdgeInsets.zero),
           ),
           Expanded(child: content),
@@ -167,198 +231,417 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     return content;
   }
 
-  void _handleTap(AppNotification n, bool isOnline) {
-    if (!isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot open notification while offline'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-    if (!n.read) {
-      ref.read(notificationsProvider.notifier).markAsRead(n.id);
+  // ── Group entries ────────────────────────────────────────────────────────
+
+  static List<_Entry> _buildEntries(
+    List<AppNotification> notifications,
+    bool hasMore,
+  ) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    final groups = <String, List<AppNotification>>{};
+    for (final n in notifications) {
+      final parsed = DateTime.tryParse(n.date);
+      final String key;
+      if (parsed == null) {
+        key = 'Earlier';
+      } else {
+        final d = DateTime(parsed.year, parsed.month, parsed.day);
+        if (d == today) {
+          key = 'Today';
+        } else if (d == yesterday) {
+          key = 'Yesterday';
+        } else {
+          key = 'Earlier';
+        }
+      }
+      (groups[key] ??= []).add(n);
     }
 
-    // new_dispatch → open the dispatch list directly.
-    if (n.type == 'new_dispatch') {
-      context.push('/dispatches');
-      return;
+    final entries = <_Entry>[];
+    for (final key in ['Today', 'Yesterday', 'Earlier']) {
+      final list = groups[key];
+      if (list == null || list.isEmpty) continue;
+      entries.add(_Entry.header(key));
+      for (final n in list) {
+        entries.add(_Entry.tile(n));
+      }
     }
-
-    // Payout notifications → wallet detail.
-    if (n.transactionReference != null && n.transactionReference!.isNotEmpty) {
-      context.push('/wallet/${n.transactionReference}');
-      return;
-    }
-
-    // Single-barcode notifications → delivery detail.
-    if (n.deliveryReferences.length == 1) {
-      context.push('/deliveries/${n.deliveryReferences.first}');
-    }
+    if (hasMore) entries.add(_Entry.loadMore());
+    return entries;
   }
 }
 
-// ─ Helper functions ───────────────────────────────────────────────────────────
+// ─── Section header ───────────────────────────────────────────────────────────
 
-// ─── Notification tile ────────────────────────────────────────────────────────
-
-class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({required this.notification, required this.onTap});
-
-  final AppNotification notification;
-  final VoidCallback onTap;
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label});
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isUnread = !notification.read;
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isUnread
-              ? (isDark
-                    ? ColorStyles.grabGreen.withValues(
-                        alpha: UIStyles.alphaSoft,
-                      )
-                    : ColorStyles.grabGreen.withValues(
-                        alpha: UIStyles.alphaSoft,
-                      ))
-              : null,
-          border: isUnread
-              ? Border(left: BorderSide(color: ColorStyles.grabGreen, width: 3))
-              : null,
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 8, left: 4),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: Colors.grey.shade500,
+          letterSpacing: 1.2,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _TypeIcon(type: notification.type),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+    );
+  }
+}
+
+// ─── Notification card ────────────────────────────────────────────────────────
+
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({
+    required this.notification,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final AppNotification notification;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  bool get _isNavigable =>
+      notification.type == 'new_dispatch' ||
+      (notification.transactionReference?.isNotEmpty ?? false) ||
+      notification.deliveryReferences.length == 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final isUnread = !notification.read;
+    final (iconData, accentColor) = _resolve(notification.type);
+
+    final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
+    final unreadBg = accentColor.withValues(alpha: 0.06);
+    final bg = isUnread ? unreadBg : cardColor;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: bg,
+        borderRadius: DSStyles.cardRadius,
+        elevation: isDark ? 0 : 1,
+        shadowColor: Colors.black.withValues(alpha: 0.06),
+        child: InkWell(
+          borderRadius: DSStyles.cardRadius,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          child: ClipRRect(
+            borderRadius: DSStyles.cardRadius,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.message,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isUnread
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                      ),
-                      if (isUnread) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.only(top: 4),
-                          decoration: const BoxDecoration(
-                            color: ColorStyles.grabGreen,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ],
-                    ],
+                  // Left accent bar — rendered as a plain Container, no Border.
+                  Container(
+                    width: 3,
+                    color: isUnread ? accentColor : Colors.transparent,
                   ),
-                  const SizedBox(height: 4),
-                  // Rejection reason (payout_rejected only).
-                  if (notification.rejectionReason != null) ...[
-                    Text(
-                      'Reason: ${notification.rejectionReason}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.red.shade400,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  Row(
-                    children: [
-                      // Transaction reference (payout_*).
-                      if (notification.transactionReference != null &&
-                          notification.dispatchCode == null) ...[
-                        Flexible(
-                          child: Text(
-                            notification.transactionReference!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: ColorStyles.grabGreen,
+
+                  // Card body
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Icon container
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(
+                                alpha: DSStyles.alphaActiveAccent,
+                              ),
+                              borderRadius: DSStyles.pillRadius,
+                            ),
+                            child: Icon(iconData, size: 20, color: accentColor),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Text content
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Message + unread dot
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        notification.message,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: isUnread
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                          color: isDark
+                                              ? DSColors.labelPrimaryDark
+                                              : DSColors.labelPrimary,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isUnread) ...[
+                                      const SizedBox(width: 8),
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 5),
+                                        child: Container(
+                                          width: 7,
+                                          height: 7,
+                                          decoration: BoxDecoration(
+                                            color: accentColor,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+
+                                // Rejection reason pill
+                                if (notification.rejectionReason != null) ...[
+                                  const SizedBox(height: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: DSColors.red.withValues(
+                                        alpha: DSStyles.alphaSoft,
+                                      ),
+                                      borderRadius: DSStyles.pillRadius,
+                                      border: Border.all(
+                                        color: DSColors.red.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      notification.rejectionReason!,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: DSColors.red,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+
+                                const SizedBox(height: 6),
+
+                                // Meta row
+                                Row(
+                                  children: [
+                                    if (notification.transactionReference !=
+                                            null &&
+                                        notification.dispatchCode == null) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: accentColor.withValues(
+                                            alpha: DSStyles.alphaActiveAccent,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          notification.transactionReference!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: accentColor,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        formatDate(
+                                          notification.date,
+                                          includeTime: true,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark
+                                              ? DSColors.labelTertiaryDark
+                                              : DSColors.labelTertiary,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (_isNavigable) ...[
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.chevron_right_rounded,
+                                        size: 16,
+                                        color: isDark
+                                            ? DSColors.labelTertiaryDark
+                                            : DSColors.labelTertiary,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Text(
-                        formatDate(notification.date, includeTime: true),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static (IconData, Color) _resolve(String type) => switch (type) {
+    'new_dispatch' => (Icons.local_shipping_rounded, DSColors.systemBlue),
+    'payout_requested' => (Icons.send_rounded, const Color(0xFF6366F1)),
+    'payout_approved' => (Icons.check_circle_rounded, DSColors.primary),
+    'payout_rejected' => (Icons.cancel_rounded, DSColors.red),
+    'payout_paid' => (Icons.payments_rounded, DSColors.primary),
+    'transaction_due_soon' => (Icons.schedule_rounded, const Color(0xFFF59E0B)),
+    'transaction_due_today' => (Icons.today_rounded, DSColors.red),
+    _ => (Icons.notifications_rounded, DSColors.labelTertiary),
+  };
+}
+
+// ─── Unread pill ──────────────────────────────────────────────────────────────
+
+class _UnreadPill extends StatelessWidget {
+  const _UnreadPill({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: DSColors.primary,
+        borderRadius: DSStyles.circularRadius,
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+          height: 1.3,
         ),
       ),
     );
   }
 }
 
-// ─── Type icon ────────────────────────────────────────────────────────────────
+// ─── Empty state ──────────────────────────────────────────────────────────────
 
-class _TypeIcon extends StatelessWidget {
-  const _TypeIcon({required this.type});
-  final String type;
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onRefresh, required this.isDark});
+  final Future<void> Function() onRefresh;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final (icon, color) = switch (type) {
-      'new_dispatch' => (Icons.local_shipping_rounded, Colors.blue.shade600),
-      'payout_requested' => (Icons.send_rounded, Colors.blue.shade400),
-      'payout_approved' => (Icons.check_circle_rounded, ColorStyles.grabGreen),
-      'payout_rejected' => (Icons.cancel_rounded, Colors.red.shade400),
-      'payout_paid' => (Icons.payments_rounded, ColorStyles.grabGreen),
-      'transaction_due_soon' => (
-        Icons.schedule_rounded,
-        Colors.orange.shade400,
-      ),
-      'transaction_due_today' => (Icons.today_rounded, Colors.red.shade500),
-      _ => (Icons.notifications_rounded, Colors.grey.shade400),
-    };
-
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: UIStyles.alphaActiveAccent),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, size: 20, color: color),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return RefreshIndicator(
+          onRefresh: onRefresh,
+          color: DSColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: constraints.maxHeight,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? DSColors.secondarySurfaceDark
+                                : DSColors.secondarySurfaceLight,
+                            borderRadius: DSStyles.cardRadius,
+                          ),
+                          child: Icon(
+                            Icons.notifications_none_rounded,
+                            size: 34,
+                            color: isDark
+                                ? DSColors.labelTertiaryDark
+                                : DSColors.labelTertiary,
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(duration: 400.ms)
+                        .scale(
+                          begin: const Offset(0.8, 0.8),
+                          end: const Offset(1, 1),
+                          duration: 400.ms,
+                          curve: Curves.easeOut,
+                        ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'All caught up',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? DSColors.labelPrimaryDark
+                            : DSColors.labelPrimary,
+                        letterSpacing: -0.3,
+                      ),
+                    ).animate().fadeIn(delay: 150.ms, duration: 350.ms),
+                    const SizedBox(height: 6),
+                    Text(
+                      'No notifications yet. Pull to refresh.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark
+                            ? DSColors.labelTertiaryDark
+                            : DSColors.labelTertiary,
+                      ),
+                    ).animate().fadeIn(delay: 250.ms, duration: 350.ms),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
-// ─── Load more button ─────────────────────────────────────────────────────────
+// ─── Load more ────────────────────────────────────────────────────────────────
 
 class _LoadMoreButton extends StatelessWidget {
   const _LoadMoreButton({required this.loading, required this.onTap});
@@ -368,15 +651,37 @@ class _LoadMoreButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       child: Center(
         child: loading
             ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: DSColors.primary,
+                ),
               )
-            : OutlinedButton(onPressed: onTap, child: const Text('Load more')),
+            : OutlinedButton.icon(
+                onPressed: onTap,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: DSColors.primary,
+                  side: const BorderSide(color: DSColors.primary),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: DSStyles.cardRadius,
+                  ),
+                  textStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                icon: const Icon(Icons.expand_more_rounded, size: 18),
+                label: const Text('Load more'),
+              ),
       ),
     );
   }

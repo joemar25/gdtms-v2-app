@@ -13,7 +13,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/styles/ui_styles.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -21,7 +21,7 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/services/report_service.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
-import 'package:fsi_courier_app/styles/color_styles.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class ReportIssueScreen extends ConsumerStatefulWidget {
   const ReportIssueScreen({super.key});
@@ -128,13 +128,11 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: ColorStyles.grabGreen.withValues(
-                  alpha: UIStyles.alphaSoft,
-                ),
-                borderRadius: UIStyles.cardRadius,
+                color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
+                borderRadius: DSStyles.cardRadius,
                 border: Border.all(
-                  color: ColorStyles.grabGreen.withValues(
-                    alpha: UIStyles.alphaDarkShadow,
+                  color: DSColors.primary.withValues(
+                    alpha: DSStyles.alphaDarkShadow,
                   ),
                 ),
               ),
@@ -143,7 +141,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
-                    color: ColorStyles.grabGreen,
+                    color: DSColors.primary,
                     size: 18,
                   ),
                   const SizedBox(width: 10),
@@ -169,7 +167,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
                 border: Border.all(color: borderColor),
               ),
               child: TextFormField(
@@ -203,7 +201,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
                 border: Border.all(color: borderColor),
               ),
               child: Column(
@@ -228,23 +226,19 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                                   value: _selectedType == value,
                                   onChanged: (_) =>
                                       setState(() => _selectedType = value),
-                                  activeColor: ColorStyles.grabGreen,
+                                  activeColor: DSColors.primary,
                                   shape: const CircleBorder(),
                                   materialTapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                   side: BorderSide(
                                     color: _selectedType == value
-                                        ? ColorStyles.grabGreen
+                                        ? DSColors.primary
                                         : Colors.grey,
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              Icon(
-                                icon,
-                                size: 18,
-                                color: ColorStyles.grabGreen,
-                              ),
+                              Icon(icon, size: 18, color: DSColors.primary),
                               const SizedBox(width: 8),
                               Text(
                                 label,
@@ -284,7 +278,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         color: isSelected ? color : cardColor,
-                        borderRadius: UIStyles.cardRadius,
+                        borderRadius: DSStyles.cardRadius,
                         border: Border.all(
                           color: isSelected ? color : borderColor,
                         ),
@@ -292,7 +286,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                             ? [
                                 BoxShadow(
                                   color: color.withValues(
-                                    alpha: UIStyles.alphaDarkShadow,
+                                    alpha: DSStyles.alphaDarkShadow,
                                   ),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
@@ -325,7 +319,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
                 border: Border.all(color: borderColor),
               ),
               child: TextFormField(
@@ -358,7 +352,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: UIStyles.cardRadius,
+                borderRadius: DSStyles.cardRadius,
                 border: Border.all(color: borderColor),
               ),
               child: CheckboxListTile(
@@ -380,13 +374,13 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                     height: 1.4,
                   ),
                 ),
-                activeColor: ColorStyles.grabGreen,
+                activeColor: DSColors.primary,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 4,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: UIStyles.cardRadius,
+                  borderRadius: DSStyles.cardRadius,
                 ),
               ),
             ),
@@ -399,11 +393,11 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
               child: ElevatedButton(
                 onPressed: _submitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: ColorStyles.grabGreen,
+                  backgroundColor: DSColors.primary,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade400,
                   shape: RoundedRectangleBorder(
-                    borderRadius: UIStyles.cardRadius,
+                    borderRadius: DSStyles.cardRadius,
                   ),
                   elevation: 0,
                 ),
