@@ -4,6 +4,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:fsi_courier_app/core/services/push_notification_service.dart';
+import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 
 enum ExtraPermissionStatus {
   determining,
@@ -105,6 +109,22 @@ class ExtraPermissionsNotifier extends Notifier<ExtraPermissionsState>
       sound: true,
     );
     await _checkStatus();
+
+    // If permissions are now ready, and the app is authenticated and online,
+    // ensure PushNotificationService is initialized so the FCM token is synced.
+    if (state.isReady) {
+      try {
+        final auth = ref.read(authProvider);
+        final isOnline = ref.read(isOnlineProvider);
+        if (auth.isAuthenticated && isOnline) {
+          final apiClient = ref.read(apiClientProvider);
+          await PushNotificationService.instance.init(apiClient);
+        }
+      } catch (e) {
+        // Do not crash UI on any failure; log for diagnostics.
+        debugPrint('[PERMS] Failed to init PushNotificationService: $e');
+      }
+    }
   }
 
   Future<void> openSettings() async {
