@@ -198,9 +198,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     const uuid = Uuid();
     final requestId = uuid.v4();
 
-    // Pre-filter: if this barcode matches any local delivery (POD), do not
-    // treat it as a dispatch scan. This avoids unnecessary network checks and
-    // prevents navigating to the dispatch eligibility page for PODs.
+    // Strict pre-filter: if this barcode matches any local delivery (POD), do
+    // not treat it as a dispatch scan. This avoids unnecessary network checks
+    // and prevents navigating to the dispatch eligibility page for PODs.
     final localMatches = await LocalDeliveryDao.instance.searchByQuery(code);
     if (!mounted) return;
     if (localMatches.isNotEmpty) {
@@ -231,59 +231,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           .read(appSettingsProvider)
           .getAutoAcceptDispatch();
       if (!mounted) return;
-      final dispatchCode = data['dispatch_code']?.toString() ?? code;
 
-      // If scanned, show full dispatch code and skip modal
-      if (autoAccept && data['eligible'] == true) {
-        // Auto-accept dispatch if eligible and autoAccept is enabled
-        final acceptResult = await ref
-            .read(apiClientProvider)
-            .post<Map<String, dynamic>>(
-              '/accept-dispatch',
-              data: {
-                'dispatch_code': dispatchCode,
-                'client_request_id': requestId,
-                'device_info': await ref.read(deviceInfoProvider).toMap(),
-              },
-              parser: parseApiMap,
-            );
-        if (!mounted) return;
-        if (acceptResult is ApiSuccess<Map<String, dynamic>>) {
-          final rawDeliveries = data['deliveries'];
-          if (rawDeliveries is List) {
-            final deliveries = rawDeliveries
-                .whereType<Map>()
-                .map((e) => Map<String, dynamic>.from(e))
-                .toList();
-            if (deliveries.isNotEmpty) {
-              await LocalDeliveryDao.instance.insertAll(
-                deliveries,
-                dispatchCode: dispatchCode,
-              );
-            }
-          }
-          ref.read(deliveryRefreshProvider.notifier).increment();
-          if (mounted) setState(() => _showAutoAcceptSuccess = true);
-        } else {
-          final acceptErrorMessage = switch (acceptResult) {
-            ApiBadRequest(:final message) => message,
-            ApiValidationError(:final message) => message ?? 'Validation error',
-            ApiNetworkError(:final message) => message,
-            ApiRateLimited(:final message) => message,
-            ApiConflict(:final message) => message,
-            ApiServerError(:final message) => message,
-            _ => 'Unable to accept dispatch. Please try again.',
-          };
-          setState(() => _inlineError = acceptErrorMessage);
-          showErrorNotification(context, acceptErrorMessage);
-          await _scannerController.start();
-        }
-        return;
-      }
-
-      // Fetch pending dispatches to merge branch/tat/transmittal_date — those
-      // fields are absent from the eligibility response but present in the
-      // dispatch list. Mirrors the merge done in dispatch_list_screen.dart.
+      // Merge pending dispatches to enrich response (branch/tat/transmittal_date)
+      var dispatchCode = data['dispatch_code']?.toString() ?? code;
       Map<String, dynamic> mergedData = data;
       final pendingResult = await ref
           .read(apiClientProvider)
@@ -306,33 +256,95 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 orElse: () => <String, dynamic>{},
               );
           if (match.isNotEmpty) {
-            // Eligibility fields win on overlap (eligible/status stay authoritative)
             mergedData = {...match, ...mergedData};
+            // Prefer the canonical dispatch code from the list when present.
+            dispatchCode = mergedData['dispatch_code']?.toString() ?? dispatchCode;
           }
         }
       }
 
-      // Otherwise, show eligibility screen with full code, skip modal
-      if (mergedData['eligible'] == true) {
-        await context.push(
-          '/dispatches/eligibility',
-          extra: {
-            'dispatch_code': dispatchCode,
-            'eligibility_response': mergedData,
-            'auto_accept': autoAccept,
-            'eligible': true,
-            'show_full_code': true,
-            'skip_accept_modal': true,
-          },
-        );
+      // Enforce: only treat as dispatch when the response contains a dispatch_code
+      final isDispatch = mergedData['dispatch_code']?.toString().trim().isNotEmpty == true;
+      if (!isDispatch) {
+        final reason = mergedData['message']?.toString() ?? 'Scanned code is not a dispatch.';
+        setState(() => _inlineError = reason);
+        showInfoNotification(context, reason);
         if (mounted && _hasPermission) await _scannerController.start();
-      } else {
+        return;
+      }
+
+      // Do not push if not eligible — UX pre-filter
+      final eligible = mergedData['eligible'] == true;
+      if (!eligible) {
         final reason = mergedData['message']?.toString() ?? 'You are not eligible for this dispatch.';
         setState(() => _inlineError = reason);
         showInfoNotification(context, reason);
         if (mounted && _hasPermission) await _scannerController.start();
         return;
       }
+
+      // Auto-accept flow (only for genuine dispatches that are eligible)
+      if (autoAccept) {
+        final acceptResult = await ref
+            .read(apiClientProvider)
+            .post<Map<String, dynamic>>(
+              '/accept-dispatch',
+              data: {
+                'dispatch_code': dispatchCode,
+                'client_request_id': requestId,
+                'device_info': await ref.read(deviceInfoProvider).toMap(),
+              },
+              parser: parseApiMap,
+            );
+        if (!mounted) return;
+        if (acceptResult is ApiSuccess<Map<String, dynamic>>) {
+          final rawDeliveries = mergedData['deliveries'];
+          if (rawDeliveries is List) {
+            final deliveries = rawDeliveries
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
+            if (deliveries.isNotEmpty) {
+              await LocalDeliveryDao.instance.insertAll(
+                deliveries,
+                dispatchCode: dispatchCode,
+              );
+            }
+          }
+          ref.read(deliveryRefreshProvider.notifier).increment();
+          if (mounted) setState(() => _showAutoAcceptSuccess = true);
+          if (mounted && _hasPermission) await _scannerController.start();
+          return;
+        } else {
+          final acceptErrorMessage = switch (acceptResult) {
+            ApiBadRequest(:final message) => message,
+            ApiValidationError(:final message) => message ?? 'Validation error',
+            ApiNetworkError(:final message) => message,
+            ApiRateLimited(:final message) => message,
+            ApiConflict(:final message) => message,
+            ApiServerError(:final message) => message,
+            _ => 'Unable to accept dispatch. Please try again.',
+          };
+          setState(() => _inlineError = acceptErrorMessage);
+          showErrorNotification(context, acceptErrorMessage);
+          if (_hasPermission) await _scannerController.start();
+          return;
+        }
+      }
+
+      // Otherwise, show eligibility screen (dispatch & eligible)
+      await context.push(
+        '/dispatches/eligibility',
+        extra: {
+          'dispatch_code': dispatchCode,
+          'eligibility_response': mergedData,
+          'auto_accept': autoAccept,
+          'eligible': true,
+          'show_full_code': true,
+          'skip_accept_modal': true,
+        },
+      );
+      if (mounted && _hasPermission) await _scannerController.start();
     } else {
       final errorMessage = switch (result) {
         ApiBadRequest(:final message) => message,
