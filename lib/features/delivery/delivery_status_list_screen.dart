@@ -116,7 +116,7 @@ class _DeliveryStatusListScreenState
 
   // ── Failed-delivery sub-filter ─────────────────────────────────────────────
   /// 'redelivery' = attempts < 3 and not Failed Delivery-verified
-  /// 'rts'        = attempts >= 3 or Failed Delivery-verified
+  /// 'failed_delivery' = attempts >= 3 or Failed Delivery-verified
   String _failedSubFilter = 'redelivery';
 
   List<Map<String, dynamic>> get _displayed =>
@@ -133,7 +133,7 @@ class _DeliveryStatusListScreenState
               .toLowerCase();
       final rv = FailedDeliveryVerificationStatus.fromString(vStr);
       final isRts = attempts >= 3 || rv.isVerified;
-      return _failedSubFilter == 'rts' ? isRts : !isRts;
+      return _failedSubFilter == 'failed_delivery' ? isRts : !isRts;
     }).toList();
   }
 
@@ -147,7 +147,7 @@ class _DeliveryStatusListScreenState
               .toLowerCase();
       final rv = FailedDeliveryVerificationStatus.fromString(vStr);
       final isRts = attempts >= 3 || rv.isVerified;
-      return group == 'rts' ? isRts : !isRts;
+      return group == 'failed_delivery' ? isRts : !isRts;
     }).length;
   }
 
@@ -336,7 +336,7 @@ class _DeliveryStatusListScreenState
     'PENDING' || 'FOR_DELIVERY' => 'No active deliveries.',
     'DELIVERED' => 'No delivered items today.',
     'DISPATCHED' => 'No dispatched items.',
-    'FAILED_DELIVERY' => _failedSubFilter == 'rts'
+    'FAILED_DELIVERY' => _failedSubFilter == 'failed_delivery'
         ? 'No items for return today.'
         : 'No items available for redelivery.',
     'OSA' => 'No OSA mailpacks today.',
@@ -472,12 +472,12 @@ class _DeliveryStatusListScreenState
                       _FailedFilterChip(
                         label: 'For Return',
                         icon: Icons.assignment_return_rounded,
-                        selected: _failedSubFilter == 'rts',
-                        count: _countFailedSubGroup('rts'),
+                        selected: _failedSubFilter == 'failed_delivery',
+                        count: _countFailedSubGroup('failed_delivery'),
                         color: DeliveryCard.statusColor('FAILED_DELIVERY'),
                         isDark: isDark,
                         onTap: () =>
-                            setState(() => _failedSubFilter = 'rts'),
+                            setState(() => _failedSubFilter = 'failed_delivery'),
                       ),
                     ],
                   ),
