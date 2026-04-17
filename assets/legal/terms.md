@@ -108,8 +108,8 @@ These Terms are governed by the laws of the Republic of the Philippines. Any dis
 For questions about these Terms, please contact:
 
 **Fastrak Services Inc.**
-Email: support@fsi.com.ph
+Email: joemar.cardino@fsi.com.ph
 
 ---
 
-*Last updated: April 2026*
+_Last updated: April 2026_

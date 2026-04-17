@@ -302,6 +302,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   courier: courier,
                   branchName: branchName,
                   isDark: isDark,
+                  isOnline: isOnline,
                 ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.2, end: 0),
                 const SizedBox(height: 24),
 
@@ -626,11 +627,13 @@ class _ProfileHeroCard extends StatelessWidget {
     required this.courier,
     required this.branchName,
     required this.isDark,
+    required this.isOnline,
   });
 
   final Map<String, dynamic> courier;
   final String branchName;
   final bool isDark;
+  final bool isOnline;
 
   @override
   Widget build(BuildContext context) {
@@ -770,23 +773,25 @@ class _ProfileHeroCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Edit Icon
-              IconButton(
-                onPressed: () => context.push('/profile/edit'),
-                icon: const Icon(
-                  Icons.edit_note_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(
-                    alpha: DSStyles.alphaActiveAccent,
+
+              // Edit Button — ONLY visible when ONLINE
+              if (isOnline)
+                IconButton(
+                  onPressed: () => context.push('/profile/edit'),
+                  icon: const Icon(
+                    Icons.edit_note_rounded,
+                    color: Colors.white,
+                    size: 24,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: DSStyles.cardRadius,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(
+                      alpha: DSStyles.alphaActiveAccent,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: DSStyles.cardRadius,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 16),

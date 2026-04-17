@@ -1180,19 +1180,25 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  bool get _isDirty =>
-      _status != 'DELIVERED' ||
-      _recipient.text.isNotEmpty ||
-      _note.text.isNotEmpty ||
-      _relationship != null ||
-      _relationshipSpecify.text.isNotEmpty ||
-      _reason != null ||
-      _reasonSpecify.text.isNotEmpty ||
-      _podPhoto != null ||
-      _selfiePhoto != null ||
-      _photos.isNotEmpty ||
-      _signaturePath != null ||
-      _confirmationCode.text.isNotEmpty;
+  bool get _isDirty {
+    // Compare against the loaded delivery's initial status so the form isn't
+    // considered dirty just because the delivery wasn't DELIVERED to begin
+    // with (e.g. FAILED or MISROUTED).
+    final initialStatus =
+        _delivery['delivery_status']?.toString().toUpperCase() ?? 'DELIVERED';
+    return _status != initialStatus ||
+        _recipient.text.isNotEmpty ||
+        _note.text.isNotEmpty ||
+        _relationship != null ||
+        _relationshipSpecify.text.isNotEmpty ||
+        _reason != null ||
+        _reasonSpecify.text.isNotEmpty ||
+        _podPhoto != null ||
+        _selfiePhoto != null ||
+        _photos.isNotEmpty ||
+        _signaturePath != null ||
+        _confirmationCode.text.isNotEmpty;
+  }
 
   @override
   Widget build(BuildContext context) {

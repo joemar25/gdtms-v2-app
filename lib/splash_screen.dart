@@ -8,7 +8,6 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/cleanup_service.dart';
 import 'package:fsi_courier_app/core/services/version_check_service.dart';
@@ -71,10 +70,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ── Brand Card (smaller & centered) ──────────────────────────
+            // ── Brand Card (Text-only, no logo) ──────────────────────────
             Container(
               width: 240,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF00B14F), Color(0xFF007A36)],
@@ -95,57 +94,37 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Centered icon
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(
-                        alpha: DSStyles.alphaActiveAccent,
-                      ),
-                      borderRadius: DSStyles.cardRadius,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: DSStyles.cardRadius,
-                      child: Image.asset(
-                        AppAssets.icon,
-                        width: 48,
-                        height: 48,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ).animate().scale(
-                    duration: 600.ms,
-                    curve: Curves.easeOutBack,
-                  ),
-                  const SizedBox(height: 12),
                   // Title
                   Text(
-                    'FSI COURIER',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(
-                        alpha: DSStyles.alphaGlass,
-                      ),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                    ),
-                  ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.2, end: 0),
-                  const SizedBox(height: 4),
+                        'FSI COURIER',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(duration: 600.ms)
+                      .slideY(begin: 0.1, end: 0),
+
+                  const SizedBox(height: 6),
+
                   // Subtitle
                   Text(
                     'Delivery Management',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.2, end: 0),
-                  const SizedBox(height: 12),
+                  ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+
+                  const SizedBox(height: 20),
+
                   // Feature chips
                   IntrinsicHeight(
                     child: Row(
@@ -189,7 +168,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 ],
               ),
             ).animate().fadeIn(duration: 800.ms).slideY(begin: 0.05, end: 0),
-            const SizedBox(height: 44),
+
+            const SizedBox(height: 52),
 
             // ── Loading indicator ────────────────────────────────────────
             SizedBox(
@@ -197,7 +177,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               height: 56,
               child: const SpinKitFadingCircle(color: Colors.white, size: 56),
             ).animate().fadeIn(delay: 800.ms),
-            const SizedBox(height: 18),
+
+            const SizedBox(height: 20),
+
             Text(
               'Fastrak Services Inc.',
               style: TextStyle(
@@ -224,7 +206,7 @@ class _SplashChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: DSStyles.alphaActiveAccent),
         borderRadius: DSStyles.cardRadius,
@@ -233,8 +215,8 @@ class _SplashChip extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 16),
-          const SizedBox(height: 3),
+          Icon(icon, color: Colors.white, size: 18),
+          const SizedBox(height: 4),
           Text(
             label,
             textAlign: TextAlign.center,
@@ -242,7 +224,7 @@ class _SplashChip extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
             ),
           ),

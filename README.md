@@ -223,9 +223,9 @@ flutter build apk --dart-define-from-file=dart_defines.json
 
 If icons fail to load or assets are outdated:
 
-1.  **Rebuild Icons**: Run `dart run flutter_launcher_icons`.
-2.  **Clear Cache**: Run `flutter clean` then `flutter pub get`.
-3.  **Full Rebuild**: For Android, delete `android/app/build` then run `flutter build apk`.
+1. **Rebuild Icons**: Run `dart run flutter_launcher_icons`.
+2. **Clear Cache**: Run `flutter clean` then `flutter pub get`.
+3. **Full Rebuild**: For Android, delete `android/app/build` then run `flutter build apk`.
 
 ### Wireless Pairing
 
@@ -328,5 +328,49 @@ example: find lib -name "*profile*"
 grep -n "class _StatChip" "c:\Users\Joemar Jane Cardiño\Documents\FSI-Internal\fsi-courier-app\lib\features\profile\profile_screen.dart"
 
 setup the notification - https://www.youtube.com/watch?v=k0zGEbiDJcQ
+
+TIME:
+The hardcoded 2025-01-01 floor is gone entirely. The only trusted anchor is now the persisted NTP reference — a real server timestamp written to
+SharedPreferences after every successful online check.
+
+What is now detectable offline
+
+┌────────────────────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────┐
+│                          Scenario                          │                                     Result                                     │
+├────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ Fresh install, never went online → set any date            │ Blocked — "Device time has not been verified yet. Connect to the internet      │
+│                                                            │ once."                                                                         │
+├────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ Was online yesterday (Apr 17) → roll back to Apr 15        │ Blocked — persisted ref is Apr 17, device is 48h behind                        │
+│ offline                                                    │                                                                                │
+├────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ Was online at 10pm → roll back 1 hour offline              │ Blocked — persisted ref is 10pm, device is 3600s behind                        │
+├────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ Was online, time is correct, now offline                   │ Allowed — device is ahead of ref (normal time passing)                         │
+└────────────────────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────┘
+
+What is fundamentally not preventable
+
+If someone clears app data (wiping SharedPreferences) and then goes offline with a wrong clock — the reference is gone. There is no cryptographic
+solution to this on a device the user physically controls without rooting or a hardware security module.
+
+The practical mitigation: the app requires at least one online NTP check before trusting the clock at all — so a courier cannot use the app purely
+offline from day one.
+
+The offline logic now works correctly:
+
+  ┌─────────────────────────────────────────────────────────────────────┬─────────────────────────────────────────────┐
+  │                                State                                │                  Behaviour                  │                               ├─────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ Offline, no persisted reference (fresh install)                     │ Allowed — can't prove it's wrong, fail open │                             
+  ├─────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ Offline, has reference, device time is correct (ahead of reference) │ Allowed — normal forward drift              │
+  ├─────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ Offline, has reference, clock rolled back behind reference by > 30s │ Blocked — rollback detected                 │
+  ├─────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ Offline, same session, monotonic watch detects in-session rollback  │ Blocked                                     │
+  └─────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────────┘
+
+  The key fix was the missing if (rollbackA > allowedSkew) guard — without it, every offline check with a persisted reference was returning blocked 
+  regardless of whether the time was actually wrong.
 
 -->

@@ -87,7 +87,7 @@ You have the right to:
 - Request deletion of your data (subject to legal retention requirements).
 - Withdraw consent for non-essential data processing.
 
-To exercise these rights, contact us at privacy@fsi.com.ph.
+To exercise these rights, contact us at joemar.cardino@fsi.com.ph.
 
 ---
 
@@ -114,7 +114,7 @@ We may update this Privacy Policy from time to time. Changes will be communicate
 For privacy-related inquiries:
 
 **Fastrak Services Inc.**
-Email: privacy@fsi.com.ph
+Email: joemar.cardino@fsi.com.ph
 Address: Philippines
 
 ---

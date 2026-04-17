@@ -1,11 +1,13 @@
 // DOCS: docs/time-enforcement.md
 
+import 'dart:async' show unawaited;
 import 'dart:io' show HandshakeException;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart' show parseHttpDate;
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Philippine Standard Time constant ────────────────────────────────────────
 const _kPstOffset = Duration(hours: 8);
@@ -19,6 +21,11 @@ const _kCacheTtl = Duration(minutes: 15);
 // Lightweight endpoint that returns 204 + Date header with minimal overhead.
 // Used by Android itself for connectivity checks — always available when online.
 const _kTimeCheckUrl = 'https://clients3.google.com/generate_204';
+
+// SharedPreferences key for the last NTP-validated server UTC timestamp (ms).
+// Persisted across app restarts so the offline rollback check always has a
+// reference point — even on cold start after the user has been online before.
+const _kPersistedServerTimeKey = 'time_validation_last_server_utc_ms';
 
 /// Result of a time validation run.
 class TimeValidationResult {
@@ -54,11 +61,19 @@ class TimeValidationResult {
 /// UTC time. This avoids the `ntp` package entirely and works wherever the
 /// device can reach the internet.
 ///
-/// ## Offline-safe behaviour
-/// When [isOnline] is `false`, the NTP check is skipped and only the device
-/// timezone is validated. If the HTTP request itself fails due to a network
-/// error (e.g. corporate VPN, firewall), the same offline-safe path is taken —
-/// the user is not blocked just because Google's endpoint is unreachable.
+/// ## Offline behaviour
+/// When [isOnline] is `false`, the NTP check is skipped. The timezone is
+/// checked first (always possible). Then the persisted NTP reference is loaded
+/// from SharedPreferences — if it has never been written (fresh install, never
+/// went online) the result is **invalid** and the courier is blocked until an
+/// online check succeeds. Once a reference exists, the device clock is compared
+/// against it: if the device is behind the reference by more than [allowedSkew]
+/// the clock was rolled back and the result is **invalid**. A second in-memory
+/// monotonic guard catches rollbacks within the same app session.
+///
+/// This design intentionally has no hardcoded date floor: the persisted
+/// reference is the only trusted anchor, so any rollback — even 1 second —
+/// is detectable once an online check has run at least once.
 ///
 /// ## Result cache
 /// A successful validation result is cached for [_kCacheTtl] (15 min).
@@ -98,6 +113,33 @@ class TimeValidationService {
     _monotonicWatch = null;
   }
 
+  /// Persist [serverUtc] to SharedPreferences so it survives app restarts.
+  /// Called after every successful NTP check.
+  Future<void> _persistServerTime(DateTime serverUtc) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _kPersistedServerTimeKey,
+        serverUtc.millisecondsSinceEpoch,
+      );
+    } catch (e) {
+      debugPrint('[TIME] failed to persist server time: $e');
+    }
+  }
+
+  /// Load the last persisted NTP-validated server UTC time, or `null` if none.
+  Future<DateTime?> _loadPersistedServerTime() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ms = prefs.getInt(_kPersistedServerTimeKey);
+      if (ms == null) return null;
+      return DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
+    } catch (e) {
+      debugPrint('[TIME] failed to load persisted server time: $e');
+      return null;
+    }
+  }
+
   /// Validate device time and timezone.
   ///
   /// - [isOnline]: when `false`, only the timezone offset is checked.
@@ -125,48 +167,81 @@ class TimeValidationService {
       return result;
     }
 
-    // ── 2. If offline, use monotonic clock to detect clock rollbacks ────────────
-    // Couriers often work in areas with spotty signal. We cannot reach the HTTP
-    // time server, but we can still detect rollback tampering:
-    //   • If the app has a cached valid result, _monotonicWatch has been ticking
-    //     using the OS monotonic clock (CLOCK_MONOTONIC) since that cache was
-    //     stored. CLOCK_MONOTONIC cannot be changed by the user adjusting
-    //     device date/time settings, but it DOES stop during deep sleep.
-    //   • DateTime.now() CAN be changed by the user, and advances during sleep.
-    //   • We only flag when DateTime.now() is BEHIND the monotonic reference
-    //     (clock was rolled back). Forward drift is expected due to sleep.
+    // ── 2. Offline path ──────────────────────────────────────────────────────
+    // Without a network connection we rely entirely on the persisted NTP
+    // reference (written to SharedPreferences after every successful online
+    // check). Two sub-checks run:
+    //
+    //   A. Persisted reference (survives restarts) — the primary guard.
+    //      If the device clock is BEHIND the last known-good server time by
+    //      more than allowedSkew, the clock was rolled back.
+    //      Forward drift is expected (time passes between sessions); only flag
+    //      when the device is BEHIND the reference.
+    //
+    //   B. In-memory monotonic reference (same session only) — secondary guard.
+    //      CLOCK_MONOTONIC cannot be adjusted by the user and detects a rollback
+    //      that happens while the app is already running.
+    //
     if (!isOnline) {
-      if (_monotonicWatch != null && _cacheAt != null) {
-        final expectedNow = _cacheAt!.add(_monotonicWatch!.elapsed);
-        // Only flag when the wall clock is BEHIND the monotonic reference —
-        // that is the signature of a manual clock rollback (real tampering).
-        // Forward drift (wall clock ahead of Stopwatch) is normal because
-        // CLOCK_MONOTONIC stops when the device enters deep sleep while
-        // DateTime.now() continues advancing — flagging it causes false
-        // positives every time the phone sleeps for more than allowedSkew.
-        final rollback = expectedNow.difference(DateTime.now());
-        if (rollback > allowedSkew) {
+      final deviceUtcNow = DateTime.now().toUtc();
+
+      // A. Persisted reference.
+      // If no reference exists yet (fresh install / first run with new code),
+      // we cannot prove the clock is wrong — fail open so the courier is not
+      // blocked. The reference is written on the first successful online check,
+      // after which every offline session is protected.
+      final persistedRef = await _loadPersistedServerTime();
+      if (persistedRef != null) {
+        // Only flag when the device is BEHIND the reference — that is a rollback.
+        // Forward drift (device ahead of reference) is normal: time passes
+        // between online sessions.
+        final rollbackA = persistedRef.difference(deviceUtcNow);
+        if (rollbackA > allowedSkew) {
           final result = _buildResult(
             valid: false,
-            serverUtc: expectedNow.toUtc(),
-            deviceUtc: DateTime.now().toUtc(),
-            skew: rollback,
+            serverUtc: persistedRef,
+            deviceUtc: deviceUtcNow,
+            skew: rollbackA,
             deviceOffset: deviceOffset,
             message:
-                'Device clock was rolled back by ${rollback.inSeconds}s while offline. '
+                'Device clock is behind the last verified server time by '
+                '${rollbackA.inSeconds}s. '
                 'Enable automatic date & time in your device settings.',
           );
           _reportToSentry(result);
           return result;
         }
       }
+
+      // B. In-memory monotonic reference.
+      // CLOCK_MONOTONIC stops during deep sleep, so forward drift vs
+      // DateTime.now() is expected — only flag a BEHIND delta.
+      if (_monotonicWatch != null && _cacheAt != null) {
+        final expectedNow = _cacheAt!.add(_monotonicWatch!.elapsed);
+        final rollbackB = expectedNow.difference(DateTime.now());
+        if (rollbackB > allowedSkew) {
+          final result = _buildResult(
+            valid: false,
+            serverUtc: expectedNow.toUtc(),
+            deviceUtc: DateTime.now().toUtc(),
+            skew: rollbackB,
+            deviceOffset: deviceOffset,
+            message:
+                'Device clock was rolled back by ${rollbackB.inSeconds}s. '
+                'Enable automatic date & time in your device settings.',
+          );
+          _reportToSentry(result);
+          return result;
+        }
+      }
+
       return _buildResult(
         valid: true,
-        serverUtc: DateTime.now().toUtc(),
-        deviceUtc: DateTime.now().toUtc(),
+        serverUtc: deviceUtcNow,
+        deviceUtc: deviceUtcNow,
         skew: Duration.zero,
         deviceOffset: deviceOffset,
-        message: 'Timezone OK (offline – skew check deferred until online).',
+        message: 'Timezone OK (offline – reference verified).',
       );
     }
 
@@ -257,6 +332,8 @@ class TimeValidationService {
       // has a reference point from this exact moment.
       _monotonicWatch?.stop();
       _monotonicWatch = Stopwatch()..start();
+      // Persist the server time so the offline rollback check survives restarts.
+      unawaited(_persistServerTime(serverUtc));
     } else {
       invalidateCache();
       _reportToSentry(result);
