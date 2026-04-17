@@ -720,6 +720,17 @@ class _DeliveryStatusListScreenState
                 child: Column(
                   children: [
                     _HelpItem(
+                      icon: Icons.replay_outlined,
+                      title: 'Re-delivery of Failed Attempts',
+                      description:
+                          'Failed attempts can be re-delivered if still with you, unless already verified on-site.',
+                      isDark: isDark,
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(height: 1),
+                    ),
+                    _HelpItem(
                       icon: Icons.inventory_2_outlined,
                       title: 'Delivery Back to FSI',
                       description:
@@ -830,15 +841,15 @@ class _DeliveryStatusListScreenState
         isDark: isDark,
       );
     }
-    if (ds == DeliveryStatus.failedDelivery && index == slot) {
-      return _StatusInfoBanner(
-        icon: Icons.assignment_return_rounded,
-        message:
-            'Failed attempts can be re-delivered if still with you, unless already verified on-site.',
-        statusColor: DeliveryCard.statusColor('FAILED_DELIVERY'),
-        isDark: isDark,
-      );
-    }
+    // if (ds == DeliveryStatus.failedDelivery && index == slot) {
+    //   return _StatusInfoBanner(
+    //     icon: Icons.assignment_return_rounded,
+    //     message:
+    //         'Failed attempts can be re-delivered if still with you, unless already verified on-site.',
+    //     statusColor: DeliveryCard.statusColor('FAILED_DELIVERY'),
+    //     isDark: isDark,
+    //   );
+    // }
     if (ds == DeliveryStatus.delivered && index == slot) {
       return _StatusInfoBanner(
         icon: Icons.check_circle_rounded,
