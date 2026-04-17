@@ -469,7 +469,7 @@ class _ProfileRow extends StatelessWidget {
       children: [
         // ── Avatar ─────────────────────────────────────────────────
         GestureDetector(
-          onTap: () => context.push('/profile'),
+          onTap: () => context.go('/profile'),
           child: Container(
             width: 46,
             height: 46,
