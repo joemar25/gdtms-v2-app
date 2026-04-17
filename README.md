@@ -361,7 +361,7 @@ The offline logic now works correctly:
 
   ┌─────────────────────────────────────────────────────────────────────┬─────────────────────────────────────────────┐
   │                                State                                │                  Behaviour                  │                               ├─────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
-  │ Offline, no persisted reference (fresh install)                     │ Allowed — can't prove it's wrong, fail open │                             
+  │ Offline, no persisted reference (fresh install)                     │ Allowed — can't prove it's wrong, fail open │
   ├─────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
   │ Offline, has reference, device time is correct (ahead of reference) │ Allowed — normal forward drift              │
   ├─────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
@@ -370,7 +370,30 @@ The offline logic now works correctly:
   │ Offline, same session, monotonic watch detects in-session rollback  │ Blocked                                     │
   └─────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────────┘
 
-  The key fix was the missing if (rollbackA > allowedSkew) guard — without it, every offline check with a persisted reference was returning blocked 
+  The key fix was the missing if (rollbackA > allowedSkew) guard — without it, every offline check with a persisted reference was returning blocked
   regardless of whether the time was actually wrong.
 
+How the sync anchor ratchet works
+  → SyncManager.processQueue() gets ApiSuccess
+  → recordSyncAnchor() stores 10:00am UTC in SharedPreferences
+  → Anchor is now 10:00am
+
+User sets device clock to 9:45am (offline tampering attempt)
+  → Opens delivery update screen
+  → Taps SUBMIT
+  → checkSubmissionTime() reads anchor (10:00am)
+  → 10:00am − 9:45am = 15 min > 30s allowedSkew
+  → Returns valid: false
+  → Shows error: "Device clock is behind the last sync time (10:00). Enable automatic date & time."
+  → Submission blocked ✋
+
+Key properties:
+- Ratchet-only — anchor only moves forward, never back (nowMs > existing check)
+- Fail open — if no anchor exists yet (first-ever use), submission is allowed
+- Survives restarts — stored in SharedPreferences, not in memory
+- 30s tolerance — same allowedSkew as the NTP check, accounts for minor clock drift
+- Separate from NTP reference — the NTP reference guards the global time enforcer; the sync anchor guards specifically the delivery submission
+gate
+
+- works
 -->

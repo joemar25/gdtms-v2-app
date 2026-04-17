@@ -307,8 +307,8 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
     final name = '$firstName $lastName'.trim().isEmpty
         ? 'Courier'
         : '$firstName $lastName'.trim();
-    final code = courier['courier_code']?.toString();
-    final role = code != null && code.isNotEmpty ? code : 'FSI Courier';
+    final email = courier['email']?.toString();
+    final role = email != null && email.isNotEmpty ? email : 'FSI Courier';
     final profileUrl = courier['profile_picture_url']?.toString();
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
 

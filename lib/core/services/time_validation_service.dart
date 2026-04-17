@@ -27,6 +27,12 @@ const _kTimeCheckUrl = 'https://clients3.google.com/generate_204';
 // reference point — even on cold start after the user has been online before.
 const _kPersistedServerTimeKey = 'time_validation_last_server_utc_ms';
 
+// SharedPreferences key for the delivery sync anchor (ms UTC).
+// Updated after every successful delivery PATCH. Acts as a ratchet: only
+// moves forward. Any submission whose device clock is behind this anchor is
+// rejected — prevents backdating delivery updates offline.
+const _kSyncAnchorKey = 'delivery_last_sync_anchor_ms';
+
 /// Result of a time validation run.
 class TimeValidationResult {
   final bool valid;
@@ -137,6 +143,67 @@ class TimeValidationService {
     } catch (e) {
       debugPrint('[TIME] failed to load persisted server time: $e');
       return null;
+    }
+  }
+
+  /// Records the current device time as the sync anchor.
+  ///
+  /// Call this immediately after every successful delivery PATCH so the anchor
+  /// always reflects the most recent server-confirmed moment. The anchor only
+  /// moves forward — if [DateTime.now()] is earlier than the stored value the
+  /// call is a no-op (the existing anchor is already a stricter bound).
+  Future<void> recordSyncAnchor() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
+      final existing = prefs.getInt(_kSyncAnchorKey);
+      if (existing == null || nowMs > existing) {
+        await prefs.setInt(_kSyncAnchorKey, nowMs);
+        debugPrint('[TIME] sync anchor updated: $nowMs');
+      }
+    } catch (e) {
+      debugPrint('[TIME] failed to record sync anchor: $e');
+    }
+  }
+
+  /// Checks whether the current device time is valid for a new delivery
+  /// submission by comparing it against the stored sync anchor.
+  ///
+  /// Returns `(valid: false, reason: <message>)` when the device clock is
+  /// behind the last sync anchor by more than [allowedSkew] — a sign the
+  /// clock was rolled back after a successful sync. Returns `(valid: true)`
+  /// when the anchor does not exist yet or the time is acceptable.
+  Future<({bool valid, String? reason})> checkSubmissionTime({
+    Duration allowedSkew = const Duration(seconds: 30),
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final anchorMs = prefs.getInt(_kSyncAnchorKey);
+      if (anchorMs == null) return (valid: true, reason: null);
+
+      final anchor = DateTime.fromMillisecondsSinceEpoch(anchorMs, isUtc: true);
+      final deviceNow = DateTime.now().toUtc();
+      // Positive diff = device clock is BEHIND the anchor = rollback detected.
+      final rollback = anchor.difference(deviceNow);
+      if (rollback > allowedSkew) {
+        final anchorLocal = anchor.toLocal();
+        final formatted =
+            '${anchorLocal.year}-'
+            '${anchorLocal.month.toString().padLeft(2, '0')}-'
+            '${anchorLocal.day.toString().padLeft(2, '0')} '
+            '${anchorLocal.hour.toString().padLeft(2, '0')}:'
+            '${anchorLocal.minute.toString().padLeft(2, '0')}';
+        return (
+          valid: false,
+          reason:
+              'Device clock is behind the last sync time ($formatted). '
+              'Enable automatic date & time and try again.',
+        );
+      }
+      return (valid: true, reason: null);
+    } catch (e) {
+      debugPrint('[TIME] checkSubmissionTime error (fail open): $e');
+      return (valid: true, reason: null);
     }
   }
 

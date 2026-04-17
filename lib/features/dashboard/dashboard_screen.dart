@@ -35,8 +35,6 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/constants.dart';
-import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
@@ -142,9 +140,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       debugPrint('[DASH] deliveryRefreshProvider changed $prev → $next');
       _loadInitial();
     });
-    final auth = ref.watch(authProvider);
-    final firstName = auth.courier?['first_name']?.toString() ?? 'Courier';
-    // final courierCode = auth.courier?['courier_code']?.toString() ?? '-';
 
     final pendingDispatchCount = _summary['pending_dispatches'] ?? 0;
     final deliveriesCount = _summary['pending_deliveries'] ?? 0;

@@ -25,6 +25,7 @@
 //   Pushed from: LoginScreen (unauthenticated), ProfileScreen (authenticated)
 // =============================================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -238,36 +239,56 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           : DSColors.labelSecondary,
                     ),
                   ),
-                  const SizedBox(height: 32),
+                 const SizedBox(height: 32),
 
-                  // ── Courier Code ───────────────────────────────────
-                  _fieldLabel(context, isDark, 'Courier Code'),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _code,
-                    readOnly: widget.authenticatedMode,
-                    decoration: InputDecoration(
-                      hintText: 'Your courier code',
-                      prefixIcon: const Icon(Icons.badge_outlined, size: 20),
-                      errorText: _errors['courier_code'],
-                      filled: widget.authenticatedMode,
-                      fillColor: isDark
-                          ? DSColors.secondarySurfaceDark
-                          : DSColors.secondarySurfaceLight,
-                      suffixIcon: widget.authenticatedMode
-                          ? Icon(
-                              Icons.lock_outline,
-                              size: 16,
-                              color: isDark
-                                  ? DSColors.labelTertiaryDark
-                                  : DSColors.labelTertiary,
-                            )
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+// ── Courier Code ───────────────────────────────────
+// Only visible in Debug mode (completely removed in Production)
+if (kDebugMode) ...[
+  // Label changes dynamically based on authenticatedMode
+  _fieldLabel(
+    context, 
+    isDark, 
+    widget.authenticatedMode ? 'Courier Code (Debug)' : 'Courier Code'
+  ),
+  const SizedBox(height: 6),
 
-                  // ── Current Password (auth mode only) ──────────────
+  widget.authenticatedMode
+      ? TextField(
+          controller: _code,
+          readOnly: true,
+          decoration: InputDecoration(
+            hintText: 'Your courier code',
+            prefixIcon: const Icon(Icons.badge_outlined, size: 20),
+            errorText: _errors['courier_code'],
+            filled: true,
+            fillColor: isDark
+                ? DSColors.secondarySurfaceDark
+                : DSColors.secondarySurfaceLight,
+            suffixIcon: Icon(
+              Icons.lock_outline,
+              size: 16,
+              color: isDark
+                  ? DSColors.labelTertiaryDark
+                  : DSColors.labelTertiary,
+            ),
+          ),
+        )
+      : TextField(
+          controller: _code,
+          readOnly: false,           // Editable input when not authenticated
+          decoration: InputDecoration(
+            hintText: 'Your courier code',
+            prefixIcon: const Icon(Icons.badge_outlined, size: 20),
+            errorText: _errors['courier_code'],
+            filled: false,
+            suffixIcon: null,
+          ),
+        ),
+
+  const SizedBox(height: 16),
+],
+
+// ── Current Password (auth mode only) ──────────────
                   if (widget.authenticatedMode) ...[
                     _fieldLabel(context, isDark, 'Current Password'),
                     const SizedBox(height: 6),

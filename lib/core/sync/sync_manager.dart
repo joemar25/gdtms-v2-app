@@ -10,6 +10,7 @@
 //   DO NOT use this for profile changes or Courier authentication updates.
 // =============================================================================
 
+import 'dart:async' show unawaited;
 import 'dart:convert';
 import 'dart:io';
 
@@ -27,6 +28,7 @@ import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/services/error_log_service.dart';
+import 'package:fsi_courier_app/core/services/time_validation_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -443,6 +445,9 @@ class SyncManagerNotifier extends Notifier<SyncState> {
             'synced',
             lastAttemptAt: now,
           );
+          // Advance the sync anchor so any future submission whose device
+          // clock is behind this moment is rejected as a backdated update.
+          unawaited(TimeValidationService.instance.recordSyncAnchor());
           final deliveryData = result.data['data'];
           if (deliveryData is Map<String, dynamic>) {
             await LocalDeliveryDao.instance.updateFromJson(
