@@ -278,7 +278,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       // Do not push if not eligible — UX pre-filter.
       // The spread {…match, …mergedData} puts the eligibility API response last,
       // so mergedData['eligible'] is always the authoritative value from the API.
-      final eligible = mergedData['eligible'] == true;
+      // Accept booleans, numeric, and common string forms for backward compatibility.
+      final dynamic eligibleRaw = mergedData['eligible'];
+      final bool eligible = (eligibleRaw is bool && eligibleRaw == true) ||
+          (eligibleRaw is num && eligibleRaw != 0) ||
+          (eligibleRaw is String &&
+              ['true', '1', 'yes'].contains(eligibleRaw.trim().toLowerCase()));
       if (!eligible) {
         final reason = mergedData['message']?.toString() ?? 'You are not eligible for this dispatch.';
         setState(() => _inlineError = reason);
