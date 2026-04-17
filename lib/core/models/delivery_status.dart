@@ -46,7 +46,11 @@ enum DeliveryStatus {
     if (v == 'PENDING' || v == 'FOR_DELIVERY') return pending;
 
     // Server aliases / legacy values that should be treated as pending/actionable
-    if (v == 'FOR_REDELIVERY' || v == 'REDELIVERY' || v == 'FOR_REATTEMPT' || v == 'REATTEMPT') return pending;
+    if (v == 'FOR_REDELIVERY' ||
+        v == 'REDELIVERY' ||
+        v == 'FOR_REATTEMPT' ||
+        v == 'REATTEMPT')
+      return pending;
 
     if (v == 'DELIVERED') return delivered;
 

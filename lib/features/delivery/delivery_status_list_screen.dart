@@ -400,12 +400,17 @@ class _DeliveryStatusListScreenState
     final effectiveTotal = isFailedDelivery
         ? (_failedSubFilter == 'rts' ? _totalRtsCount : _totalRedeliveryCount)
         : _totalCount;
-    final effectiveTotalPages =
-        (effectiveTotal / _kPageSize).ceil().clamp(1, 999999);
-    final effectiveFirstItem =
-        effectiveTotal == 0 ? 0 : _currentPage * _kPageSize + 1;
-    final effectiveLastItem =
-        (effectiveFirstItem + displayed.length - 1).clamp(0, effectiveTotal);
+    final effectiveTotalPages = (effectiveTotal / _kPageSize).ceil().clamp(
+      1,
+      999999,
+    );
+    final effectiveFirstItem = effectiveTotal == 0
+        ? 0
+        : _currentPage * _kPageSize + 1;
+    final effectiveLastItem = (effectiveFirstItem + displayed.length - 1).clamp(
+      0,
+      effectiveTotal,
+    );
     final isSearching = _searchQuery.trim().isNotEmpty;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

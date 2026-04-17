@@ -204,7 +204,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     final localMatches = await LocalDeliveryDao.instance.searchByQuery(code);
     if (!mounted) return;
     if (localMatches.isNotEmpty) {
-      final msg = 'Scanned barcode belongs to a delivery (POD). Use POD scan mode.';
+      final msg =
+          'Scanned barcode belongs to a delivery (POD). Use POD scan mode.';
       setState(() => _inlineError = msg);
       showInfoNotification(context, msg);
       if (mounted && _hasPermission) await _scannerController.start();
@@ -258,7 +259,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           if (match.isNotEmpty) {
             mergedData = {...match, ...mergedData};
             // Prefer the canonical dispatch code from the list when present.
-            dispatchCode = mergedData['dispatch_code']?.toString() ?? dispatchCode;
+            dispatchCode =
+                mergedData['dispatch_code']?.toString() ?? dispatchCode;
           }
         }
       }
@@ -266,9 +268,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       // Enforce: only treat as dispatch when the response contains a dispatch_code.
       // mergedData is used here (not raw data) because dispatch_code may arrive via
       // the pending-dispatch list merge rather than the eligibility response directly.
-      final isDispatch = mergedData['dispatch_code']?.toString().trim().isNotEmpty == true;
+      final isDispatch =
+          mergedData['dispatch_code']?.toString().trim().isNotEmpty == true;
       if (!isDispatch) {
-        final reason = mergedData['message']?.toString() ?? 'Scanned code is not a dispatch.';
+        final reason =
+            mergedData['message']?.toString() ??
+            'Scanned code is not a dispatch.';
         setState(() => _inlineError = reason);
         showInfoNotification(context, reason);
         if (mounted && _hasPermission) await _scannerController.start();
@@ -280,12 +285,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       // so mergedData['eligible'] is always the authoritative value from the API.
       // Accept booleans, numeric, and common string forms for backward compatibility.
       final dynamic eligibleRaw = mergedData['eligible'];
-      final bool eligible = (eligibleRaw is bool && eligibleRaw == true) ||
+      final bool eligible =
+          (eligibleRaw is bool && eligibleRaw == true) ||
           (eligibleRaw is num && eligibleRaw != 0) ||
           (eligibleRaw is String &&
               ['true', '1', 'yes'].contains(eligibleRaw.trim().toLowerCase()));
       if (!eligible) {
-        final reason = mergedData['message']?.toString() ?? 'You are not eligible for this dispatch.';
+        final reason =
+            mergedData['message']?.toString() ??
+            'You are not eligible for this dispatch.';
         setState(() => _inlineError = reason);
         // Disable camera scanning for this session — do not restart the scanner.
         try {
@@ -408,10 +416,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
     // message before ever navigating, and avoids N+1 per-row checks.
     var matches = await LocalDeliveryDao.instance.searchVisibleByQuery(code);
-    debugPrint('[SCAN] searchVisibleByQuery($code) -> ${matches.length} matches');
+    debugPrint(
+      '[SCAN] searchVisibleByQuery($code) -> ${matches.length} matches',
+    );
     if (matches.isNotEmpty) {
       try {
-        debugPrint('[SCAN]  results: ${matches.map((m) => '${m.barcode}|status=${m.deliveryStatus}|verif=${m.rtsVerificationStatus}|attempts=${getAttemptsCountFromMap(m.toDeliveryMap())}').toList()}');
+        debugPrint(
+          '[SCAN]  results: ${matches.map((m) => '${m.barcode}|status=${m.deliveryStatus}|verif=${m.rtsVerificationStatus}|attempts=${getAttemptsCountFromMap(m.toDeliveryMap())}').toList()}',
+        );
       } catch (e) {
         debugPrint('[SCAN]  results: (failed to stringify) $e');
       }
@@ -424,7 +436,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // validate visibility per-row using the canonical isVisibleToRider gate.
     if (matches.isEmpty) {
       final fallback = await LocalDeliveryDao.instance.searchByQuery(code);
-      debugPrint('[SCAN] fallback searchByQuery($code) -> ${fallback.length} results');
+      debugPrint(
+        '[SCAN] fallback searchByQuery($code) -> ${fallback.length} results',
+      );
       if (!mounted) return;
       if (fallback.isNotEmpty) {
         final visibilityFutures = fallback

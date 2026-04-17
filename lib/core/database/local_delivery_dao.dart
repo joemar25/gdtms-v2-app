@@ -826,8 +826,11 @@ class LocalDeliveryDao {
 
       case DeliveryStatus.delivered:
         final deliveredAt = row['delivered_at'] as int? ?? 0;
-        final visible = deliveredAt >= todayStart && deliveredAt < tomorrowStart;
-        debugPrint('[DAO] isVisibleToRider($barcode) -> delivered_at=$deliveredAt visible=$visible');
+        final visible =
+            deliveredAt >= todayStart && deliveredAt < tomorrowStart;
+        debugPrint(
+          '[DAO] isVisibleToRider($barcode) -> delivered_at=$deliveredAt visible=$visible',
+        );
         return visible;
 
       case DeliveryStatus.failedDelivery:
@@ -836,28 +839,39 @@ class LocalDeliveryDao {
                 .toLowerCase();
         if (failedDeliveryVerif == 'verified_with_pay' ||
             failedDeliveryVerif == 'verified_no_pay') {
-          debugPrint('[DAO] isVisibleToRider($barcode) -> failedDelivery verif=$failedDeliveryVerif -> false');
+          debugPrint(
+            '[DAO] isVisibleToRider($barcode) -> failedDelivery verif=$failedDeliveryVerif -> false',
+          );
           return false;
         }
         try {
           final ld = LocalDelivery.fromDb(row);
           final attempts = getAttemptsCountFromMap(ld.toDeliveryMap());
           final visible = attempts < 3;
-          debugPrint('[DAO] isVisibleToRider($barcode) -> failedDelivery attempts=$attempts visible=$visible');
+          debugPrint(
+            '[DAO] isVisibleToRider($barcode) -> failedDelivery attempts=$attempts visible=$visible',
+          );
           return visible;
         } catch (e) {
-          debugPrint('[DAO] isVisibleToRider($barcode) -> failedDelivery parse error: $e');
+          debugPrint(
+            '[DAO] isVisibleToRider($barcode) -> failedDelivery parse error: $e',
+          );
           return false;
         }
 
       case DeliveryStatus.osa:
         final completedAt = row['completed_at'] as int? ?? 0;
-        final visible = completedAt >= todayStart && completedAt < tomorrowStart;
-        debugPrint('[DAO] isVisibleToRider($barcode) -> OSA completed_at=$completedAt visible=$visible');
+        final visible =
+            completedAt >= todayStart && completedAt < tomorrowStart;
+        debugPrint(
+          '[DAO] isVisibleToRider($barcode) -> OSA completed_at=$completedAt visible=$visible',
+        );
         return visible;
 
       default:
-        debugPrint('[DAO] isVisibleToRider($barcode) -> default false for statusStr=$statusStr');
+        debugPrint(
+          '[DAO] isVisibleToRider($barcode) -> default false for statusStr=$statusStr',
+        );
         return false;
     }
   }
