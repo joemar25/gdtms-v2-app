@@ -300,18 +300,26 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       }
 
       // Otherwise, show eligibility screen with full code, skip modal
-      await context.push(
-        '/dispatches/eligibility',
-        extra: {
-          'dispatch_code': dispatchCode,
-          'eligibility_response': mergedData,
-          'auto_accept': autoAccept,
-          'eligible': mergedData['eligible'] == true,
-          'show_full_code': true,
-          'skip_accept_modal': true,
-        },
-      );
-      if (mounted && _hasPermission) await _scannerController.start();
+      if (mergedData['eligible'] == true) {
+        await context.push(
+          '/dispatches/eligibility',
+          extra: {
+            'dispatch_code': dispatchCode,
+            'eligibility_response': mergedData,
+            'auto_accept': autoAccept,
+            'eligible': true,
+            'show_full_code': true,
+            'skip_accept_modal': true,
+          },
+        );
+        if (mounted && _hasPermission) await _scannerController.start();
+      } else {
+        final reason = mergedData['message']?.toString() ?? 'You are not eligible for this dispatch.';
+        setState(() => _inlineError = reason);
+        showInfoNotification(context, reason);
+        if (mounted && _hasPermission) await _scannerController.start();
+        return;
+      }
     } else {
       final errorMessage = switch (result) {
         ApiBadRequest(:final message) => message,
@@ -1159,7 +1167,8 @@ class _SearchResultsSheet extends StatelessWidget {
                       d['recipient_name']?.toString() ??
                       '';
                   final address = d['address']?.toString() ?? '';
-                  final status = d['delivery_status']?.toString() ?? 'FOR_DELIVERY';
+                  final status =
+                      d['delivery_status']?.toString() ?? 'FOR_DELIVERY';
 
                   return ListTile(
                     leading: Container(
