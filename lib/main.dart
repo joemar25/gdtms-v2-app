@@ -13,6 +13,8 @@ import 'core/services/app_version_service.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/sync/workmanager_setup.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -38,6 +40,21 @@ Future<void> main() async {
     // Gracefully ignore duplicate-app errors and continue.
     if (e.code != 'duplicate-app') rethrow;
   }
+
+  // Fetch and persist FCM token early so it survives login/restarts (offline-safe).
+  try {
+    final earlyToken = await FirebaseMessaging.instance.getToken();
+    if (earlyToken != null) {
+      final authStorage = AuthStorage();
+      await authStorage.setPendingFcmToken(earlyToken);
+      debugPrint('[MAIN] Early FCM token persisted: $earlyToken');
+    } else {
+      debugPrint('[MAIN] Early FCM getToken returned null');
+    }
+  } catch (e) {
+    debugPrint('[MAIN] Failed to fetch/persist early FCM token: $e');
+  }
+
   await PushNotificationService.initBackgroundHandler();
 
   // ── Sentry crash monitoring ───────────────────────────────────────────────
