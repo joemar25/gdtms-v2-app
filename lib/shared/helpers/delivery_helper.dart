@@ -32,16 +32,62 @@ bool checkIsLocked({
 ///   3. `rts_count` / `rts_attempts` — legacy fallbacks for backward compatibility.
 ///   4. `0` — safe default.
 int getAttemptsCountFromMap(Map<String, dynamic> delivery) {
-  // 1. Prefer the server-provided integer count (list & delta-sync payloads).
-  final failedDeliveryCount =
-      delivery['failed_delivery_count'] ?? delivery['rts_count'];
-  if (failedDeliveryCount is num) return failedDeliveryCount.toInt();
+  // Helper to parse numeric-like values reliably.
+  int? parseInt(dynamic v) {
+    if (v is num) return v.toInt();
+    if (v is String) {
+      final p = int.tryParse(v);
+      if (p != null) return p;
+      final d = double.tryParse(v);
+      if (d != null) return d.toInt();
+    }
+    return null;
+  }
 
-  // 2. Fall back to counting the detail-endpoint attempts array.
-  final attemptsList =
-      delivery['failed_delivery_attempts'] ?? delivery['rts_attempts'];
-  if (attemptsList is List && attemptsList.isNotEmpty) {
-    return attemptsList.whereType<Map<String, dynamic>>().length;
+  // 1) Prefer explicit integer count keys (support snake_case and camelCase).
+  final countKeys = <String>[
+    'failed_delivery_count',
+    'failedDeliveryCount',
+    'failed_delivery_attempt_count',
+    'failedAttemptCount',
+    'failed_attempts_count',
+    'failed_attempt_count',
+    'rts_count',
+    'rtsCount',
+    'attempt_count',
+    'attempts_count',
+    'attempts',
+  ];
+  for (final k in countKeys) {
+    final v = delivery[k];
+    final parsed = parseInt(v);
+    if (parsed != null) return parsed;
+  }
+
+  // 2) Fall back to attempt lists (detail endpoint arrays).
+  final listKeys = <String>[
+    'failed_delivery_attempts',
+    'failedDeliveryAttempts',
+    'rts_attempts',
+    'rtsAttempts',
+    'failed_attempts',
+    '_failed_delivery_attempts',
+    '_rts_attempts',
+    'attempts',
+  ];
+  for (final k in listKeys) {
+    final l = delivery[k];
+    if (l is List) return l.length;
+  }
+
+  // 3) Nested object fallback (e.g. delivery['failed_delivery'] = { count, attempts }).
+  final fd = delivery['failed_delivery'];
+  if (fd is Map<String, dynamic>) {
+    final v = fd['count'] ?? fd['attempt_count'] ?? fd['attempts'];
+    final parsed = parseInt(v);
+    if (parsed != null) return parsed;
+    final l = fd['attempts'];
+    if (l is List) return l.length;
   }
 
   return 0;
