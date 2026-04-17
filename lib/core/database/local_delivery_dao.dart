@@ -180,7 +180,7 @@ class LocalDeliveryDao {
   Future<void> insertAllFromApiItems(
     List<Map<String, dynamic>> items, {
     String dispatchCode = '',
-    String serverStatus = 'PENDING',
+    String serverStatus = 'FOR_DELIVERY',
   }) async {
     debugPrint(
       '[DAO] insertAllFromApiItems: ${items.length} items, status=$serverStatus',
@@ -291,7 +291,7 @@ class LocalDeliveryDao {
       'SELECT COUNT(*) FROM local_deliveries WHERE delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0',
       [status.toUpperCase()],
     );
-    if (status.toUpperCase() == 'PENDING') {
+    if (status.toUpperCase() == 'FOR_DELIVERY') {
       // Diagnostic: dump distinct statuses and archived counts to trace pending=0.
       final dist = await db.rawQuery(
         "SELECT delivery_status, COALESCE(is_archived,0) as arch, COUNT(*) as n "
@@ -313,7 +313,7 @@ class LocalDeliveryDao {
       'local_deliveries',
       columns: ['barcode'],
       where:
-          "delivery_status COLLATE NOCASE = 'PENDING' AND COALESCE(is_archived, 0) = 0",
+          "delivery_status COLLATE NOCASE IN ('PENDING','FOR_DELIVERY') AND COALESCE(is_archived, 0) = 0",
     );
     return rows.map((r) => r['barcode'] as String).toSet();
   }
@@ -571,7 +571,7 @@ class LocalDeliveryDao {
     final rows = await db.query(
       'local_deliveries',
       where:
-          '(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) AND COALESCE(is_archived, 0) = 0',
+          '(barcode LIKE ? COLLATE NOCASE OR recipient_name LIKE ? COLLATE NOCASE) AND COALESCE(is_archived, 0) = 0',
       whereArgs: [q, q],
       orderBy: 'updated_at DESC',
       limit: limit,
@@ -616,13 +616,13 @@ class LocalDeliveryDao {
     final rows = await db.rawQuery(
       '''
       SELECT * FROM local_deliveries
-      WHERE (barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE)
+      WHERE (barcode LIKE ? COLLATE NOCASE OR recipient_name LIKE ? COLLATE NOCASE)
         AND COALESCE(is_archived, 0) = 0
         AND (
-          -- PENDING: any non-archived pending record
-          (delivery_status COLLATE NOCASE = 'PENDING')
+          -- PENDING/FOR_DELIVERY: any non-archived pending record
+          (delivery_status COLLATE NOCASE IN ('PENDING','FOR_DELIVERY'))
 
-          -- FAILED_DELIVERY (RTS): today only, unverified
+          -- FAILED_DELIVERY: today only, unverified
           -- Attempts >= 3 are excluded in the Dart post-filter below because
           -- the count lives in raw_json, not a dedicated column.
           OR (delivery_status COLLATE NOCASE = 'FAILED_DELIVERY'
@@ -831,6 +831,7 @@ class LocalDeliveryDao {
 
     switch (status) {
       case 'PENDING':
+      case 'FOR_DELIVERY':
         return true;
 
       case 'DELIVERED':
@@ -884,7 +885,7 @@ class LocalDeliveryDao {
       'local_deliveries',
       columns: ['barcode'],
       where:
-          "delivery_status COLLATE NOCASE = 'PENDING' AND COALESCE(sync_status, '') != 'dirty'",
+          "delivery_status COLLATE NOCASE IN ('PENDING','FOR_DELIVERY') AND COALESCE(sync_status, '') != 'dirty'",
     );
 
     final staleBarcodes = pendingRows
@@ -903,7 +904,7 @@ class LocalDeliveryDao {
         'local_deliveries',
         {'is_archived': 1},
         where:
-            "barcode IN ($placeholders) AND delivery_status COLLATE NOCASE = 'PENDING'",
+            "barcode IN ($placeholders) AND delivery_status COLLATE NOCASE IN ('PENDING','FOR_DELIVERY')",
         whereArgs: chunk,
       );
     }

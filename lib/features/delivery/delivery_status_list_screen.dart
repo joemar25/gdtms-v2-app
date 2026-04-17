@@ -115,8 +115,8 @@ class _DeliveryStatusListScreenState
   Set<String> _queuedBarcodes = {};
 
   // ── Failed-delivery sub-filter ─────────────────────────────────────────────
-  /// 'redelivery' = attempts < 3 and not RTS-verified
-  /// 'rts'        = attempts >= 3 or RTS-verified
+  /// 'redelivery' = attempts < 3 and not Failed Delivery-verified
+  /// 'rts'        = attempts >= 3 or Failed Delivery-verified
   String _failedSubFilter = 'redelivery';
 
   List<Map<String, dynamic>> get _displayed =>
@@ -307,7 +307,7 @@ class _DeliveryStatusListScreenState
     );
     final status = widget.status.toUpperCase();
     return switch (status) {
-      'PENDING' => [
+      'PENDING' || 'FOR_DELIVERY' => [
         searchBtn,
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -333,7 +333,7 @@ class _DeliveryStatusListScreenState
   }
 
   String _emptyMessage() => switch (widget.status.toUpperCase()) {
-    'PENDING' => 'No active deliveries.',
+    'PENDING' || 'FOR_DELIVERY' => 'No active deliveries.',
     'DELIVERED' => 'No delivered items today.',
     'DISPATCHED' => 'No dispatched items.',
     'FAILED_DELIVERY' => _failedSubFilter == 'rts'
