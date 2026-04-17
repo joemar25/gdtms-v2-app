@@ -127,6 +127,7 @@ class _DeliveryStatusListScreenState
   List<Map<String, dynamic>> get _displayed =>
       _searchQuery.trim().isNotEmpty ? _searchResults : _items;
 
+  /// Full (unsliced) list for the active FAILED_DELIVERY sub-group.
   List<Map<String, dynamic>> get _failedFiltered {
     final base = _displayed;
     if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return base;
@@ -141,9 +142,18 @@ class _DeliveryStatusListScreenState
     }).toList();
   }
 
+  /// Paginated slice of [_failedFiltered] for the current page.
+  /// For non-FAILED_DELIVERY screens this is identical to [_failedFiltered].
+  List<Map<String, dynamic>> get _pageSlice {
+    final full = _failedFiltered;
+    if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return full;
+    final start = _currentPage * _kPageSize;
+    if (start >= full.length) return [];
+    final end = (start + _kPageSize).clamp(0, full.length);
+    return full.sublist(start, end);
+  }
+
   /// Returns the accurate total count for each sub-group across all pages.
-  /// Uses the pre-computed totals from [_load] rather than filtering [_items]
-  /// (which only contains the current page's rows).
   int _countFailedSubGroup(String group) {
     if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return 0;
     return group == 'rts' ? _totalRtsCount : _totalRedeliveryCount;
@@ -193,16 +203,18 @@ class _DeliveryStatusListScreenState
       return _load();
     }
 
-    // ── Compute accurate sub-filter counts for Failed Delivery ────────────
-    // We must count across ALL rows, not just the current page. Fetching all
-    // rows here is intentional; for large datasets consider adding dedicated
-    // COUNT queries to LocalDeliveryDao instead.
+    // ── For FAILED_DELIVERY: load ALL rows and classify ──────────────────
+    // Pagination is incompatible with client-side sub-filtering (redelivery vs
+    // RTS) because items from both groups are interleaved in the DB — a single
+    // page may contain zero items of the selected group. Loading all rows
+    // upfront (typical count: low tens) is fine for this screen.
     int redeliveryCount = 0;
     int rtsCount = 0;
+    List<LocalDelivery>? allFailedRows;
     if (widget.status.toUpperCase() == 'FAILED_DELIVERY' && total > 0) {
-      final allRows = await LocalDeliveryDao.instance
+      allFailedRows = await LocalDeliveryDao.instance
           .getVisibleFailedDeliveryPaged(limit: total, offset: 0);
-      for (final row in allRows) {
+      for (final row in allFailedRows) {
         final attempts = getAttemptsCountFromMap(row.toDeliveryMap());
         final vStr = (row.rtsVerificationStatus).toLowerCase();
         final rv = FailedDeliveryVerificationStatus.fromString(vStr);
@@ -217,7 +229,7 @@ class _DeliveryStatusListScreenState
     if (!mounted) return;
 
     setState(() {
-      _items = rows.map(_toCardMap).toList();
+      _items = (allFailedRows ?? rows).map(_toCardMap).toList();
       _totalCount = total;
       _totalRedeliveryCount = redeliveryCount;
       _totalRtsCount = rtsCount;
@@ -382,9 +394,19 @@ class _DeliveryStatusListScreenState
 
     final isCompact = ref.watch(compactModeProvider);
     final isOnline = ref.watch(isOnlineProvider);
-    final displayed = _failedFiltered;
-    final isSearching = _searchQuery.trim().isNotEmpty;
+    final displayed = _pageSlice;
     final isFailedDelivery = widget.status.toUpperCase() == 'FAILED_DELIVERY';
+    // For FAILED_DELIVERY, pagination counts are per sub-group, not the raw total.
+    final effectiveTotal = isFailedDelivery
+        ? (_failedSubFilter == 'rts' ? _totalRtsCount : _totalRedeliveryCount)
+        : _totalCount;
+    final effectiveTotalPages =
+        (effectiveTotal / _kPageSize).ceil().clamp(1, 999999);
+    final effectiveFirstItem =
+        effectiveTotal == 0 ? 0 : _currentPage * _kPageSize + 1;
+    final effectiveLastItem =
+        (effectiveFirstItem + displayed.length - 1).clamp(0, effectiveTotal);
+    final isSearching = _searchQuery.trim().isNotEmpty;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
@@ -488,8 +510,10 @@ class _DeliveryStatusListScreenState
                         count: _countFailedSubGroup('redelivery'),
                         color: DSColors.red,
                         isDark: isDark,
-                        onTap: () =>
-                            setState(() => _failedSubFilter = 'redelivery'),
+                        onTap: () => setState(() {
+                          _failedSubFilter = 'redelivery';
+                          _currentPage = 0;
+                        }),
                       ),
                       const SizedBox(width: 8),
                       _FailedFilterChip(
@@ -499,7 +523,10 @@ class _DeliveryStatusListScreenState
                         count: _countFailedSubGroup('rts'),
                         color: DeliveryCard.statusColor('FAILED_DELIVERY'),
                         isDark: isDark,
-                        onTap: () => setState(() => _failedSubFilter = 'rts'),
+                        onTap: () => setState(() {
+                          _failedSubFilter = 'rts';
+                          _currentPage = 0;
+                        }),
                       ),
                     ],
                   ),
@@ -615,13 +642,13 @@ class _DeliveryStatusListScreenState
               ),
 
               // ── Pagination bar ─────────────────────────────────────────────────
-              if (!isSearching && !_loading && _totalCount > _kPageSize)
+              if (!isSearching && !_loading && effectiveTotal > _kPageSize)
                 PaginationBar(
                   currentPage: _currentPage,
-                  totalPages: _totalPages,
-                  firstItem: _firstItem,
-                  lastItem: _lastItem,
-                  totalCount: _totalCount,
+                  totalPages: effectiveTotalPages,
+                  firstItem: effectiveFirstItem,
+                  lastItem: effectiveLastItem,
+                  totalCount: effectiveTotal,
                   onPageChanged: _goToPage,
                 ),
             ],
