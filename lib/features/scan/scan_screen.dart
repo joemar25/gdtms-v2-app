@@ -198,6 +198,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     const uuid = Uuid();
     final requestId = uuid.v4();
 
+    // Pre-filter: if this barcode matches any local delivery (POD), do not
+    // treat it as a dispatch scan. This avoids unnecessary network checks and
+    // prevents navigating to the dispatch eligibility page for PODs.
+    final localMatches = await LocalDeliveryDao.instance.searchByQuery(code);
+    if (!mounted) return;
+    if (localMatches.isNotEmpty) {
+      final msg = 'Scanned barcode belongs to a delivery (POD). Use POD scan mode.';
+      setState(() => _inlineError = msg);
+      showInfoNotification(context, msg);
+      if (mounted && _hasPermission) await _scannerController.start();
+      return;
+    }
+
     final device = ref.read(deviceInfoProvider);
     final result = await ref
         .read(apiClientProvider)
