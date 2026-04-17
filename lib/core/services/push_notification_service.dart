@@ -58,12 +58,13 @@ class PushNotificationService {
       debugPrint('[PUSH] User granted permission');
 
       // Always re-sync the FCM token on every init call (startup + login).
-      // Firebase may silently rotate the token between sessions; the backend
-      // must always hold the latest token to be able to reach this device —
-      // even when the app is backgrounded or terminated.
+      // Attempt to get token even if the app hasn't been granted notification
+      // permission yet — on many platforms (Android) a token is still available.
       try {
         final token = await _messaging.getToken();
-        if (token != null) {
+        debugPrint('[PUSH] getToken() -> $token');
+        final lastSynced = await _authStorage.getLastSyncedFcmToken();
+        if (token != null && token.isNotEmpty && token != lastSynced) {
           await _syncTokenToApi(token);
         }
       } catch (e) {
