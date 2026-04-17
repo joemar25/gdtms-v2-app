@@ -53,103 +53,101 @@ class PushNotificationService {
     // the token sync robust across restarts or offline periods.
     await _attemptPendingTokenSync(settings);
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized ||
-        settings.authorizationStatus == AuthorizationStatus.provisional) {
-      debugPrint('[PUSH] User granted permission');
+    // Always attempt to obtain the device token. On many Android devices a
+    // token is available even when runtime notification permission isn't
+    // explicitly granted; obtaining it here ensures we persist and can retry
+    // sync later when appropriate.
+    try {
+      final token = await _messaging.getToken();
+      debugPrint('[PUSH] getToken() -> $token');
 
-      // Always re-sync the FCM token on every init call (startup + login).
-      // Attempt to get token even if the app hasn't been granted notification
-      // permission yet — on many platforms (Android) a token is still available.
+      // Persist desired state for offline-safe retries.
       try {
-        final token = await _messaging.getToken();
-        debugPrint('[PUSH] getToken() -> $token');
-        final lastSynced = await _authStorage.getLastSyncedFcmToken();
+        await _authStorage.setPendingFcmToken(token);
+      } catch (e) {
+        debugPrint('[PUSH] Failed to persist pending FCM token: $e');
+      }
+
+      final lastSynced = await _authStorage.getLastSyncedFcmToken();
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
+        debugPrint('[PUSH] User granted permission');
         if (token != null && token.isNotEmpty && token != lastSynced) {
           await _syncTokenToApi(token);
         }
-      } catch (e) {
-        debugPrint('[PUSH] Failed to get FCM token: $e');
+      } else {
+        debugPrint('[PUSH] User declined or has not accepted permission');
+        // Ensure server cleared; schedule an offline-safe clear so backend
+        // doesn't keep a stale token.
+        await _syncTokenToApi(null);
       }
+    } catch (e) {
+      debugPrint('[PUSH] Failed to get/persist FCM token: $e');
+    }
 
-      // Listeners + channel setup — register only once per app lifetime.
-      if (_initialized) return;
+    // Listeners + channel setup — register only once per app lifetime.
+    if (_initialized) return;
 
-      // Enable foreground notifications on iOS (alert + badge + sound).
-      // Without this iOS silently ignores notifications while the app is open.
-      if (!kIsWeb && Platform.isIOS) {
-        await _messaging.setForegroundNotificationPresentationOptions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-      }
+    // Enable foreground notifications on iOS (alert + badge + sound).
+    // Without this iOS silently ignores notifications while the app is open.
+    if (!kIsWeb && Platform.isIOS) {
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
 
-      // Setup high-importance notification channel for Android foreground alerts.
-      if (!kIsWeb && Platform.isAndroid) {
-        const AndroidNotificationChannel channel = AndroidNotificationChannel(
-          'high_importance_channel',
-          'High Importance Notifications',
-          description: 'This channel is used for important notifications.',
-          importance: Importance.max,
-        );
-
-        await _localNotificationsPlugin
-            .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin
-            >()
-            ?.createNotificationChannel(channel);
-      }
-
-      // Initialize local notifications for foreground alerts.
-      const InitializationSettings initializationSettings =
-          InitializationSettings(
-            android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-            iOS: DarwinInitializationSettings(),
-          );
-      await _localNotificationsPlugin.initialize(
-        settings: initializationSettings,
+    // Setup high-importance notification channel for Android foreground alerts.
+    if (!kIsWeb && Platform.isAndroid) {
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'high_importance_channel',
+        'High Importance Notifications',
+        description: 'This channel is used for important notifications.',
+        importance: Importance.max,
       );
 
-      // Listen to foreground messages.
-      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-
-      // Re-sync whenever Firebase silently rotates the token.
-      _messaging.onTokenRefresh.listen((token) {
-        _syncTokenToApi(token);
-      });
-
-      // Handle notification tap when app was terminated (cold start).
-      final initialMessage = await _messaging.getInitialMessage();
-      if (initialMessage != null) {
-        // Delay navigation until after the first frame so the router is ready.
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _navigateFromMessage(initialMessage.data);
-        });
-      }
-
-      // Handle notification tap when app is in the background (warm start).
-      FirebaseMessaging.onMessageOpenedApp.listen((message) {
-        _navigateFromMessage(message.data);
-      });
-
-      _initialized = true;
-    } else {
-      debugPrint('[PUSH] User declined or has not accepted permission');
-
-      // Ensure backend does not retain a stale FCM token for this device when
-      // the user has declined notifications. Schedule a clear of the backend
-      // token (offline-safe) so the server doesn't retain an invalid token.
-      try {
-        await _syncTokenToApi(null);
-      } catch (e) {
-        debugPrint('[PUSH] Failed to schedule clearing FCM token: $e');
-        await ErrorLogService.warning(
-          context: 'PushNotificationService',
-          message: 'Failed to schedule clearing FCM token',
-          detail: e.toString(),
-        );
-      }
+      await _localNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.createNotificationChannel(channel);
     }
+
+    // Initialize local notifications for foreground alerts.
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          iOS: DarwinInitializationSettings(),
+        );
+    await _localNotificationsPlugin.initialize(
+      settings: initializationSettings,
+    );
+
+    // Listen to foreground messages.
+    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+
+    // Re-sync whenever Firebase silently rotates the token.
+    _messaging.onTokenRefresh.listen((token) {
+      _syncTokenToApi(token);
+    });
+
+    // Handle notification tap when app was terminated (cold start).
+    final initialMessage = await _messaging.getInitialMessage();
+    if (initialMessage != null) {
+      // Delay navigation until after the first frame so the router is ready.
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _navigateFromMessage(initialMessage.data);
+      });
+    }
+
+    // Handle notification tap when app is in the background (warm start).
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      _navigateFromMessage(message.data);
+    });
+
+    _initialized = true;
   }
 
   void _navigateFromMessage(Map<String, dynamic> data) {
