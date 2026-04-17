@@ -622,7 +622,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     // Reject if device clock is behind the last sync anchor — a backdated
     // submission would create a delivery timeline that goes backwards.
-    final timeCheck = await TimeValidationService.instance.checkSubmissionTime();
+    final timeCheck = await TimeValidationService.instance
+        .checkSubmissionTime();
     if (!mounted) return;
     if (!timeCheck.valid) {
       setState(() => _loading = false);
