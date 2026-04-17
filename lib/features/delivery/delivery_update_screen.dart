@@ -53,6 +53,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/services/review_prompt_service.dart';
+import 'package:fsi_courier_app/core/services/time_validation_service.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
@@ -193,15 +194,20 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _loadDelivery();
     _captureLocation();
     _handleLostData(); // Handle cases where Android kills the activity during camera use
-    _note.addListener(_onNoteChanged);
+
+    // Listen to text field changes so _isDirty is recalculated immediately
+    // when the user types and presses Back without another interaction.
+    _note.addListener(_onFieldChanged);
+    _recipient.addListener(_onFieldChanged);
+    _relationshipSpecify.addListener(_onFieldChanged);
+    _reasonSpecify.addListener(_onFieldChanged);
+    _confirmationCode.addListener(_onFieldChanged);
   }
 
-  void _onNoteChanged() {
-    if (_activeNotePreset != null && _note.text != _activeNotePreset) {
-      // Don't call setState here; just update the flag. The field will be
-      // rebuilt on the next scheduled frame or next interaction anyway.
-      // If an exact-match test is needed later it can be done lazily.
-    }
+  void _onFieldChanged() {
+    // Trigger a rebuild to ensure `_isDirty` is re-evaluated before pop.
+    if (!mounted) return;
+    setState(() {});
   }
 
   Future<void> _loadDelivery() async {
@@ -250,7 +256,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   @override
   void dispose() {
-    _note.removeListener(_onNoteChanged);
+    _note.removeListener(_onFieldChanged);
+    _recipient.removeListener(_onFieldChanged);
+    _relationshipSpecify.removeListener(_onFieldChanged);
+    _reasonSpecify.removeListener(_onFieldChanged);
+    _confirmationCode.removeListener(_onFieldChanged);
+
     _note.dispose();
     _recipient.dispose();
     _relationshipSpecify.dispose();
@@ -606,6 +617,16 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         context,
         'This delivery is locked and cannot be updated.',
       );
+      return;
+    }
+
+    // Reject if device clock is behind the last sync anchor — a backdated
+    // submission would create a delivery timeline that goes backwards.
+    final timeCheck = await TimeValidationService.instance.checkSubmissionTime();
+    if (!mounted) return;
+    if (!timeCheck.valid) {
+      setState(() => _loading = false);
+      showErrorNotification(context, timeCheck.reason!);
       return;
     }
 
