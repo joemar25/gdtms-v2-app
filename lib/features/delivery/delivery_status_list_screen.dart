@@ -777,7 +777,7 @@ class _DeliveryStatusListScreenState
                       icon: Icons.replay_outlined,
                       title: 'Re-delivery of Failed Attempts',
                       description:
-                          'Failed attempts can be re-delivered if still with you, unless already verified on-site.',
+                          'Failed deliveries may be attempted again if still eligible and not yet verified on-site. After 3 unsuccessful attempts, the item may be marked for return.',
                       isDark: isDark,
                     ),
                     const Padding(
@@ -786,9 +786,9 @@ class _DeliveryStatusListScreenState
                     ),
                     _HelpItem(
                       icon: Icons.inventory_2_outlined,
-                      title: 'Delivery Back to FSI',
+                      title: 'Return to FSI',
                       description:
-                          'If a failed delivery is returned to FSI, it will be automatically validated for payment by the site team.',
+                          'If a delivery is returned to FSI, it will be reviewed by the site team for validation.',
                       isDark: isDark,
                     ),
                     const Padding(
@@ -797,9 +797,9 @@ class _DeliveryStatusListScreenState
                     ),
                     _HelpItem(
                       icon: Icons.account_balance_wallet_outlined,
-                      title: 'Automatic Consolidation',
+                      title: 'Payment Processing',
                       description:
-                          'If validated, the item will be automatically consolidated into your existing payment request, if one is available.',
+                          'Validated items may be included in a payment request, subject to review and existing payment processes. Inclusion is not guaranteed.',
                       isDark: isDark,
                     ),
                   ],
