@@ -602,17 +602,6 @@ class LocalDeliveryDao {
     if (query.trim().isEmpty) return [];
     final db = await _db;
     final q = '%${query.trim()}%';
-    final now = DateTime.now();
-    final todayStart = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).millisecondsSinceEpoch;
-    final tomorrowStart = DateTime(
-      now.year,
-      now.month,
-      now.day + 1,
-    ).millisecondsSinceEpoch;
     final rows = await db.rawQuery(
       '''
       SELECT * FROM local_deliveries
@@ -622,11 +611,9 @@ class LocalDeliveryDao {
           -- PENDING/FOR_DELIVERY: any non-archived pending record
           (delivery_status COLLATE NOCASE IN ('PENDING','FOR_DELIVERY'))
 
-          -- FAILED_DELIVERY: today only, unverified
-          -- Attempts >= 3 are excluded in the Dart post-filter below because
-          -- the count lives in raw_json, not a dedicated column.
+          -- FAILED_DELIVERY: include unverified failed deliveries (attempts >= 3 are
+          -- excluded by the Dart post-filter below because attempts live in raw_json).
           OR (delivery_status COLLATE NOCASE = 'FAILED_DELIVERY'
-              AND completed_at >= $todayStart AND completed_at < $tomorrowStart
               AND COALESCE(rts_verification_status, 'unvalidated')
                   NOT IN ('verified_with_pay', 'verified_no_pay'))
         )
@@ -839,16 +826,20 @@ class LocalDeliveryDao {
         return deliveredAt >= todayStart && deliveredAt < tomorrowStart;
 
       case 'FAILED_DELIVERY':
-        final completedAt = row['completed_at'] as int? ?? 0;
         final failedDeliveryVerif =
-            (row['rts_verification_status'] as String? ??
-                    row['rts_verification_status'] as String? ??
-                    'unvalidated')
+            (row['rts_verification_status'] as String? ?? 'unvalidated')
                 .toLowerCase();
-        return completedAt >= todayStart &&
-            completedAt < tomorrowStart &&
-            failedDeliveryVerif != 'verified_with_pay' &&
-            failedDeliveryVerif != 'verified_no_pay';
+        if (failedDeliveryVerif == 'verified_with_pay' ||
+            failedDeliveryVerif == 'verified_no_pay') {
+          return false;
+        }
+        try {
+          final ld = LocalDelivery.fromDb(row);
+          final attempts = getAttemptsCountFromMap(ld.toDeliveryMap());
+          return attempts < 3;
+        } catch (_) {
+          return false;
+        }
 
       case 'OSA':
         final completedAt = row['completed_at'] as int? ?? 0;
