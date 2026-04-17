@@ -116,8 +116,13 @@ class _DeliveryStatusListScreenState
 
   // ── Failed-delivery sub-filter ─────────────────────────────────────────────
   /// 'redelivery' = attempts < 3 and not Failed Delivery-verified
-  /// 'failed_delivery' = attempts >= 3 or Failed Delivery-verified
+  /// 'rts'        = attempts >= 3 or Failed Delivery-verified
   String _failedSubFilter = 'redelivery';
+
+  /// Total counts across ALL pages — not just the current page.
+  /// Populated in [_load] so the chip badges are always accurate.
+  int _totalRedeliveryCount = 0;
+  int _totalRtsCount = 0;
 
   List<Map<String, dynamic>> get _displayed =>
       _searchQuery.trim().isNotEmpty ? _searchResults : _items;
@@ -127,28 +132,21 @@ class _DeliveryStatusListScreenState
     if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return base;
     return base.where((d) {
       final attempts = getAttemptsCountFromMap(d);
-      final vStr =
-          (d['_rts_verification_status'] ?? 'unvalidated')
-              .toString()
-              .toLowerCase();
+      final vStr = (d['_rts_verification_status'] ?? 'unvalidated')
+          .toString()
+          .toLowerCase();
       final rv = FailedDeliveryVerificationStatus.fromString(vStr);
       final isRts = attempts >= 3 || rv.isVerified;
       return _failedSubFilter == 'failed_delivery' ? isRts : !isRts;
     }).toList();
   }
 
+  /// Returns the accurate total count for each sub-group across all pages.
+  /// Uses the pre-computed totals from [_load] rather than filtering [_items]
+  /// (which only contains the current page's rows).
   int _countFailedSubGroup(String group) {
     if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return 0;
-    return _items.where((d) {
-      final attempts = getAttemptsCountFromMap(d);
-      final vStr =
-          (d['_rts_verification_status'] ?? 'unvalidated')
-              .toString()
-              .toLowerCase();
-      final rv = FailedDeliveryVerificationStatus.fromString(vStr);
-      final isRts = attempts >= 3 || rv.isVerified;
-      return group == 'failed_delivery' ? isRts : !isRts;
-    }).length;
+    return group == 'rts' ? _totalRtsCount : _totalRedeliveryCount;
   }
 
   @override
@@ -194,9 +192,35 @@ class _DeliveryStatusListScreenState
       _currentPage = totalPages - 1;
       return _load();
     }
+
+    // ── Compute accurate sub-filter counts for Failed Delivery ────────────
+    // We must count across ALL rows, not just the current page. Fetching all
+    // rows here is intentional; for large datasets consider adding dedicated
+    // COUNT queries to LocalDeliveryDao instead.
+    int redeliveryCount = 0;
+    int rtsCount = 0;
+    if (widget.status.toUpperCase() == 'FAILED_DELIVERY' && total > 0) {
+      final allRows = await LocalDeliveryDao.instance
+          .getVisibleFailedDeliveryPaged(limit: total, offset: 0);
+      for (final row in allRows) {
+        final attempts = getAttemptsCountFromMap(row.toDeliveryMap());
+        final vStr = (row.rtsVerificationStatus).toLowerCase();
+        final rv = FailedDeliveryVerificationStatus.fromString(vStr);
+        final isRts = attempts >= 3 || rv.isVerified;
+        if (isRts) {
+          rtsCount++;
+        } else {
+          redeliveryCount++;
+        }
+      }
+    }
+    if (!mounted) return;
+
     setState(() {
       _items = rows.map(_toCardMap).toList();
       _totalCount = total;
+      _totalRedeliveryCount = redeliveryCount;
+      _totalRtsCount = rtsCount;
       _loading = false;
     });
     if (_scrollController.hasClients) {
@@ -336,9 +360,10 @@ class _DeliveryStatusListScreenState
     'PENDING' || 'FOR_DELIVERY' => 'No active deliveries.',
     'DELIVERED' => 'No delivered items today.',
     'DISPATCHED' => 'No dispatched items.',
-    'FAILED_DELIVERY' => _failedSubFilter == 'failed_delivery'
-        ? 'No items for return today.'
-        : 'No items available for redelivery.',
+    'FAILED_DELIVERY' =>
+      _failedSubFilter == 'rts'
+          ? 'No items for return today.'
+          : 'No items available for redelivery.',
     'OSA' => 'No OSA mailpacks today.',
     _ => 'No items found.',
   };
@@ -359,8 +384,7 @@ class _DeliveryStatusListScreenState
     final isOnline = ref.watch(isOnlineProvider);
     final displayed = _failedFiltered;
     final isSearching = _searchQuery.trim().isNotEmpty;
-    final isFailedDelivery =
-        widget.status.toUpperCase() == 'FAILED_DELIVERY';
+    final isFailedDelivery = widget.status.toUpperCase() == 'FAILED_DELIVERY';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
@@ -464,20 +488,18 @@ class _DeliveryStatusListScreenState
                         count: _countFailedSubGroup('redelivery'),
                         color: DSColors.red,
                         isDark: isDark,
-                        onTap: () => setState(
-                          () => _failedSubFilter = 'redelivery',
-                        ),
+                        onTap: () =>
+                            setState(() => _failedSubFilter = 'redelivery'),
                       ),
                       const SizedBox(width: 8),
                       _FailedFilterChip(
                         label: 'For Return',
                         icon: Icons.assignment_return_rounded,
-                        selected: _failedSubFilter == 'failed_delivery',
-                        count: _countFailedSubGroup('failed_delivery'),
+                        selected: _failedSubFilter == 'rts',
+                        count: _countFailedSubGroup('rts'),
                         color: DeliveryCard.statusColor('FAILED_DELIVERY'),
                         isDark: isDark,
-                        onTap: () =>
-                            setState(() => _failedSubFilter = 'failed_delivery'),
+                        onTap: () => setState(() => _failedSubFilter = 'rts'),
                       ),
                     ],
                   ),
@@ -745,7 +767,6 @@ class _DeliveryStatusListScreenState
                       icon: Icons.account_balance_wallet_outlined,
                       title: 'Automatic Consolidation',
                       description:
-                          // 'If validated "With Pay", the item will be automatically consolidated into your existing old payment request, if one is available.',
                           'If validated, the item will be automatically consolidated into your existing payment request, if one is available.',
                       isDark: isDark,
                     ),
