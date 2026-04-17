@@ -282,8 +282,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       if (!eligible) {
         final reason = mergedData['message']?.toString() ?? 'You are not eligible for this dispatch.';
         setState(() => _inlineError = reason);
-        showInfoNotification(context, reason);
-        if (mounted && _hasPermission) await _scannerController.start();
+        // Disable camera scanning for this session — do not restart the scanner.
+        try {
+          await _scannerController.stop();
+        } catch (_) {}
         return;
       }
 
