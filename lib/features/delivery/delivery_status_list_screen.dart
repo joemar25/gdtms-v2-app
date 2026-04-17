@@ -114,8 +114,42 @@ class _DeliveryStatusListScreenState
   // ── Sync-lock ──────────────────────────────────────────────────────────────
   Set<String> _queuedBarcodes = {};
 
+  // ── Failed-delivery sub-filter ─────────────────────────────────────────────
+  /// 'redelivery' = attempts < 3 and not RTS-verified
+  /// 'rts'        = attempts >= 3 or RTS-verified
+  String _failedSubFilter = 'redelivery';
+
   List<Map<String, dynamic>> get _displayed =>
       _searchQuery.trim().isNotEmpty ? _searchResults : _items;
+
+  List<Map<String, dynamic>> get _failedFiltered {
+    final base = _displayed;
+    if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return base;
+    return base.where((d) {
+      final attempts = getAttemptsCountFromMap(d);
+      final vStr =
+          (d['_rts_verification_status'] ?? 'unvalidated')
+              .toString()
+              .toLowerCase();
+      final rv = FailedDeliveryVerificationStatus.fromString(vStr);
+      final isRts = attempts >= 3 || rv.isVerified;
+      return _failedSubFilter == 'rts' ? isRts : !isRts;
+    }).toList();
+  }
+
+  int _countFailedSubGroup(String group) {
+    if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return 0;
+    return _items.where((d) {
+      final attempts = getAttemptsCountFromMap(d);
+      final vStr =
+          (d['_rts_verification_status'] ?? 'unvalidated')
+              .toString()
+              .toLowerCase();
+      final rv = FailedDeliveryVerificationStatus.fromString(vStr);
+      final isRts = attempts >= 3 || rv.isVerified;
+      return group == 'rts' ? isRts : !isRts;
+    }).length;
+  }
 
   @override
   void initState() {
@@ -302,7 +336,9 @@ class _DeliveryStatusListScreenState
     'PENDING' => 'No active deliveries.',
     'DELIVERED' => 'No delivered items today.',
     'DISPATCHED' => 'No dispatched items.',
-    'FAILED_DELIVERY' => 'No failed deliveries today.',
+    'FAILED_DELIVERY' => _failedSubFilter == 'rts'
+        ? 'No items for return today.'
+        : 'No items available for redelivery.',
     'OSA' => 'No OSA mailpacks today.',
     _ => 'No items found.',
   };
@@ -321,8 +357,10 @@ class _DeliveryStatusListScreenState
 
     final isCompact = ref.watch(compactModeProvider);
     final isOnline = ref.watch(isOnlineProvider);
-    final displayed = _displayed;
+    final displayed = _failedFiltered;
     final isSearching = _searchQuery.trim().isNotEmpty;
+    final isFailedDelivery =
+        widget.status.toUpperCase() == 'FAILED_DELIVERY';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
@@ -412,6 +450,38 @@ class _DeliveryStatusListScreenState
                       : const SizedBox.shrink(key: ValueKey('empty')),
                 ),
               ),
+
+              // ── Failed-delivery sub-filter chips ──────────────────────────────
+              if (isFailedDelivery)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Row(
+                    children: [
+                      _FailedFilterChip(
+                        label: 'For Redelivery',
+                        icon: Icons.local_shipping_rounded,
+                        selected: _failedSubFilter == 'redelivery',
+                        count: _countFailedSubGroup('redelivery'),
+                        color: DSColors.red,
+                        isDark: isDark,
+                        onTap: () => setState(
+                          () => _failedSubFilter = 'redelivery',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _FailedFilterChip(
+                        label: 'For Return',
+                        icon: Icons.assignment_return_rounded,
+                        selected: _failedSubFilter == 'rts',
+                        count: _countFailedSubGroup('rts'),
+                        color: DeliveryCard.statusColor('FAILED_DELIVERY'),
+                        isDark: isDark,
+                        onTap: () =>
+                            setState(() => _failedSubFilter = 'rts'),
+                      ),
+                    ],
+                  ),
+                ),
 
               // ── List ───────────────────────────────────────────────────────────
               Expanded(
@@ -911,6 +981,96 @@ class _StatusInfoBanner extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Failed-delivery sub-filter chip ───────────────────────────────────────────
+class _FailedFilterChip extends StatelessWidget {
+  const _FailedFilterChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.count,
+    required this.color,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final int count;
+  final Color color;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = selected
+        ? color.withValues(alpha: 0.14)
+        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9));
+    final border = selected
+        ? color.withValues(alpha: 0.45)
+        : (isDark ? Colors.white12 : const Color(0xFFE2E8F0));
+    final fg = selected
+        ? color
+        : (isDark ? Colors.white54 : const Color(0xFF64748B));
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: DSStyles.cardRadius,
+            border: Border.all(color: border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: fg),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
+                ),
+              ),
+              if (count > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? color.withValues(alpha: 0.18)
+                        : (isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: fg,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
