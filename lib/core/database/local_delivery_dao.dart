@@ -550,7 +550,7 @@ class LocalDeliveryDao {
     final db = await _db;
     final rows = await db.query(
       'local_deliveries',
-      where: 'barcode = ?',
+      where: 'barcode COLLATE NOCASE = ?',
       whereArgs: [barcode],
       limit: 1,
     );
