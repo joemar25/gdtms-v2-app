@@ -9,6 +9,7 @@ import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 
 /// Data access object for the [local_deliveries] table.
 class LocalDeliveryDao {
@@ -609,7 +610,7 @@ class LocalDeliveryDao {
         AND COALESCE(is_archived, 0) = 0
         AND (
           -- PENDING/FOR_DELIVERY: any non-archived pending record
-          (delivery_status COLLATE NOCASE IN ('PENDING','FOR_DELIVERY'))
+          (delivery_status COLLATE NOCASE IN ('PENDING','FOR_DELIVERY','FOR_REDELIVERY'))
 
           -- FAILED_DELIVERY: include unverified failed deliveries (attempts >= 3 are
           -- excluded by the Dart post-filter below because attempts live in raw_json).
@@ -800,7 +801,7 @@ class LocalDeliveryDao {
     if (rows.isEmpty) return false;
 
     final row = rows.first;
-    final status = (row['delivery_status'] as String? ?? '').toUpperCase();
+    final statusStr = (row['delivery_status'] as String? ?? '').toUpperCase();
     final isArchived = (row['is_archived'] as int? ?? 0) != 0;
     if (isArchived) return false;
 
@@ -816,16 +817,17 @@ class LocalDeliveryDao {
       now.day + 1,
     ).millisecondsSinceEpoch;
 
-    switch (status) {
-      case 'PENDING':
-      case 'FOR_DELIVERY':
+    final ds = DeliveryStatus.fromString(statusStr);
+
+    switch (ds) {
+      case DeliveryStatus.pending:
         return true;
 
-      case 'DELIVERED':
+      case DeliveryStatus.delivered:
         final deliveredAt = row['delivered_at'] as int? ?? 0;
         return deliveredAt >= todayStart && deliveredAt < tomorrowStart;
 
-      case 'FAILED_DELIVERY':
+      case DeliveryStatus.failedDelivery:
         final failedDeliveryVerif =
             (row['rts_verification_status'] as String? ?? 'unvalidated')
                 .toLowerCase();
@@ -841,7 +843,7 @@ class LocalDeliveryDao {
           return false;
         }
 
-      case 'OSA':
+      case DeliveryStatus.osa:
         final completedAt = row['completed_at'] as int? ?? 0;
         return completedAt >= todayStart && completedAt < tomorrowStart;
 

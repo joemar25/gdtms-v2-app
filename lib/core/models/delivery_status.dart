@@ -40,14 +40,22 @@ enum DeliveryStatus {
   ///
   /// Case-insensitive. Returns [unknown] for unrecognised values.
   static DeliveryStatus fromString(String? value) {
-    return switch (value?.trim().toUpperCase()) {
-      'PENDING' || 'FOR_DELIVERY' => pending,
-      'DELIVERED' => delivered,
-      // Accept the FAILED_DELIVERY contract value.
-      'FAILED_DELIVERY' => failedDelivery,
-      'OSA' => osa,
-      _ => unknown,
-    };
+    final v = value?.trim().toUpperCase() ?? '';
+
+    // Common canonical values
+    if (v == 'PENDING' || v == 'FOR_DELIVERY') return pending;
+
+    // Server aliases / legacy values that should be treated as pending/actionable
+    if (v == 'FOR_REDELIVERY' || v == 'REDELIVERY' || v == 'FOR_REATTEMPT' || v == 'REATTEMPT') return pending;
+
+    if (v == 'DELIVERED') return delivered;
+
+    // Accept both the new contract and legacy RTS token for failed delivery
+    if (v == 'FAILED_DELIVERY' || v == 'RTS') return failedDelivery;
+
+    if (v == 'OSA') return osa;
+
+    return unknown;
   }
 
   // ── Serialisation ─────────────────────────────────────────────────────────
