@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/services/error_log_service.dart';
+import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:go_router/go_router.dart';
 
@@ -25,6 +26,7 @@ class PushNotificationService {
 
   bool _initialized = false;
   ApiClient? _apiClient;
+  final AuthStorage _authStorage = AuthStorage();
 
   /// Called in main.dart before runApp to register the background handler.
   static Future<void> initBackgroundHandler() async {
@@ -46,6 +48,10 @@ class PushNotificationService {
     // The permissions screen (LocationRequiredScreen) is responsible for
     // requesting notification permission before the user reaches the dashboard.
     final settings = await _messaging.getNotificationSettings();
+
+    // Attempt to flush any previously-persisted FCM token changes. This makes
+    // the token sync robust across restarts or offline periods.
+    await _attemptPendingTokenSync(settings);
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional) {
@@ -130,23 +136,15 @@ class PushNotificationService {
       debugPrint('[PUSH] User declined or has not accepted permission');
 
       // Ensure backend does not retain a stale FCM token for this device when
-      // the user has declined notifications. Inform the server on login so it
-      // won't attempt to send pushes to a token that isn't present on-device.
+      // the user has declined notifications. Schedule a clear of the backend
+      // token (offline-safe) so the server doesn't retain an invalid token.
       try {
-        if (_apiClient != null) {
-          final deviceType = kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android');
-          await _apiClient!.post(
-            '/profile/fcm-token',
-            data: {'fcm_token': null, 'device_type': deviceType},
-            parser: (data) => data,
-          );
-          debugPrint('[PUSH] Backend notified: notifications disabled for device');
-        }
+        await _syncTokenToApi(null);
       } catch (e) {
-        debugPrint('[PUSH] Failed to notify backend about disabled notifications: $e');
+        debugPrint('[PUSH] Failed to schedule clearing FCM token: $e');
         await ErrorLogService.warning(
           context: 'PushNotificationService',
-          message: 'Failed to notify backend when notifications disabled',
+          message: 'Failed to schedule clearing FCM token',
           detail: e.toString(),
         );
       }
@@ -211,14 +209,10 @@ class PushNotificationService {
     }
 
     // 2. Clear the token on the backend so the server knows this device is gone.
-    if (_apiClient != null) {
-      final deviceType = kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android');
-      await _apiClient!.post(
-        '/profile/fcm-token',
-        data: {'fcm_token': null, 'device_type': deviceType},
-        parser: (data) => data,
-      );
-      debugPrint('[PUSH] FCM token cleared on backend');
+    try {
+      await _syncTokenToApi(null);
+    } catch (e) {
+      debugPrint('[PUSH] Failed to schedule backend clear for FCM token: $e');
     }
 
     // 3. Reset so init() fully re-registers listeners on next login.
@@ -226,10 +220,20 @@ class PushNotificationService {
     _apiClient = null;
   }
 
-  Future<void> _syncTokenToApi(String token) async {
-    if (_apiClient == null) return;
+  Future<void> _syncTokenToApi(String? token) async {
+    // Persist desired state first so it survives restarts/offline.
+    try {
+      await _authStorage.setPendingFcmToken(token);
+    } catch (e) {
+      debugPrint('[PUSH] Failed to persist pending FCM token: $e');
+    }
 
-    debugPrint('[PUSH] Syncing FCM Token: $token');
+    if (_apiClient == null) {
+      debugPrint('[PUSH] API client not ready; pending token saved');
+      return;
+    }
+
+    debugPrint('[PUSH] Syncing FCM Token: ${token ?? 'null'}');
 
     // We assume the backend expects this payload.
     // POST /profile/fcm-token
@@ -260,8 +264,37 @@ class PushNotificationService {
         message: 'Failed to sync FCM token',
         detail: errorMessage,
       );
+      // Leave the pending token in storage so it can be retried later.
     } else {
       debugPrint('[PUSH] FCM Token synced successfully');
+      try {
+        await _authStorage.setLastSyncedFcmToken(token);
+        await _authStorage.clearPendingFcmToken();
+      } catch (e) {
+        debugPrint('[PUSH] Failed to update local FCM sync state: $e');
+      }
+    }
+  }
+
+  Future<void> _attemptPendingTokenSync(NotificationSettings settings) async {
+    try {
+      final hasPending = await _authStorage.hasPendingFcmToken();
+      if (!hasPending) return;
+      final pending = await _authStorage.getPendingFcmToken();
+      if (pending == null) {
+        // Explicit clear requested.
+        await _syncTokenToApi(null);
+      } else {
+        // If permissions are granted, try to send the token; otherwise clear server-side token.
+        if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+            settings.authorizationStatus == AuthorizationStatus.provisional) {
+          await _syncTokenToApi(pending);
+        } else {
+          await _syncTokenToApi(null);
+        }
+      }
+    } catch (e) {
+      debugPrint('[PUSH] Failed to attempt pending FCM sync: $e');
     }
   }
 }

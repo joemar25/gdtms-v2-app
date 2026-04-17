@@ -11,6 +11,8 @@ const _courierKey = 'courier_data';
 const _deviceIdKey = 'device_id';
 const _courierIdKey = 'last_courier_id';
 const _initialSyncKey = 'initial_sync_completed';
+const _pendingFcmKey = 'pending_fcm_token';
+const _lastSyncedFcmKey = 'last_synced_fcm_token';
 
 final authStorageProvider = Provider<AuthStorage>((ref) => AuthStorage());
 
@@ -83,5 +85,42 @@ class AuthStorage {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _courierKey);
     await _storage.delete(key: _initialSyncKey);
+    await _storage.delete(key: _pendingFcmKey);
+    await _storage.delete(key: _lastSyncedFcmKey);
+  }
+
+  // --- FCM token persistence for offline-safe syncing ---------------------
+  Future<void> setPendingFcmToken(String? token) {
+    final jsonVal = jsonEncode(token);
+    return _storage.write(key: _pendingFcmKey, value: jsonVal);
+  }
+
+  Future<bool> hasPendingFcmToken() async {
+    final raw = await _storage.read(key: _pendingFcmKey);
+    return raw != null;
+  }
+
+  Future<String?> getPendingFcmToken() async {
+    final raw = await _storage.read(key: _pendingFcmKey);
+    if (raw == null) return null;
+    final decoded = jsonDecode(raw);
+    if (decoded == null) return null;
+    return decoded.toString();
+  }
+
+  Future<void> clearPendingFcmToken() async {
+    await _storage.delete(key: _pendingFcmKey);
+  }
+
+  Future<void> setLastSyncedFcmToken(String? token) async {
+    await _storage.write(key: _lastSyncedFcmKey, value: jsonEncode(token));
+  }
+
+  Future<String?> getLastSyncedFcmToken() async {
+    final raw = await _storage.read(key: _lastSyncedFcmKey);
+    if (raw == null) return null;
+    final decoded = jsonDecode(raw);
+    if (decoded == null) return null;
+    return decoded.toString();
   }
 }

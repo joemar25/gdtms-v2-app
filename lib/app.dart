@@ -392,11 +392,16 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     ref.listen<bool>(isOnlineProvider, (previous, current) {
       if (previous == false && current == true) {
         if (!ref.read(authProvider).isAuthenticated) return;
-        Future.delayed(const Duration(seconds: 2), () {
+        Future.delayed(const Duration(seconds: 2), () async {
           if (!mounted) return;
           _maybeTriggerSync(reason: 'reconnected');
           _startPeriodicSync(); // Resume periodic timer once online.
           ref.read(notificationsProvider.notifier).loadUnreadCount();
+          try {
+            await PushNotificationService.instance.init(ref.read(apiClientProvider));
+          } catch (e) {
+            debugPrint('[APP] Push init on reconnect failed: $e');
+          }
         });
       } else if (current == false) {
         _periodicTimer?.cancel(); // Pause periodic timer when offline.
