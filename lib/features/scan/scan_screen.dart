@@ -372,6 +372,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
     // message before ever navigating, and avoids N+1 per-row checks.
     var matches = await LocalDeliveryDao.instance.searchVisibleByQuery(code);
+    debugPrint('[SCAN] searchVisibleByQuery($code) -> ${matches.length} matches');
+    if (matches.isNotEmpty) {
+      try {
+        debugPrint('[SCAN]  results: ${matches.map((m) => '${m.barcode}|status=${m.deliveryStatus}|verif=${m.rtsVerificationStatus}|attempts=${getAttemptsCountFromMap(m.toDeliveryMap())}').toList()}');
+      } catch (e) {
+        debugPrint('[SCAN]  results: (failed to stringify) $e');
+      }
+    }
     if (!mounted) return;
 
     // If no visible matches were found, do a broader local search as a fallback.
@@ -380,6 +388,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // validate visibility per-row using the canonical isVisibleToRider gate.
     if (matches.isEmpty) {
       final fallback = await LocalDeliveryDao.instance.searchByQuery(code);
+      debugPrint('[SCAN] fallback searchByQuery($code) -> ${fallback.length} results');
       if (!mounted) return;
       if (fallback.isNotEmpty) {
         final visibilityFutures = fallback
@@ -390,6 +399,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         for (var i = 0; i < fallback.length; i++) {
           if (visibilityResults[i] == true) actionable.add(fallback[i]);
         }
+        debugPrint('[SCAN] actionable fallback -> ${actionable.length}');
         if (actionable.isNotEmpty) {
           matches = actionable;
         } else {
