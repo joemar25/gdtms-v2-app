@@ -263,7 +263,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         }
       }
 
-      // Enforce: only treat as dispatch when the response contains a dispatch_code
+      // Enforce: only treat as dispatch when the response contains a dispatch_code.
+      // mergedData is used here (not raw data) because dispatch_code may arrive via
+      // the pending-dispatch list merge rather than the eligibility response directly.
       final isDispatch = mergedData['dispatch_code']?.toString().trim().isNotEmpty == true;
       if (!isDispatch) {
         final reason = mergedData['message']?.toString() ?? 'Scanned code is not a dispatch.';
@@ -273,7 +275,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         return;
       }
 
-      // Do not push if not eligible — UX pre-filter
+      // Do not push if not eligible — UX pre-filter.
+      // The spread {…match, …mergedData} puts the eligibility API response last,
+      // so mergedData['eligible'] is always the authoritative value from the API.
       final eligible = mergedData['eligible'] == true;
       if (!eligible) {
         final reason = mergedData['message']?.toString() ?? 'You are not eligible for this dispatch.';
@@ -444,10 +448,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     if (matches.length == 1) {
       final match = matches.first;
-      final isLocked = checkIsLocked(
-        status: match.deliveryStatus,
-        rtsVerificationStatus: match.rtsVerificationStatus,
-      );
+      final isLocked = checkIsLockedFromMap(match.toDeliveryMap());
 
       if (isLocked) {
         final msg = _blockedMessage(

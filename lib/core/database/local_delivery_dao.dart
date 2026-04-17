@@ -784,16 +784,10 @@ class LocalDeliveryDao {
   /// to open a delivery that is not in their active list.
   Future<bool> isVisibleToRider(String barcode) async {
     final db = await _db;
+    // SELECT * so that LocalDelivery.fromDb() (used for attempt-count parsing
+    // in the failedDelivery case) receives every column it expects.
     final rows = await db.query(
       'local_deliveries',
-      columns: [
-        'delivery_status',
-        'delivered_at',
-        'completed_at',
-        'paid_at',
-        'rts_verification_status',
-        'is_archived',
-      ],
       where: 'barcode COLLATE NOCASE = ?',
       whereArgs: [barcode],
       limit: 1,

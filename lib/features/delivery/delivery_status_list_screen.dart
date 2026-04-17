@@ -29,15 +29,6 @@
 // Navigation:
 //   Route: /deliveries?status=<STATUS>
 //   Pushed from: DashboardScreen stat cards
-//
-// --- FAILED_DELIVERY sub-filter fix ---
-// Previously, _failedFiltered applied the redelivery/rts split AFTER
-// pagination, meaning both tabs showed the same page of mixed rows.
-//
-// Now: on every _load for FAILED_DELIVERY we fetch ALL visible rows once,
-// classify each into _allRedeliveryRows / _allRtsRows, then slice the
-// correct pre-classified list for the current page. _totalCount is set
-// from the active sub-group's list length so pagination is accurate.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -124,37 +115,38 @@ class _DeliveryStatusListScreenState
   Set<String> _queuedBarcodes = {};
 
   // ── Failed-delivery sub-filter ─────────────────────────────────────────────
-  /// 'redelivery' = attempts < 3 AND not RTS-verified
-  /// 'rts'        = attempts >= 3 OR RTS-verified
+  /// 'redelivery' = attempts < 3 and not Failed Delivery-verified
+  /// 'rts'        = attempts >= 3 or Failed Delivery-verified
   String _failedSubFilter = 'redelivery';
 
-  /// Pre-classified full lists (all pages) for FAILED_DELIVERY.
-  /// Populated in [_load] by fetching every visible failed row once and
-  /// splitting on the attempts/verification rule.  Pagination then slices
-  /// directly from these lists, so each tab always shows its own rows.
-  List<Map<String, dynamic>> _allRedeliveryRows = [];
-  List<Map<String, dynamic>> _allRtsRows = [];
+  /// Total counts across ALL pages — not just the current page.
+  /// Populated in [_load] so the chip badges are always accurate.
+  int _totalRedeliveryCount = 0;
+  int _totalRtsCount = 0;
 
-  /// Convenience helpers — count badges on the chips.
-  int get _totalRedeliveryCount => _allRedeliveryRows.length;
-  int get _totalRtsCount => _allRtsRows.length;
-
-  // ── Displayed rows (search-aware, NO further client-side sub-filtering) ────
-  // For FAILED_DELIVERY the sub-filter is already applied at load time;
-  // _items always contains the correct page slice for the active tab.
   List<Map<String, dynamic>> get _displayed =>
       _searchQuery.trim().isNotEmpty ? _searchResults : _items;
 
-  // ── Classification helper ──────────────────────────────────────────────────
-  /// Returns true if a card-map row belongs to the "For Return" (RTS) group.
-  /// Rule: attempts >= 3 OR rts_verification_status is verified.
-  static bool _isRts(Map<String, dynamic> d) {
-    final attempts = getAttemptsCountFromMap(d);
-    final vStr = (d['_rts_verification_status'] ?? 'unvalidated')
-        .toString()
-        .toLowerCase();
-    final rv = FailedDeliveryVerificationStatus.fromString(vStr);
-    return attempts >= 3 || rv.isVerified;
+  List<Map<String, dynamic>> get _failedFiltered {
+    final base = _displayed;
+    if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return base;
+    return base.where((d) {
+      final attempts = getAttemptsCountFromMap(d);
+      final vStr = (d['_rts_verification_status'] ?? 'unvalidated')
+          .toString()
+          .toLowerCase();
+      final rv = FailedDeliveryVerificationStatus.fromString(vStr);
+      final isRts = attempts >= 3 || rv.isVerified;
+      return _failedSubFilter == 'rts' ? isRts : !isRts;
+    }).toList();
+  }
+
+  /// Returns the accurate total count for each sub-group across all pages.
+  /// Uses the pre-computed totals from [_load] rather than filtering [_items]
+  /// (which only contains the current page's rows).
+  int _countFailedSubGroup(String group) {
+    if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return 0;
+    return group == 'rts' ? _totalRtsCount : _totalRedeliveryCount;
   }
 
   @override
@@ -180,96 +172,60 @@ class _DeliveryStatusListScreenState
 
   Future<void> _load() async {
     setState(() => _loading = true);
-
-    final isFailedDelivery = widget.status.toUpperCase() == 'FAILED_DELIVERY';
-
-    // ── FAILED_DELIVERY: fetch ALL rows, classify, then slice ────────────────
-    if (isFailedDelivery) {
-      // 1. Count total so we know how many rows to fetch.
-      final total = await LocalDeliveryDao.instance
-          .countVisibleFailedDelivery();
-
-      // 2. Fetch every visible failed-delivery row in one query.
-      final allRows = total > 0
-          ? await LocalDeliveryDao.instance.getVisibleFailedDeliveryPaged(
-              limit: total,
-              offset: 0,
-            )
-          : <LocalDelivery>[];
-
-      if (!mounted) return;
-
-      // 3. Refresh sync-queue lock set.
-      final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
-      _queuedBarcodes = await SyncOperationsDao.instance.getSyncQueuedBarcodes(
-        courierId,
-      );
-
-      if (!mounted) return;
-
-      // 4. Convert to card maps (needed for _isRts which reads raw_json fields).
-      final allCards = allRows.map(_toCardMap).toList();
-
-      // 5. Split into the two sub-groups.
-      final redeliveryRows = allCards.where((d) => !_isRts(d)).toList();
-      final rtsRows = allCards.where((d) => _isRts(d)).toList();
-
-      // 6. Pick the active list and slice the current page from it.
-      final activeList = _failedSubFilter == 'rts' ? rtsRows : redeliveryRows;
-      final activeTotal = activeList.length;
-
-      final totalPages = (activeTotal / _kPageSize).ceil().clamp(1, 999999);
-      if (_currentPage > 0 && _currentPage >= totalPages) {
-        _currentPage = totalPages - 1;
-      }
-
-      final offset = _currentPage * _kPageSize;
-      final pageEnd = (offset + _kPageSize).clamp(0, activeTotal);
-      final pageSlice = activeList.sublist(offset, pageEnd);
-
-      setState(() {
-        _allRedeliveryRows = redeliveryRows;
-        _allRtsRows = rtsRows;
-        _items = pageSlice;
-        _totalCount = activeTotal;
-        _loading = false;
-      });
-
-      if (_scrollController.hasClients) _scrollController.jumpTo(0);
-      return;
-    }
-
-    // ── All other statuses: original paged fetch ─────────────────────────────
     final offset = _currentPage * _kPageSize;
     final rows = await _fetchPage(offset: offset);
     final total = switch (widget.status.toUpperCase()) {
       'DELIVERED' => await LocalDeliveryDao.instance.countVisibleDelivered(),
+      'FAILED_DELIVERY' =>
+        await LocalDeliveryDao.instance.countVisibleFailedDelivery(),
       'OSA' => await LocalDeliveryDao.instance.countVisibleOsa(),
       _ => await LocalDeliveryDao.instance.countByStatus(widget.status),
     };
-
     if (!mounted) return;
-
     final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
     _queuedBarcodes = await SyncOperationsDao.instance.getSyncQueuedBarcodes(
       courierId,
     );
-
     if (!mounted) return;
-
     final totalPages = (total / _kPageSize).ceil().clamp(1, 999999);
     if (_currentPage > 0 && _currentPage >= totalPages) {
       _currentPage = totalPages - 1;
       return _load();
     }
 
+    // ── Compute accurate sub-filter counts for Failed Delivery ────────────
+    // We must count across ALL rows, not just the current page. Fetching all
+    // rows here is intentional; for large datasets consider adding dedicated
+    // COUNT queries to LocalDeliveryDao instead.
+    int redeliveryCount = 0;
+    int rtsCount = 0;
+    if (widget.status.toUpperCase() == 'FAILED_DELIVERY' && total > 0) {
+      final allRows = await LocalDeliveryDao.instance
+          .getVisibleFailedDeliveryPaged(limit: total, offset: 0);
+      for (final row in allRows) {
+        final attempts = getAttemptsCountFromMap(row.toDeliveryMap());
+        final vStr = (row.rtsVerificationStatus).toLowerCase();
+        final rv = FailedDeliveryVerificationStatus.fromString(vStr);
+        final isRts = attempts >= 3 || rv.isVerified;
+        if (isRts) {
+          rtsCount++;
+        } else {
+          redeliveryCount++;
+        }
+      }
+    }
+    if (!mounted) return;
+
     setState(() {
       _items = rows.map(_toCardMap).toList();
       _totalCount = total;
+      _totalRedeliveryCount = redeliveryCount;
+      _totalRtsCount = rtsCount;
       _loading = false;
     });
-
-    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
   }
 
   Future<List<LocalDelivery>> _fetchPage({required int offset}) {
@@ -279,11 +235,15 @@ class _DeliveryStatusListScreenState
         limit: _kPageSize,
         offset: offset,
       ),
+      'FAILED_DELIVERY' =>
+        LocalDeliveryDao.instance.getVisibleFailedDeliveryPaged(
+          limit: _kPageSize,
+          offset: offset,
+        ),
       'OSA' => LocalDeliveryDao.instance.getVisibleOsaPaged(
         limit: _kPageSize,
         offset: offset,
       ),
-      // FAILED_DELIVERY is handled separately in _load — should not reach here.
       _ => LocalDeliveryDao.instance.getByStatusPaged(
         status,
         limit: _kPageSize,
@@ -310,18 +270,6 @@ class _DeliveryStatusListScreenState
     if (_searchQuery.trim().isNotEmpty) await _runSearch(_searchQuery);
   }
 
-  /// Called when the user taps a sub-filter chip.
-  /// Resets to page 0 and reloads so the correct slice is shown immediately.
-  void _onFailedSubFilterChanged(String filter) {
-    if (_failedSubFilter == filter) return;
-    HapticFeedback.selectionClick();
-    setState(() {
-      _failedSubFilter = filter;
-      _currentPage = 0;
-    });
-    _load();
-  }
-
   Future<void> _runSearch(String query) async {
     final q = query.trim();
     if (q.isEmpty) {
@@ -337,19 +285,8 @@ class _DeliveryStatusListScreenState
       q,
     );
     if (!mounted) return;
-
-    // For FAILED_DELIVERY searches, filter to the active sub-group so the
-    // search results respect the selected chip tab.
-    final cards = rows.map(_toCardMap).toList();
-    final filtered = widget.status.toUpperCase() == 'FAILED_DELIVERY'
-        ? cards.where((d) {
-            final isRts = _isRts(d);
-            return _failedSubFilter == 'rts' ? isRts : !isRts;
-          }).toList()
-        : cards;
-
     setState(() {
-      _searchResults = filtered;
+      _searchResults = rows.map(_toCardMap).toList();
       _searchLoading = false;
     });
   }
@@ -445,7 +382,7 @@ class _DeliveryStatusListScreenState
 
     final isCompact = ref.watch(compactModeProvider);
     final isOnline = ref.watch(isOnlineProvider);
-    final displayed = _displayed;
+    final displayed = _failedFiltered;
     final isSearching = _searchQuery.trim().isNotEmpty;
     final isFailedDelivery = widget.status.toUpperCase() == 'FAILED_DELIVERY';
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -454,8 +391,13 @@ class _DeliveryStatusListScreenState
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) return;
+        // 1. Instantly kill keyboard focus to avoid viewport jumps
         FocusManager.instance.primaryFocus?.unfocus();
+
         if (_showSearch) {
+          // 2. We don't call setState here to avoid triggering layout animations
+          // during a pop transition, but we clear the state so that if
+          // the user navigates back to this status list, it's fresh.
           _showSearch = false;
           _searchQuery = '';
           _searchResults = [];
@@ -484,7 +426,7 @@ class _DeliveryStatusListScreenState
           },
           child: Column(
             children: [
-              // ── Search bar ─────────────────────────────────────────────────
+              // ── Search bar ─────────────────────────────────────────────────────
               AnimatedSize(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOutQuart,
@@ -533,7 +475,7 @@ class _DeliveryStatusListScreenState
                 ),
               ),
 
-              // ── Failed-delivery sub-filter chips ──────────────────────────
+              // ── Failed-delivery sub-filter chips ──────────────────────────────
               if (isFailedDelivery)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -543,26 +485,27 @@ class _DeliveryStatusListScreenState
                         label: 'For Redelivery',
                         icon: Icons.local_shipping_rounded,
                         selected: _failedSubFilter == 'redelivery',
-                        count: _totalRedeliveryCount,
+                        count: _countFailedSubGroup('redelivery'),
                         color: DSColors.red,
                         isDark: isDark,
-                        onTap: () => _onFailedSubFilterChanged('redelivery'),
+                        onTap: () =>
+                            setState(() => _failedSubFilter = 'redelivery'),
                       ),
                       const SizedBox(width: 8),
                       _FailedFilterChip(
                         label: 'For Return',
                         icon: Icons.assignment_return_rounded,
                         selected: _failedSubFilter == 'rts',
-                        count: _totalRtsCount,
+                        count: _countFailedSubGroup('rts'),
                         color: DeliveryCard.statusColor('FAILED_DELIVERY'),
                         isDark: isDark,
-                        onTap: () => _onFailedSubFilterChanged('rts'),
+                        onTap: () => setState(() => _failedSubFilter = 'rts'),
                       ),
                     ],
                   ),
                 ),
 
-              // ── List ───────────────────────────────────────────────────────
+              // ── List ───────────────────────────────────────────────────────────
               Expanded(
                 child: RefreshIndicator(
                   color: DSColors.red,
@@ -589,6 +532,7 @@ class _DeliveryStatusListScreenState
                           isDark: isDark,
                         )
                       : SlidableAutoCloseBehavior(
+                          // Ensure other Slidables close automatically when one opens
                           child: ListView.builder(
                             controller: _scrollController,
                             physics: const AlwaysScrollableScrollPhysics(),
@@ -670,7 +614,7 @@ class _DeliveryStatusListScreenState
                 ),
               ),
 
-              // ── Pagination bar ─────────────────────────────────────────────
+              // ── Pagination bar ─────────────────────────────────────────────────
               if (!isSearching && !_loading && _totalCount > _kPageSize)
                 PaginationBar(
                   currentPage: _currentPage,
@@ -711,6 +655,7 @@ class _DeliveryStatusListScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Handle bar
             const SizedBox(height: 12),
             Container(
               width: 40,
@@ -721,6 +666,8 @@ class _DeliveryStatusListScreenState
               ),
             ),
             const SizedBox(height: 24),
+
+            // Header Icon & Title
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
@@ -775,7 +722,10 @@ class _DeliveryStatusListScreenState
                 ],
               ),
             ),
+
             const SizedBox(height: 24),
+
+            // Help Content
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
@@ -824,7 +774,10 @@ class _DeliveryStatusListScreenState
                 ),
               ),
             ),
+
             const SizedBox(height: 12),
+
+            // Footer note
             Padding(
               padding: const EdgeInsets.all(24),
               child: Container(
@@ -909,6 +862,15 @@ class _DeliveryStatusListScreenState
         isDark: isDark,
       );
     }
+    // if (ds == DeliveryStatus.failedDelivery && index == slot) {
+    //   return _StatusInfoBanner(
+    //     icon: Icons.assignment_return_rounded,
+    //     message:
+    //         'Failed attempts can be re-delivered if still with you, unless already verified on-site.',
+    //     statusColor: DeliveryCard.statusColor('FAILED_DELIVERY'),
+    //     isDark: isDark,
+    //   );
+    // }
     if (ds == DeliveryStatus.delivered && index == slot) {
       return _StatusInfoBanner(
         icon: Icons.check_circle_rounded,
@@ -955,6 +917,7 @@ class _EmptyState extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Icon circle
                 Container(
                   width: 64,
                   height: 64,
@@ -1089,7 +1052,10 @@ class _FailedFilterChip extends StatelessWidget {
 
     return Expanded(
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
