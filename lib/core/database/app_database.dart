@@ -42,7 +42,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     final db = await openDatabase(
       path,
-      version: 13,
+      version: 14,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -270,6 +270,14 @@ class AppDatabase {
     if (oldVersion < 12) {
       // v12: Keep rts_verification_status as per requirement.
       // (This slot is preserved to maintain version numbering)
+    }
+    if (oldVersion < 14) {
+      // v14: Normalise legacy 'PENDING' delivery_status values to 'FOR_DELIVERY'
+      // (new canonical status; both map to DeliveryStatus.pending enum).
+      await db.execute(
+        "UPDATE local_deliveries SET delivery_status = 'FOR_DELIVERY' "
+        "WHERE delivery_status = 'PENDING'",
+      );
     }
     if (oldVersion < 13) {
       // v13: Restore rts_verification_status if it was renamed to failed_delivery_verification_status

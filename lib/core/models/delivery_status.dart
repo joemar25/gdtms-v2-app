@@ -55,7 +55,7 @@ enum DeliveryStatus {
   /// The string value sent to the backend API and stored in SQLite.
   /// Emits 'FAILED_DELIVERY' per the v2.7 contract.
   String toApiString() => switch (this) {
-    pending => 'PENDING',
+    pending => 'FOR_DELIVERY',
     delivered => 'DELIVERED',
     failedDelivery => 'FAILED_DELIVERY',
     osa => 'OSA',

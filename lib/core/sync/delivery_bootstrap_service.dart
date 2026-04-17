@@ -44,9 +44,9 @@ class DeliveryBootstrapService {
   /// API status buckets fetched during a full sync.
   /// Derived from [DeliveryStatus] so the strings stay in sync with the enum.
   static final List<String> _statuses = [
-    DeliveryStatus.pending.toApiString(), // 'PENDING'
-    DeliveryStatus.failedDelivery
-        .toApiString(), // 'FAILED_DELIVERY' (v2.7 contract)
+    'PENDING', // legacy server items; normalised to FOR_DELIVERY in SQLite
+    DeliveryStatus.pending.toApiString(), // 'FOR_DELIVERY' — new standard
+    DeliveryStatus.failedDelivery.toApiString(), // 'FAILED_DELIVERY'
     DeliveryStatus.osa.toApiString(), // 'OSA'
     DeliveryStatus.delivered.toApiString(), // 'DELIVERED'
   ];
@@ -80,6 +80,7 @@ class DeliveryBootstrapService {
     } else {
       const statusLabels = {
         'PENDING': 'Fetching pending deliveries...',
+        'FOR_DELIVERY': 'Fetching for-delivery items...',
         'FAILED_DELIVERY': 'Fetching failed deliveries...',
         'OSA': 'Fetching OSA orders...',
         'DELIVERED': 'Fetching delivered orders...',

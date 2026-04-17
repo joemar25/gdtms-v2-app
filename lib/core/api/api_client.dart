@@ -57,11 +57,16 @@ class ApiClient {
             _handlingUnauthorized = true;
             await _authStorage.clearAll();
             onUnauthorized?.call();
-            showAppSnackbar(
-              null,
-              'Session expired. Please log in again.',
-              type: SnackbarType.error,
+
+            // Prefer server-provided message when available to avoid showing a
+            // generic "Session expired" text that may duplicate API details.
+            final serverMsg = _extractMessage(
+              error.response?.data,
+              fallback: 'Session expired. Please log in again.',
             );
+
+            // Use top-overlay error notification for visibility.
+            showErrorNotification(null, serverMsg);
             await Future.delayed(const Duration(seconds: 2));
             final navContext = rootNavigatorKey.currentContext;
             if (navContext != null) {

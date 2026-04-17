@@ -396,4 +396,10 @@ Key properties:
 gate
 
 - works
+
+flutter clean
+flutter pub run flutter_launcher_icons:main
+dart run flutter_native_splash:create
+flutter run --dart-define-from-file=dart_defines.json
+
 -->

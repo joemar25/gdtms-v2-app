@@ -83,7 +83,7 @@ class _ScanModeSheet extends StatelessWidget {
           _ActionTile(
             icon: Icons.inventory_2_outlined,
             iconColor: DSColors.red,
-            title: 'Scan delivery',
+            title: 'Scan POD',
             subtitle: 'Scan a barcode to update status',
             onTap: onPod,
           ),

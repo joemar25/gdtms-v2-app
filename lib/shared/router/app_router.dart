@@ -361,7 +361,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return _page(
             key: state.pageKey,
             child: DeliveryStatusListScreen(
-              status: 'pending',
+              status: 'FOR_DELIVERY',
               title: 'DELIVERIES',
               initialSearch: initialSearch,
             ),

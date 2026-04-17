@@ -39,6 +39,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
@@ -267,14 +268,45 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         return;
       }
 
+      // Fetch pending dispatches to merge branch/tat/transmittal_date — those
+      // fields are absent from the eligibility response but present in the
+      // dispatch list. Mirrors the merge done in dispatch_list_screen.dart.
+      Map<String, dynamic> mergedData = data;
+      final pendingResult = await ref
+          .read(apiClientProvider)
+          .get<Map<String, dynamic>>(
+            '/pending-dispatches',
+            queryParameters: {'page': 1, 'per_page': 50},
+            parser: parseApiMap,
+          );
+      if (!mounted) return;
+      if (pendingResult is ApiSuccess<Map<String, dynamic>>) {
+        final list = pendingResult.data['pending_dispatches'];
+        if (list is List) {
+          final match = list
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .firstWhere(
+                (d) =>
+                    d['dispatch_code']?.toString().toUpperCase() ==
+                    dispatchCode.toUpperCase(),
+                orElse: () => <String, dynamic>{},
+              );
+          if (match.isNotEmpty) {
+            // Eligibility fields win on overlap (eligible/status stay authoritative)
+            mergedData = {...match, ...mergedData};
+          }
+        }
+      }
+
       // Otherwise, show eligibility screen with full code, skip modal
       await context.push(
         '/dispatches/eligibility',
         extra: {
           'dispatch_code': dispatchCode,
-          'eligibility_response': data,
+          'eligibility_response': mergedData,
           'auto_accept': autoAccept,
-          'eligible': data['eligible'] == true,
+          'eligible': mergedData['eligible'] == true,
           'show_full_code': true,
           'skip_accept_modal': true,
         },
@@ -331,8 +363,41 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // DeliveryDetailScreen._load() runs isVisibleToRider again as the canonical
     // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
     // message before ever navigating, and avoids N+1 per-row checks.
-    final matches = await LocalDeliveryDao.instance.searchVisibleByQuery(code);
+    var matches = await LocalDeliveryDao.instance.searchVisibleByQuery(code);
     if (!mounted) return;
+
+    // If no visible matches were found, do a broader local search as a fallback.
+    // This catches cases where the row exists locally but the visible-only SQL
+    // excluded it (e.g. completed_at missing or other edge cases). We then
+    // validate visibility per-row using the canonical isVisibleToRider gate.
+    if (matches.isEmpty) {
+      final fallback = await LocalDeliveryDao.instance.searchByQuery(code);
+      if (!mounted) return;
+      if (fallback.isNotEmpty) {
+        final visibilityFutures = fallback
+            .map((d) => LocalDeliveryDao.instance.isVisibleToRider(d.barcode))
+            .toList();
+        final visibilityResults = await Future.wait(visibilityFutures);
+        final actionable = <LocalDelivery>[];
+        for (var i = 0; i < fallback.length; i++) {
+          if (visibilityResults[i] == true) actionable.add(fallback[i]);
+        }
+        if (actionable.isNotEmpty) {
+          matches = actionable;
+        } else {
+          // Local record(s) exist but none are actionable — show blocked reason.
+          final anyLocal = fallback.first;
+          final msg = _blockedMessage(
+            anyLocal.deliveryStatus,
+            anyLocal.rtsVerificationStatus,
+          );
+          setState(() => _inlineError = msg);
+          showInfoNotification(context, msg);
+          if (_hasPermission) await _scannerController.start();
+          return;
+        }
+      }
+    }
 
     if (matches.length == 1) {
       final match = matches.first;
@@ -752,6 +817,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 SuccessOverlay(
                   onDone: () {
                     if (!mounted) return;
+                    showAppSnackbar(
+                      context,
+                      'Dispatch accepted successfully!',
+                      type: SnackbarType.success,
+                    );
                     context.go('/dashboard');
                   },
                 ),
@@ -1089,7 +1159,7 @@ class _SearchResultsSheet extends StatelessWidget {
                       d['recipient_name']?.toString() ??
                       '';
                   final address = d['address']?.toString() ?? '';
-                  final status = d['delivery_status']?.toString() ?? 'pending';
+                  final status = d['delivery_status']?.toString() ?? 'FOR_DELIVERY';
 
                   return ListTile(
                     leading: Container(

@@ -173,7 +173,7 @@ class LocalDelivery {
                     jsonStatus != 'PENDING' &&
                     jsonStatus != 'FOR_DELIVERY'
                 ? jsonStatus
-                : (serverStatus.isNotEmpty ? serverStatus : 'PENDING'))
+                : (serverStatus.isNotEmpty ? serverStatus : 'FOR_DELIVERY'))
             .toUpperCase();
     // Normalise through the enum so any future API aliases are handled centrally.
     final status = DeliveryStatus.fromString(rawStatus).toDbString();

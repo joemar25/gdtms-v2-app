@@ -806,7 +806,7 @@ class LocalDeliveryDao {
         'rts_verification_status',
         'is_archived',
       ],
-      where: 'barcode = ?',
+      where: 'barcode COLLATE NOCASE = ?',
       whereArgs: [barcode],
       limit: 1,
     );
