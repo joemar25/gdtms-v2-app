@@ -98,8 +98,8 @@ class _DeliveryStatusListScreenState
       : kDeliveriesPerPage;
 
   int get _totalPages => (_totalCount / _kPageSize).ceil().clamp(1, 999999);
-  int get _firstItem => _totalCount == 0 ? 0 : _currentPage * _kPageSize + 1;
-  int get _lastItem => (_firstItem + _items.length - 1).clamp(0, _totalCount);
+  // int get _firstItem => _totalCount == 0 ? 0 : _currentPage * _kPageSize + 1; -- no need
+  // int get _lastItem => (_firstItem + _items.length - 1).clamp(0, _totalCount); -- no need
 
   // ── Search state ───────────────────────────────────────────────────────────
   bool _showSearch = false;

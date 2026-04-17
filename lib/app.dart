@@ -398,7 +398,9 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
           _startPeriodicSync(); // Resume periodic timer once online.
           ref.read(notificationsProvider.notifier).loadUnreadCount();
           try {
-            await PushNotificationService.instance.init(ref.read(apiClientProvider));
+            await PushNotificationService.instance.init(
+              ref.read(apiClientProvider),
+            );
           } catch (e) {
             debugPrint('[APP] Push init on reconnect failed: $e');
           }
