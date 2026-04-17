@@ -247,37 +247,27 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       if (pendingResult is ApiSuccess<Map<String, dynamic>>) {
         final list = pendingResult.data['pending_dispatches'];
         if (list is List) {
+          final scanUpper = dispatchCode.toUpperCase();
           final match = list
               .whereType<Map>()
               .map((e) => Map<String, dynamic>.from(e))
-              .firstWhere(
-                (d) =>
-                    d['dispatch_code']?.toString().toUpperCase() ==
-                    dispatchCode.toUpperCase(),
-                orElse: () => <String, dynamic>{},
-              );
+              .firstWhere((d) {
+                final dc = d['dispatch_code']?.toString().toUpperCase() ?? '';
+                // Exact match, or the scanned QR embeds the dispatch code as a
+                // prefix with a timestamp suffix (e.g. GEOFM001...2026041712345).
+                return dc == scanUpper ||
+                    scanUpper.startsWith(dc) ||
+                    dc.startsWith(scanUpper);
+              }, orElse: () => <String, dynamic>{});
           if (match.isNotEmpty) {
+            // Merge: pending-list data provides display fields (branch, tat,
+            // transmittal_date, volume); API response wins for flags (eligible).
             mergedData = {...match, ...mergedData};
-            // Prefer the canonical dispatch code from the list when present.
-            dispatchCode =
-                mergedData['dispatch_code']?.toString() ?? dispatchCode;
+            // Use the canonical dispatch code from the pending list (short form)
+            // so accept/reject API calls use the correct identifier.
+            dispatchCode = match['dispatch_code']?.toString() ?? dispatchCode;
           }
         }
-      }
-
-      // Enforce: only treat as dispatch when the response contains a dispatch_code.
-      // mergedData is used here (not raw data) because dispatch_code may arrive via
-      // the pending-dispatch list merge rather than the eligibility response directly.
-      final isDispatch =
-          mergedData['dispatch_code']?.toString().trim().isNotEmpty == true;
-      if (!isDispatch) {
-        final reason =
-            mergedData['message']?.toString() ??
-            'Scanned code is not a dispatch.';
-        setState(() => _inlineError = reason);
-        showInfoNotification(context, reason);
-        if (mounted && _hasPermission) await _scannerController.start();
-        return;
       }
 
       // Do not push if not eligible — UX pre-filter.
