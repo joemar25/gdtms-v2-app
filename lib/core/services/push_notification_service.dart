@@ -128,6 +128,28 @@ class PushNotificationService {
       _initialized = true;
     } else {
       debugPrint('[PUSH] User declined or has not accepted permission');
+
+      // Ensure backend does not retain a stale FCM token for this device when
+      // the user has declined notifications. Inform the server on login so it
+      // won't attempt to send pushes to a token that isn't present on-device.
+      try {
+        if (_apiClient != null) {
+          final deviceType = kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android');
+          await _apiClient!.post(
+            '/profile/fcm-token',
+            data: {'fcm_token': null, 'device_type': deviceType},
+            parser: (data) => data,
+          );
+          debugPrint('[PUSH] Backend notified: notifications disabled for device');
+        }
+      } catch (e) {
+        debugPrint('[PUSH] Failed to notify backend about disabled notifications: $e');
+        await ErrorLogService.warning(
+          context: 'PushNotificationService',
+          message: 'Failed to notify backend when notifications disabled',
+          detail: e.toString(),
+        );
+      }
     }
   }
 
