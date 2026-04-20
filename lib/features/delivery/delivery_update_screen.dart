@@ -178,6 +178,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   // Signature slot visibility (hidden by default; shown when checkbox is ticked)
   bool _showSignatureSlot = false;
 
+  // "According to" informant name (required for FAILED_DELIVERY reasons with requiresAccordingTo)
+  final _accordingTo = TextEditingController();
+
+  // OSA mailpack photo (required for MISROUTED)
+  PhotoEntry? _mailpackPhoto;
+
   // Delivery confirmation code (required for DELIVERED, 6-char alphanumeric, all caps)
   final _confirmationCode = TextEditingController();
   final _confirmationCodeFocus = FocusNode();
@@ -201,6 +207,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _recipient.addListener(_onFieldChanged);
     _relationshipSpecify.addListener(_onFieldChanged);
     _reasonSpecify.addListener(_onFieldChanged);
+    _accordingTo.addListener(_onFieldChanged);
     _confirmationCode.addListener(_onFieldChanged);
   }
 
@@ -260,12 +267,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _recipient.removeListener(_onFieldChanged);
     _relationshipSpecify.removeListener(_onFieldChanged);
     _reasonSpecify.removeListener(_onFieldChanged);
+    _accordingTo.removeListener(_onFieldChanged);
     _confirmationCode.removeListener(_onFieldChanged);
 
     _note.dispose();
     _recipient.dispose();
     _relationshipSpecify.dispose();
     _reasonSpecify.dispose();
+    _accordingTo.dispose();
     _confirmationCode.dispose();
     _confirmationCodeFocus.dispose();
     super.dispose();
@@ -490,6 +499,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         if (slotType == 'pod') {
           _podPhoto = entry;
           _errors.remove('pod_photo');
+        } else if (slotType == 'mailpack') {
+          _mailpackPhoto = entry;
+          _errors.remove('mailpack_photo');
         } else {
           _selfiePhoto = entry;
           _errors.remove('selfie_photo');
@@ -589,7 +601,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
     }
 
-    if (_isNonDelivered) {
+    if (_isOsa) {
+      if (_mailpackPhoto == null) {
+        _errors['mailpack_photo'] = 'Mailpack photo is required.';
+      }
+    }
+
+    if (_isFailedDelivery) {
       if (_reason == null || _reason!.isEmpty) {
         _errors['reason'] = 'Reason is required.';
       } else if (_reason == 'Others' && _reasonSpecify.text.trim().isEmpty) {
@@ -597,6 +615,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
       if (_selfiePhoto == null) {
         _errors['selfie_photo'] = 'Selfie photo is required.';
+      }
+      final config = kReasonConfigs[_reason] ?? const ReasonConfig();
+      if (config.requiresAccordingTo && _accordingTo.text.trim().isEmpty) {
+        _errors['according_to'] = 'Informant name is required.';
       }
     }
 
@@ -684,10 +706,18 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       payload['relationship'] = resolvedRelationship;
       payload['placement_type'] = _placement;
       payload['delivery_confirmation_code'] = _confirmationCode.text.trim();
-    } else {
+    } else if (_isOsa) {
+      if (_mailpackPhoto != null) {
+        pendingMediaPaths['mailpack'] = _mailpackPhoto!.file;
+      }
+    } else if (_isFailedDelivery) {
       payload['reason'] = resolvedReason;
       if (_selfiePhoto != null) {
         pendingMediaPaths['selfie'] = _selfiePhoto!.file;
+      }
+      final config = kReasonConfigs[_reason] ?? const ReasonConfig();
+      if (config.requiresAccordingTo && _accordingTo.text.trim().isNotEmpty) {
+        payload['according_to'] = _accordingTo.text.trim();
       }
     }
 
@@ -751,7 +781,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   void _clearNonDeliveredFields() {
     _reason = null;
     _reasonSpecify.clear();
+    _accordingTo.clear();
     _selfiePhoto = null;
+    _mailpackPhoto = null;
     _photos.clear();
     _errors.clear();
   }
@@ -884,9 +916,17 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         children: [
           Builder(
             builder: (context) {
-              final presets = _isDelivered
-                  ? kDeliveredNotePresets
-                  : kNonDeliveredNotePresets;
+              final List<String> presets;
+              if (_isDelivered) {
+                presets = kDeliveredNotePresets;
+              } else if (_isOsa) {
+                presets = kOsaConfig.remarksPresets;
+              } else {
+                presets = (_reason != null
+                        ? kReasonConfigs[_reason]?.remarksPresets
+                        : null) ??
+                    [];
+              }
               return Row(
                 children: [
                   for (final preset in presets) ...[
@@ -936,7 +976,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     VoidCallback? onTapOverride,
   }) {
     final hasPhoto = photo != null;
-    final errorKey = slotType == 'pod' ? 'pod_photo' : 'selfie_photo';
+    final errorKey = slotType == 'pod'
+        ? 'pod_photo'
+        : slotType == 'mailpack'
+        ? 'mailpack_photo'
+        : 'selfie_photo';
     final hasError = _errors[errorKey] != null;
 
     return Expanded(
@@ -1006,6 +1050,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 onTap: () => setState(() {
                                   if (slotType == 'pod') {
                                     _podPhoto = null;
+                                  } else if (slotType == 'mailpack') {
+                                    _mailpackPhoto = null;
                                   } else {
                                     _selfiePhoto = null;
                                   }
@@ -1215,8 +1261,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         _relationshipSpecify.text.isNotEmpty ||
         _reason != null ||
         _reasonSpecify.text.isNotEmpty ||
+        _accordingTo.text.isNotEmpty ||
         _podPhoto != null ||
         _selfiePhoto != null ||
+        _mailpackPhoto != null ||
         _photos.isNotEmpty ||
         _signaturePath != null ||
         _confirmationCode.text.isNotEmpty;
@@ -1224,7 +1272,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool needsReason = _isNonDelivered;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isOnline = ref.read(isOnlineProvider);
 
@@ -1630,8 +1677,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   ),
                                 ],
 
-                                // ── REASON FOR NON-DELIVERY (failed delivery / osa) ─────────
-                                if (needsReason) ...[
+                                // ── REASON FOR NON-DELIVERY (failed delivery only) ──────
+                                if (_isFailedDelivery) ...[
                                   _kSectionGap,
                                   const DeliverySectionHeader(
                                     label: 'REASON FOR NON-DELIVERY',
@@ -1692,6 +1739,53 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           }) => null,
                                       onChanged: (v) => setState(
                                         () => _errors.remove('reason_specify'),
+                                      ),
+                                    ),
+                                  ],
+
+                                  // ── According to (informant name) ─────────────
+                                  if (_reason != null &&
+                                      (kReasonConfigs[_reason]
+                                              ?.requiresAccordingTo ??
+                                          false)) ...[
+                                    _kFieldGap,
+                                    TextFormField(
+                                      controller: _accordingTo,
+                                      decoration:
+                                          deliveryFieldDecoration(
+                                            context,
+                                            labelText:
+                                                'ACCORDING TO (NAME OF INFORMANT)',
+                                            hintText: 'e.g. GUARD, NEIGHBOR',
+                                            errorText:
+                                                _errors['according_to'],
+                                          ).copyWith(
+                                            prefixIcon: const Icon(
+                                              Icons.person_outline_rounded,
+                                              size: 20,
+                                            ),
+                                          ),
+                                      textCapitalization:
+                                          TextCapitalization.characters,
+                                      inputFormatters: [
+                                        TextInputFormatter.withFunction(
+                                          (old, newVal) => newVal.copyWith(
+                                            text: newVal.text.toUpperCase(),
+                                          ),
+                                        ),
+                                      ],
+                                      maxLength: 255,
+                                      maxLengthEnforcement:
+                                          MaxLengthEnforcement.enforced,
+                                      buildCounter:
+                                          (
+                                            _, {
+                                            required currentLength,
+                                            required isFocused,
+                                            maxLength,
+                                          }) => null,
+                                      onChanged: (_) => setState(
+                                        () => _errors.remove('according_to'),
                                       ),
                                     ),
                                   ],
@@ -1798,8 +1892,31 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   ],
                                 ],
 
-                                // ── SELFIE PHOTO (failed delivery / osa) ─────────────
-                                if (_status != 'DELIVERED') ...[
+                                // ── MAILPACK PHOTO (misrouted / osa) ─────────────────
+                                if (_isOsa) ...[
+                                  _kSectionGap,
+                                  const DeliverySectionHeader(
+                                    label: 'MAILPACK PHOTO',
+                                  ),
+                                  _kInnerGap,
+                                  Row(
+                                    children: [
+                                      _buildPhotoSlot(
+                                        slotType: 'mailpack',
+                                        label: 'MAILPACK',
+                                        photo: _mailpackPhoto,
+                                        icon: Icons.inventory_2_rounded,
+                                        color: Colors.amber,
+                                        isDark: isDark,
+                                        onTapOverride: () =>
+                                            _pickPhotoForSlot('mailpack'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+
+                                // ── SELFIE PHOTO (failed delivery only) ──────────────
+                                if (_isFailedDelivery) ...[
                                   _kSectionGap,
                                   const DeliverySectionHeader(
                                     label: 'SELFIE PHOTO',

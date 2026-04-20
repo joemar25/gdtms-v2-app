@@ -57,35 +57,210 @@ final List<String> kAllDeliveryStatuses = [
 /// Exactly two slots: one for the package (POD) and one for the courier selfie.
 const List<String> kPodDeliveredTypes = ['POD', 'SELFIE'];
 
-/// Reasons for non-delivery ([DeliveryStatus.failedDelivery] / [DeliveryStatus.osa]).
-/// Sorted alphabetically; 'Others' is always last to keep it easy to scan.
-const List<String> kReasons = [
-  // 'Closed / No Business',
-  'Company Moved Out',
-  'Deceased',
-  'Hard to Deliver',
-  // 'Incorrect Address',
-  // 'Incomplete Address',
-  'Insufficient Address',
-  'Moved Out',
-  'No One to Receive',
-  // 'Out of Scope',
-  'Person Moved Out',
-  // 'Recipient Not Around',
-  'Refused to Accept',
-  'Request for Redeliver',
-  'Risky Area',
-  // 'Unknown Address',
-  'Unknown Person',
-  // 'Unlocated',
-  'Wrong Address',
-  // ── catch-all — always last ──────────────────────────────────────────────
-  // 'Others',
+// ─────────────────────────────────────────────────────────────────────────────
+// REASON CONFIGURATION
+//
+// Each [ReasonConfig] entry describes one non-delivery reason and how the UI
+// should behave when it is selected:
+//
+//   requiresAccordingTo  – show the "According to" (informant) field
+//   remarksPresets       – chip presets shown above the free-text remarks field
+//                          ([] → no chips; every known reason has its own list)
+//
+// RULES:
+//   • [kReasonConfigs] is the single source of truth — do not hardcode reason
+//     strings anywhere else in the codebase.
+//   • [kReasons] is derived from [kReasonConfigs] — do not maintain separately.
+//   • Every reason has its own dedicated [remarksPresets] list defined below.
+//   • [kNonDeliveredNotePresets] has been retired; there is no shared fallback.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Configuration for a single non-delivery reason.
+class ReasonConfig {
+  const ReasonConfig({
+    this.requiresAccordingTo = false,
+    this.remarksPresets = const [],
+  });
+
+  /// Whether the "According to (name of informant)" field should be shown.
+  final bool requiresAccordingTo;
+
+  /// Chip presets for the remarks field.
+  /// Empty list → no chips shown.
+  final List<String> remarksPresets;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REASON-SPECIFIC REMARKS PRESETS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const List<String> kRemarksCompanyMovedOut = [
+  'According to guard, company has moved out',
+  'According to neighbor, company has relocated',
+  'According to building admin, unit is vacant',
+  'Office/unit is empty',
+  'No forwarding address left',
 ];
 
-/// Quick-select note presets shown as chips above the free-text remarks field.
-/// Split into Delivered (positive) and failed/misrouted (negative) remarks.
+const List<String> kRemarksDeceased = [
+  'According to family member, recipient is deceased',
+  'According to neighbor, recipient has passed away',
+  'According to guard, recipient is deceased',
+];
 
+const List<String> kRemarksHardToDeliver = [
+  'According to resident, area is hard to access',
+  'Road is flooded / impassable',
+  'No vehicle access to the area',
+  'Address is in a gated community, no entry allowed',
+  'Location is too far from main road',
+];
+
+const List<String> kRemarksInsufficientAddress = [
+  'No House Number',
+  'No Barangay/Purok Number',
+  'No Street Name',
+  'No Block and Lot Number',
+  'No Phase Number',
+  'No Subdivision Name',
+  'No Company Name',
+  'No Unit Number',
+  'No City/Municipality Name',
+];
+
+const List<String> kRemarksMovedOut = [
+  'Resident has moved out',
+  'No forwarding address left',
+  'Mailbox is empty / abandoned',
+];
+
+const List<String> kRemarksNoOneToReceive = [
+  'According to neighbor, no one is home',
+  'According to guard, resident is out',
+  'Called recipient, no answer',
+  'Knocked multiple times, no response',
+  'Gate or door is locked',
+];
+
+const List<String> kRemarksPersonMovedOut = [
+  'According to neighbor, person has moved out',
+  'According to guard, person no longer lives here',
+  'According to landlord, person has vacated',
+  'According to family, person has moved out',
+  'No forwarding address left',
+];
+
+const List<String> kRemarksRefusedToAccept = [
+  'According to recipient, item was not ordered',
+  'According to recipient, item is damaged',
+  'According to recipient, wrong item received',
+  'Recipient refused without reason',
+  'Recipient is disputing the COD amount',
+];
+
+const List<String> kRemarksRequestForRedeliver = [
+  'Customer requested reschedule',
+  'Customer set a preferred delivery date',
+  'Customer requested delivery to a different address',
+];
+
+const List<String> kRemarksRiskyArea = [
+  'According to resident, area is not safe',
+  'According to guard, entry is not allowed',
+  'Area flagged as high-risk by operations',
+  'No safe place to leave item',
+  'Security / guard refused courier entry',
+];
+
+const List<String> kRemarksUnknownPerson = [
+  'According to resident, person is unknown',
+  'According to neighbor, no such person in the area',
+  'According to guard, no such person on record',
+  'Name does not match any unit/house in the address',
+];
+
+const List<String> kRemarksWrongAddress = [
+  'According to resident, address does not exist',
+  'According to neighbor, no such address in the area',
+  'According to guard, address is incorrect',
+  'House/unit number does not match',
+  'Street name does not exist in the area',
+];
+
+const List<String> kRemarksMisrouted = [
+  'Package misrouted to wrong area',
+  // 'Barcode does not match route assignment',
+  // 'Address is outside serviceable area',
+  // 'Package belongs to a different courier zone',
+  // 'Endorsing to correct area/branch',
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REASON CONFIGS MAP
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Master reason list with per-reason UI behaviour.
+///
+/// ⚠️  [kReasons] below is derived from this map — do not maintain both
+/// separately.
+const Map<String, ReasonConfig> kReasonConfigs = {
+  // ── Requires "According to" ───────────────────────────────────────────────
+  'Company Moved Out': ReasonConfig(
+    requiresAccordingTo: true,
+    remarksPresets: kRemarksCompanyMovedOut,
+  ),
+  'Deceased': ReasonConfig(
+    requiresAccordingTo: true,
+    remarksPresets: kRemarksDeceased,
+  ),
+  'Hard to Deliver': ReasonConfig(
+    requiresAccordingTo: true,
+    remarksPresets: kRemarksHardToDeliver,
+  ),
+  'No One to Receive': ReasonConfig(
+    requiresAccordingTo: true,
+    remarksPresets: kRemarksNoOneToReceive,
+  ),
+  'Person Moved Out': ReasonConfig(
+    requiresAccordingTo: true,
+    remarksPresets: kRemarksPersonMovedOut,
+  ),
+  'Refused to Accept': ReasonConfig(
+    requiresAccordingTo: true,
+    remarksPresets: kRemarksRefusedToAccept,
+  ),
+  'Risky Area': ReasonConfig(
+    requiresAccordingTo: true,
+    remarksPresets: kRemarksRiskyArea,
+  ),
+  'Wrong Address': ReasonConfig(
+    requiresAccordingTo: true,
+    remarksPresets: kRemarksWrongAddress,
+  ),
+
+  // ── No "According to" ─────────────────────────────────────────────────────
+  'Insufficient Address': ReasonConfig(
+    remarksPresets: kRemarksInsufficientAddress,
+  ),
+  'Moved Out': ReasonConfig(remarksPresets: kRemarksMovedOut),
+  'Request for Redeliver': ReasonConfig(
+    remarksPresets: kRemarksRequestForRedeliver,
+  ),
+  'Unknown Person': ReasonConfig(remarksPresets: kRemarksUnknownPerson),
+};
+
+/// Ordered list of reason labels for dropdowns / radio lists.
+/// Derived from [kReasonConfigs] — do not hardcode separately.
+final List<String> kReasons = kReasonConfigs.keys.toList()..sort();
+
+/// Config for the OSA (Misrouted) status — no reason picker, mailpack photo required.
+const ReasonConfig kOsaConfig = ReasonConfig(remarksPresets: kRemarksMisrouted);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELIVERED NOTE PRESETS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Quick-select note presets shown as chips for successfully delivered items.
 const List<String> kDeliveredNotePresets = [
   'Received by Cardholder/Owner',
   'Package in good condition',
@@ -97,16 +272,9 @@ const List<String> kDeliveredNotePresets = [
   'Safe drop',
 ];
 
-const List<String> kNonDeliveredNotePresets = [
-  'Called recipient, no answer',
-  'Phone number is incorrect',
-  'Recipient is currently busy',
-  'Security / Guard refused entry',
-  'Gate or Door is locked',
-  'Address is hard to reach',
-  'No safe place to leave item',
-  'Customer requested reschedule',
-];
+// ─────────────────────────────────────────────────────────────────────────────
+// RELATIONSHIP & PLACEMENT OPTIONS
+// ─────────────────────────────────────────────────────────────────────────────
 
 const List<Map<String, String>> kRelationshipOptions = [
   {'value': 'AUNT', 'label': 'AUNT'},
@@ -156,6 +324,10 @@ const List<Map<String, String>> kPlacementOptions = [
   {'value': 'INSERTED_DOOR', 'label': 'Inserted - Door'},
   {'value': 'INSERTED_WINDOW', 'label': 'Inserted - Window'},
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MISC
+// ─────────────────────────────────────────────────────────────────────────────
 
 const String kDeviceTypeLogin = 'flutter';
 
