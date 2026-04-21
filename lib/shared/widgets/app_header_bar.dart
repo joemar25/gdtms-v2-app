@@ -307,8 +307,12 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
     final name = '$firstName $lastName'.trim().isEmpty
         ? 'Courier'
         : '$firstName $lastName'.trim();
-    final email = courier['email']?.toString();
-    final role = email != null && email.isNotEmpty ? email : 'FSI Courier';
+    // mar-note: this is necessary change since not all courier has email and to be considered all as FREELANCE COURIER
+    // final email = courier['email']?.toString();
+    // final role = email != null && email.isNotEmpty
+    //     ? email
+    //     : 'Freelance Courier';
+    final role = "FREELANCE COURIER";
     final profileUrl = courier['profile_picture_url']?.toString();
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
 
