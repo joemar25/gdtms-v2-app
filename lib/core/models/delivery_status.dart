@@ -4,13 +4,15 @@
 // delivery_status.dart — Single source of truth for all delivery status values
 // =============================================================================
 //
-// ## Status Contract (API v2.8)
+// ## Status Contract (API v2.9)
 //
-// The mobile app emits and expects FAILED_DELIVERY for failed-delivery outcomes.
-// The backend normalises both FAILED_DELIVERY and RTS (legacy) on write and returns
-// FAILED_DELIVERY on all read responses (GET list, GET detail, PATCH response).
+// The mobile app emits and expects FOR_DELIVERY for pending items and
+// FAILED_DELIVERY for failed delivery outcomes. The backend no longer relies on
+// legacy PENDING/RTS inbound values for the mobile API contract.
 //
-// Defensive parsing: fromString() expects FAILED_DELIVERY.
+// Defensive parsing: fromString() still accepts common legacy aliases for
+// compatibility with older local data, but new requests and sync operations
+// should use the forward-only contract values.
 //
 // Everything else in the app uses this enum — there are no other places to change.
 // =============================================================================

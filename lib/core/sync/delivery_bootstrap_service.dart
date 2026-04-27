@@ -44,7 +44,6 @@ class DeliveryBootstrapService {
   /// API status buckets fetched during a full sync.
   /// Derived from [DeliveryStatus] so the strings stay in sync with the enum.
   static final List<String> _statuses = [
-    'PENDING', // legacy server items; normalised to FOR_DELIVERY in SQLite
     DeliveryStatus.pending.toApiString(), // 'FOR_DELIVERY' — new standard
     DeliveryStatus.failedDelivery.toApiString(), // 'FAILED_DELIVERY'
     DeliveryStatus.osa.toApiString(), // 'OSA'

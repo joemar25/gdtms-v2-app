@@ -503,17 +503,34 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
           // Case 2 — Same-status transition: server rejected because the item is
           //   already in the state the courier wanted. Safe to mark as synced.
-          final targetStatus =
-              payload['delivery_status']?.toString().toLowerCase() ?? '';
-          final isSameStatusTransition =
-              targetStatus.isNotEmpty &&
-              errorMsg.toLowerCase().contains('invalid status transition') &&
-              errorMsg.toLowerCase().contains("to '$targetStatus'");
+          final isSameStatusTransitionCode =
+              responseCode == 'SAME_STATUS_TRANSITION';
 
-          if (isImmutableStop ||
+          // Case 3 — Duplicate-request idempotency: same X-Request-ID was already
+          //   processed. The server returns the original success payload.
+          final isDuplicateRequestCode = responseCode == 'DUPLICATE_REQUEST';
+
+          final shouldAutoResolve = isImmutableStop ||
               isDeliveredImmutableLegacy ||
-              isSameStatusTransition) {
+              isSameStatusTransitionCode ||
+              isDuplicateRequestCode;
+
+          if (shouldAutoResolve) {
             final now = DateTime.now().millisecondsSinceEpoch;
+
+            if (result is ApiConflict<Map<String, dynamic>>) {
+              final responseData = result.data;
+              final maybeData = responseData is Map
+                  ? responseData['data'] ?? responseData
+                  : null;
+              if (maybeData is Map<String, dynamic>) {
+                await LocalDeliveryDao.instance.updateFromJson(
+                  entry.barcode,
+                  maybeData,
+                );
+              }
+            }
+
             await SyncOperationsDao.instance.updateStatus(
               entry.id,
               'synced',
