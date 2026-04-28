@@ -15,7 +15,14 @@ class DSSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectivePadding = padding ?? EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.lg, DSSpacing.md, DSSpacing.sm);
+    final effectivePadding =
+        padding ??
+        EdgeInsets.fromLTRB(
+          DSSpacing.md,
+          DSSpacing.lg,
+          DSSpacing.md,
+          DSSpacing.sm,
+        );
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(

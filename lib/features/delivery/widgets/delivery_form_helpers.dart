@@ -56,11 +56,17 @@ InputDecoration deliveryFieldDecoration(
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: DSStyles.cardRadius,
-      borderSide: const BorderSide(color: DSColors.primary, width: DSStyles.borderWidth * 1.5),
+      borderSide: const BorderSide(
+        color: DSColors.primary,
+        width: DSStyles.borderWidth * 1.5,
+      ),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: DSStyles.cardRadius,
-      borderSide: const BorderSide(color: DSColors.error, width: DSStyles.borderWidth),
+      borderSide: const BorderSide(
+        color: DSColors.error,
+        width: DSStyles.borderWidth,
+      ),
     ),
   );
 }
@@ -127,10 +133,7 @@ class DeliveryPhotoSourceButton extends StatelessWidget {
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: 14,
-          horizontal: DSSpacing.md,
-        ),
+        padding: EdgeInsets.symmetric(vertical: 14, horizontal: DSSpacing.md),
         decoration: BoxDecoration(
           color: enabled
               ? color.withValues(alpha: DSStyles.alphaSubtle)
@@ -245,7 +248,12 @@ void showDeliveryAccountDetails(
             ),
           ],
         ),
-        padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.sm, DSSpacing.lg, DSSpacing.xl),
+        padding: EdgeInsets.fromLTRB(
+          DSSpacing.lg,
+          DSSpacing.sm,
+          DSSpacing.lg,
+          DSSpacing.xl,
+        ),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Column(
@@ -291,7 +299,8 @@ void showDeliveryAccountDetails(
                       ...contact.split('/').asMap().entries.map((entry) {
                         final idx = entry.key;
                         final cleanContact = entry.value.trim();
-                        if (cleanContact.isEmpty) return const SizedBox.shrink();
+                        if (cleanContact.isEmpty)
+                          return const SizedBox.shrink();
                         final isLast = idx == contact.split('/').length - 1;
                         return DSInfoTile(
                           label: 'Contact Number',
@@ -330,7 +339,8 @@ void showDeliveryAccountDetails(
                       if (pieceCount > 0)
                         DSInfoTile(
                           label: 'Bundle Size',
-                          value: '$pieceCount piece${pieceCount > 1 ? 's' : ''}',
+                          value:
+                              '$pieceCount piece${pieceCount > 1 ? 's' : ''}',
                           showDivider: false,
                         ),
                     ],

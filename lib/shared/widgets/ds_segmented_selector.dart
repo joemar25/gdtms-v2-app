@@ -87,7 +87,9 @@ class DSSegmentedSelector<T> extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         activeOption.color,
-                        activeOption.color.withValues(alpha: DSStyles.alphaOpaque),
+                        activeOption.color.withValues(
+                          alpha: DSStyles.alphaOpaque,
+                        ),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -95,7 +97,9 @@ class DSSegmentedSelector<T> extends StatelessWidget {
                     borderRadius: DSStyles.cardRadius,
                     boxShadow: [
                       BoxShadow(
-                        color: activeOption.color.withValues(alpha: DSStyles.alphaMuted),
+                        color: activeOption.color.withValues(
+                          alpha: DSStyles.alphaMuted,
+                        ),
                         blurRadius: DSStyles.radiusMD,
                         offset: const Offset(0, 4),
                       ),
@@ -132,7 +136,9 @@ class DSSegmentedSelector<T> extends StatelessWidget {
                               color: isSelected
                                   ? DSColors.white
                                   : (isDark
-                                        ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+                                        ? DSColors.white.withValues(
+                                            alpha: DSStyles.alphaDisabled,
+                                          )
                                         : DSColors.labelSecondary),
                               size: isSelected ? DSIconSize.lg : DSIconSize.md,
                             ),
@@ -174,7 +180,9 @@ class DSSegmentedSelector<T> extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
+                                      ? DSColors.white.withValues(
+                                          alpha: DSStyles.alphaMuted,
+                                        )
                                       : (isDark
                                             ? DSColors.white.withValues(
                                                 alpha: DSStyles.alphaSubtle,

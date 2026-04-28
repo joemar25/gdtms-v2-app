@@ -518,7 +518,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           final isMaxAttemptsReached =
               result is ApiBadRequest<Map<String, dynamic>> &&
               (errorMsg.toLowerCase().contains('maximum') ||
-               errorMsg.toLowerCase().contains('attempts'));
+                  errorMsg.toLowerCase().contains('attempts'));
 
           final shouldAutoResolve =
               isImmutableStop ||

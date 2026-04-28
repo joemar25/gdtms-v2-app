@@ -65,7 +65,11 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
             Row(
               children: [
                 if (pageIcon != null) ...[
-                  Icon(pageIcon, size: DSIconSize.lg, color: colorScheme.onSurface),
+                  Icon(
+                    pageIcon,
+                    size: DSIconSize.lg,
+                    color: colorScheme.onSurface,
+                  ),
                   DSSpacing.wSm,
                 ],
                 Expanded(
@@ -129,7 +133,10 @@ class NotificationBell extends StatelessWidget {
       button: true,
       child: IconButton(
         padding: EdgeInsets.all(DSSpacing.sm),
-        constraints: const BoxConstraints(minWidth: DSSpacing.xs, minHeight: DSSpacing.xs),
+        constraints: const BoxConstraints(
+          minWidth: DSSpacing.xs,
+          minHeight: DSSpacing.xs,
+        ),
         tooltip: 'Notifications',
         onPressed: () {
           HapticFeedback.lightImpact();
@@ -429,7 +436,9 @@ class _SearchRow extends StatelessWidget {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(DSStyles.radiusMD),
                   borderSide: BorderSide(
-                    color: DSColors.primary.withValues(alpha: DSStyles.alphaDisabled),
+                    color: DSColors.primary.withValues(
+                      alpha: DSStyles.alphaDisabled,
+                    ),
                   ),
                 ),
                 filled: true,
@@ -606,7 +615,11 @@ class _HeaderIconButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(icon, size: DSIconSize.lg, color: Theme.of(context).iconTheme.color),
+        child: Icon(
+          icon,
+          size: DSIconSize.lg,
+          color: Theme.of(context).iconTheme.color,
+        ),
       ),
     );
   }

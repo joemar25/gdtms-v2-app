@@ -96,13 +96,17 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final bgColor = widget.isDark ? DSColors.cardDark : DSColors.white;
-    final surfaceColor = widget.isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.scaffoldLight;
+    final surfaceColor = widget.isDark
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+        : DSColors.scaffoldLight;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(DSSpacing.xl),
+        ),
         boxShadow: [
           BoxShadow(
             color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
@@ -119,7 +123,9 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
             width: DSIconSize.heroSm,
             height: 4,
             decoration: BoxDecoration(
-              color: widget.isDark ? DSColors.white.withValues(alpha: DSStyles.alphaMuted) : DSColors.separatorLight,
+              color: widget.isDark
+                  ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
+                  : DSColors.separatorLight,
               borderRadius: DSStyles.pillRadius,
             ),
           ),
@@ -158,7 +164,9 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                 color: surfaceColor,
                 borderRadius: DSStyles.cardRadius,
                 border: Border.all(
-                  color: widget.isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.secondarySurfaceLight,
+                  color: widget.isDark
+                      ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                      : DSColors.secondarySurfaceLight,
                 ),
               ),
               child: TextField(
@@ -168,16 +176,24 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                 onChanged: _filter,
                 decoration: InputDecoration(
                   hintText: 'SEARCH OPTIONS...',
-                  labelStyle: DSTypography.body().copyWith(fontSize: DSTypography.sizeMd),
+                  labelStyle: DSTypography.body().copyWith(
+                    fontSize: DSTypography.sizeMd,
+                  ),
                   hintStyle: TextStyle(
                     color: DSColors.labelTertiary,
                     fontSize: DSTypography.sizeMd,
                     letterSpacing: DSTypography.lsLoose,
                   ),
-                  prefixIcon: const Icon(Icons.search_rounded, size: DSIconSize.lg),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size: DSIconSize.lg,
+                  ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: DSIconSize.md),
+                          icon: const Icon(
+                            Icons.clear_rounded,
+                            size: DSIconSize.md,
+                          ),
                           onPressed: () {
                             _searchController.clear();
                             _filter('');

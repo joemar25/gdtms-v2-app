@@ -32,8 +32,11 @@ class LocationRequiredScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.security_rounded, size: DSIconSize.xl, color: DSColors.error)
-                  .dsHeroEntry(),
+              Icon(
+                Icons.security_rounded,
+                size: DSIconSize.xl,
+                color: DSColors.error,
+              ).dsHeroEntry(),
               DSSpacing.hLg,
               Text(
                 'Permissions Required',
@@ -41,7 +44,12 @@ class LocationRequiredScreen extends ConsumerWidget {
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
-              ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
+              ).dsFadeEntry(
+                delay: DSAnimations.stagger(
+                  1,
+                  step: DSAnimations.staggerNormal,
+                ),
+              ),
               DSSpacing.hSm,
               Text(
                 'FSI Courier needs the following permissions to function properly. Please enable all of them to continue.',
@@ -50,7 +58,12 @@ class LocationRequiredScreen extends ConsumerWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                   height: DSStyles.heightRelaxed,
                 ),
-              ).dsFadeEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
+              ).dsFadeEntry(
+                delay: DSAnimations.stagger(
+                  2,
+                  step: DSAnimations.staggerNormal,
+                ),
+              ),
               DSSpacing.hXl,
 
               // ── Location ────────────────────────────────────────────────────
@@ -72,7 +85,12 @@ class LocationRequiredScreen extends ConsumerWidget {
                         locationState.status,
                         locationNotifier,
                       ),
-              ).dsCardEntry(delay: DSAnimations.stagger(3, step: DSAnimations.staggerNormal)),
+              ).dsCardEntry(
+                delay: DSAnimations.stagger(
+                  3,
+                  step: DSAnimations.staggerNormal,
+                ),
+              ),
               DSSpacing.hMd,
 
               // ── Camera ──────────────────────────────────────────────────────
@@ -97,7 +115,12 @@ class LocationRequiredScreen extends ConsumerWidget {
                     : permsState.cameraStatus.isPermanentlyDenied
                     ? () => permsNotifier.openSettings()
                     : () => permsNotifier.requestCamera(),
-              ).dsCardEntry(delay: DSAnimations.stagger(4, step: DSAnimations.staggerNormal)),
+              ).dsCardEntry(
+                delay: DSAnimations.stagger(
+                  4,
+                  step: DSAnimations.staggerNormal,
+                ),
+              ),
               DSSpacing.hMd,
 
               // ── Notifications ───────────────────────────────────────────────
@@ -122,7 +145,12 @@ class LocationRequiredScreen extends ConsumerWidget {
                     : permsState.notificationStatus.isPermanentlyDenied
                     ? () => permsNotifier.openSettings()
                     : () => permsNotifier.requestNotification(),
-              ).dsCardEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
+              ).dsCardEntry(
+                delay: DSAnimations.stagger(
+                  5,
+                  step: DSAnimations.staggerNormal,
+                ),
+              ),
 
               DSSpacing.hXl,
               TextButton(
@@ -135,7 +163,12 @@ class LocationRequiredScreen extends ConsumerWidget {
                   minimumSize: const Size.fromHeight(48),
                 ),
                 child: const Text('I have enabled them, refresh'),
-              ).dsFadeEntry(delay: DSAnimations.stagger(6, step: DSAnimations.staggerNormal)),
+              ).dsFadeEntry(
+                delay: DSAnimations.stagger(
+                  6,
+                  step: DSAnimations.staggerNormal,
+                ),
+              ),
             ],
           ),
         ),
@@ -256,7 +289,11 @@ class _PermissionCard extends StatelessWidget {
           ),
           DSSpacing.wSm,
           if (granted)
-            Icon(Icons.check_circle_rounded, color: DSColors.primary, size: DSIconSize.xl)
+            Icon(
+              Icons.check_circle_rounded,
+              color: DSColors.primary,
+              size: DSIconSize.xl,
+            )
           else
             TextButton(
               onPressed: onTap,

@@ -154,7 +154,12 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, DSSpacing.xl),
+                padding: EdgeInsets.fromLTRB(
+                  DSSpacing.md,
+                  DSSpacing.sm,
+                  DSSpacing.md,
+                  DSSpacing.xl,
+                ),
                 children: [
                   // ── Amount hero ──────────────────────────────────────────
                   _PayoutHeroFlipCard(
@@ -188,7 +193,12 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                           )
                         : null,
                     children: const [],
-                  ).dsCardEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
+                  ).dsCardEntry(
+                    delay: DSAnimations.stagger(
+                      1,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
 
                   DSSpacing.hMd,
 
@@ -344,7 +354,9 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         builder: (_, scrollCtrl) => Container(
           decoration: BoxDecoration(
             color: isDark ? DSColors.cardDark : DSColors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(DSSpacing.xl),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,21 +364,27 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
               // Drag handle
               Center(
                 child: Container(
-                  margin: EdgeInsets.only(top: DSSpacing.md, bottom: DSSpacing.xs),
+                  margin: EdgeInsets.only(
+                    top: DSSpacing.md,
+                    bottom: DSSpacing.xs,
+                  ),
                   width: DSIconSize.heroSm,
                   height: 4,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? DSColors.white.withValues(
-                            alpha: DSStyles.alphaMuted,
-                          )
+                        ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
                         : DSColors.labelTertiary,
                     borderRadius: DSStyles.pillRadius,
                   ),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.md, DSSpacing.lg, 0),
+                padding: EdgeInsets.fromLTRB(
+                  DSSpacing.lg,
+                  DSSpacing.md,
+                  DSSpacing.lg,
+                  0,
+                ),
                 child: Text(
                   'Transaction History',
                   style: DSTypography.heading().copyWith(
@@ -378,7 +396,12 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
               Expanded(
                 child: ListView.builder(
                   controller: scrollCtrl,
-                  padding: EdgeInsets.fromLTRB(DSSpacing.lg, 0, DSSpacing.lg, DSSpacing.xl),
+                  padding: EdgeInsets.fromLTRB(
+                    DSSpacing.lg,
+                    0,
+                    DSSpacing.lg,
+                    DSSpacing.xl,
+                  ),
                   itemCount: history.length,
                   itemBuilder: (_, i) {
                     final item = history[i];
@@ -523,7 +546,12 @@ class _SectionCard extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, DSSpacing.sm),
+        padding: EdgeInsets.fromLTRB(
+          DSSpacing.md,
+          DSSpacing.md,
+          DSSpacing.md,
+          DSSpacing.sm,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -578,10 +606,7 @@ class _StatusBadgeLight extends StatelessWidget {
       ),
     };
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: 5,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 5),
       decoration: BoxDecoration(color: bg, borderRadius: DSStyles.cardRadius),
       child: Text(
         status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
@@ -701,7 +726,9 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                 child: Text(
                   'Payout Amount',
                   style: DSTypography.caption(
-                    color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
+                    color: DSColors.white.withValues(
+                      alpha: DSStyles.alphaDisabled,
+                    ),
                   ).copyWith(fontSize: DSTypography.sizeMd),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -854,7 +881,9 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                               ? DSColors.error
                               : (isDeduction
                                     ? DSColors.error
-                                    : (isDark ? DSColors.white : DSColors.labelPrimary)),
+                                    : (isDark
+                                          ? DSColors.white
+                                          : DSColors.labelPrimary)),
                         ),
                       ),
                     ],
@@ -866,7 +895,9 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
             child: Text(
               'Tap to flip back',
               style: DSTypography.caption(
-                color: DSColors.labelSecondary.withValues(alpha: DSStyles.alphaDisabled),
+                color: DSColors.labelSecondary.withValues(
+                  alpha: DSStyles.alphaDisabled,
+                ),
               ).copyWith(fontSize: DSTypography.sizeSm),
             ),
           ),

@@ -322,7 +322,9 @@ class _DispatchEligibilityScreenState
                   width: double.infinity,
                   padding: EdgeInsets.all(DSSpacing.md),
                   decoration: BoxDecoration(
-                    color: DSColors.labelSecondary.withValues(alpha: DSStyles.alphaSoft),
+                    color: DSColors.labelSecondary.withValues(
+                      alpha: DSStyles.alphaSoft,
+                    ),
                     borderRadius: DSStyles.cardRadius,
                   ),
                   child: Text(
@@ -435,7 +437,11 @@ class _DispatchEligibilityScreenState
                     ),
                   ] else if (!eligible) ...[
                     DSSpacing.hXl,
-                    Icon(Icons.cancel_rounded, color: DSColors.error, size: DSIconSize.xl),
+                    Icon(
+                      Icons.cancel_rounded,
+                      color: DSColors.error,
+                      size: DSIconSize.xl,
+                    ),
                     DSSpacing.hMd,
                     Text(
                       'NOT ELIGIBLE',
@@ -467,7 +473,13 @@ class _DispatchEligibilityScreenState
                         color: isDark ? DSColors.cardDark : DSColors.cardLight,
                         borderRadius: DSStyles.cardRadius,
                         border: Border.all(
-                          color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
+                          color: isDark
+                              ? DSColors.white.withValues(
+                                  alpha: DSStyles.alphaSubtle,
+                                )
+                              : DSColors.error.withValues(
+                                  alpha: DSStyles.alphaSubtle,
+                                ),
                         ),
                         boxShadow: isDark
                             ? null
@@ -599,7 +611,9 @@ class _DispatchEligibilityScreenState
                             borderRadius: DSStyles.cardRadius,
                             borderSide: BorderSide(
                               color: isDark
-                                  ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
+                                  ? DSColors.white.withValues(
+                                      alpha: DSStyles.alphaMuted,
+                                    )
                                   : DSColors.separatorLight,
                             ),
                           ),
@@ -607,7 +621,9 @@ class _DispatchEligibilityScreenState
                             borderRadius: DSStyles.cardRadius,
                             borderSide: BorderSide(
                               color: isDark
-                                  ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
+                                  ? DSColors.white.withValues(
+                                      alpha: DSStyles.alphaMuted,
+                                    )
                                   : DSColors.separatorLight,
                             ),
                           ),
@@ -1034,9 +1050,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                 (i) => Expanded(
                   child: Container(
                     height: 58,
-                    margin: EdgeInsets.symmetric(
-                      horizontal: DSSpacing.xs,
-                    ),
+                    margin: EdgeInsets.symmetric(horizontal: DSSpacing.xs),
                     child: TextFormField(
                       controller: _controllers[i],
                       focusNode: _focusNodes[i],
@@ -1136,7 +1150,9 @@ class _DispatchInfoCard extends StatelessWidget {
             color: bg,
             borderRadius: DSStyles.cardRadius,
             border: Border.all(
-              color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.secondarySurfaceLight,
+              color: isDark
+                  ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                  : DSColors.secondarySurfaceLight,
             ),
           ),
           clipBehavior: Clip.antiAlias,

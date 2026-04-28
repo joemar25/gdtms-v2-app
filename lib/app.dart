@@ -391,7 +391,12 @@ class _SyncPillContent extends ConsumerWidget {
         child: Align(
           alignment: Alignment.topCenter,
           child: Padding(
-            padding: EdgeInsets.fromLTRB(DSSpacing.md, top + DSSpacing.sm, DSSpacing.md, 0),
+            padding: EdgeInsets.fromLTRB(
+              DSSpacing.md,
+              top + DSSpacing.sm,
+              DSSpacing.md,
+              0,
+            ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.85,
@@ -401,15 +406,16 @@ class _SyncPillContent extends ConsumerWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDark
-                        ? DSColors.cardElevatedDark.withValues(alpha: DSStyles.alphaOpaque)
-                        : DSColors.white.withValues(alpha: DSStyles.alphaOpaque),
+                        ? DSColors.cardElevatedDark.withValues(
+                            alpha: DSStyles.alphaOpaque,
+                          )
+                        : DSColors.white.withValues(
+                            alpha: DSStyles.alphaOpaque,
+                          ),
                     borderRadius: DSStyles.circularRadius,
                     boxShadow: DSStyles.shadowXS(context),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 9,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -417,7 +423,9 @@ class _SyncPillContent extends ConsumerWidget {
                         const SizedBox(
                           width: 13,
                           height: 13,
-                          child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
+                          child: CircularProgressIndicator(
+                            strokeWidth: DSStyles.strokeWidth,
+                          ),
                         ),
                         DSSpacing.wSm,
                         Flexible(

@@ -33,7 +33,12 @@ class FloatingBottomNavBar extends StatelessWidget {
 
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(DSSpacing.md, 0, DSSpacing.md, DSSpacing.sm),
+        padding: EdgeInsets.fromLTRB(
+          DSSpacing.md,
+          0,
+          DSSpacing.md,
+          DSSpacing.sm,
+        ),
         child: ClipRRect(
           borderRadius: DSStyles.circularRadius,
           child: BackdropFilter(
@@ -42,7 +47,10 @@ class FloatingBottomNavBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: glassBg,
                 borderRadius: DSStyles.circularRadius,
-                border: Border.all(color: borderColor, width: DSStyles.borderWidth),
+                border: Border.all(
+                  color: borderColor,
+                  width: DSStyles.borderWidth,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: DSColors.black.withValues(

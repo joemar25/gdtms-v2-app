@@ -294,7 +294,8 @@ class DeliveryCard extends StatelessWidget {
                                                   color: DSColors.primary,
                                                 ).copyWith(
                                                   fontSize: DSTypography.sizeSm,
-                                                  letterSpacing: DSTypography.lsLoose,
+                                                  letterSpacing:
+                                                      DSTypography.lsLoose,
                                                 ),
                                           ),
                                         ),
@@ -317,7 +318,9 @@ class DeliveryCard extends StatelessWidget {
                                       ),
                                     if (attemptsCount > 0)
                                       Padding(
-                                        padding: EdgeInsets.only(left: DSSpacing.xs),
+                                        padding: EdgeInsets.only(
+                                          left: DSSpacing.xs,
+                                        ),
                                         child: DeliveryMiniPill(
                                           label: ds == DeliveryStatus.delivered
                                               ? 'FAILED ATTEMPTS: $attemptsCount'
@@ -327,12 +330,16 @@ class DeliveryCard extends StatelessWidget {
                                               (attemptsCount >= 3
                                                       ? DSColors.error
                                                       : DSColors.warning)
-                                                  .withValues(alpha: DSStyles.alphaSubtle),
+                                                  .withValues(
+                                                    alpha: DSStyles.alphaSubtle,
+                                                  ),
                                           border:
                                               (attemptsCount >= 3
                                                       ? DSColors.error
                                                       : DSColors.warning)
-                                                  .withValues(alpha: DSStyles.alphaMuted),
+                                                  .withValues(
+                                                    alpha: DSStyles.alphaMuted,
+                                                  ),
                                           fg: attemptsCount >= 3
                                               ? DSColors.error
                                               : DSColors.warning,
@@ -341,7 +348,9 @@ class DeliveryCard extends StatelessWidget {
                                     if (showLockIcon &&
                                         (isLocked || !isVisible))
                                       Padding(
-                                        padding: EdgeInsets.only(left: DSSpacing.xs),
+                                        padding: EdgeInsets.only(
+                                          left: DSSpacing.xs,
+                                        ),
                                         child: Icon(
                                           Icons.lock_outline_rounded,
                                           color: isLocked
@@ -635,8 +644,12 @@ class DeliveryCard extends StatelessWidget {
                     margin: EdgeInsets.only(bottom: DSSpacing.xl),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
-                          : DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
+                          ? DSColors.white.withValues(
+                              alpha: DSStyles.alphaMuted,
+                            )
+                          : DSColors.black.withValues(
+                              alpha: DSStyles.alphaSubtle,
+                            ),
                       borderRadius: BorderRadius.circular(DSStyles.radiusSM),
                     ),
                   ),
@@ -679,8 +692,12 @@ class DeliveryCard extends StatelessWidget {
                     leading: Icon(
                       Icons.account_balance_wallet_rounded,
                       color: isDark
-                          ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
-                          : DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
+                          ? DSColors.white.withValues(
+                              alpha: DSStyles.alphaDisabled,
+                            )
+                          : DSColors.black.withValues(
+                              alpha: DSStyles.alphaDisabled,
+                            ),
                     ),
                     title: const Text('Account Number'),
                     subtitle: Text(accountNumber),
@@ -690,8 +707,12 @@ class DeliveryCard extends StatelessWidget {
                     leading: Icon(
                       Icons.badge_rounded,
                       color: isDark
-                          ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
-                          : DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
+                          ? DSColors.white.withValues(
+                              alpha: DSStyles.alphaDisabled,
+                            )
+                          : DSColors.black.withValues(
+                              alpha: DSStyles.alphaDisabled,
+                            ),
                     ),
                     title: const Text('Auth Rep Number'),
                     subtitle: Text(authRepNumber),

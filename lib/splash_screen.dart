@@ -72,100 +72,121 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           children: [
             // ── Brand Card (Text-only, no logo) ──────────────────────────
             Container(
-              width: DSIconSize.heroLg,
-              padding: EdgeInsets.all(DSSpacing.xl),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    DSColors.primary.withValues(alpha: DSStyles.alphaOpaque),
-                    DSColors.primary,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: DSStyles.circularRadius,
-                boxShadow: [
-                  BoxShadow(
-                    color: DSColors.primary.withValues(
-                      alpha: DSStyles.alphaMuted,
-                    ),
-                    blurRadius: DSStyles.shadowBlurHero,
-                    offset: const Offset(0, DSSpacing.md),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Title
-                  Text(
-                        'FSI COURIER',
-                        textAlign: TextAlign.center,
-                        style: DSTypography.heading(
-                          color: DSColors.white,
-                        ).copyWith(fontSize: DSTypography.sizeHero, fontWeight: FontWeight.w800),
-                      )
-                      .animate()
-                      .fadeIn(duration: DSAnimations.dSlow)
-                      .slideY(begin: DSAnimations.slideXOffset.dx, end: 0),
-
-                  DSSpacing.hSm,
-
-                  // Subtitle
-                  Text(
-                    'Delivery Management',
-                    textAlign: TextAlign.center,
-                    style: DSTypography.body(color: DSColors.white).copyWith(
-                      fontSize: DSTypography.sizeMd,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ).animate().fadeIn(delay: DSAnimations.staggerWide).slideY(begin: DSAnimations.slideXOffset.dx, end: 0),
-
-                  DSSpacing.hLg,
-
-                  // Feature chips
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child:
-                              _SplashChip(
-                                    icon: Icons.local_shipping_rounded,
-                                    label: 'Dispatch',
-                                  )
-                                  .animate()
-                                  .fadeIn(delay: DSAnimations.dNormal)
-                                  .scaleXY(begin: DSAnimations.scaleActive, end: DSAnimations.scaleNormal),
+                  width: DSIconSize.heroLg,
+                  padding: EdgeInsets.all(DSSpacing.xl),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        DSColors.primary.withValues(
+                          alpha: DSStyles.alphaOpaque,
                         ),
-                        DSSpacing.wSm,
-                        Expanded(
-                          child:
-                              _SplashChip(
-                                    icon: Icons.inventory_2_rounded,
-                                    label: 'Delivery',
-                                  )
-                                  .animate()
-                                  .fadeIn(delay: DSAnimations.stagger(5))
-                                  .scaleXY(begin: DSAnimations.scaleActive, end: DSAnimations.scaleNormal),
-                        ),
-                        DSSpacing.wSm,
-                        Expanded(
-                          child:
-                              _SplashChip(
-                                    icon: Icons.account_balance_wallet_rounded,
-                                    label: 'Wallet',
-                                  )
-                                  .animate()
-                                  .fadeIn(delay: DSAnimations.dSlow)
-                                  .scaleXY(begin: DSAnimations.scaleActive, end: DSAnimations.scaleNormal),
-                        ),
+                        DSColors.primary,
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                    borderRadius: DSStyles.circularRadius,
+                    boxShadow: [
+                      BoxShadow(
+                        color: DSColors.primary.withValues(
+                          alpha: DSStyles.alphaMuted,
+                        ),
+                        blurRadius: DSStyles.shadowBlurHero,
+                        offset: const Offset(0, DSSpacing.md),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ).animate().fadeIn(duration: DSAnimations.dHero).slideY(begin: DSAnimations.slideYOffset.dy, end: 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Title
+                      Text(
+                            'FSI COURIER',
+                            textAlign: TextAlign.center,
+                            style: DSTypography.heading(color: DSColors.white)
+                                .copyWith(
+                                  fontSize: DSTypography.sizeHero,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          )
+                          .animate()
+                          .fadeIn(duration: DSAnimations.dSlow)
+                          .slideY(begin: DSAnimations.slideXOffset.dx, end: 0),
+
+                      DSSpacing.hSm,
+
+                      // Subtitle
+                      Text(
+                            'Delivery Management',
+                            textAlign: TextAlign.center,
+                            style: DSTypography.body(color: DSColors.white)
+                                .copyWith(
+                                  fontSize: DSTypography.sizeMd,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          )
+                          .animate()
+                          .fadeIn(delay: DSAnimations.staggerWide)
+                          .slideY(begin: DSAnimations.slideXOffset.dx, end: 0),
+
+                      DSSpacing.hLg,
+
+                      // Feature chips
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child:
+                                  _SplashChip(
+                                        icon: Icons.local_shipping_rounded,
+                                        label: 'Dispatch',
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: DSAnimations.dNormal)
+                                      .scaleXY(
+                                        begin: DSAnimations.scaleActive,
+                                        end: DSAnimations.scaleNormal,
+                                      ),
+                            ),
+                            DSSpacing.wSm,
+                            Expanded(
+                              child:
+                                  _SplashChip(
+                                        icon: Icons.inventory_2_rounded,
+                                        label: 'Delivery',
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: DSAnimations.stagger(5))
+                                      .scaleXY(
+                                        begin: DSAnimations.scaleActive,
+                                        end: DSAnimations.scaleNormal,
+                                      ),
+                            ),
+                            DSSpacing.wSm,
+                            Expanded(
+                              child:
+                                  _SplashChip(
+                                        icon: Icons
+                                            .account_balance_wallet_rounded,
+                                        label: 'Wallet',
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: DSAnimations.dSlow)
+                                      .scaleXY(
+                                        begin: DSAnimations.scaleActive,
+                                        end: DSAnimations.scaleNormal,
+                                      ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                .animate()
+                .fadeIn(duration: DSAnimations.dHero)
+                .slideY(begin: DSAnimations.slideYOffset.dy, end: 0),
 
             DSSpacing.hXl,
             DSSpacing.hXl,
@@ -174,7 +195,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             SizedBox(
               width: DSIconSize.heroSm,
               height: DSIconSize.heroSm,
-              child: const SpinKitFadingCircle(color: DSColors.white, size: DSIconSize.heroSm),
+              child: const SpinKitFadingCircle(
+                color: DSColors.white,
+                size: DSIconSize.heroSm,
+              ),
             ).animate().fadeIn(delay: DSAnimations.dHero),
 
             DSSpacing.hLg,

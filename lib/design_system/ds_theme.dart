@@ -10,11 +10,17 @@ class DSTheme {
   static ThemeData build(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
 
-    final scaffoldColor = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
+    final scaffoldColor = isDark
+        ? DSColors.scaffoldDark
+        : DSColors.scaffoldLight;
     final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
     final appBarColor = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final primaryLabel = isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary;
-    final secondaryLabel = isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary;
+    final primaryLabel = isDark
+        ? DSColors.labelPrimaryDark
+        : DSColors.labelPrimary;
+    final secondaryLabel = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
     final activePrimary = isDark ? DSColors.primaryDark : DSColors.primary;
 
     return ThemeData(
@@ -105,7 +111,9 @@ class DSTheme {
       // Input Decoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? DSColors.secondarySurfaceDark : DSColors.secondarySurfaceLight,
+        fillColor: isDark
+            ? DSColors.secondarySurfaceDark
+            : DSColors.secondarySurfaceLight,
         contentPadding: EdgeInsets.symmetric(
           horizontal: DSSpacing.lg,
           vertical: DSSpacing.md,
@@ -120,7 +128,10 @@ class DSTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: DSStyles.cardRadius,
-          borderSide: BorderSide(color: activePrimary, width: DSStyles.borderWidth * 1.5),
+          borderSide: BorderSide(
+            color: activePrimary,
+            width: DSStyles.borderWidth * 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: DSStyles.cardRadius,
@@ -188,7 +199,10 @@ class DSTheme {
         unselectedLabelStyle: DSTypography.button(),
         indicatorSize: TabBarIndicatorSize.label,
         indicator: UnderlineTabIndicator(
-          borderSide: BorderSide(color: activePrimary, width: DSStyles.strokeWidth),
+          borderSide: BorderSide(
+            color: activePrimary,
+            width: DSStyles.strokeWidth,
+          ),
         ),
       ),
 

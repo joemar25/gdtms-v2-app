@@ -34,7 +34,10 @@ class LoadingOverlay extends StatelessWidget {
                   SizedBox(
                     width: DSIconSize.heroSm,
                     height: DSIconSize.heroSm,
-                    child: SpinKitFadingCircle(color: DSColors.white, size: DSIconSize.heroSm),
+                    child: SpinKitFadingCircle(
+                      color: DSColors.white,
+                      size: DSIconSize.heroSm,
+                    ),
                   ),
                   if (message != null) ...[
                     DSSpacing.hMd,

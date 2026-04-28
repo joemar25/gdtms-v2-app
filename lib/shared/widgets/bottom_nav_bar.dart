@@ -55,13 +55,13 @@ class AppBottomNavBar extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: backgroundColor.withValues(
-                      alpha: isDark ? DSStyles.alphaDisabled : DSStyles.alphaOpaque,
+                      alpha: isDark
+                          ? DSStyles.alphaDisabled
+                          : DSStyles.alphaOpaque,
                     ),
                     borderRadius: DSStyles.circularRadius,
                     border: Border.all(
-                      color: borderColor.withValues(
-                        alpha: DSStyles.alphaMuted,
-                      ),
+                      color: borderColor.withValues(alpha: DSStyles.alphaMuted),
                       width: DSStyles.borderWidth * 0.5,
                     ),
                   ),

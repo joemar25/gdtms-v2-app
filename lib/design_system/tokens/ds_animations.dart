@@ -20,23 +20,27 @@ class DSAnimations {
   DSAnimations._();
 
   // ── Standard durations ─────────────────────────────────────────────────────
-  static const Duration dMicro  = Duration(milliseconds: 150);
-  static const Duration dFast   = Duration(milliseconds: 250);
+  static const Duration dMicro = Duration(milliseconds: 150);
+  static const Duration dFast = Duration(milliseconds: 250);
   static const Duration dNormal = Duration(milliseconds: 400);
-  static const Duration dSlow   = Duration(milliseconds: 600);
-  static const Duration dHero   = Duration(milliseconds: 800);
+  static const Duration dSlow = Duration(milliseconds: 600);
+  static const Duration dHero = Duration(milliseconds: 800);
 
   // ── Stagger step sizes ─────────────────────────────────────────────────────
   /// 10 ms — micro transitions (e.g. checkbox check).
-  static const Duration staggerMicro  = Duration(milliseconds: 10);
+  static const Duration staggerMicro = Duration(milliseconds: 10);
+
   /// 15 ms — tight lists (e.g. notification rows).
-  static const Duration staggerFine   = Duration(milliseconds: 15);
+  static const Duration staggerFine = Duration(milliseconds: 15);
+
   /// 50 ms — section labels and sub-headings.
   static const Duration staggerNormal = Duration(milliseconds: 50);
+
   /// 100 ms — cards, form fields, primary content.
   static const Duration staggerCoarse = Duration(milliseconds: 100);
+
   /// 200 ms — wide sections or major page blocks.
-  static const Duration staggerWide   = Duration(milliseconds: 200);
+  static const Duration staggerWide = Duration(milliseconds: 200);
 
   // ── Standard Offsets ───────────────────────────────────────────────────────
   static const Offset slideXOffset = Offset(0.1, 0);
@@ -128,22 +132,27 @@ class DSAnimations {
 /// Widget extension for applying DS animation presets inline.
 extension DSAnimationsX on Widget {
   /// Avatar / hero image pop-in (fadeIn + scale 90→100%).
-  Widget dsHeroEntry({Duration? delay, Duration? duration}) =>
-      animate(effects: DSAnimations.heroEntry(delay: delay, duration: duration));
+  Widget dsHeroEntry({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.heroEntry(delay: delay, duration: duration),
+  );
 
   /// Form field slide-in from right (fadeIn + slideX).
-  Widget dsFieldEntry({Duration? delay, Duration? duration}) =>
-      animate(effects: DSAnimations.fieldEntry(delay: delay, duration: duration));
+  Widget dsFieldEntry({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.fieldEntry(delay: delay, duration: duration),
+  );
 
   /// Card / section slide-up from below (fadeIn + slideY).
-  Widget dsCardEntry({Duration? delay, Duration? duration}) =>
-      animate(effects: DSAnimations.cardEntry(delay: delay, duration: duration));
+  Widget dsCardEntry({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.cardEntry(delay: delay, duration: duration),
+  );
 
   /// Primary CTA button entrance (fadeIn + scaleXY 95→100%).
-  Widget dsCtaEntry({Duration? delay, Duration? duration}) =>
-      animate(effects: DSAnimations.ctaEntry(delay: delay, duration: duration));
+  Widget dsCtaEntry({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.ctaEntry(delay: delay, duration: duration),
+  );
 
   /// Plain fade-in for labels, spinners, and misc elements.
-  Widget dsFadeEntry({Duration? delay, Duration? duration}) =>
-      animate(effects: DSAnimations.fadeEntry(delay: delay, duration: duration));
+  Widget dsFadeEntry({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.fadeEntry(delay: delay, duration: duration),
+  );
 }

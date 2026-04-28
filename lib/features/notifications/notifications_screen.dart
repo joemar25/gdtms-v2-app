@@ -183,9 +183,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             final entry = entries[i];
 
             if (entry.isHeader) {
-              return _SectionHeader(
-                label: entry.label!,
-              ).dsFadeEntry(delay: DSAnimations.stagger(i, step: DSAnimations.staggerFine), duration: DSAnimations.dFast);
+              return _SectionHeader(label: entry.label!).dsFadeEntry(
+                delay: DSAnimations.stagger(i, step: DSAnimations.staggerFine),
+                duration: DSAnimations.dFast,
+              );
             }
 
             if (entry.isLoadMore) {
@@ -199,13 +200,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             // Tile
             final n = entry.notification!;
             return _NotificationCard(
-                  notification: n,
-                  isDark: isDark,
-                  onTap: () => _handleTap(n, isOnline),
-                )
-                .dsCardEntry(
-                  delay: DSAnimations.stagger(i, step: DSAnimations.staggerFine),
-                );
+              notification: n,
+              isDark: isDark,
+              onTap: () => _handleTap(n, isOnline),
+            ).dsCardEntry(
+              delay: DSAnimations.stagger(i, step: DSAnimations.staggerFine),
+            );
           },
         ),
       );
@@ -215,8 +215,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       return Column(
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, 0),
-            child: const OfflineBanner(isMinimal: true, margin: EdgeInsets.zero),
+            padding: EdgeInsets.fromLTRB(
+              DSSpacing.md,
+              DSSpacing.md,
+              DSSpacing.md,
+              0,
+            ),
+            child: const OfflineBanner(
+              isMinimal: true,
+              margin: EdgeInsets.zero,
+            ),
           ),
           Expanded(child: content),
         ],
@@ -366,7 +374,11 @@ class _NotificationCard extends StatelessWidget {
                               ),
                               borderRadius: DSStyles.pillRadius,
                             ),
-                            child: Icon(iconData, size: DSIconSize.lg, color: accentColor),
+                            child: Icon(
+                              iconData,
+                              size: DSIconSize.lg,
+                              color: accentColor,
+                            ),
                           ),
                           DSSpacing.wMd,
 
@@ -397,7 +409,9 @@ class _NotificationCard extends StatelessWidget {
                                     if (isUnread) ...[
                                       DSSpacing.wSm,
                                       Padding(
-                                        padding: EdgeInsets.only(top: DSSpacing.xs),
+                                        padding: EdgeInsets.only(
+                                          top: DSSpacing.xs,
+                                        ),
                                         child: Container(
                                           width: DSIconSize.xs,
                                           height: DSIconSize.xs,
@@ -473,8 +487,7 @@ class _NotificationCard extends StatelessWidget {
                                             fontSize: DSTypography.sizeXs,
                                             fontWeight: FontWeight.w700,
                                             color: accentColor,
-                                            letterSpacing:
-                                                DSTypography.lsLoose,
+                                            letterSpacing: DSTypography.lsLoose,
                                           ),
                                         ),
                                       ),
@@ -544,7 +557,10 @@ class _UnreadPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.sm,
+        vertical: DSSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: DSColors.primary,
         borderRadius: DSStyles.circularRadius,
@@ -585,23 +601,22 @@ class _EmptyState extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                          width: DSIconSize.xs,
-                          height: DSIconSize.xs,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? DSColors.secondarySurfaceDark
-                                : DSColors.secondarySurfaceLight,
-                            borderRadius: DSStyles.cardRadius,
-                          ),
-                            child: Icon(
-                              Icons.notifications_none_rounded,
-                              size: DSIconSize.xl,
-                              color: isDark
-                                  ? DSColors.labelTertiaryDark
-                                  : DSColors.labelTertiary,
-                            ),
-                        )
-                        .dsHeroEntry(),
+                      width: DSIconSize.xs,
+                      height: DSIconSize.xs,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? DSColors.secondarySurfaceDark
+                            : DSColors.secondarySurfaceLight,
+                        borderRadius: DSStyles.cardRadius,
+                      ),
+                      child: Icon(
+                        Icons.notifications_none_rounded,
+                        size: DSIconSize.xl,
+                        color: isDark
+                            ? DSColors.labelTertiaryDark
+                            : DSColors.labelTertiary,
+                      ),
+                    ).dsHeroEntry(),
                     DSSpacing.hMd,
                     Text(
                       'All caught up',
@@ -613,7 +628,10 @@ class _EmptyState extends StatelessWidget {
                             : DSColors.labelPrimary,
                         letterSpacing: -0.3,
                       ),
-                    ).dsFadeEntry(delay: const Duration(milliseconds: 150), duration: const Duration(milliseconds: 350)),
+                    ).dsFadeEntry(
+                      delay: const Duration(milliseconds: 150),
+                      duration: const Duration(milliseconds: 350),
+                    ),
                     DSSpacing.hSm,
                     Text(
                       'No notifications yet. Pull to refresh.',
@@ -623,7 +641,10 @@ class _EmptyState extends StatelessWidget {
                             ? DSColors.labelTertiaryDark
                             : DSColors.labelTertiary,
                       ),
-                    ).dsFadeEntry(delay: const Duration(milliseconds: 250), duration: const Duration(milliseconds: 350)),
+                    ).dsFadeEntry(
+                      delay: const Duration(milliseconds: 250),
+                      duration: const Duration(milliseconds: 350),
+                    ),
                   ],
                 ),
               ),
@@ -673,7 +694,10 @@ class _LoadMoreButton extends StatelessWidget {
                     fontSize: DSTypography.sizeMd,
                   ),
                 ),
-                icon: const Icon(Icons.expand_more_rounded, size: DSIconSize.md),
+                icon: const Icon(
+                  Icons.expand_more_rounded,
+                  size: DSIconSize.md,
+                ),
                 label: const Text('Load more'),
               ),
       ),

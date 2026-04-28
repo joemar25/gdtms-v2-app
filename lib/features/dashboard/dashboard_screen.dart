@@ -192,12 +192,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // ),
           body: _loading
               ? const Center(
-                  child: SpinKitFadingCircle(color: DSColors.primary, size: DSIconSize.heroSm),
+                  child: SpinKitFadingCircle(
+                    color: DSColors.primary,
+                    size: DSIconSize.heroSm,
+                  ),
                 )
               : RefreshIndicator(
                   onRefresh: _onRefresh,
                   child: ListView(
-                    padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, DSSpacing.massive),
+                    padding: EdgeInsets.fromLTRB(
+                      DSSpacing.md,
+                      DSSpacing.md,
+                      DSSpacing.md,
+                      DSSpacing.massive,
+                    ),
                     children: [
                       // ── 4 Summary Boxes ───────────────────────────────────────
                       Row(
@@ -289,16 +297,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               color: pendingSyncCount > 0
                                   ? DSColors.primary
                                   : (isDark
-                                      ? DSColors.labelSecondaryDark
-                                      : DSColors.labelSecondary),
+                                        ? DSColors.labelSecondaryDark
+                                        : DSColors.labelSecondary),
                               onTap: () => context.push('/sync'),
-                              subdued: pendingSyncCount == 0 &&
+                              subdued:
+                                  pendingSyncCount == 0 &&
                                   syncedTotalCount == 0,
                               details: pendingSyncCount > 0
                                   ? 'Pending updates.'
                                   : (syncedTotalCount > 0
-                                      ? 'All synced.'
-                                      : 'No activity.'),
+                                        ? 'All synced.'
+                                        : 'No activity.'),
                             ).dsCardEntry(delay: DSAnimations.stagger(5)),
                           ),
                         ],
@@ -327,10 +336,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               label: 'SCAN POD',
                               icon: Icons.qr_code_scanner_rounded,
                               color: DSColors.primary,
-                              onTap: () => context.push(
-                                '/scan',
-                                extra: {'mode': 'pod'},
-                              ),
+                              onTap: () =>
+                                  context.push('/scan', extra: {'mode': 'pod'}),
                               details:
                                   'Scan a delivery barcode to\nfind and update POD.',
                             ).dsCtaEntry(delay: DSAnimations.stagger(7)),

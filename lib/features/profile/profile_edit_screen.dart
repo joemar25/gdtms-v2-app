@@ -210,75 +210,73 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               children: [
                 // ── Profile Picture ──────────────────────────────────────
                 Center(
-                  child:
-                      GestureDetector(
-                            onTap: _pickImage,
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Container(
-                                  width: 110,
-                                  height: 110,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: isDark
-                                        ? DSColors.secondarySurfaceDark
-                                        : DSColors.secondarySurfaceLight,
-                                    border: Border.all(
-                                      color: DSColors.primary.withValues(
-                                        alpha: DSStyles.alphaMuted,
-                                      ),
-                                      width: DSStyles.strokeWidth,
-                                    ),
-                                    image: _profileImage != null
-                                        ? DecorationImage(
-                                            image: FileImage(_profileImage!),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : (currentProfilePic != null &&
-                                                  currentProfilePic.isNotEmpty
-                                              ? DecorationImage(
-                                                  image: NetworkImage(
-                                                    currentProfilePic,
-                                                  ),
-                                                  fit: BoxFit.cover,
-                                                )
-                                              : null),
-                                    boxShadow: DSStyles.shadowXS(context),
-                                  ),
-                                  child:
-                                      _profileImage == null &&
-                                          (currentProfilePic == null ||
-                                              currentProfilePic.isEmpty)
-                                      ? Icon(
-                                          Icons.person_rounded,
-                                          size: 50,
-                                          color: isDark
-                                              ? DSColors.labelTertiaryDark
-                                              : DSColors.labelTertiary,
-                                        )
-                                      : null,
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 2,
-                                  child: Container(
-                                    padding: EdgeInsets.all(DSSpacing.sm),
-                                    decoration: const BoxDecoration(
-                                      color: DSColors.primary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.camera_alt_rounded,
-                                      color: DSColors.white,
-                                      size: DSIconSize.sm,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                  child: GestureDetector(
+                    onTap: _pickImage,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark
+                                ? DSColors.secondarySurfaceDark
+                                : DSColors.secondarySurfaceLight,
+                            border: Border.all(
+                              color: DSColors.primary.withValues(
+                                alpha: DSStyles.alphaMuted,
+                              ),
+                              width: DSStyles.strokeWidth,
                             ),
-                          )
-                          .dsHeroEntry(),
+                            image: _profileImage != null
+                                ? DecorationImage(
+                                    image: FileImage(_profileImage!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : (currentProfilePic != null &&
+                                          currentProfilePic.isNotEmpty
+                                      ? DecorationImage(
+                                          image: NetworkImage(
+                                            currentProfilePic,
+                                          ),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null),
+                            boxShadow: DSStyles.shadowXS(context),
+                          ),
+                          child:
+                              _profileImage == null &&
+                                  (currentProfilePic == null ||
+                                      currentProfilePic.isEmpty)
+                              ? Icon(
+                                  Icons.person_rounded,
+                                  size: 50,
+                                  color: isDark
+                                      ? DSColors.labelTertiaryDark
+                                      : DSColors.labelTertiary,
+                                )
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 2,
+                          child: Container(
+                            padding: EdgeInsets.all(DSSpacing.sm),
+                            decoration: const BoxDecoration(
+                              color: DSColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt_rounded,
+                              color: DSColors.white,
+                              size: DSIconSize.sm,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).dsHeroEntry(),
                 ),
                 DSSpacing.hSm,
                 Center(

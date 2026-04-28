@@ -89,8 +89,7 @@ class DeliveryRecipientCards extends StatelessWidget {
               ),
             ),
           ),
-        if (recipientName.isNotEmpty && authorizedRep.isNotEmpty)
-          DSSpacing.hSm,
+        if (recipientName.isNotEmpty && authorizedRep.isNotEmpty) DSSpacing.hSm,
         if (authorizedRep.isNotEmpty)
           GestureDetector(
             onTap: () => onSelectRecipient(authorizedRep, null),

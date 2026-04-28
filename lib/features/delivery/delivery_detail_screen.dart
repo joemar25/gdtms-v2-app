@@ -354,10 +354,16 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: DSStyles.strokeWidth,
-                        color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
+                        color: DSColors.white.withValues(
+                          alpha: DSStyles.alphaDisabled,
+                        ),
                       ),
                     )
-                  : const Icon(Icons.edit_rounded, size: DSIconSize.md, color: DSColors.white),
+                  : const Icon(
+                      Icons.edit_rounded,
+                      size: DSIconSize.md,
+                      color: DSColors.white,
+                    ),
               label: Text(
                 _hasPendingSync ? 'SYNC PENDING…' : 'UPDATE STATUS',
                 style: DSTypography.button(
@@ -395,9 +401,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         // ── Account details card ──────────────────────────
                         if (!checkIsLockedFromMap(_delivery))
                           DSCard(
-                            margin: EdgeInsets.only(
-                              bottom: DSSpacing.md,
-                            ),
+                            margin: EdgeInsets.only(bottom: DSSpacing.md),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1073,14 +1077,15 @@ class _OfflineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: 9,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 9),
       color: DSColors.pending,
       child: Row(
         children: [
-          const Icon(Icons.wifi_off_rounded, size: DSIconSize.xs, color: DSColors.white),
+          const Icon(
+            Icons.wifi_off_rounded,
+            size: DSIconSize.xs,
+            color: DSColors.white,
+          ),
           DSSpacing.wSm,
           Text(
             'Offline — showing locally saved data',

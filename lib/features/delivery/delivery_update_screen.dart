@@ -1038,7 +1038,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         left: 0,
                         right: 0,
                         child: Container(
-                          color: DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
+                          color: DSColors.black.withValues(
+                            alpha: DSStyles.alphaDisabled,
+                          ),
                           padding: EdgeInsets.symmetric(
                             horizontal: DSSpacing.md,
                             vertical: DSSpacing.sm,
@@ -1158,7 +1160,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       left: 0,
                       right: 0,
                       child: Container(
-                        color: DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
+                        color: DSColors.black.withValues(
+                          alpha: DSStyles.alphaDisabled,
+                        ),
                         padding: EdgeInsets.symmetric(
                           horizontal: DSSpacing.md,
                           vertical: DSSpacing.sm,
@@ -1336,7 +1340,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               borderRadius: DSStyles.cardRadius,
               boxShadow: [
                 BoxShadow(
-                  color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+                  color: DSColors.primary.withValues(
+                    alpha: DSStyles.alphaMuted,
+                  ),
                   blurRadius: DSStyles.radiusMD,
                   offset: const Offset(0, DSSpacing.sm),
                 ),
@@ -1462,7 +1468,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     isMinimal: true,
                                     customMessage:
                                         'Update queued—will submit when online',
-                                    margin: EdgeInsets.only(bottom: DSSpacing.lg),
+                                    margin: EdgeInsets.only(
+                                      bottom: DSSpacing.lg,
+                                    ),
                                   ),
 
                                 // ── STATUS SELECTION ────────────────────────────
@@ -2052,7 +2060,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                                 // Hint text below chips
                                 Padding(
-                                  padding: EdgeInsets.only(bottom: DSSpacing.sm),
+                                  padding: EdgeInsets.only(
+                                    bottom: DSSpacing.sm,
+                                  ),
                                   child: Text(
                                     'TAP A PRESET TO FILL — YOU CAN STILL ADD MORE DETAILS BELOW',
                                     style: DSTypography.label().copyWith(
@@ -2204,10 +2214,7 @@ class _NotePresetChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(
-          horizontal: DSSpacing.md,
-          vertical: 7,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 7),
         decoration: BoxDecoration(
           color: selected
               ? selectedColor.withValues(alpha: DSStyles.alphaSubtle)
@@ -2224,7 +2231,11 @@ class _NotePresetChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (selected) ...[
-              Icon(Icons.check_rounded, size: DSIconSize.xs, color: selectedColor),
+              Icon(
+                Icons.check_rounded,
+                size: DSIconSize.xs,
+                color: selectedColor,
+              ),
               DSSpacing.wXs,
             ],
             Text(
@@ -2286,10 +2297,14 @@ class _StatusSelectorState extends State<_StatusSelector> {
         Container(
           height: 80,
           decoration: BoxDecoration(
-            color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.secondarySurfaceLight,
+            color: isDark
+                ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                : DSColors.secondarySurfaceLight,
             borderRadius: DSStyles.cardRadius,
             border: Border.all(
-              color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.separatorLight,
+              color: isDark
+                  ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                  : DSColors.separatorLight,
               width: DSStyles.borderWidth,
             ),
           ),
@@ -2314,7 +2329,9 @@ class _StatusSelectorState extends State<_StatusSelector> {
                         gradient: LinearGradient(
                           colors: [
                             activeMeta.color,
-                            activeMeta.color.withValues(alpha: DSStyles.alphaOpaque),
+                            activeMeta.color.withValues(
+                              alpha: DSStyles.alphaOpaque,
+                            ),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -2322,7 +2339,9 @@ class _StatusSelectorState extends State<_StatusSelector> {
                         borderRadius: DSStyles.cardRadius,
                         boxShadow: [
                           BoxShadow(
-                            color: activeMeta.color.withValues(alpha: DSStyles.alphaMuted),
+                            color: activeMeta.color.withValues(
+                              alpha: DSStyles.alphaMuted,
+                            ),
                             blurRadius: DSStyles.radiusMD,
                             offset: const Offset(0, 4),
                           ),
@@ -2357,7 +2376,9 @@ class _StatusSelectorState extends State<_StatusSelector> {
                                 color: selected
                                     ? DSColors.white
                                     : (isDark
-                                          ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+                                          ? DSColors.white.withValues(
+                                              alpha: DSStyles.alphaDisabled,
+                                            )
                                           : DSColors.labelSecondary),
                                 size: selected ? DSIconSize.xl : DSIconSize.lg,
                               ),
@@ -2404,7 +2425,9 @@ class _StatusSelectorState extends State<_StatusSelector> {
                 Icon(
                   Icons.touch_app_rounded,
                   size: DSIconSize.xs,
-                  color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaMuted) : DSColors.labelTertiary,
+                  color: isDark
+                      ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
+                      : DSColors.labelTertiary,
                 ),
                 DSSpacing.wXs,
                 Text(

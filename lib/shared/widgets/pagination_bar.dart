@@ -112,9 +112,7 @@ class PaginationBar extends StatelessWidget {
                     ),
 
                   Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: DSSpacing.sm,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm),
                     child: Text(
                       'PAGE ${currentPage + 1} / $totalPages',
                       style: DSTypography.label(color: DSColors.primary)

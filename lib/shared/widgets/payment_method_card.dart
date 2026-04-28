@@ -54,9 +54,13 @@ class PaymentMethodCard extends StatelessWidget {
             ? DSColors.transparent
             : DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
         icon: Icons.account_balance_rounded,
-        iconColor: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.primary,
+        iconColor: isTransparent
+            ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+            : DSColors.primary,
         label: 'Payout Account',
-        labelColor: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.primary,
+        labelColor: isTransparent
+            ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+            : DSColors.primary,
         badge: _Badge(
           text: 'ACTIVE',
           color: isTransparent ? DSColors.white : DSColors.primary,
@@ -79,9 +83,13 @@ class PaymentMethodCard extends StatelessWidget {
             ? DSColors.transparent
             : DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
         icon: Icons.account_balance_rounded,
-        iconColor: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.warning,
+        iconColor: isTransparent
+            ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+            : DSColors.warning,
         label: 'Payout Account',
-        labelColor: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.warning,
+        labelColor: isTransparent
+            ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+            : DSColors.warning,
         badge: _Badge(
           text: 'INACTIVE',
           color: isTransparent ? DSColors.white : DSColors.warning,
@@ -142,8 +150,10 @@ class PaymentMethodCard extends StatelessWidget {
         // Bank name
         Text(
           bankName,
-          style: DSTypography.label(color: isTransparent ? DSColors.white : null)
-              .copyWith(
+          style:
+              DSTypography.label(
+                color: isTransparent ? DSColors.white : null,
+              ).copyWith(
                 fontSize: DSTypography.sizeMd,
                 fontWeight: FontWeight.w800,
               ),
@@ -159,7 +169,9 @@ class PaymentMethodCard extends StatelessWidget {
                     accountName,
                     style: DSTypography.caption(
                       color: isTransparent
-                          ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+                          ? DSColors.white.withValues(
+                              alpha: DSStyles.alphaDisabled,
+                            )
                           : (Theme.of(context).brightness == Brightness.dark
                                 ? DSColors.labelSecondaryDark
                                 : DSColors.labelSecondary),
@@ -174,7 +186,9 @@ class PaymentMethodCard extends StatelessWidget {
                   style:
                       DSTypography.caption(
                         color: isTransparent
-                            ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+                            ? DSColors.white.withValues(
+                                alpha: DSStyles.alphaDisabled,
+                              )
                             : (Theme.of(context).brightness == Brightness.dark
                                   ? DSColors.labelSecondaryDark
                                   : DSColors.labelSecondary),
@@ -206,7 +220,9 @@ class PaymentMethodCard extends StatelessWidget {
                   footerMessage,
                   style: DSTypography.caption(
                     color: isTransparent
-                        ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+                        ? DSColors.white.withValues(
+                            alpha: DSStyles.alphaDisabled,
+                          )
                         : DSColors.warning,
                   ).copyWith(fontSize: DSTypography.sizeSm),
                 ),
@@ -225,10 +241,7 @@ class PaymentMethodCard extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         border: Border.all(color: borderColor),
       ),
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: 14,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 14),
       child: content,
     );
   }
@@ -244,7 +257,9 @@ class PaymentMethodCard extends StatelessWidget {
         Icon(
           Icons.account_balance_outlined,
           size: DSIconSize.md,
-          color: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.warning,
+          color: isTransparent
+              ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+              : DSColors.warning,
         ),
         DSSpacing.wSm,
         Expanded(
@@ -287,17 +302,16 @@ class PaymentMethodCard extends StatelessWidget {
           color: DSColors.warning.withValues(alpha: DSStyles.alphaMuted),
         ),
       ),
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: 14,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 14),
       child: content,
     );
   }
 
   Widget _buildSkeleton(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final base = isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.black.withValues(alpha: DSStyles.alphaSubtle);
+    final base = isDark
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+        : DSColors.black.withValues(alpha: DSStyles.alphaSubtle);
     return Container(
       height: DSIconSize.xs,
       decoration: BoxDecoration(color: base, borderRadius: DSStyles.cardRadius),
@@ -325,10 +339,7 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.sm,
-        vertical: 3,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: 3),
       decoration: BoxDecoration(
         color: isTransparent
             ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)

@@ -60,7 +60,9 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
             color: isDark ? DSColors.white : DSColors.labelPrimary,
           ),
         ),
-        iconTheme: IconThemeData(color: isDark ? DSColors.white : DSColors.labelPrimary),
+        iconTheme: IconThemeData(
+          color: isDark ? DSColors.white : DSColors.labelPrimary,
+        ),
       ),
       body: _content.isEmpty
           ? const Center(child: CircularProgressIndicator())

@@ -327,7 +327,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.wifi_off_rounded, size: DSIconSize.xl, color: DSColors.error),
+              Icon(
+                Icons.wifi_off_rounded,
+                size: DSIconSize.xl,
+                color: DSColors.error,
+              ),
               DSSpacing.hMd,
               Text(
                 'You\'re Offline',
@@ -420,7 +424,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline_rounded, size: DSIconSize.xl, color: DSColors.error),
+          Icon(
+            Icons.error_outline_rounded,
+            size: DSIconSize.xl,
+            color: DSColors.error,
+          ),
           DSSpacing.hMd,
           Text(
             _error ?? 'Something went wrong.',
@@ -458,7 +466,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     );
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return ListView(
-      padding: EdgeInsets.all(DSSpacing.md) + EdgeInsets.only(bottom: bottomPadding),
+      padding:
+          EdgeInsets.all(DSSpacing.md) + EdgeInsets.only(bottom: bottomPadding),
       children: [
         // ── Consolidation notice ──────────────────────────────────────
         if (widget.isConsolidation) ...[
@@ -471,15 +480,17 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               color: DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: DSColors.warning.withValues(
-                  alpha: DSStyles.alphaMuted,
-                ),
+                color: DSColors.warning.withValues(alpha: DSStyles.alphaMuted),
               ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.merge_rounded, color: DSColors.warning, size: DSIconSize.md),
+                Icon(
+                  Icons.merge_rounded,
+                  color: DSColors.warning,
+                  size: DSIconSize.md,
+                ),
                 DSSpacing.wMd,
                 Expanded(
                   child: Text(
@@ -510,7 +521,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           deliveriesLabel: widget.isConsolidation
               ? 'ELIGIBLE FOR CONSOLIDATION'
               : 'ELIGIBLE DELIVERIES',
-        ).dsCardEntry(delay: DSAnimations.stagger(0, step: DSAnimations.staggerNormal)),
+        ).dsCardEntry(
+          delay: DSAnimations.stagger(0, step: DSAnimations.staggerNormal),
+        ),
         DSSpacing.hMd,
 
         // // ── Coverage Period ───────────────────────────────────────────
@@ -534,7 +547,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               fontWeight: FontWeight.w800,
               letterSpacing: DSTypography.lsExtraLoose,
             ),
-          ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
+          ).dsFadeEntry(
+            delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal),
+          ),
           DSSpacing.hSm,
           DateStripWithDeliveries(
             dailyBreakdown: dailyBreakdown,
@@ -553,9 +568,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               color: DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: DSColors.warning.withValues(
-                  alpha: DSStyles.alphaMuted,
-                ),
+                color: DSColors.warning.withValues(alpha: DSStyles.alphaMuted),
               ),
             ),
             child: Row(
@@ -628,9 +641,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               color: DSColors.error.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: DSColors.error.withValues(
-                  alpha: DSStyles.alphaMuted,
-                ),
+                color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
               ),
             ),
             child: Text(
@@ -775,7 +786,12 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, DSSpacing.md),
+            padding: EdgeInsets.fromLTRB(
+              DSSpacing.md,
+              DSSpacing.md,
+              DSSpacing.md,
+              DSSpacing.md,
+            ),
             child: Row(
               children: [
                 Icon(
@@ -910,9 +926,15 @@ class _AmountRow extends StatelessWidget {
               if (isDebug)
                 Text(
                   'DEBUG ONLY — not visible in production',
-                  style: DSTypography.caption(
-                    color: DSColors.error.withValues(alpha: DSStyles.alphaDisabled),
-                  ).copyWith(fontSize: DSTypography.sizeXs, letterSpacing: DSTypography.lsLoose),
+                  style:
+                      DSTypography.caption(
+                        color: DSColors.error.withValues(
+                          alpha: DSStyles.alphaDisabled,
+                        ),
+                      ).copyWith(
+                        fontSize: DSTypography.sizeXs,
+                        letterSpacing: DSTypography.lsLoose,
+                      ),
                 ),
             ],
           ),

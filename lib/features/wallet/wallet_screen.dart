@@ -329,7 +329,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
-                    padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, DSSpacing.xl),
+                    padding: EdgeInsets.fromLTRB(
+                      DSSpacing.md,
+                      DSSpacing.md,
+                      DSSpacing.md,
+                      DSSpacing.xl,
+                    ),
                     children: [
                       // ── Offline banner ─────────────────────────────────────
                       if (!isOnline)
@@ -342,13 +347,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
                       // ── Earnings / Payout Flip Card ────────────────────────
                       _WalletFlipCard(
-                            tentativePayout: tentativePayout,
-                            pendingRequestAmt: pendingRequestAmt,
-                            isLatestPending: isLatestPending,
-                            showPending: isOnline,
-                            paymentMethod: _paymentMethod,
-                          )
-                          .dsCardEntry(duration: DSAnimations.dNormal),
+                        tentativePayout: tentativePayout,
+                        pendingRequestAmt: pendingRequestAmt,
+                        isLatestPending: isLatestPending,
+                        showPending: isOnline,
+                        paymentMethod: _paymentMethod,
+                      ).dsCardEntry(duration: DSAnimations.dNormal),
 
                       DSSpacing.hLg,
 
@@ -374,7 +378,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             ),
                           ),
                         ).dsCtaEntry(delay: DSAnimations.stagger(2))
-                      else if (isOnline && canRequestPayout && !isInRequestWindow)
+                      else if (isOnline &&
+                          canRequestPayout &&
+                          !isInRequestWindow)
                         Opacity(
                           opacity: 0.45,
                           child: FilledButton.icon(
@@ -389,7 +395,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             ),
                           ),
                         )
-                      else if (isOnline && isLatestPending &&
+                      else if (isOnline &&
+                          isLatestPending &&
                           _eligible > 0 &&
                           !hasExistingRequestToday &&
                           isInRequestWindow)
@@ -501,10 +508,7 @@ class _PayoutWindowBanner extends StatelessWidget {
     // returns true), but guard here defensively just in case.
     if (kAppDebugMode) {
       return Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: DSSpacing.md,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
         decoration: BoxDecoration(
           color: DSColors.accent.withValues(alpha: DSStyles.alphaSoft),
           borderRadius: DSStyles.cardRadius,
@@ -514,7 +518,11 @@ class _PayoutWindowBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(Icons.bug_report_rounded, color: DSColors.primary, size: DSIconSize.md),
+            Icon(
+              Icons.bug_report_rounded,
+              color: DSColors.primary,
+              size: DSIconSize.md,
+            ),
             DSSpacing.wMd,
             Expanded(
               child: Text(
@@ -531,10 +539,7 @@ class _PayoutWindowBanner extends StatelessWidget {
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: DSSpacing.md,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
       decoration: BoxDecoration(
         color: DSColors.error.withValues(alpha: DSStyles.alphaSoft),
         borderRadius: DSStyles.cardRadius,
@@ -545,7 +550,11 @@ class _PayoutWindowBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_clock_rounded, color: DSColors.error, size: DSIconSize.md),
+          Icon(
+            Icons.lock_clock_rounded,
+            color: DSColors.error,
+            size: DSIconSize.md,
+          ),
           DSSpacing.wMd,
           Expanded(
             child: Column(
@@ -699,7 +708,9 @@ class _WalletFlipCardState extends State<_WalletFlipCard>
             'Tap to flip back',
             style:
                 DSTypography.caption(
-                  color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
+                  color: DSColors.white.withValues(
+                    alpha: DSStyles.alphaDisabled,
+                  ),
                 ).copyWith(
                   fontSize: DSTypography.sizeXs,
                   fontStyle: FontStyle.italic,
@@ -788,14 +799,18 @@ class _EarningsCard extends StatelessWidget {
                         Text(
                           displayLabel,
                           style: DSTypography.caption(
-                            color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
+                            color: DSColors.white.withValues(
+                              alpha: DSStyles.alphaDisabled,
+                            ),
                           ).copyWith(fontSize: DSTypography.sizeMd),
                         ),
                         const Spacer(),
                         if (isLatestPending)
                           Icon(
                             Icons.unfold_more_rounded,
-                            color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
+                            color: DSColors.white.withValues(
+                              alpha: DSStyles.alphaDisabled,
+                            ),
                             size: DSIconSize.sm,
                           ),
                       ],
@@ -822,9 +837,11 @@ class _EarningsCard extends StatelessWidget {
                         ),
                         Text(
                           _fmt(displayAmt),
-                          style: DSTypography.display(
-                            color: DSColors.white,
-                          ).copyWith(fontSize: DSTypography.sizeHero, fontWeight: FontWeight.w800),
+                          style: DSTypography.display(color: DSColors.white)
+                              .copyWith(
+                                fontSize: DSTypography.sizeHero,
+                                fontWeight: FontWeight.w800,
+                              ),
                         ),
                       ],
                     ),
@@ -874,10 +891,7 @@ class _EarningsCard extends StatelessWidget {
     required String amount,
   }) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: DSSpacing.md,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
       decoration: BoxDecoration(
         color: DSColors.transparent,
         borderRadius: DSStyles.cardRadius,
@@ -888,7 +902,11 @@ class _EarningsCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled), size: DSIconSize.sm),
+          Icon(
+            icon,
+            color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
+            size: DSIconSize.sm,
+          ),
           DSSpacing.wSm,
           Expanded(
             child: Text(
@@ -998,7 +1016,10 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                     ),
                   ] else if (paidAt != '—') ...[
                     Flexible(
-                      child: _InfoChip(icon: Icons.payments_outlined, label: paidAt),
+                      child: _InfoChip(
+                        icon: Icons.payments_outlined,
+                        label: paidAt,
+                      ),
                     ),
                   ],
                   const Spacer(),
@@ -1044,12 +1065,18 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final (bg, fg) = switch (status.toUpperCase()) {
-      'PAID' => (DSColors.success.withValues(alpha: DSStyles.alphaSubtle), DSColors.success),
+      'PAID' => (
+        DSColors.success.withValues(alpha: DSStyles.alphaSubtle),
+        DSColors.success,
+      ),
       'APPROVED' || 'OPS_APPROVED' || 'HR_APPROVED' => (
         DSColors.primary.withValues(alpha: DSStyles.alphaSubtle),
         DSColors.primary,
       ),
-      'REJECTED' => (DSColors.error.withValues(alpha: DSStyles.alphaSubtle), DSColors.error),
+      'REJECTED' => (
+        DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
+        DSColors.error,
+      ),
       'PENDING' || 'PROCESSING' => (
         DSColors.warning.withValues(alpha: DSStyles.alphaSubtle),
         DSColors.warning,

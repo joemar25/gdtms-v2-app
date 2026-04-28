@@ -208,7 +208,9 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                   ? const SizedBox(
                       width: DSIconSize.sm,
                       height: DSIconSize.sm,
-                      child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
+                      child: CircularProgressIndicator(
+                        strokeWidth: DSStyles.strokeWidth,
+                      ),
                     )
                   : const Icon(Icons.sync_rounded, size: DSIconSize.md),
               label: Text(
@@ -224,9 +226,14 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                   ? const SizedBox(
                       width: DSIconSize.sm,
                       height: DSIconSize.sm,
-                      child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
+                      child: CircularProgressIndicator(
+                        strokeWidth: DSStyles.strokeWidth,
+                      ),
                     )
-                  : const Icon(Icons.cloud_download_outlined, size: DSIconSize.sm),
+                  : const Icon(
+                      Icons.cloud_download_outlined,
+                      size: DSIconSize.sm,
+                    ),
               label: Text('Reload', style: DSTypography.caption()),
             ),
         ],
@@ -325,7 +332,12 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
           color: Theme.of(context).brightness == Brightness.dark
               ? DSColors.scaffoldDark
               : DSColors.scaffoldLight,
-          padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, 0),
+          padding: EdgeInsets.fromLTRB(
+            DSSpacing.md,
+            DSSpacing.md,
+            DSSpacing.md,
+            0,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1075,16 +1087,14 @@ class _StatusBadge extends StatelessWidget {
     };
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.sm,
-        vertical: 2,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: 2),
       decoration: BoxDecoration(color: bg, borderRadius: DSStyles.pillRadius),
       child: Text(
         label,
-        style: DSTypography.label(
-          color: fg,
-        ).copyWith(fontSize: DSTypography.sizeSm, letterSpacing: DSTypography.lsLoose),
+        style: DSTypography.label(color: fg).copyWith(
+          fontSize: DSTypography.sizeSm,
+          letterSpacing: DSTypography.lsLoose,
+        ),
       ),
     );
   }
@@ -1100,7 +1110,10 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.sm,
+        vertical: DSSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
             ? DSColors.cardDark
@@ -1129,17 +1142,23 @@ class _ArchivedChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.sm,
+        vertical: DSSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: DSColors.accentSurface,
         borderRadius: DSStyles.pillRadius,
-        border: Border.all(color: DSColors.accent.withValues(alpha: DSStyles.alphaMuted)),
+        border: Border.all(
+          color: DSColors.accent.withValues(alpha: DSStyles.alphaMuted),
+        ),
       ),
       child: Text(
         'ARCHIVED',
-        style: DSTypography.label(
-          color: DSColors.accent,
-        ).copyWith(fontSize: DSTypography.sizeSm, letterSpacing: DSTypography.lsLoose),
+        style: DSTypography.label(color: DSColors.accent).copyWith(
+          fontSize: DSTypography.sizeSm,
+          letterSpacing: DSTypography.lsLoose,
+        ),
       ),
     );
   }
@@ -1249,7 +1268,10 @@ class _EmptyStateState extends State<_EmptyState>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (widget.isSyncing) ...[
-                  const SpinKitDoubleBounce(color: DSColors.primary, size: DSIconSize.heroLg),
+                  const SpinKitDoubleBounce(
+                    color: DSColors.primary,
+                    size: DSIconSize.heroLg,
+                  ),
                   DSSpacing.hMd,
                   Text('Syncing…', style: theme.textTheme.titleMedium),
                 ] else ...[

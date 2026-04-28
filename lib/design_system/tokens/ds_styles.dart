@@ -10,7 +10,7 @@ class DSStyles {
   static const double radiusXS = 4.0;
   static const double radiusSM = 8.0;
   static const double radiusMD = 12.0;
-  static const double radiusLG = 16.0; 
+  static const double radiusLG = 16.0;
   static const double radiusXL = 24.0;
 
   static const double radiusSheet = radiusXL;
@@ -26,7 +26,9 @@ class DSStyles {
   static final BorderRadius badgeRadius = BorderRadius.circular(radiusBadge);
 
   static const double radiusCircular = radiusXL;
-  static final BorderRadius circularRadius = BorderRadius.circular(radiusCircular);
+  static final BorderRadius circularRadius = BorderRadius.circular(
+    radiusCircular,
+  );
 
   static const double radiusFull = 999.0;
   static final BorderRadius fullRadius = BorderRadius.circular(radiusFull);

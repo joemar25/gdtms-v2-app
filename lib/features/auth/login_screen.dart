@@ -215,9 +215,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isDark 
-               ? [DSColors.scaffoldDark, DSColors.cardElevatedDark]
-               : [DSColors.primary.withValues(alpha: DSStyles.alphaSoft), DSColors.white],
+            colors: isDark
+                ? [DSColors.scaffoldDark, DSColors.cardElevatedDark]
+                : [
+                    DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
+                    DSColors.white,
+                  ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -225,179 +228,220 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: DSSpacing.xs,
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // ── Logo ──────────────────────────────────────────
-                      Center(
-                        child: Container(
-                          width: DSIconSize.heroSm,
-                          height: DSIconSize.heroSm,
-                          decoration: BoxDecoration(
-                            color: DSColors.error,
-                            borderRadius: DSStyles.sheetRadius, // 28.0 (Legacy radiusSheet)
-                            boxShadow: [
-                              BoxShadow(
-                                color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
-                                blurRadius: DSStyles.radiusXL,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: DSSpacing.xs,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // ── Logo ──────────────────────────────────────────
+                        Center(
+                          child: Container(
+                            width: DSIconSize.heroSm,
+                            height: DSIconSize.heroSm,
+                            decoration: BoxDecoration(
+                              color: DSColors.error,
+                              borderRadius: DSStyles
+                                  .sheetRadius, // 28.0 (Legacy radiusSheet)
+                              boxShadow: [
+                                BoxShadow(
+                                  color: DSColors.error.withValues(
+                                    alpha: DSStyles.alphaMuted,
+                                  ),
+                                  blurRadius: DSStyles.radiusXL,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.local_shipping_rounded,
+                              size: DSIconSize.xl,
+                              color: DSColors.white,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.local_shipping_rounded,
-                            size: DSIconSize.xl,
-                            color: DSColors.white,
+                        ).dsHeroEntry(),
+                        DSSpacing.hXl,
+
+                        // ── Title ────────────────────────────────────────
+                        Text(
+                          'Sign In',
+                          textAlign: TextAlign.center,
+                          style: DSTypography.heading().copyWith(
+                            fontSize: DSTypography.sizeXl,
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurface,
+                            letterSpacing: DSTypography.lsSlightlyTight,
+                          ),
+                        ).dsFadeEntry(
+                          delay: DSAnimations.stagger(
+                            1,
+                            step: DSAnimations.staggerNormal,
                           ),
                         ),
-                      ).dsHeroEntry(),
-                      DSSpacing.hXl,
-
-                      // ── Title ────────────────────────────────────────
-                      Text(
-                        'Sign In',
-                        textAlign: TextAlign.center,
-                        style: DSTypography.heading().copyWith(
-                          fontSize: DSTypography.sizeXl,
-                          fontWeight: FontWeight.w700,
-                          color: colorScheme.onSurface,
-                          letterSpacing: DSTypography.lsSlightlyTight,
-                        ),
-                      ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
-                      DSSpacing.hSm,
-                      Text(
-                        'Enter your credentials to continue',
-                        textAlign: TextAlign.center,
-                        style: DSTypography.body().copyWith(
-                          fontSize: DSTypography.sizeMd,
-                          color: subtitleColor,
-                        ),
-                      ).dsFadeEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
-                      DSSpacing.hXl,
-
-                      // ── Phone Number ──────────────────────────────────
-                      _fieldLabel('Phone Number').dsFadeEntry(delay: DSAnimations.stagger(3, step: DSAnimations.staggerNormal)),
-                      DSSpacing.hSm,
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          hintText: 'e.g. 09XXXXXXXXX',
-                          prefixIcon: const Icon(
-                            Icons.phone_outlined,
-                            size: DSIconSize.md,
+                        DSSpacing.hSm,
+                        Text(
+                          'Enter your credentials to continue',
+                          textAlign: TextAlign.center,
+                          style: DSTypography.body().copyWith(
+                            fontSize: DSTypography.sizeMd,
+                            color: subtitleColor,
                           ),
-                          errorText: _errors['phone_number'],
+                        ).dsFadeEntry(
+                          delay: DSAnimations.stagger(
+                            2,
+                            step: DSAnimations.staggerNormal,
+                          ),
                         ),
-                      ).dsFieldEntry(delay: DSAnimations.stagger(4, step: DSAnimations.staggerNormal)),
-                      DSSpacing.hMd,
+                        DSSpacing.hXl,
 
-                      // ── Password ──────────────────────────────────────
-                      _fieldLabel('Password').dsFadeEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
-                      DSSpacing.hSm,
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          hintText: 'Your password',
-                          prefixIcon: const Icon(Icons.lock_outline, size: DSIconSize.md),
-                          errorText: _errors['password'],
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
+                        // ── Phone Number ──────────────────────────────────
+                        _fieldLabel('Phone Number').dsFadeEntry(
+                          delay: DSAnimations.stagger(
+                            3,
+                            step: DSAnimations.staggerNormal,
+                          ),
+                        ),
+                        DSSpacing.hSm,
+                        TextField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            hintText: 'e.g. 09XXXXXXXXX',
+                            prefixIcon: const Icon(
+                              Icons.phone_outlined,
                               size: DSIconSize.md,
                             ),
-                            onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,
+                            errorText: _errors['phone_number'],
+                          ),
+                        ).dsFieldEntry(
+                          delay: DSAnimations.stagger(
+                            4,
+                            step: DSAnimations.staggerNormal,
+                          ),
+                        ),
+                        DSSpacing.hMd,
+
+                        // ── Password ──────────────────────────────────────
+                        _fieldLabel('Password').dsFadeEntry(
+                          delay: DSAnimations.stagger(
+                            5,
+                            step: DSAnimations.staggerNormal,
+                          ),
+                        ),
+                        DSSpacing.hSm,
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            hintText: 'Your password',
+                            prefixIcon: const Icon(
+                              Icons.lock_outline,
+                              size: DSIconSize.md,
                             ),
-                          ),
-                        ),
-                      ).dsFieldEntry(delay: DSAnimations.stagger(6, step: DSAnimations.staggerNormal)),
-
-                      // ── Forgot Password ───────────────────────────────
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => context.push('/reset-password'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: DSColors.error,
-                          ),
-                          child: const Text('Forgot password?'),
-                        ),
-                      ),
-                      DSSpacing.hXs,
-
-                      // ── Sign In Button ────────────────────────────────
-                      FilledButton(
-                        onPressed: _loading || _rateLimitRemaining > 0
-                            ? null
-                            : _submit,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 52),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: DSStyles.cardRadius, // 16.0
-                          ),
-                        ),
-                        child: Text(
-                          _rateLimitRemaining > 0
-                              ? 'Wait ($_rateLimitRemaining s)'
-                              : 'Sign In',
-                          style: DSTypography.button().copyWith(
-                            fontSize: DSTypography.sizeMd,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ).dsCtaEntry(delay: DSAnimations.stagger(7, step: DSAnimations.staggerNormal)),
-                      DSSpacing.hXl,
-
-                      // ── Contact Admin Footer ──────────────────────────
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Having trouble? ',
-                            style: DSTypography.body().copyWith(
-                              fontSize: DSTypography.sizeMd,
-                              color: subtitleColor,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: _callAdmin,
-                            child: Text(
-                              'Contact your admin',
-                              style: DSTypography.body().copyWith(
-                                fontSize: DSTypography.sizeMd,
-                                color: DSColors.error,
-                                fontWeight: FontWeight.w600,
+                            errorText: _errors['password'],
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                size: DSIconSize.md,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ],
+                        ).dsFieldEntry(
+                          delay: DSAnimations.stagger(
+                            6,
+                            step: DSAnimations.staggerNormal,
+                          ),
+                        ),
+
+                        // ── Forgot Password ───────────────────────────────
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => context.push('/reset-password'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: DSColors.error,
+                            ),
+                            child: const Text('Forgot password?'),
+                          ),
+                        ),
+                        DSSpacing.hXs,
+
+                        // ── Sign In Button ────────────────────────────────
+                        FilledButton(
+                          onPressed: _loading || _rateLimitRemaining > 0
+                              ? null
+                              : _submit,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 52),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: DSStyles.cardRadius, // 16.0
+                            ),
+                          ),
+                          child: Text(
+                            _rateLimitRemaining > 0
+                                ? 'Wait ($_rateLimitRemaining s)'
+                                : 'Sign In',
+                            style: DSTypography.button().copyWith(
+                              fontSize: DSTypography.sizeMd,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ).dsCtaEntry(
+                          delay: DSAnimations.stagger(
+                            7,
+                            step: DSAnimations.staggerNormal,
+                          ),
+                        ),
+                        DSSpacing.hXl,
+
+                        // ── Contact Admin Footer ──────────────────────────
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Having trouble? ',
+                              style: DSTypography.body().copyWith(
+                                fontSize: DSTypography.sizeMd,
+                                color: subtitleColor,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: _callAdmin,
+                              child: Text(
+                                'Contact your admin',
+                                style: DSTypography.body().copyWith(
+                                  fontSize: DSTypography.sizeMd,
+                                  color: DSColors.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          if (_loading)
-            ColoredBox(
-              color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-        ],
-      ),
+            if (_loading)
+              ColoredBox(
+                color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -51,10 +51,7 @@ class _MinimalOfflineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: margin,
-      padding: EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: DSSpacing.md,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
       decoration: BoxDecoration(
         color: DSColors.warning.withValues(alpha: DSStyles.alphaSubtle),
         borderRadius: DSStyles.cardRadius,
@@ -65,7 +62,11 @@ class _MinimalOfflineBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.wifi_off_rounded, size: DSIconSize.sm, color: DSColors.warning),
+          Icon(
+            Icons.wifi_off_rounded,
+            size: DSIconSize.sm,
+            color: DSColors.warning,
+          ),
           DSSpacing.wSm,
           Expanded(
             child: Text(
@@ -106,7 +107,11 @@ class _StandardOfflineBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.wifi_off_rounded, color: DSColors.warning, size: DSIconSize.lg),
+          const Icon(
+            Icons.wifi_off_rounded,
+            color: DSColors.warning,
+            size: DSIconSize.lg,
+          ),
           DSSpacing.wMd,
           Expanded(
             child: Column(
@@ -123,9 +128,10 @@ class _StandardOfflineBanner extends StatelessWidget {
                 Text(
                   'Local preferences (theme, compact mode, auto-accept) still work. '
                   'Dispatch scanning and data sync require an internet connection.',
-                  style: DSTypography.body(
-                    color: DSColors.warning,
-                  ).copyWith(fontSize: DSTypography.sizeSm, height: DSStyles.heightNormal),
+                  style: DSTypography.body(color: DSColors.warning).copyWith(
+                    fontSize: DSTypography.sizeSm,
+                    height: DSStyles.heightNormal,
+                  ),
                 ),
               ],
             ),

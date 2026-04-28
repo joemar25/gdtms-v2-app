@@ -105,7 +105,9 @@ class _ContactAppSheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(DSSpacing.xl),
+        ),
       ),
       padding: EdgeInsets.fromLTRB(
         DSSpacing.xl,
@@ -170,7 +172,8 @@ class _AppButton extends StatelessWidget {
       },
       borderRadius: DSStyles.cardRadius,
       child: Container(
-        width: DSIconSize.heroLg, // Keeping fixed width for layout grid symmetry
+        width:
+            DSIconSize.heroLg, // Keeping fixed width for layout grid symmetry
         padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
         child: Column(
           mainAxisSize: MainAxisSize.min,

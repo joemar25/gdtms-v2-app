@@ -28,7 +28,12 @@ void showAppSnackbar(
       backgroundColor: color,
       behavior: SnackBarBehavior.floating,
       // Lift the snackbar above the floating bottom nav bar (~80 px).
-      margin: EdgeInsets.fromLTRB(DSSpacing.sm, 0, DSSpacing.sm, DSSpacing.xl * 2.5),
+      margin: EdgeInsets.fromLTRB(
+        DSSpacing.sm,
+        0,
+        DSSpacing.sm,
+        DSSpacing.xl * 2.5,
+      ),
     ),
   );
 }
@@ -94,9 +99,7 @@ class AppNotificationManager {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutCubic,
                         margin: EdgeInsets.only(top: i * DSSpacing.sm),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: DSSpacing.md,
-                        ),
+                        padding: EdgeInsets.symmetric(horizontal: DSSpacing.md),
                         child: AnimatedScale(
                           scale: DSAnimations.scaleNormal - (i * 0.05),
                           alignment: Alignment.topCenter,
@@ -224,7 +227,12 @@ class _InfoBanner extends StatelessWidget {
           ),
         ],
       ),
-      padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.sm, DSSpacing.md),
+      padding: EdgeInsets.fromLTRB(
+        DSSpacing.md,
+        DSSpacing.md,
+        DSSpacing.sm,
+        DSSpacing.md,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -276,7 +284,10 @@ class _InfoBanner extends StatelessWidget {
                 icon: const Icon(Icons.close, size: DSIconSize.sm),
                 onPressed: onClose,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: DSIconSize.heroSm, minHeight: DSIconSize.heroSm),
+                constraints: const BoxConstraints(
+                  minWidth: DSIconSize.heroSm,
+                  minHeight: DSIconSize.heroSm,
+                ),
                 style: IconButton.styleFrom(
                   foregroundColor: DSColors.labelSecondary,
                 ),
@@ -309,7 +320,12 @@ class _SuccessBanner extends StatelessWidget {
           ),
         ],
       ),
-      padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.sm, DSSpacing.md),
+      padding: EdgeInsets.fromLTRB(
+        DSSpacing.md,
+        DSSpacing.md,
+        DSSpacing.sm,
+        DSSpacing.md,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -317,9 +333,7 @@ class _SuccessBanner extends StatelessWidget {
             width: DSIconSize.heroSm,
             height: DSIconSize.heroSm,
             decoration: BoxDecoration(
-              color: DSColors.primary.withValues(
-                alpha: DSStyles.alphaSubtle,
-              ),
+              color: DSColors.primary.withValues(alpha: DSStyles.alphaSubtle),
               borderRadius: DSStyles.cardRadius,
             ),
             child: const Icon(
@@ -367,7 +381,10 @@ class _SuccessBanner extends StatelessWidget {
                 icon: const Icon(Icons.close, size: DSIconSize.sm),
                 onPressed: onClose,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: DSIconSize.heroSm, minHeight: DSIconSize.heroSm),
+                constraints: const BoxConstraints(
+                  minWidth: DSIconSize.heroSm,
+                  minHeight: DSIconSize.heroSm,
+                ),
                 style: IconButton.styleFrom(
                   foregroundColor: DSColors.labelSecondary,
                 ),

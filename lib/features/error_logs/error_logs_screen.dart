@@ -195,8 +195,10 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                             itemCount: _filtered.length,
                             separatorBuilder: (_, _) => DSSpacing.hSm,
                             itemBuilder: (context, i) =>
-                                _LogCard(entry: _filtered[i], isDark: isDark)
-                                    .dsCardEntry(
+                                _LogCard(
+                                  entry: _filtered[i],
+                                  isDark: isDark,
+                                ).dsCardEntry(
                                   delay: DSAnimations.stagger(
                                     i,
                                     step: DSAnimations.staggerFine,
@@ -303,9 +305,7 @@ class _Chip extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: DSStyles.cardRadius,
-        border: Border.all(
-          color: color.withValues(alpha: DSStyles.alphaMuted),
-        ),
+        border: Border.all(color: color.withValues(alpha: DSStyles.alphaMuted)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -352,9 +352,7 @@ class _LogCardState extends State<_LogCard> {
       decoration: BoxDecoration(
         color: widget.isDark ? DSColors.cardDark : DSColors.cardLight,
         borderRadius: DSStyles.cardRadius,
-        border: Border.all(
-          color: color.withValues(alpha: DSStyles.alphaMuted),
-        ),
+        border: Border.all(color: color.withValues(alpha: DSStyles.alphaMuted)),
         boxShadow: [
           BoxShadow(
             color: DSColors.black.withValues(alpha: widget.isDark ? 0.2 : 0.04),
@@ -459,7 +457,12 @@ class _LogCardState extends State<_LogCard> {
               },
               child: Container(
                 width: double.infinity,
-                padding: EdgeInsets.fromLTRB(DSSpacing.sm, 0, DSSpacing.sm, DSSpacing.sm),
+                padding: EdgeInsets.fromLTRB(
+                  DSSpacing.sm,
+                  0,
+                  DSSpacing.sm,
+                  DSSpacing.sm,
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: DSStyles.alphaSoft),
                   borderRadius: const BorderRadius.vertical(
@@ -471,9 +474,7 @@ class _LogCardState extends State<_LogCard> {
                   children: [
                     Divider(
                       height: 16,
-                      color: color.withValues(
-                        alpha: DSStyles.alphaSubtle,
-                      ),
+                      color: color.withValues(alpha: DSStyles.alphaSubtle),
                     ),
                     Text(
                       e.detail!,
@@ -525,10 +526,7 @@ class _ContextBadge extends StatelessWidget {
   Widget build(BuildContext ctx) {
     final color = _colors[context] ?? DSColors.labelSecondary;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.sm,
-        vertical: 2,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: DSStyles.alphaSubtle),
         borderRadius: DSStyles.pillRadius,

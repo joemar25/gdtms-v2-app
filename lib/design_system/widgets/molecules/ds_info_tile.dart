@@ -43,7 +43,10 @@ class DSInfoTile extends StatelessWidget {
             child: Padding(
               padding:
                   padding ??
-                  EdgeInsets.symmetric(vertical: DSSpacing.md, horizontal: DSSpacing.md),
+                  EdgeInsets.symmetric(
+                    vertical: DSSpacing.md,
+                    horizontal: DSSpacing.md,
+                  ),
               child: Row(
                 children: [
                   Expanded(
@@ -76,7 +79,9 @@ class DSInfoTile extends StatelessWidget {
                       width: DSIconSize.heroSm,
                       height: DSIconSize.heroSm,
                       decoration: BoxDecoration(
-                        color: DSColors.primary.withValues(alpha: DSStyles.alphaSubtle),
+                        color: DSColors.primary.withValues(
+                          alpha: DSStyles.alphaSubtle,
+                        ),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(

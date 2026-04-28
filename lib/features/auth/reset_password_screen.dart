@@ -191,7 +191,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         fit: StackFit.expand,
         children: [
           SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.xl, DSSpacing.lg, DSSpacing.xl),
+            padding: EdgeInsets.fromLTRB(
+              DSSpacing.lg,
+              DSSpacing.xl,
+              DSSpacing.lg,
+              DSSpacing.xl,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: DSIconSize.heroSm),
               child: Column(
@@ -203,7 +208,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       width: DSIconSize.heroLg,
                       height: DSIconSize.heroLg,
                       decoration: BoxDecoration(
-                        color: DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
+                        color: DSColors.error.withValues(
+                          alpha: DSStyles.alphaSubtle,
+                        ),
                         borderRadius: DSStyles.cardRadius,
                       ),
                       child: const Icon(
@@ -225,7 +232,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           : DSColors.labelPrimary,
                       letterSpacing: -0.3,
                     ),
-                  ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
+                  ).dsFadeEntry(
+                    delay: DSAnimations.stagger(
+                      1,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
                   DSSpacing.hSm,
                   Text(
                     widget.authenticatedMode
@@ -238,7 +250,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           ? DSColors.labelSecondaryDark
                           : DSColors.labelSecondary,
                     ),
-                  ).dsFadeEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
+                  ).dsFadeEntry(
+                    delay: DSAnimations.stagger(
+                      2,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
                   DSSpacing.hXl,
 
                   // ── Courier Code ───────────────────────────────────
@@ -306,7 +323,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       obscureText: _obscureCurrent,
                       decoration: InputDecoration(
                         hintText: 'Your current password',
-                        prefixIcon: const Icon(Icons.lock_outline, size: DSIconSize.md),
+                        prefixIcon: const Icon(
+                          Icons.lock_outline,
+                          size: DSIconSize.md,
+                        ),
                         errorText: _errors['current_password'],
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -320,19 +340,32 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           ),
                         ),
                       ),
-                    ).dsFieldEntry(delay: DSAnimations.stagger(widget.authenticatedMode && kDebugMode ? 6 : 4, step: DSAnimations.staggerNormal)),
+                    ).dsFieldEntry(
+                      delay: DSAnimations.stagger(
+                        widget.authenticatedMode && kDebugMode ? 6 : 4,
+                        step: DSAnimations.staggerNormal,
+                      ),
+                    ),
                     DSSpacing.hMd,
                   ],
 
                   // ── New Password ───────────────────────────────────
-                  _fieldLabel(context, isDark, 'New Password').dsFadeEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 7 : 5) : 3, step: DSAnimations.staggerNormal)),
+                  _fieldLabel(context, isDark, 'New Password').dsFadeEntry(
+                    delay: DSAnimations.stagger(
+                      widget.authenticatedMode ? (kDebugMode ? 7 : 5) : 3,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
                   DSSpacing.hSm,
                   TextField(
                     controller: _newPassword,
                     obscureText: _obscureNew,
                     decoration: InputDecoration(
                       hintText: 'At least 8 characters',
-                      prefixIcon: const Icon(Icons.lock_outline, size: DSIconSize.md),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        size: DSIconSize.md,
+                      ),
                       errorText: _errors['new_password'],
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -345,18 +378,35 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             setState(() => _obscureNew = !_obscureNew),
                       ),
                     ),
-                  ).dsFieldEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 8 : 6) : 4, step: DSAnimations.staggerNormal)),
+                  ).dsFieldEntry(
+                    delay: DSAnimations.stagger(
+                      widget.authenticatedMode ? (kDebugMode ? 8 : 6) : 4,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
                   DSSpacing.hMd,
 
                   // ── Confirm New Password ───────────────────────────
-                  _fieldLabel(context, isDark, 'Confirm New Password').dsFadeEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 9 : 7) : 5, step: DSAnimations.staggerNormal)),
+                  _fieldLabel(
+                    context,
+                    isDark,
+                    'Confirm New Password',
+                  ).dsFadeEntry(
+                    delay: DSAnimations.stagger(
+                      widget.authenticatedMode ? (kDebugMode ? 9 : 7) : 5,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
                   DSSpacing.hSm,
                   TextField(
                     controller: _confirmPassword,
                     obscureText: _obscureConfirm,
                     decoration: InputDecoration(
                       hintText: 'Re-enter your new password',
-                      prefixIcon: const Icon(Icons.lock_outline, size: DSIconSize.md),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        size: DSIconSize.md,
+                      ),
                       errorText: _errors['new_password_confirmation'],
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -369,7 +419,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
                     ),
-                  ).dsFieldEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 10 : 8) : 6, step: DSAnimations.staggerNormal)),
+                  ).dsFieldEntry(
+                    delay: DSAnimations.stagger(
+                      widget.authenticatedMode ? (kDebugMode ? 10 : 8) : 6,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
                   DSSpacing.hXl,
 
                   // ── Submit Button ──────────────────────────────────
@@ -388,7 +443,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ).dsCtaEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 11 : 9) : 7, step: DSAnimations.staggerNormal)),
+                  ).dsCtaEntry(
+                    delay: DSAnimations.stagger(
+                      widget.authenticatedMode ? (kDebugMode ? 11 : 9) : 7,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
                 ],
               ),
             ),

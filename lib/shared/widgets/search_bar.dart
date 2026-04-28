@@ -94,7 +94,12 @@ class _AppSearchBarState extends State<AppSearchBar> {
           ),
         ),
       ),
-      padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, DSSpacing.md),
+      padding: EdgeInsets.fromLTRB(
+        DSSpacing.md,
+        DSSpacing.sm,
+        DSSpacing.md,
+        DSSpacing.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -134,7 +139,10 @@ class _AppSearchBarState extends State<AppSearchBar> {
                 ),
                 suffixIcon: (widget.query.isNotEmpty || _hasText)
                     ? IconButton(
-                        icon: const Icon(Icons.close_rounded, size: DSIconSize.md),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          size: DSIconSize.md,
+                        ),
                         color: cs.onSurfaceVariant,
                         onPressed: _clear,
                       )
@@ -175,9 +183,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: cs.primary.withValues(
-                      alpha: DSStyles.alphaSubtle,
-                    ),
+                    color: cs.primary.withValues(alpha: DSStyles.alphaSubtle),
                     borderRadius: DSStyles.cardRadius,
                   ),
                   child: Text(

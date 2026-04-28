@@ -33,7 +33,10 @@ class DeliverySignatureField extends StatelessWidget {
           decoration: BoxDecoration(
             color: DSColors.white,
             borderRadius: DSStyles.cardRadius,
-            border: Border.all(color: borderColor, width: DSStyles.borderWidth * 1.5),
+            border: Border.all(
+              color: borderColor,
+              width: DSStyles.borderWidth * 1.5,
+            ),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(

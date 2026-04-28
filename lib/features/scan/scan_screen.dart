@@ -696,7 +696,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 GestureDetector(
                   onTap: _requestPermission,
                   child: Container(
-                    color: DSColors.black.withValues(alpha: DSStyles.alphaOpaque),
+                    color: DSColors.black.withValues(
+                      alpha: DSStyles.alphaOpaque,
+                    ),
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -716,7 +718,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                           DSSpacing.hSm,
                           Text(
                             'Tap to grant camera access',
-                            style: DSTypography.caption(color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled)),
+                            style: DSTypography.caption(
+                              color: DSColors.white.withValues(
+                                alpha: DSStyles.alphaDisabled,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -731,13 +737,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 bottom: 0,
                 child: SafeArea(
                   child: Container(
-                    padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.md, DSSpacing.lg, DSSpacing.md),
+                    padding: EdgeInsets.fromLTRB(
+                      DSSpacing.lg,
+                      DSSpacing.md,
+                      DSSpacing.lg,
+                      DSSpacing.md,
+                    ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
+                          DSColors.black.withValues(
+                            alpha: DSStyles.alphaDisabled,
+                          ),
                           DSColors.transparent,
                         ],
                       ),
@@ -767,7 +780,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                               : Icons.wifi_off_rounded,
                                           size: DSIconSize.xs,
                                           color: isOnline
-                                              ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+                                              ? DSColors.white.withValues(
+                                                  alpha: DSStyles.alphaDisabled,
+                                                )
                                               : DSColors.warning,
                                         ),
                                         DSSpacing.wXs,
@@ -777,7 +792,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                               : 'You are offline — dispatch scanning unavailable.',
                                           style: TextStyle(
                                             color: isOnline
-                                                ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+                                                ? DSColors.white.withValues(
+                                                    alpha:
+                                                        DSStyles.alphaDisabled,
+                                                  )
                                                 : DSColors.warning,
                                             fontSize: DSTypography.sizeSm,
                                           ),
@@ -900,7 +918,8 @@ class _ScanScrimPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = DSColors.black.withValues(alpha: DSStyles.alphaDisabled);
+    final paint = Paint()
+      ..color = DSColors.black.withValues(alpha: DSStyles.alphaDisabled);
     final vfTop = (size.height - viewfinderH) * 0.42;
     final vfBottom = vfTop + viewfinderH;
     final vfLeft = viewfinderMargin;
@@ -1000,9 +1019,16 @@ class _ManualInputArea extends StatelessWidget {
         color: Theme.of(context).brightness == Brightness.dark
             ? DSColors.cardDark
             : DSColors.cardLight,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(DSSpacing.xl),
+        ),
       ),
-      padding: EdgeInsets.fromLTRB(DSSpacing.xl, DSSpacing.md, DSSpacing.xl, DSSpacing.xl),
+      padding: EdgeInsets.fromLTRB(
+        DSSpacing.xl,
+        DSSpacing.md,
+        DSSpacing.xl,
+        DSSpacing.xl,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1021,10 +1047,15 @@ class _ManualInputArea extends StatelessWidget {
           DSSpacing.hMd,
           Text(
             'MANUAL BARCODE/ACCOUNT NAME ENTRY',
-            style: DSTypography.label(color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled)).copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: DSTypography.lsExtraLoose,
-            ),
+            style:
+                DSTypography.label(
+                  color: DSColors.white.withValues(
+                    alpha: DSStyles.alphaDisabled,
+                  ),
+                ).copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: DSTypography.lsExtraLoose,
+                ),
           ),
           DSSpacing.hMd,
           if (error != null)
@@ -1036,12 +1067,12 @@ class _ManualInputArea extends StatelessWidget {
                   vertical: DSSpacing.sm,
                 ),
                 decoration: BoxDecoration(
-                  color: DSColors.error.withValues(
-                    alpha: DSStyles.alphaSubtle,
-                  ),
+                  color: DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
                   borderRadius: DSStyles.cardRadius,
                   border: Border.all(
-                    color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
+                    color: DSColors.error.withValues(
+                      alpha: DSStyles.alphaMuted,
+                    ),
                   ),
                 ),
                 child: Text(
@@ -1068,17 +1099,13 @@ class _ManualInputArea extends StatelessWidget {
               border: OutlineInputBorder(
                 borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
-                  color: DSColors.white.withValues(
-                    alpha: DSStyles.alphaSubtle,
-                  ),
+                  color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
-                  color: DSColors.white.withValues(
-                    alpha: DSStyles.alphaSubtle,
-                  ),
+                  color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -1144,7 +1171,9 @@ class _SearchResultsSheet extends StatelessWidget {
       builder: (_, scrollController) => Container(
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(DSSpacing.xl),
+          ),
         ),
         child: Column(
           children: [
@@ -1160,7 +1189,12 @@ class _SearchResultsSheet extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.md, DSSpacing.lg, DSSpacing.sm),
+              padding: EdgeInsets.fromLTRB(
+                DSSpacing.lg,
+                DSSpacing.md,
+                DSSpacing.lg,
+                DSSpacing.sm,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -1181,7 +1215,11 @@ class _SearchResultsSheet extends StatelessWidget {
                           'Tap one to open delivery details',
                           style: TextStyle(
                             fontSize: DSTypography.sizeMd,
-                            color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.labelSecondary,
+                            color: isDark
+                                ? DSColors.white.withValues(
+                                    alpha: DSStyles.alphaDisabled,
+                                  )
+                                : DSColors.labelSecondary,
                           ),
                         ),
                       ],
@@ -1200,8 +1238,11 @@ class _SearchResultsSheet extends StatelessWidget {
                 controller: scrollController,
                 padding: EdgeInsets.symmetric(vertical: DSSpacing.sm),
                 itemCount: results.length,
-                separatorBuilder: (_, _) =>
-                    const Divider(height: DSStyles.borderWidth, indent: 16, endIndent: 16),
+                separatorBuilder: (_, _) => const Divider(
+                  height: DSStyles.borderWidth,
+                  indent: 16,
+                  endIndent: 16,
+                ),
                 itemBuilder: (_, i) {
                   final d = results[i];
                   final barcode =

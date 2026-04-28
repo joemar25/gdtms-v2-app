@@ -238,7 +238,9 @@ class _BlockingOverlay extends StatelessWidget {
                   width: DSIconSize.heroLg,
                   height: DSIconSize.heroLg,
                   decoration: BoxDecoration(
-                    color: DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
+                    color: DSColors.error.withValues(
+                      alpha: DSStyles.alphaSubtle,
+                    ),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -275,7 +277,9 @@ class _BlockingOverlay extends StatelessWidget {
                         : DSColors.error.withValues(alpha: DSStyles.alphaSoft),
                     borderRadius: DSStyles.pillRadius,
                     border: Border.all(
-                      color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
+                      color: DSColors.error.withValues(
+                        alpha: DSStyles.alphaMuted,
+                      ),
                     ),
                   ),
                   child: Text(
@@ -295,7 +299,9 @@ class _BlockingOverlay extends StatelessWidget {
                         onPressed: _openSettings,
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
-                            color: DSColors.primary.withValues(alpha: DSStyles.alphaDisabled),
+                            color: DSColors.primary.withValues(
+                              alpha: DSStyles.alphaDisabled,
+                            ),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: DSStyles.cardRadius,

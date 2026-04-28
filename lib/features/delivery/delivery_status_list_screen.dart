@@ -505,7 +505,12 @@ class _DeliveryStatusListScreenState
               // ── Failed-delivery sub-filter chips ──────────────────────────────
               if (isFailedDelivery)
                 Padding(
-                  padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, 0),
+                  padding: EdgeInsets.fromLTRB(
+                    DSSpacing.md,
+                    DSSpacing.sm,
+                    DSSpacing.md,
+                    0,
+                  ),
                   child: DSSegmentedSelector<String>(
                     selected: _failedSubFilter,
                     onChanged: (v) => setState(() {
@@ -560,7 +565,12 @@ class _DeliveryStatusListScreenState
                       : ListView.builder(
                           controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, DSSpacing.sm),
+                          padding: EdgeInsets.fromLTRB(
+                            DSSpacing.md,
+                            DSSpacing.sm,
+                            DSSpacing.md,
+                            DSSpacing.sm,
+                          ),
                           itemCount: displayed.length + _bannerCount(isOnline),
                           itemBuilder: (context, index) {
                             final banners = _bannerCount(isOnline);
@@ -1012,10 +1022,7 @@ class _StatusInfoBanner extends StatelessWidget {
 
     return Container(
       margin: EdgeInsets.only(bottom: DSSpacing.sm),
-      padding: EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: DSSpacing.md,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: DSStyles.cardRadius,
@@ -1042,7 +1049,6 @@ class _StatusInfoBanner extends StatelessWidget {
   }
 }
 
-
 class _HelpItem extends StatelessWidget {
   const _HelpItem({
     required this.icon,
@@ -1061,7 +1067,13 @@ class _HelpItem extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: DSIconSize.md, color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.black.withValues(alpha: DSStyles.alphaOpaque)),
+        Icon(
+          icon,
+          size: DSIconSize.md,
+          color: isDark
+              ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+              : DSColors.black.withValues(alpha: DSStyles.alphaOpaque),
+        ),
         DSSpacing.wMd,
         Expanded(
           child: Column(
@@ -1082,7 +1094,11 @@ class _HelpItem extends StatelessWidget {
                 description,
                 style: DSTypography.body().copyWith(
                   fontSize: DSTypography.sizeMd,
-                  color: isDark ? DSColors.labelSecondaryDark : DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
+                  color: isDark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.black.withValues(
+                          alpha: DSStyles.alphaDisabled,
+                        ),
                   height: DSStyles.heightNormal,
                 ),
               ),

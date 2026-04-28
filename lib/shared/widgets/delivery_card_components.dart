@@ -145,9 +145,10 @@ class DeliveryMiniPill extends StatelessWidget {
           DSSpacing.wXs,
           Text(
             label,
-            style: DSTypography.label(
-              color: fg,
-            ).copyWith(fontSize: DSTypography.sizeXs, letterSpacing: DSTypography.lsLoose),
+            style: DSTypography.label(color: fg).copyWith(
+              fontSize: DSTypography.sizeXs,
+              letterSpacing: DSTypography.lsLoose,
+            ),
           ),
         ],
       ),
@@ -165,22 +166,18 @@ class DeliveryTinyPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.only(left: DSSpacing.xs),
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.xs + 1,
-        vertical: 2,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.xs + 1, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: DSStyles.alphaSubtle),
         borderRadius: DSStyles.pillRadius,
-        border: Border.all(
-          color: color.withValues(alpha: DSStyles.alphaMuted),
-        ),
+        border: Border.all(color: color.withValues(alpha: DSStyles.alphaMuted)),
       ),
       child: Text(
         label,
-        style: DSTypography.label(
-          color: color,
-        ).copyWith(fontSize: DSTypography.sizeXs, letterSpacing: DSTypography.lsLoose),
+        style: DSTypography.label(color: color).copyWith(
+          fontSize: DSTypography.sizeXs,
+          letterSpacing: DSTypography.lsLoose,
+        ),
       ),
     );
   }
@@ -212,9 +209,10 @@ class DeliveryDetailCell extends StatelessWidget {
       children: [
         Text(
           label,
-          style: DSTypography.label(
-            color: subtextColor,
-          ).copyWith(fontSize: DSTypography.sizeXs, letterSpacing: DSTypography.lsExtraLoose),
+          style: DSTypography.label(color: subtextColor).copyWith(
+            fontSize: DSTypography.sizeXs,
+            letterSpacing: DSTypography.lsExtraLoose,
+          ),
         ),
         DSSpacing.hXs,
         Text(

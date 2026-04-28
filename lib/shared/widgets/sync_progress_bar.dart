@@ -48,10 +48,7 @@ class SyncProgressBar extends ConsumerWidget {
 
     final effectivePadding =
         padding ??
-        EdgeInsets.symmetric(
-          horizontal: DSSpacing.md,
-          vertical: DSSpacing.sm,
-        );
+        EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: DSSpacing.sm);
 
     return Container(
       width: double.infinity,
@@ -69,7 +66,9 @@ class SyncProgressBar extends ConsumerWidget {
                 const SizedBox(
                   width: DSIconSize.sm,
                   height: DSIconSize.sm,
-                  child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
+                  child: CircularProgressIndicator(
+                    strokeWidth: DSStyles.strokeWidth,
+                  ),
                 ),
                 DSSpacing.wSm,
                 Expanded(

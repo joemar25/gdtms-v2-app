@@ -431,7 +431,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _CardDivider(isDark: isDark),
                       _ModernSwitchTile(
                         icon: Icons.density_small_rounded,
-                        iconColor: DSColors.error, // Use error (red) for debug features
+                        iconColor: DSColors
+                            .error, // Use error (red) for debug features
                         label: 'Compact Mode',
                         subtitle:
                             'Shrinks delivery cards to show more items on screen at once.',
@@ -595,7 +596,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Text(
                         'v${AppVersionService.version}',
                         style: DSTypography.caption().copyWith(
-                          color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
+                          color: isDark
+                              ? DSColors.labelTertiaryDark
+                              : DSColors.labelTertiary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -603,7 +606,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Text(
                         'FSI Courier App © ${DateTime.now().year}',
                         style: DSTypography.caption().copyWith(
-                          color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
+                          color: isDark
+                              ? DSColors.labelTertiaryDark
+                              : DSColors.labelTertiary,
                           fontSize: 10,
                         ),
                       ),
@@ -689,9 +694,7 @@ class _ProfileHeroCard extends StatelessWidget {
                     ),
                     width: DSStyles.strokeWidth,
                   ),
-                  color: DSColors.white.withValues(
-                    alpha: DSStyles.alphaSubtle,
-                  ),
+                  color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
                 ),
                 child: Hero(
                   tag: 'profile_avatar',
@@ -821,7 +824,7 @@ class _ProfileHeroCard extends StatelessWidget {
                 label: 'Phone',
                 value: courier['phone_number']?.toString() ?? '-',
               ),
-                DSSpacing.wXl,
+              DSSpacing.wXl,
               _CompactInfoItem(
                 icon: Icons.store_rounded,
                 label: 'Branch',
@@ -862,9 +865,15 @@ class _CompactInfoItem extends StatelessWidget {
               DSSpacing.wXs,
               Text(
                 label.toUpperCase(),
-                style: DSTypography.label(
-                  color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
-                ).copyWith(fontSize: DSTypography.sizeXs, fontWeight: FontWeight.w800),
+                style:
+                    DSTypography.label(
+                      color: DSColors.white.withValues(
+                        alpha: DSStyles.alphaDisabled,
+                      ),
+                    ).copyWith(
+                      fontSize: DSTypography.sizeXs,
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
             ],
           ),
@@ -904,9 +913,7 @@ class _AccountInactiveBanner extends StatelessWidget {
             width: DSSpacing.xs,
             height: 34,
             decoration: BoxDecoration(
-              color: DSColors.error.withValues(
-                alpha: DSStyles.alphaSubtle,
-              ),
+              color: DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
               borderRadius: DSStyles.pillRadius,
             ),
             child: const Icon(
@@ -1036,10 +1043,7 @@ class _ActionTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: DSSpacing.md,
-          vertical: 14,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 14),
         child: Row(
           children: [
             Container(
@@ -1165,7 +1169,9 @@ class _ModernSwitchTile extends StatelessWidget {
             onChanged: onChanged,
             thumbColor: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) return DSColors.white;
-              return isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary;
+              return isDark
+                  ? DSColors.labelTertiaryDark
+                  : DSColors.labelTertiary;
             }),
             trackColor: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) {
@@ -1198,7 +1204,10 @@ class _SyncRetentionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: DSSpacing.md),
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1293,7 +1302,10 @@ class _ThemeSegmentedTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: DSSpacing.md),
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1393,10 +1405,7 @@ class _DetailTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: 13,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 13),
       child: Row(
         children: [
           Container(
@@ -1468,10 +1477,7 @@ class _ErrorLogsTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: DSSpacing.md,
-          vertical: 14,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 14),
         child: Row(
           children: [
             Container(
@@ -1516,7 +1522,10 @@ class _ErrorLogsTile extends StatelessWidget {
             ),
             if (errorLogCount > 0) ...[
               Container(
-                padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
+                padding: EdgeInsets.symmetric(
+                  horizontal: DSSpacing.sm,
+                  vertical: DSSpacing.xs,
+                ),
                 decoration: BoxDecoration(
                   color: DSColors.error,
                   borderRadius: DSStyles.cardRadius,
@@ -1566,16 +1575,11 @@ class _StorageBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: 13,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 13),
       decoration: BoxDecoration(
         color: color.withValues(alpha: DSStyles.alphaSoft),
         borderRadius: DSStyles.cardRadius,
-        border: Border.all(
-          color: color.withValues(alpha: DSStyles.alphaMuted),
-        ),
+        border: Border.all(color: color.withValues(alpha: DSStyles.alphaMuted)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1587,7 +1591,11 @@ class _StorageBanner extends StatelessWidget {
               color: color.withValues(alpha: DSStyles.alphaSubtle),
               borderRadius: DSStyles.pillRadius,
             ),
-            child: Icon(Icons.warning_amber_rounded, color: color, size: DSIconSize.md),
+            child: Icon(
+              Icons.warning_amber_rounded,
+              color: color,
+              size: DSIconSize.md,
+            ),
           ),
           DSSpacing.wMd,
           Expanded(

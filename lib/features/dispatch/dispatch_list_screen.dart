@@ -244,7 +244,10 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                               ? null
                               : () => _openDispatch(i, dispatchCode),
                         ).dsCardEntry(
-                          delay: DSAnimations.stagger(i, step: DSAnimations.staggerFine),
+                          delay: DSAnimations.stagger(
+                            i,
+                            step: DSAnimations.staggerFine,
+                          ),
                         );
                       },
                     ),

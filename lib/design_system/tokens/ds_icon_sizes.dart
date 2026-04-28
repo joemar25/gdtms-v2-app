@@ -1,7 +1,7 @@
 import 'package:fsi_courier_app/design_system/tokens/ds_typography.dart';
 
 /// Design-system icon size tokens.
-/// 
+///
 /// STABILITY RULE: Only 3 to 5 standard tiers allowed per category.
 /// REJECT any new tier requests that exceed this scale.
 class DSIconSize {

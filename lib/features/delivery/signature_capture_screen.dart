@@ -179,9 +179,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
               child: Center(
                 child: Container(
                   height: DSStyles.borderWidth,
-                  margin: EdgeInsets.symmetric(
-                    horizontal: DSSpacing.xl,
-                  ),
+                  margin: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
                   color: DSColors.separatorLight,
                 ),
               ),

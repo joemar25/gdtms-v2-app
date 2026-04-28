@@ -115,12 +115,12 @@ class _DSInputState extends State<DSInput> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: DSStyles.cardRadius,
-            borderSide: const BorderSide(color: DSColors.primary, width: DSStyles.borderWidth * 1.5),
+            borderSide: const BorderSide(
+              color: DSColors.primary,
+              width: DSStyles.borderWidth * 1.5,
+            ),
           ),
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );

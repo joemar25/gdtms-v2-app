@@ -65,7 +65,9 @@ class _ScanModeSheet extends StatelessWidget {
               margin: EdgeInsets.only(bottom: DSSpacing.lg),
               decoration: BoxDecoration(
                 color: isDark
-                    ? DSColors.labelSecondaryDark.withValues(alpha: DSStyles.alphaMuted)
+                    ? DSColors.labelSecondaryDark.withValues(
+                        alpha: DSStyles.alphaMuted,
+                      )
                     : DSColors.separatorLight,
                 borderRadius: DSStyles.pillRadius,
               ),
@@ -145,9 +147,7 @@ class _ActionTile extends StatelessWidget {
                 width: DSSpacing.xs,
                 height: DSSpacing.xs,
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(
-                    alpha: DSStyles.alphaSubtle,
-                  ),
+                  color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
                   borderRadius: DSStyles.cardRadius,
                 ),
                 child: Icon(icon, color: iconColor, size: DSIconSize.lg),

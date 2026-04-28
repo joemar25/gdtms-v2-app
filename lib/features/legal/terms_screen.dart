@@ -108,7 +108,9 @@ class _TermsScreenState extends State<TermsScreen> {
                 fontWeight: FontWeight.w700,
               ),
         ),
-        iconTheme: IconThemeData(color: isDark ? DSColors.white : DSColors.labelPrimary),
+        iconTheme: IconThemeData(
+          color: isDark ? DSColors.white : DSColors.labelPrimary,
+        ),
         automaticallyImplyLeading: widget.viewOnly,
       ),
       body: Column(
@@ -134,7 +136,12 @@ class _TermsScreenState extends State<TermsScreen> {
           ),
           if (!widget.viewOnly) ...[
             Container(
-              padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, DSSpacing.xl),
+              padding: EdgeInsets.fromLTRB(
+                DSSpacing.md,
+                DSSpacing.sm,
+                DSSpacing.md,
+                DSSpacing.xl,
+              ),
               color: isDark ? DSColors.cardDark : DSColors.white,
               child: Column(
                 children: [
@@ -144,7 +151,11 @@ class _TermsScreenState extends State<TermsScreen> {
                       child: Text(
                         'Scroll to the bottom to accept',
                         style: DSTypography.caption(
-                          color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaMuted) : DSColors.labelTertiary,
+                          color: isDark
+                              ? DSColors.white.withValues(
+                                  alpha: DSStyles.alphaMuted,
+                                )
+                              : DSColors.labelTertiary,
                         ).copyWith(fontSize: DSTypography.sizeSm),
                       ),
                     ),
@@ -162,8 +173,12 @@ class _TermsScreenState extends State<TermsScreen> {
                             ? DSColors.separatorDark
                             : DSColors.separatorLight,
                         disabledForegroundColor: isDark
-                            ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
-                            : DSColors.labelTertiary.withValues(alpha: DSStyles.alphaMuted),
+                            ? DSColors.white.withValues(
+                                alpha: DSStyles.alphaMuted,
+                              )
+                            : DSColors.labelTertiary.withValues(
+                                alpha: DSStyles.alphaMuted,
+                              ),
                         shape: RoundedRectangleBorder(
                           borderRadius: DSStyles.cardRadius,
                         ),
@@ -210,8 +225,12 @@ class LegalMarkdownText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary;
-    final mutedColor = isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary;
+    final baseColor = isDark
+        ? DSColors.labelPrimaryDark
+        : DSColors.labelPrimary;
+    final mutedColor = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
 
     final lines = content.split('\n');
     final widgets = <Widget>[];
@@ -254,7 +273,13 @@ class LegalMarkdownText extends StatelessWidget {
         widgets.add(DSSpacing.hXs);
       } else if (line.startsWith('---')) {
         widgets.add(DSSpacing.hSm);
-        widgets.add(Divider(color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.separatorLight));
+        widgets.add(
+          Divider(
+            color: isDark
+                ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                : DSColors.separatorLight,
+          ),
+        );
         widgets.add(DSSpacing.hSm);
       } else if (line.startsWith('- ')) {
         widgets.add(
@@ -306,9 +331,10 @@ class LegalMarkdownText extends StatelessWidget {
     if (!boldPattern.hasMatch(line)) {
       return Text(
         line,
-        style: DSTypography.body(
-          color: baseColor,
-        ).copyWith(fontSize: DSTypography.sizeMd, height: DSStyles.heightRelaxed),
+        style: DSTypography.body(color: baseColor).copyWith(
+          fontSize: DSTypography.sizeMd,
+          height: DSStyles.heightRelaxed,
+        ),
       );
     }
 

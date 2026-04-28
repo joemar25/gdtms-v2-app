@@ -85,10 +85,7 @@ class _StatCardState extends State<StatCard>
     final isDisabled = widget.onTap == null;
 
     final content = Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: DSSpacing.md,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: DSStyles.cardRadius,
@@ -117,7 +114,11 @@ class _StatCardState extends State<StatCard>
                 ),
                 child: SlideTransition(
                   position: _iconOffset,
-                  child: Icon(widget.icon, color: effectiveColor, size: DSIconSize.sm),
+                  child: Icon(
+                    widget.icon,
+                    color: effectiveColor,
+                    size: DSIconSize.sm,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -240,9 +241,7 @@ class ScanButton extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(DSSpacing.md),
                       decoration: BoxDecoration(
-                        color: color.withValues(
-                          alpha: DSStyles.alphaSubtle,
-                        ),
+                        color: color.withValues(alpha: DSStyles.alphaSubtle),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(icon, color: color, size: DSIconSize.xl),

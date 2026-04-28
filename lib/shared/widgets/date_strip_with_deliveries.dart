@@ -331,7 +331,9 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                       child: SizedBox(
                         width: DSIconSize.xl,
                         height: DSIconSize.xl,
-                        child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
+                        child: CircularProgressIndicator(
+                          strokeWidth: DSStyles.strokeWidth,
+                        ),
                       ),
                     ),
                   );
@@ -436,7 +438,10 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
               ),
               DSSpacing.wSm,
               Container(
-                padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
+                padding: EdgeInsets.symmetric(
+                  horizontal: DSSpacing.sm,
+                  vertical: DSSpacing.xs,
+                ),
                 decoration: BoxDecoration(
                   color: subtleBg,
                   borderRadius: DSStyles.pillRadius,
