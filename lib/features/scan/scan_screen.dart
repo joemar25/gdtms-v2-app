@@ -377,7 +377,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: DSColors.transparent,
       builder: (_) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -562,7 +562,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     return showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: DSColors.transparent,
       builder: (_) => _SearchResultsSheet(query: query, results: results),
     );
   }
@@ -577,7 +577,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: DSColors.black,
         extendBodyBehindAppBar: true,
         appBar: AppHeaderBar(
           titleWidget: Text(
@@ -585,12 +585,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: DSTypography.subTitle(
-              color: Colors.white,
+              color: DSColors.white,
             ).copyWith(fontWeight: FontWeight.w700),
           ),
-          backgroundColor: Colors.transparent,
+          backgroundColor: DSColors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: DSColors.white),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           actions: [
@@ -696,27 +696,27 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 GestureDetector(
                   onTap: _requestPermission,
                   child: Container(
-                    color: Colors.black87,
+                    color: DSColors.black.withValues(alpha: 0.87),
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(
                             Icons.camera_alt_outlined,
-                            color: Colors.white,
+                            color: DSColors.white,
                             size: 54,
                           ),
-                          const SizedBox(height: 16),
+                          DSSpacing.hBase,
                           Text(
                             'Camera permission required',
                             style: DSTypography.title(
-                              color: Colors.white,
+                              color: DSColors.white,
                             ).copyWith(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Tap to grant camera access',
-                            style: DSTypography.caption(color: Colors.white60),
+                            style: DSTypography.caption(color: DSColors.white.withValues(alpha: 0.6)),
                           ),
                         ],
                       ),
@@ -737,8 +737,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          Colors.black.withValues(alpha: DSStyles.alphaGlass),
-                          Colors.transparent,
+                          DSColors.black.withValues(alpha: DSStyles.alphaGlass),
+                          DSColors.transparent,
                         ],
                       ),
                     ),
@@ -767,8 +767,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                               : Icons.wifi_off_rounded,
                                           size: 12,
                                           color: isOnline
-                                              ? Colors.white54
-                                              : Colors.orange,
+                                              ? DSColors.white.withValues(alpha: 0.54)
+                                              : DSColors.warning,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
@@ -777,8 +777,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                               : 'You are offline — dispatch scanning unavailable.',
                                           style: TextStyle(
                                             color: isOnline
-                                                ? Colors.white54
-                                                : Colors.orange,
+                                                ? DSColors.white.withValues(alpha: 0.54)
+                                                : DSColors.warning,
                                             fontSize: DSTypography.sizeSm,
                                           ),
                                         ),
@@ -798,12 +798,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                 vertical: DSSpacing.sm,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(
+                                color: DSColors.error.withValues(
                                   alpha: DSStyles.alphaActiveAccent,
                                 ),
                                 borderRadius: DSStyles.cardRadius,
                                 border: Border.all(
-                                  color: Colors.red.withValues(
+                                  color: DSColors.error.withValues(
                                     alpha: DSStyles.alphaBorder,
                                   ),
                                 ),
@@ -813,7 +813,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                 children: [
                                   const Icon(
                                     Icons.error_outline_rounded,
-                                    color: Colors.redAccent,
+                                    color: DSColors.error,
                                     size: 16,
                                   ),
                                   const SizedBox(width: 8),
@@ -821,7 +821,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                     child: Text(
                                       _inlineError!,
                                       style: const TextStyle(
-                                        color: Colors.redAccent,
+                                        color: DSColors.error,
                                         fontSize: DSTypography.sizeSm,
                                       ),
                                     ),
@@ -837,7 +837,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                           ),
                           label: Text(
                             'ENTER MANUALLY',
-                            style: DSTypography.label(color: Colors.white)
+                            style: DSTypography.label(color: DSColors.white)
                                 .copyWith(
                                   fontSize: DSTypography.sizeSm,
                                   fontWeight: FontWeight.w600,
@@ -845,9 +845,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                 ),
                           ),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
+                            foregroundColor: DSColors.white,
                             side: BorderSide(
-                              color: Colors.white.withValues(
+                              color: DSColors.white.withValues(
                                 alpha: DSStyles.alphaBorder,
                               ),
                             ),
@@ -1000,9 +1000,9 @@ class _ManualInputArea extends StatelessWidget {
         color: Theme.of(context).brightness == Brightness.dark
             ? DSColors.cardDark
             : DSColors.cardLight,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      padding: const EdgeInsets.fromLTRB(DSSpacing.xl, DSSpacing.base, DSSpacing.xl, DSSpacing.xxl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1013,20 +1013,20 @@ class _ManualInputArea extends StatelessWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: DSColors.white.withValues(alpha: 0.24),
                 borderRadius: DSStyles.pillRadius,
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          DSSpacing.hBase,
           Text(
             'MANUAL BARCODE/ACCOUNT NAME ENTRY',
-            style: DSTypography.label(color: Colors.white70).copyWith(
+            style: DSTypography.label(color: DSColors.white.withValues(alpha: 0.7)).copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: DSTypography.lsMegaLoose,
             ),
           ),
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           if (error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -1036,12 +1036,12 @@ class _ManualInputArea extends StatelessWidget {
                   vertical: DSSpacing.sm,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(
+                  color: DSColors.error.withValues(
                     alpha: DSStyles.alphaActiveAccent,
                   ),
                   borderRadius: DSStyles.cardRadius,
                   border: Border.all(
-                    color: Colors.red.withValues(alpha: DSStyles.alphaBorder),
+                    color: DSColors.error.withValues(alpha: DSStyles.alphaBorder),
                   ),
                 ),
                 child: Text(
@@ -1054,21 +1054,21 @@ class _ManualInputArea extends StatelessWidget {
             ),
           TextField(
             controller: controller,
-            style: DSTypography.body(color: Colors.white),
+            style: DSTypography.body(color: DSColors.white),
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
             inputFormatters: [UpperCaseFormatter()],
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: DSTypography.body(
-                color: Colors.white.withValues(alpha: DSStyles.alphaDarkShadow),
+                color: DSColors.white.withValues(alpha: DSStyles.alphaDarkShadow),
               ),
               filled: true,
-              fillColor: Colors.white.withValues(alpha: DSStyles.alphaSoft),
+              fillColor: DSColors.white.withValues(alpha: DSStyles.alphaSoft),
               border: OutlineInputBorder(
                 borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
-                  color: Colors.white.withValues(
+                  color: DSColors.white.withValues(
                     alpha: DSStyles.alphaActiveAccent,
                   ),
                 ),
@@ -1076,7 +1076,7 @@ class _ManualInputArea extends StatelessWidget {
               enabledBorder: OutlineInputBorder(
                 borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
-                  color: Colors.white.withValues(
+                  color: DSColors.white.withValues(
                     alpha: DSStyles.alphaActiveAccent,
                   ),
                 ),
@@ -1097,7 +1097,7 @@ class _ManualInputArea extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
-            icon: const Icon(Icons.search_rounded, size: 18),
+            icon: const Icon(Icons.search_rounded, size: DSTypography.sizeMd * 1.125),
             label: Text(
               submitLabel.toUpperCase(),
               style: const TextStyle(
@@ -1108,7 +1108,7 @@ class _ManualInputArea extends StatelessWidget {
             ),
             style: FilledButton.styleFrom(
               backgroundColor: DSColors.primary,
-              foregroundColor: Colors.white,
+              foregroundColor: DSColors.white,
               minimumSize: const Size(double.infinity, 50),
               shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
             ),
@@ -1144,23 +1144,23 @@ class _SearchResultsSheet extends StatelessWidget {
       builder: (_, scrollController) => Container(
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
         ),
         child: Column(
           children: [
-            const SizedBox(height: 12),
+            DSSpacing.hMd,
             Center(
               child: Container(
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: DSColors.separatorLight,
                   borderRadius: DSStyles.pillRadius,
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.base, DSSpacing.lg, DSSpacing.sm),
               child: Row(
                 children: [
                   Expanded(
@@ -1172,7 +1172,7 @@ class _SearchResultsSheet extends StatelessWidget {
                           style: TextStyle(
                             fontSize: DSTypography.sizeSm,
                             fontWeight: FontWeight.w800,
-                            color: Colors.grey.shade500,
+                            color: DSColors.labelTertiary,
                             letterSpacing: DSTypography.lsMegaLoose,
                           ),
                         ),
@@ -1181,7 +1181,7 @@ class _SearchResultsSheet extends StatelessWidget {
                           'Tap one to open delivery details',
                           style: TextStyle(
                             fontSize: DSTypography.sizeMd,
-                            color: isDark ? Colors.white70 : Colors.black54,
+                            color: isDark ? DSColors.white.withValues(alpha: 0.7) : DSColors.labelSecondary,
                           ),
                         ),
                       ],
@@ -1256,7 +1256,7 @@ class _SearchResultsSheet extends StatelessWidget {
                             address,
                             style: TextStyle(
                               fontSize: DSTypography.sizeSm,
-                              color: Colors.grey.shade500,
+                              color: DSColors.labelTertiary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1269,7 +1269,7 @@ class _SearchResultsSheet extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey.withValues(
+                        color: DSColors.labelSecondary.withValues(
                           alpha: DSStyles.alphaSoft,
                         ),
                         borderRadius: DSStyles.pillRadius,
@@ -1279,7 +1279,7 @@ class _SearchResultsSheet extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: DSTypography.sizeXs,
                           fontWeight: FontWeight.w700,
-                          color: Colors.blueGrey,
+                          color: DSColors.accent,
                         ),
                       ),
                     ),

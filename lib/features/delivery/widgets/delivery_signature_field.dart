@@ -21,17 +21,17 @@ class DeliverySignatureField extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderColor = errorText != null
-        ? Colors.red
+        ? DSColors.error
         : isDark
-        ? Colors.white10
-        : Colors.grey.shade300;
+        ? DSColors.white.withValues(alpha: 0.1)
+        : DSColors.separatorLight;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: DSColors.white,
             borderRadius: DSStyles.cardRadius,
             border: Border.all(color: borderColor, width: 1.5),
           ),
@@ -41,7 +41,7 @@ class DeliverySignatureField extends StatelessWidget {
               Signature(
                 controller: controller,
                 height: 160,
-                backgroundColor: Colors.white,
+                backgroundColor: DSColors.white,
               ),
               Positioned(
                 left: 12,
@@ -52,7 +52,7 @@ class DeliverySignatureField extends StatelessWidget {
                     'Sign above',
                     style: TextStyle(
                       fontSize: DSTypography.sizeSm,
-                      color: Colors.grey.shade300,
+                      color: DSColors.labelTertiary,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -67,17 +67,17 @@ class DeliverySignatureField extends StatelessWidget {
             child: Text(
               errorText!,
               style: const TextStyle(
-                color: Colors.red,
+                color: DSColors.error,
                 fontSize: DSTypography.sizeSm,
               ),
             ),
           ),
-        const SizedBox(height: 6),
+        DSSpacing.hXs,
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
             onPressed: onClear,
-            icon: const Icon(Icons.refresh_rounded, size: 14),
+            icon: const Icon(Icons.refresh_rounded, size: DSTypography.sizeSm),
             label: const Text(
               'CLEAR SIGNATURE',
               style: TextStyle(
@@ -86,7 +86,7 @@ class DeliverySignatureField extends StatelessWidget {
               ),
             ),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.grey.shade500,
+              foregroundColor: DSColors.labelTertiary,
               padding: const EdgeInsets.symmetric(
                 horizontal: DSSpacing.sm,
                 vertical: DSSpacing.xs,

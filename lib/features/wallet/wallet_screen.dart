@@ -35,7 +35,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -349,9 +348,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             showPending: isOnline,
                             paymentMethod: _paymentMethod,
                           )
-                          .animate()
-                          .fadeIn(duration: 500.ms)
-                          .slideY(begin: 0.1, end: 0),
+                          .dsCardEntry(duration: DSAnimations.dNormal),
 
                       const SizedBox(height: 20),
 
@@ -381,9 +378,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                   ),
                                 ),
                               )
-                              .animate()
-                              .fadeIn(delay: 200.ms)
-                              .scaleXY(begin: 0.95, end: 1)
+                              .dsCtaEntry(delay: DSAnimations.stagger(2))
                         else if (canRequestPayout && !isInRequestWindow)
                           // Show disabled button with a lock icon so the courier
                           // sees the action but understands it's time-locked.
@@ -469,7 +464,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         if (_historyBreakdown.isNotEmpty) ...[
                           _SectionLabel(
                             'Payout History',
-                          ).animate().fadeIn(delay: 300.ms),
+                          ).dsFadeEntry(delay: DSAnimations.stagger(3)),
                           const SizedBox(height: 8),
                           DateStripWithDeliveries(
                             key: ValueKey('history_$_stripKey'),
@@ -486,7 +481,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                 if (ref.isNotEmpty) ctx.push('/wallet/$ref');
                               },
                             ),
-                          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.05, end: 0),
+                          ).dsCardEntry(delay: DSAnimations.stagger(4)),
                           const SizedBox(height: 20),
                         ],
                       ],
@@ -773,7 +768,7 @@ class _EarningsCard extends StatelessWidget {
         ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: DSColors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: DSStyles.cardRadius,
@@ -837,7 +832,7 @@ class _EarningsCard extends StatelessWidget {
                         Text(
                           _fmt(displayAmt),
                           style: DSTypography.display(
-                            color: Colors.white,
+                            color: DSColors.white,
                           ).copyWith(fontSize: 34, fontWeight: FontWeight.w800),
                         ),
                       ],
@@ -893,7 +888,7 @@ class _EarningsCard extends StatelessWidget {
         vertical: DSSpacing.md,
       ),
       decoration: BoxDecoration(
-        color: Colors.transparent,
+        color: DSColors.transparent,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: DSColors.white.withValues(alpha: DSStyles.alphaBorder),
@@ -913,7 +908,7 @@ class _EarningsCard extends StatelessWidget {
           const Spacer(),
           Text(
             '₱ $amount',
-            style: DSTypography.title(color: Colors.white).copyWith(
+            style: DSTypography.title(color: DSColors.white).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: DSTypography.sizeMd,
             ),
@@ -949,7 +944,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      margin: const EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(top: DSSpacing.sm),
       shape: RoundedRectangleBorder(
         borderRadius: DSStyles.cardRadius,
         side: BorderSide(
@@ -995,7 +990,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                       icon: Icons.calendar_today_outlined,
                       label: dateLabel,
                     ),
-                    const SizedBox(width: 8),
+                    DSSpacing.wSm,
                   ],
                   if (totalItems != null) ...[
                     _InfoChip(
@@ -1095,7 +1090,7 @@ class _InfoChip extends StatelessWidget {
           size: 13,
           color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
         ),
-        const SizedBox(width: 4),
+        DSSpacing.wXs,
         Flexible(
           child: Text(
             label,

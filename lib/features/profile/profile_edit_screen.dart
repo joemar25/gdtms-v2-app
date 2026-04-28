@@ -29,7 +29,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -271,7 +270,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                     ),
                                     child: const Icon(
                                       Icons.camera_alt_rounded,
-                                      color: Colors.white,
+                                      color: DSColors.white,
                                       size: 16,
                                     ),
                                   ),
@@ -279,12 +278,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                               ],
                             ),
                           )
-                          .animate()
-                          .fadeIn(duration: 400.ms)
-                          .scale(
-                            begin: const Offset(0.9, 0.9),
-                            end: const Offset(1, 1),
-                          ),
+                          .dsHeroEntry(),
                 ),
                 const SizedBox(height: 8),
                 Center(
@@ -310,7 +304,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   ),
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Username is required' : null,
-                ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),
+                ).dsFieldEntry(delay: DSAnimations.stagger(1)),
                 const SizedBox(height: 16),
 
                 // ── First Name ───────────────────────────────────────────
@@ -323,7 +317,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   decoration: const InputDecoration(hintText: 'e.g. JUAN'),
                   validator: (v) =>
                       v == null || v.isEmpty ? 'First name is required' : null,
-                ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
+                ).dsFieldEntry(delay: DSAnimations.stagger(2)),
                 const SizedBox(height: 16),
 
                 // ── Middle Name ──────────────────────────────────────────
@@ -334,7 +328,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   textCapitalization: TextCapitalization.characters,
                   inputFormatters: [UpperCaseFormatter()],
                   decoration: const InputDecoration(hintText: 'Optional'),
-                ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1, end: 0),
+                ).dsFieldEntry(delay: DSAnimations.stagger(3)),
                 const SizedBox(height: 16),
 
                 // ── Last Name ────────────────────────────────────────────
@@ -347,7 +341,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   decoration: const InputDecoration(hintText: 'e.g. DELA CRUZ'),
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Last name is required' : null,
-                ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1, end: 0),
+                ).dsFieldEntry(delay: DSAnimations.stagger(4)),
                 const SizedBox(height: 16),
 
                 // ── Email ────────────────────────────────────────────────
@@ -368,7 +362,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     }
                     return null;
                   },
-                ).animate().fadeIn(delay: 500.ms).slideX(begin: 0.1, end: 0),
+                ).dsFieldEntry(delay: DSAnimations.stagger(5)),
                 const SizedBox(height: 32),
 
                 // ── Save Button ──────────────────────────────────────────
@@ -387,7 +381,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ).animate().fadeIn(delay: 600.ms).scaleXY(begin: 0.95, end: 1),
+                ).dsCtaEntry(delay: DSAnimations.stagger(6)),
                 const SizedBox(height: 20),
               ],
             ),

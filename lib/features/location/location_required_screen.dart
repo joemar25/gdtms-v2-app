@@ -32,7 +32,8 @@ class LocationRequiredScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.security_rounded, size: 56, color: DSColors.error),
+              Icon(Icons.security_rounded, size: DSTypography.sizeXl * 2.8, color: DSColors.error)
+                  .dsHeroEntry(),
               const SizedBox(height: 20),
               Text(
                 'Permissions Required',
@@ -40,7 +41,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
-              ),
+              ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
               const SizedBox(height: 8),
               Text(
                 'FSI Courier needs the following permissions to function properly. Please enable all of them to continue.',
@@ -49,7 +50,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                   height: 1.5,
                 ),
-              ),
+              ).dsFadeEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
               const SizedBox(height: 32),
 
               // ── Location ────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                         locationState.status,
                         locationNotifier,
                       ),
-              ),
+              ).dsCardEntry(delay: DSAnimations.stagger(3, step: DSAnimations.staggerNormal)),
               const SizedBox(height: 12),
 
               // ── Camera ──────────────────────────────────────────────────────
@@ -96,7 +97,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                     : permsState.cameraStatus.isPermanentlyDenied
                     ? () => permsNotifier.openSettings()
                     : () => permsNotifier.requestCamera(),
-              ),
+              ).dsCardEntry(delay: DSAnimations.stagger(4, step: DSAnimations.staggerNormal)),
               const SizedBox(height: 12),
 
               // ── Notifications ───────────────────────────────────────────────
@@ -121,7 +122,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                     : permsState.notificationStatus.isPermanentlyDenied
                     ? () => permsNotifier.openSettings()
                     : () => permsNotifier.requestNotification(),
-              ),
+              ).dsCardEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
 
               const SizedBox(height: 28),
               TextButton(
@@ -134,7 +135,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                   minimumSize: const Size.fromHeight(48),
                 ),
                 child: const Text('I have enabled them, refresh'),
-              ),
+              ).dsFadeEntry(delay: DSAnimations.stagger(6, step: DSAnimations.staggerNormal)),
             ],
           ),
         ),
@@ -229,7 +230,7 @@ class _PermissionCard extends StatelessWidget {
               color: iconColor.withValues(alpha: 0.12),
               borderRadius: DSStyles.cardRadius,
             ),
-            child: Icon(icon, color: iconColor, size: 22),
+            child: Icon(icon, color: iconColor, size: DSTypography.sizeMd * 1.375),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -255,7 +256,7 @@ class _PermissionCard extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           if (granted)
-            Icon(Icons.check_circle_rounded, color: DSColors.primary, size: 26)
+            Icon(Icons.check_circle_rounded, color: DSColors.primary, size: DSTypography.sizeMd * 1.625)
           else
             TextButton(
               onPressed: onTap,

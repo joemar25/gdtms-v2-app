@@ -145,7 +145,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                   Icon(
                     Icons.info_outline_rounded,
                     color: DSColors.primary,
-                    size: 18,
+                    size: DSTypography.sizeMd * 1.125,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -162,7 +162,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                   ),
                 ],
               ),
-            ),
+            ).dsFadeEntry(delay: DSAnimations.stagger(0, step: DSAnimations.staggerNormal)),
             DSSpacing.hLg,
 
             // ── Summary / Subject ──────────────────────────────────────────
@@ -200,7 +200,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Required' : null,
               ),
-            ),
+            ).dsFieldEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
             const SizedBox(height: 20),
 
             // ── Category ───────────────────────────────────────────────────
@@ -248,7 +248,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              Icon(icon, size: 18, color: DSColors.primary),
+                              Icon(icon, size: DSTypography.sizeMd * 1.125, color: DSColors.primary),
                               const SizedBox(width: 8),
                               Text(
                                 label,
@@ -270,7 +270,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                   );
                 }).toList(),
               ),
-            ),
+            ).dsCardEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
             const SizedBox(height: 20),
 
             // ── Severity ───────────────────────────────────────────────────
@@ -406,7 +406,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                   borderRadius: DSStyles.cardRadius,
                 ),
               ),
-            ),
+            ).dsFadeEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
             const SizedBox(height: 28),
 
             // ── Submit ─────────────────────────────────────────────────────
@@ -442,7 +442,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                         ),
                       ),
               ),
-            ),
+            ).dsCtaEntry(delay: DSAnimations.stagger(6, step: DSAnimations.staggerNormal)),
           ],
         ),
       ),

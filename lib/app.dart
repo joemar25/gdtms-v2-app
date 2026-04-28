@@ -397,12 +397,12 @@ class _SyncPillContent extends ConsumerWidget {
                 maxWidth: MediaQuery.of(context).size.width * 0.85,
               ),
               child: Material(
-                color: Colors.transparent,
+                color: DSColors.transparent,
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDark
                         ? DSColors.cardElevatedDark.withValues(alpha: 0.97)
-                        : Colors.white.withValues(alpha: 0.97),
+                        : DSColors.white.withValues(alpha: 0.97),
                     borderRadius: DSStyles.circularRadius,
                     boxShadow: DSStyles.shadowSoft(context),
                   ),

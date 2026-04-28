@@ -168,7 +168,7 @@ class _NavItemState extends State<_NavItem>
           decoration: BoxDecoration(
             color: widget.isSelected
                 ? DSColors.primary.withValues(alpha: DSStyles.alphaActiveAccent)
-                : Colors.transparent,
+                : DSColors.transparent,
             borderRadius: DSStyles.cardRadius,
           ),
           child: Column(

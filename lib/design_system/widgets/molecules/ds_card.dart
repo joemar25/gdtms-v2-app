@@ -44,7 +44,7 @@ class DSCard extends StatelessWidget {
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+                  color: DSColors.black.withValues(alpha: isDark ? 0.25 : 0.05),
                   blurRadius: 16,
                   offset: const Offset(0, 2),
                 ),

@@ -847,7 +847,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: DSColors.transparent,
       builder: (ctx) {
         return Container(
           decoration: BoxDecoration(
@@ -855,7 +855,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+                color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, -5),
               ),
@@ -1575,7 +1575,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: DSColors.white,
                       ),
                     )
                   : const Icon(Icons.check_circle_outline_rounded),
@@ -1587,8 +1587,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 ),
               ),
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
+                backgroundColor: DSColors.transparent,
+                shadowColor: DSColors.transparent,
                 minimumSize: const Size(double.infinity, 60),
                 shape: RoundedRectangleBorder(
                   borderRadius: DSStyles.cardRadius,
@@ -1668,9 +1668,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                             )
                           : ListView(
                               padding: const EdgeInsets.fromLTRB(
-                                16,
-                                16,
-                                16,
+                                DSSpacing.base,
+                                DSSpacing.base,
+                                DSSpacing.base,
                                 100,
                               ),
                               children: [
@@ -1680,7 +1680,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     isMinimal: true,
                                     customMessage:
                                         'Update queued—will submit when online',
-                                    margin: EdgeInsets.only(bottom: 20),
+                                    margin: EdgeInsets.only(bottom: DSSpacing.lg),
                                   ),
 
                                 // ── STATUS SELECTION ────────────────────────────
@@ -1699,7 +1699,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     child: Text(
                                       _errors['delivery_status']!,
                                       style: const TextStyle(
-                                        color: Colors.red,
+                                        color: DSColors.error,
                                         fontSize: DSTypography.sizeSm,
                                       ),
                                     ),
@@ -2126,12 +2126,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         label: 'SELFIE',
                                         photo: _selfiePhoto,
                                         icon: Icons.face_rounded,
-                                        color: Colors.blueGrey,
+                                        color: DSColors.labelSecondary,
                                         isDark: isDark,
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 12),
+                                  DSSpacing.hMd,
                                   // ── Signature checkbox ─────────────────────
                                   Row(
                                     children: [
@@ -2206,7 +2206,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     ],
                                   ),
                                   if (_showSignatureSlot) ...[
-                                    const SizedBox(height: 8),
+                                    DSSpacing.hSm,
                                     _buildSignatureSlot(isDark),
                                   ],
                                 ],
@@ -2248,7 +2248,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         label: 'SELFIE',
                                         photo: _selfiePhoto,
                                         icon: Icons.face_rounded,
-                                        color: Colors.blueGrey,
+                                        color: DSColors.labelSecondary,
                                         isDark: isDark,
                                         onTapOverride:
                                             _pickSelfieForFailedDeliveryOsa,
@@ -2266,7 +2266,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                                 // Quick-select preset chips
                                 _buildNotePresets(isDark),
-                                const SizedBox(height: 8),
+                                DSSpacing.hSm,
 
                                 // Hint text below chips
                                 Padding(
@@ -2354,12 +2354,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         prefixIcon: Icon(
                                           Icons.calendar_today_rounded,
                                           size: 18,
-                                          color: Colors.grey.shade500,
+                                          color: DSColors.labelTertiary,
                                         ),
                                         suffixIcon: Icon(
                                           Icons.lock_outline_rounded,
                                           size: 16,
-                                          color: Colors.grey.shade400,
+                                          color: DSColors.labelTertiary,
                                         ),
                                       ),
                                 ),
@@ -2412,11 +2412,11 @@ class _NotePresetChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedColor = DSColors.primary;
     final unselectedBg = isDark
-        ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
-        : Colors.grey.shade100;
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
+        : DSColors.secondarySurfaceLight;
     final unselectedBorder = isDark
-        ? Colors.white.withValues(alpha: DSStyles.alphaActiveAccent)
-        : Colors.grey.shade300;
+        ? DSColors.white.withValues(alpha: DSStyles.alphaActiveAccent)
+        : DSColors.separatorLight;
 
     return GestureDetector(
       onTap: onTap,
@@ -2454,7 +2454,7 @@ class _NotePresetChip extends StatelessWidget {
                     ? selectedColor
                     : (isDark
                           ? DSColors.labelSecondaryDark
-                          : Colors.grey.shade700),
+                          : DSColors.labelSecondary),
                 letterSpacing: DSTypography.lsSlightlyLoose,
               ),
             ),
@@ -2504,10 +2504,10 @@ class _StatusSelectorState extends State<_StatusSelector> {
         Container(
           height: 80,
           decoration: BoxDecoration(
-            color: isDark ? Colors.white10 : Colors.grey.shade200,
+            color: isDark ? DSColors.white.withValues(alpha: 0.1) : DSColors.secondarySurfaceLight,
             borderRadius: DSStyles.cardRadius,
             border: Border.all(
-              color: isDark ? Colors.white12 : Colors.grey.shade300,
+              color: isDark ? DSColors.white.withValues(alpha: 0.12) : DSColors.separatorLight,
               width: 1,
             ),
           ),
@@ -2573,10 +2573,10 @@ class _StatusSelectorState extends State<_StatusSelector> {
                               child: Icon(
                                 meta.icon,
                                 color: selected
-                                    ? Colors.white
+                                    ? DSColors.white
                                     : (isDark
-                                          ? Colors.white54
-                                          : Colors.grey.shade600),
+                                          ? DSColors.white.withValues(alpha: 0.54)
+                                          : DSColors.labelSecondary),
                                 size: selected ? 24 : 22,
                               ),
                             ),
@@ -2589,10 +2589,10 @@ class _StatusSelectorState extends State<_StatusSelector> {
                                     : FontWeight.w600,
                                 fontSize: selected ? 11 : 10,
                                 color: selected
-                                    ? Colors.white
+                                    ? DSColors.white
                                     : (isDark
                                           ? DSColors.labelSecondaryDark
-                                          : Colors.grey.shade600),
+                                          : DSColors.labelSecondary),
                                 letterSpacing: DSTypography.lsLoose,
                               ),
                               child: FittedBox(
@@ -2622,7 +2622,7 @@ class _StatusSelectorState extends State<_StatusSelector> {
                 Icon(
                   Icons.touch_app_rounded,
                   size: 12,
-                  color: isDark ? Colors.white30 : Colors.grey.shade500,
+                  color: isDark ? DSColors.white.withValues(alpha: 0.3) : DSColors.labelTertiary,
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -2631,7 +2631,7 @@ class _StatusSelectorState extends State<_StatusSelector> {
                     fontSize: DSTypography.sizeXs,
                     color: isDark
                         ? DSColors.labelTertiaryDark
-                        : Colors.grey.shade500,
+                        : DSColors.labelTertiary,
                     letterSpacing: 0.3,
                   ),
                 ),

@@ -10,11 +10,11 @@ import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
 ///   DSTypography.body(fontSize: DSTypography.sizeLg)
 class DSTypography {
   // ── Size scale (5 tiers) ───────────────────────────────────────────────────
-  static const double sizeXs = 10.0; // labels, nav, micro badges
-  static const double sizeSm = 12.0; // captions, timestamps, meta
-  static const double sizeMd = 14.0; // body text (default)
-  static const double sizeLg = 20.0; // section titles
-  static const double sizeXl = 24.0; // headings, display
+  static const double sizeXs = 12.0; // labels, nav, micro badges
+  static const double sizeSm = 14.0; // captions, timestamps, meta
+  static const double sizeMd = 16.0; // body text (default)
+  static const double sizeLg = 18.0; // section titles
+  static const double sizeXl = 20.0; // headings, display
 
   // ── Letter spacing ─────────────────────────────────────────────────────────
   static const double lsTight = -1.0;

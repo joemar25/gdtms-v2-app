@@ -195,8 +195,8 @@ class DeliveryCard extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: isDark
-                    ? Colors.black.withValues(alpha: DSStyles.alphaDarkShadow)
-                    : Colors.black.withValues(alpha: DSStyles.alphaSoft),
+                    ? DSColors.black.withValues(alpha: DSStyles.alphaDarkShadow)
+                    : DSColors.black.withValues(alpha: DSStyles.alphaSoft),
                 blurRadius: 0,
                 offset: const Offset(0, 3),
               ),
@@ -204,7 +204,7 @@ class DeliveryCard extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: Material(
-            color: Colors.transparent,
+            color: DSColors.transparent,
             child: InkWell(
               borderRadius: effectiveRadius,
               onTap: isChecking ? null : onTap,
@@ -631,7 +631,9 @@ class DeliveryCard extends StatelessWidget {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 24.0),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white24 : Colors.black12,
+                      color: isDark
+                          ? DSColors.white.withValues(alpha: 0.24)
+                          : DSColors.black.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -673,7 +675,9 @@ class DeliveryCard extends StatelessWidget {
                   ListTile(
                     leading: Icon(
                       Icons.account_balance_wallet_rounded,
-                      color: isDark ? Colors.white70 : Colors.black54,
+                      color: isDark
+                          ? DSColors.white.withValues(alpha: 0.7)
+                          : DSColors.black.withValues(alpha: 0.54),
                     ),
                     title: const Text('Account Number'),
                     subtitle: Text(accountNumber),
@@ -682,7 +686,9 @@ class DeliveryCard extends StatelessWidget {
                   ListTile(
                     leading: Icon(
                       Icons.badge_rounded,
-                      color: isDark ? Colors.white70 : Colors.black54,
+                      color: isDark
+                          ? DSColors.white.withValues(alpha: 0.7)
+                          : DSColors.black.withValues(alpha: 0.54),
                     ),
                     title: const Text('Auth Rep Number'),
                     subtitle: Text(authRepNumber),
@@ -737,8 +743,8 @@ class DeliveryCard extends StatelessWidget {
     if (!hasDetails) return const SizedBox.shrink();
 
     final dividerColor = isDark
-        ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
-        : Colors.black.withValues(alpha: DSStyles.alphaSoft);
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
+        : DSColors.black.withValues(alpha: DSStyles.alphaSoft);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -835,8 +841,8 @@ class DeliveryCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withValues(alpha: DSStyles.alphaDarkShadow)
-                : Colors.black.withValues(alpha: DSStyles.alphaSoft),
+                ? DSColors.black.withValues(alpha: DSStyles.alphaDarkShadow)
+                : DSColors.black.withValues(alpha: DSStyles.alphaSoft),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),

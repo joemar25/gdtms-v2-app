@@ -5,6 +5,7 @@ export 'tokens/ds_colors.dart';
 export 'tokens/ds_styles.dart';
 export 'tokens/ds_spacing.dart';
 export 'tokens/ds_typography.dart';
+export 'tokens/ds_animations.dart';
 
 // Atoms
 export 'widgets/atoms/ds_input.dart';

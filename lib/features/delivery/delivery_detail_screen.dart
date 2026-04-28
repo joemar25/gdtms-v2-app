@@ -324,7 +324,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     return Scaffold(
       appBar: AppHeaderBar(
         titleWidget: _buildAppBarTitle(context, status, isDark),
-        backgroundColor: Colors.transparent,
+        backgroundColor: DSColors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () {
@@ -354,10 +354,10 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white70,
+                        color: DSColors.white.withValues(alpha: 0.7),
                       ),
                     )
-                  : const Icon(Icons.edit_rounded, color: Colors.white),
+                  : const Icon(Icons.edit_rounded, size: DSTypography.sizeMd * 1.125, color: DSColors.white),
               label: Text(
                 _hasPendingSync ? 'SYNC PENDING…' : 'UPDATE STATUS',
                 style: DSTypography.button(
@@ -947,7 +947,7 @@ class _TimelineItem extends StatelessWidget {
                   ),
                   child: Icon(
                     _iconFor(action),
-                    size: 15,
+                    size: DSTypography.sizeSm + 1,
                     color: isFirst
                         ? DSColors.white
                         : (isDark
@@ -1003,7 +1003,7 @@ class _TimelineItem extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white : Colors.black)
+                            color: (isDark ? DSColors.white : DSColors.black)
                                 .withValues(alpha: DSStyles.alphaSoft),
                             borderRadius: BorderRadius.circular(
                               DSStyles.radiusBadge,
@@ -1080,7 +1080,7 @@ class _OfflineBanner extends StatelessWidget {
       color: DSColors.pending,
       child: Row(
         children: [
-          const Icon(Icons.wifi_off_rounded, size: 13, color: DSColors.white),
+          const Icon(Icons.wifi_off_rounded, size: DSTypography.sizeXs + 1, color: DSColors.white),
           DSSpacing.wSm,
           Text(
             'Offline — showing locally saved data',

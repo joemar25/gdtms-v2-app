@@ -29,7 +29,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
@@ -203,37 +203,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child:
-                                StatCard(
-                                      label: 'DISPATCH',
-                                      count: '$pendingDispatchCount',
-                                      icon: Icons.qr_code_rounded,
-                                      color: DSColors.error,
-                                      onTap: pendingDispatchCount == 0
-                                          ? null
-                                          : () => context.push('/dispatches'),
-                                      details: 'Waiting for acceptance.',
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: 200.ms)
-                                    .slideY(begin: 0.1, end: 0),
+                            child: StatCard(
+                              label: 'DISPATCH',
+                              count: '$pendingDispatchCount',
+                              icon: Icons.qr_code_rounded,
+                              color: DSColors.error,
+                              onTap: pendingDispatchCount == 0
+                                  ? null
+                                  : () => context.push('/dispatches'),
+                              details: 'Waiting for acceptance.',
+                            ).dsCardEntry(delay: DSAnimations.stagger(0)),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child:
-                                StatCard(
-                                      label: 'DELIVERIES',
-                                      count: '$deliveriesCount',
-                                      icon: Icons.local_shipping_outlined,
-                                      color: DSColors.primary,
-                                      onTap: deliveriesCount == 0
-                                          ? null
-                                          : () => context.push('/deliveries'),
-                                      details: "Today's for deliveries.",
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: 300.ms)
-                                    .slideY(begin: 0.1, end: 0),
+                            child: StatCard(
+                              label: 'DELIVERIES',
+                              count: '$deliveriesCount',
+                              icon: Icons.local_shipping_outlined,
+                              color: DSColors.primary,
+                              onTap: deliveriesCount == 0
+                                  ? null
+                                  : () => context.push('/deliveries'),
+                              details: "Today's for deliveries.",
+                            ).dsCardEntry(delay: DSAnimations.stagger(1)),
                           ),
                         ],
                       ),
@@ -241,40 +233,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child:
-                                StatCard(
-                                      label: 'DELIVERED',
-                                      count: '$deliveredCount',
-                                      icon: Icons.check_circle_outline_rounded,
-                                      color: DSColors.primary,
-                                      onTap: deliveredCount == 0
-                                          ? null
-                                          : () => context.push('/delivered'),
-                                      details: "Today's delivered.",
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: 400.ms)
-                                    .slideY(begin: 0.1, end: 0),
+                            child: StatCard(
+                              label: 'DELIVERED',
+                              count: '$deliveredCount',
+                              icon: Icons.check_circle_outline_rounded,
+                              color: DSColors.primary,
+                              onTap: deliveredCount == 0
+                                  ? null
+                                  : () => context.push('/delivered'),
+                              details: "Today's delivered.",
+                            ).dsCardEntry(delay: DSAnimations.stagger(2)),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child:
-                                StatCard(
-                                      label: 'Attempted',
-                                      count: '$failedDeliveryCount',
-                                      icon: Icons.assignment_return_outlined,
-                                      color: DSColors.error,
-                                      onTap: failedDeliveryCount == 0
-                                          ? null
-                                          : () => context.push(
-                                              '/failed-deliveries',
-                                            ),
-                                      subdued: true,
-                                      details: "Today's for failed or redel.",
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: 500.ms)
-                                    .slideY(begin: 0.1, end: 0),
+                            child: StatCard(
+                              label: 'Attempted',
+                              count: '$failedDeliveryCount',
+                              icon: Icons.assignment_return_outlined,
+                              color: DSColors.error,
+                              onTap: failedDeliveryCount == 0
+                                  ? null
+                                  : () => context.push('/failed-deliveries'),
+                              subdued: true,
+                              details: "Today's for failed or redel.",
+                            ).dsCardEntry(delay: DSAnimations.stagger(3)),
                           ),
                         ],
                       ),
@@ -282,51 +264,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child:
-                                StatCard(
-                                      label: 'Misrouted',
-                                      count: '$osaCount',
-                                      icon: Icons.lock_outline_rounded,
-                                      color: isDark
-                                          ? DSColors.labelSecondaryDark
-                                          : DSColors.labelSecondary,
-                                      onTap: osaCount == 0
-                                          ? null
-                                          : () => context.push('/osa'),
-                                      subdued: true,
-                                      details: "Today's misrouted deliveries.",
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: 600.ms)
-                                    .slideY(begin: 0.1, end: 0),
+                            child: StatCard(
+                              label: 'Misrouted',
+                              count: '$osaCount',
+                              icon: Icons.lock_outline_rounded,
+                              color: isDark
+                                  ? DSColors.labelSecondaryDark
+                                  : DSColors.labelSecondary,
+                              onTap: osaCount == 0
+                                  ? null
+                                  : () => context.push('/osa'),
+                              subdued: true,
+                              details: "Today's misrouted deliveries.",
+                            ).dsCardEntry(delay: DSAnimations.stagger(4)),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child:
-                                StatCard(
-                                      label: 'SYNC',
-                                      count: pendingSyncCount > 0
-                                          ? '$pendingSyncCount'
-                                          : '$syncedTotalCount',
-                                      icon: Icons.sync_rounded,
-                                      color: pendingSyncCount > 0
-                                          ? DSColors.primary
-                                          : (isDark
-                                                ? DSColors.labelSecondaryDark
-                                                : DSColors.labelSecondary),
-                                      onTap: () => context.push('/sync'),
-                                      subdued:
-                                          pendingSyncCount == 0 &&
-                                          syncedTotalCount == 0,
-                                      details: pendingSyncCount > 0
-                                          ? 'Pending updates.'
-                                          : (syncedTotalCount > 0
-                                                ? 'All synced.'
-                                                : 'No activity.'),
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: 700.ms)
-                                    .slideY(begin: 0.1, end: 0),
+                            child: StatCard(
+                              label: 'SYNC',
+                              count: pendingSyncCount > 0
+                                  ? '$pendingSyncCount'
+                                  : '$syncedTotalCount',
+                              icon: Icons.sync_rounded,
+                              color: pendingSyncCount > 0
+                                  ? DSColors.primary
+                                  : (isDark
+                                      ? DSColors.labelSecondaryDark
+                                      : DSColors.labelSecondary),
+                              onTap: () => context.push('/sync'),
+                              subdued: pendingSyncCount == 0 &&
+                                  syncedTotalCount == 0,
+                              details: pendingSyncCount > 0
+                                  ? 'Pending updates.'
+                                  : (syncedTotalCount > 0
+                                      ? 'All synced.'
+                                      : 'No activity.'),
+                            ).dsCardEntry(delay: DSAnimations.stagger(5)),
                           ),
                         ],
                       ),
@@ -336,45 +309,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child:
-                                ScanButton(
-                                      label: 'SCAN DISPATCH',
-                                      icon: Icons.qr_code_scanner_rounded,
-                                      color: DSColors.error,
-                                      onTap: () => context.push(
-                                        '/scan',
-                                        extra: {'mode': 'dispatch'},
-                                      ),
-                                      details:
-                                          'Scan a dispatch barcode\nto check eligibility.',
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: 800.ms)
-                                    .scale(
-                                      begin: const Offset(0.95, 0.95),
-                                      end: const Offset(1, 1),
-                                    ),
+                            child: ScanButton(
+                              label: 'SCAN DISPATCH',
+                              icon: Icons.qr_code_scanner_rounded,
+                              color: DSColors.error,
+                              onTap: () => context.push(
+                                '/scan',
+                                extra: {'mode': 'dispatch'},
+                              ),
+                              details:
+                                  'Scan a dispatch barcode\nto check eligibility.',
+                            ).dsCtaEntry(delay: DSAnimations.stagger(6)),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child:
-                                ScanButton(
-                                      label: 'SCAN POD',
-                                      icon: Icons.qr_code_scanner_rounded,
-                                      color: DSColors.primary,
-                                      onTap: () => context.push(
-                                        '/scan',
-                                        extra: {'mode': 'pod'},
-                                      ),
-                                      details:
-                                          'Scan a delivery barcode to\nfind and update POD.',
-                                    )
-                                    .animate()
-                                    .fadeIn(delay: 900.ms)
-                                    .scale(
-                                      begin: const Offset(0.95, 0.95),
-                                      end: const Offset(1, 1),
-                                    ),
+                            child: ScanButton(
+                              label: 'SCAN POD',
+                              icon: Icons.qr_code_scanner_rounded,
+                              color: DSColors.primary,
+                              onTap: () => context.push(
+                                '/scan',
+                                extra: {'mode': 'pod'},
+                              ),
+                              details:
+                                  'Scan a delivery barcode to\nfind and update POD.',
+                            ).dsCtaEntry(delay: DSAnimations.stagger(7)),
                           ),
                         ],
                       ),

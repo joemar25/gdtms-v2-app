@@ -32,7 +32,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -286,11 +285,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   branchName: branchName,
                   isDark: isDark,
                   isOnline: isOnline,
-                ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+                ).dsCardEntry(duration: DSAnimations.dNormal),
                 DSSpacing.hXl,
 
                 // ── Account actions ────────────────────────────────────────
-                _SectionLabel('Account').animate().fadeIn(delay: 50.ms),
+                _SectionLabel('Account').dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -346,11 +345,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     //   },
                     // ),
                   ],
-                ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05, end: 0),
+                ).dsCardEntry(delay: DSAnimations.stagger(1)),
                 DSSpacing.hXl,
 
                 // ── Preferences ────────────────────────────────────────────
-                _SectionLabel('Preferences').animate().fadeIn(delay: 150.ms),
+                _SectionLabel('Preferences').dsFadeEntry(delay: DSAnimations.stagger(3, step: DSAnimations.staggerNormal)),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -410,11 +409,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ],
                   ],
-                ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.05, end: 0),
+                ).dsCardEntry(delay: DSAnimations.stagger(2)),
                 DSSpacing.hXl,
 
                 // ── Appearance ─────────────────────────────────────────────
-                _SectionLabel('Appearance').animate().fadeIn(delay: 250.ms),
+                _SectionLabel('Appearance').dsFadeEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -428,27 +427,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         _showSettingsUpdated();
                       },
                     ),
-                    _CardDivider(isDark: isDark),
-                    _ModernSwitchTile(
-                      icon: Icons.density_small_rounded,
-                      iconColor: DSColors.primary,
-                      label: 'Compact Mode',
-                      subtitle:
-                          'Shrinks delivery cards to show more items on screen at once.',
-                      value: isCompact,
-                      isDark: isDark,
-                      onChanged: (v) async {
-                        ref.read(compactModeProvider.notifier).setValue(v);
-                        await ref.read(appSettingsProvider).setCompactMode(v);
-                        _showSettingsUpdated();
-                      },
-                    ),
+                    if (kAppDebugMode) ...[
+                      _CardDivider(isDark: isDark),
+                      _ModernSwitchTile(
+                        icon: Icons.density_small_rounded,
+                        iconColor: DSColors.error, // Use error (red) for debug features
+                        label: 'Compact Mode',
+                        subtitle:
+                            'Shrinks delivery cards to show more items on screen at once.',
+                        value: isCompact,
+                        isDark: isDark,
+                        onChanged: (v) async {
+                          ref.read(compactModeProvider.notifier).setValue(v);
+                          await ref.read(appSettingsProvider).setCompactMode(v);
+                          _showSettingsUpdated();
+                        },
+                      ),
+                    ],
                   ],
-                ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.05, end: 0),
+                ).dsCardEntry(delay: DSAnimations.stagger(3)),
                 DSSpacing.hXl,
 
                 // ── Device Specifications ──────────────────────────────────
-                _SectionLabel('Device').animate().fadeIn(delay: 350.ms),
+                _SectionLabel('Device').dsFadeEntry(delay: DSAnimations.stagger(7, step: DSAnimations.staggerNormal)),
                 if (_specsLoaded &&
                     _freeStorageGb >= 0 &&
                     _freeStorageGb < 2.0) ...[
@@ -531,11 +532,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       isDark: isDark,
                     ),
                   ],
-                ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.05, end: 0),
+                ).dsCardEntry(delay: DSAnimations.stagger(4)),
                 DSSpacing.hXl,
 
                 // ── Legal ──────────────────────────────────────────────────
-                _SectionLabel('Legal').animate().fadeIn(delay: 450.ms),
+                _SectionLabel('Legal').dsFadeEntry(delay: DSAnimations.stagger(9, step: DSAnimations.staggerNormal)),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -557,11 +558,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onTap: () => context.push('/privacy'),
                     ),
                   ],
-                ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.05, end: 0),
+                ).dsCardEntry(delay: DSAnimations.stagger(5)),
                 DSSpacing.hXl,
 
                 // ── Diagnostics ────────────────────────────────────────────
-                _SectionLabel('Diagnostics').animate().fadeIn(delay: 550.ms),
+                _SectionLabel('Diagnostics').dsFadeEntry(delay: DSAnimations.stagger(11, step: DSAnimations.staggerNormal)),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -585,7 +586,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
                   ],
-                ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.05, end: 0),
+                ).dsCardEntry(delay: DSAnimations.stagger(6)),
                 const SizedBox(height: 36),
               ],
             ),
@@ -670,7 +671,7 @@ class _ProfileHeroCard extends StatelessWidget {
                             errorBuilder: (_, e, s) => const Center(
                               child: Icon(
                                 Icons.person_rounded,
-                                size: 32,
+                                size: DSTypography.sizeXl * 1.6,
                                 color: DSColors.white,
                               ),
                             ),
@@ -678,7 +679,7 @@ class _ProfileHeroCard extends StatelessWidget {
                         : const Center(
                             child: Icon(
                               Icons.person_rounded,
-                              size: 32,
+                              size: DSTypography.sizeXl * 1.6,
                               color: DSColors.white,
                             ),
                           ),
@@ -732,7 +733,7 @@ class _ProfileHeroCard extends StatelessWidget {
                           children: [
                             const Icon(
                               Icons.badge_outlined,
-                              size: 10,
+                              size: DSTypography.sizeXs * 0.83,
                               color: DSColors.primary,
                             ),
                             DSSpacing.wXs,
@@ -759,7 +760,7 @@ class _ProfileHeroCard extends StatelessWidget {
                   icon: const Icon(
                     Icons.edit_note_rounded,
                     color: DSColors.white,
-                    size: 24,
+                    size: DSTypography.sizeXl * 1.2,
                   ),
                   style: IconButton.styleFrom(
                     backgroundColor: DSColors.white.withValues(
@@ -821,7 +822,7 @@ class _CompactInfoItem extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 12,
+                size: DSTypography.sizeXs,
                 color: DSColors.white.withValues(alpha: 0.6),
               ),
               DSSpacing.wXs,
@@ -877,7 +878,7 @@ class _AccountInactiveBanner extends StatelessWidget {
             child: const Icon(
               Icons.warning_amber_rounded,
               color: DSColors.error,
-              size: 18,
+              size: DSTypography.sizeMd * 1.125,
             ),
           ),
           const SizedBox(width: 12),
@@ -1014,7 +1015,7 @@ class _ActionTile extends StatelessWidget {
                 color: iconColor.withValues(alpha: DSStyles.alphaActiveAccent),
                 borderRadius: DSStyles.pillRadius,
               ),
-              child: Icon(icon, size: 18, color: iconColor),
+              child: Icon(icon, size: DSTypography.sizeMd * 1.125, color: iconColor),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1045,7 +1046,7 @@ class _ActionTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              size: 18,
+              size: DSTypography.sizeMd * 1.125,
               color: isDark
                   ? DSColors.labelTertiaryDark
                   : DSColors.labelTertiary,
@@ -1095,7 +1096,7 @@ class _ModernSwitchTile extends StatelessWidget {
               color: iconColor.withValues(alpha: DSStyles.alphaActiveAccent),
               borderRadius: DSStyles.pillRadius,
             ),
-            child: Icon(icon, size: 18, color: iconColor),
+            child: Icon(icon, size: DSTypography.sizeMd * 1.125, color: iconColor),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1133,9 +1134,12 @@ class _ModernSwitchTile extends StatelessWidget {
               return isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary;
             }),
             trackColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) return isDark ? DSColors.primaryDark : DSColors.primary;
+              if (states.contains(WidgetState.selected)) {
+                return iconColor;
+              }
               return isDark ? DSColors.separatorDark : DSColors.separatorLight;
             }),
+            trackOutlineColor: WidgetStateProperty.all(DSColors.transparent),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
@@ -1178,7 +1182,7 @@ class _SyncRetentionTile extends StatelessWidget {
                 child: Icon(
                   Icons.history_rounded,
                   color: DSColors.success,
-                  size: 18,
+                  size: DSTypography.sizeMd * 1.125,
                 ),
               ),
               const SizedBox(width: 14),
@@ -1273,7 +1277,7 @@ class _ThemeSegmentedTile extends StatelessWidget {
                 child: Icon(
                   Icons.palette_outlined,
                   color: DSColors.pending,
-                  size: 18,
+                  size: DSTypography.sizeMd * 1.125,
                 ),
               ),
               const SizedBox(width: 14),
@@ -1368,7 +1372,7 @@ class _DetailTile extends StatelessWidget {
               color: iconColor.withValues(alpha: DSStyles.alphaActiveAccent),
               borderRadius: DSStyles.pillRadius,
             ),
-            child: Icon(icon, size: 18, color: iconColor),
+            child: Icon(icon, size: DSTypography.sizeMd * 1.125, color: iconColor),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1446,7 +1450,7 @@ class _ErrorLogsTile extends StatelessWidget {
               child: Icon(
                 Icons.bug_report_outlined,
                 color: DSColors.error,
-                size: 18,
+                size: DSTypography.sizeMd * 1.125,
               ),
             ),
             const SizedBox(width: 14),
@@ -1495,7 +1499,7 @@ class _ErrorLogsTile extends StatelessWidget {
             ],
             Icon(
               Icons.chevron_right_rounded,
-              size: 18,
+              size: DSTypography.sizeMd * 1.125,
               color: isDark
                   ? DSColors.labelTertiaryDark
                   : DSColors.labelTertiary,
@@ -1549,7 +1553,7 @@ class _StorageBanner extends StatelessWidget {
               color: color.withValues(alpha: DSStyles.alphaActiveAccent),
               borderRadius: DSStyles.pillRadius,
             ),
-            child: Icon(Icons.warning_amber_rounded, color: color, size: 16),
+            child: Icon(Icons.warning_amber_rounded, color: color, size: DSTypography.sizeMd),
           ),
           const SizedBox(width: 12),
           Expanded(

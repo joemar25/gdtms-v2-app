@@ -91,24 +91,24 @@ class _TermsScreenState extends State<TermsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
-    final cardColor = isDark ? DSColors.cardDark : Colors.white;
+    final cardColor = isDark ? DSColors.cardDark : DSColors.white;
 
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: isDark ? DSColors.cardDark : Colors.white,
+        backgroundColor: isDark ? DSColors.cardDark : DSColors.white,
         elevation: 0,
         title: Text(
           widget.viewOnly ? 'Terms & Conditions' : 'Terms & Conditions',
           style:
               DSTypography.title(
-                color: isDark ? Colors.white : Colors.black87,
+                color: isDark ? DSColors.white : DSColors.labelPrimary,
               ).copyWith(
                 fontSize: DSTypography.sizeMd,
                 fontWeight: FontWeight.w700,
               ),
         ),
-        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
+        iconTheme: IconThemeData(color: isDark ? DSColors.white : DSColors.labelPrimary),
         automaticallyImplyLeading: widget.viewOnly,
       ),
       body: Column(
@@ -135,7 +135,7 @@ class _TermsScreenState extends State<TermsScreen> {
           if (!widget.viewOnly) ...[
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-              color: isDark ? DSColors.cardDark : Colors.white,
+              color: isDark ? DSColors.cardDark : DSColors.white,
               child: Column(
                 children: [
                   if (!_scrolledToEnd)
@@ -144,7 +144,7 @@ class _TermsScreenState extends State<TermsScreen> {
                       child: Text(
                         'Scroll to the bottom to accept',
                         style: DSTypography.caption(
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: isDark ? DSColors.white.withValues(alpha: 0.38) : DSColors.labelTertiary,
                         ).copyWith(fontSize: DSTypography.sizeSm),
                       ),
                     ),
@@ -157,13 +157,13 @@ class _TermsScreenState extends State<TermsScreen> {
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: DSColors.primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: DSColors.white,
                         disabledBackgroundColor: isDark
-                            ? Colors.grey.shade800
-                            : Colors.grey.shade300,
+                            ? DSColors.separatorDark
+                            : DSColors.separatorLight,
                         disabledForegroundColor: isDark
-                            ? Colors.white24
-                            : Colors.black26,
+                            ? DSColors.white.withValues(alpha: 0.24)
+                            : DSColors.labelTertiary.withValues(alpha: 0.26),
                         shape: RoundedRectangleBorder(
                           borderRadius: DSStyles.cardRadius,
                         ),
@@ -175,12 +175,12 @@ class _TermsScreenState extends State<TermsScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: DSColors.white,
                               ),
                             )
                           : Text(
                               'I Accept the Terms & Conditions',
-                              style: DSTypography.button(color: Colors.white),
+                              style: DSTypography.button(color: DSColors.white),
                             ),
                     ),
                   ),
@@ -210,8 +210,8 @@ class LegalMarkdownText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = isDark ? const Color(0xDEFFFFFF) : Colors.black87;
-    final mutedColor = isDark ? const Color(0x8AFFFFFF) : Colors.black54;
+    final baseColor = isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary;
+    final mutedColor = isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary;
 
     final lines = content.split('\n');
     final widgets = <Widget>[];
@@ -254,7 +254,7 @@ class LegalMarkdownText extends StatelessWidget {
         widgets.add(const SizedBox(height: 4));
       } else if (line.startsWith('---')) {
         widgets.add(const SizedBox(height: 8));
-        widgets.add(Divider(color: isDark ? Colors.white12 : Colors.black12));
+        widgets.add(Divider(color: isDark ? DSColors.white.withValues(alpha: 0.12) : DSColors.separatorLight));
         widgets.add(const SizedBox(height: 8));
       } else if (line.startsWith('- ')) {
         widgets.add(

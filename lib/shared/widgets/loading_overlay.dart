@@ -26,7 +26,7 @@ class LoadingOverlay extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: Colors.black54,
+            color: DSColors.black.withValues(alpha: 0.54),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -34,13 +34,13 @@ class LoadingOverlay extends StatelessWidget {
                   SizedBox(
                     width: 56,
                     height: 56,
-                    child: SpinKitFadingCircle(color: Colors.white, size: 56),
+                    child: SpinKitFadingCircle(color: DSColors.white, size: 56),
                   ),
                   if (message != null) ...[
                     const SizedBox(height: 16),
                     Text(
                       message!,
-                      style: DSTypography.body(color: Colors.white).copyWith(
+                      style: DSTypography.body(color: DSColors.white).copyWith(
                         fontSize: DSTypography.sizeMd,
                         fontWeight: FontWeight.w600,
                       ),

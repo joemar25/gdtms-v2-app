@@ -385,7 +385,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                             fontSize: DSTypography.sizeXs,
                             fontWeight: FontWeight.w600,
                             color: selected
-                                ? Colors.white.withValues(
+                                ? DSColors.white.withValues(
                                     alpha: DSStyles.alphaGlass,
                                   )
                                 : DSColors.labelSecondary.withValues(
@@ -399,7 +399,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                           style: DSTypography.body().copyWith(
                             fontSize: DSTypography.sizeMd,
                             fontWeight: FontWeight.w800,
-                            color: selected ? Colors.white : primaryText,
+                            color: selected ? DSColors.white : primaryText,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -409,8 +409,8 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: hasDeliveries
-                                ? (selected ? Colors.white : DSColors.primary)
-                                : Colors.transparent,
+                                ? (selected ? DSColors.white : DSColors.primary)
+                                : DSColors.transparent,
                           ),
                         ),
                       ],

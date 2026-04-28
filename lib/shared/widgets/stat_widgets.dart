@@ -117,7 +117,7 @@ class _StatCardState extends State<StatCard>
                 ),
                 child: SlideTransition(
                   position: _iconOffset,
-                  child: Icon(widget.icon, color: effectiveColor, size: 16),
+                  child: Icon(widget.icon, color: effectiveColor, size: DSTypography.sizeSm + 2),
                 ),
               ),
               const Spacer(),
@@ -245,7 +245,7 @@ class ScanButton extends StatelessWidget {
                         ),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon, color: color, size: 28),
+                      child: Icon(icon, color: color, size: DSTypography.sizeXl * 1.4),
                     ),
                     const SizedBox(height: 10),
                     Text(

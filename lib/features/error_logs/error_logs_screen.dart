@@ -195,7 +195,13 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                             itemCount: _filtered.length,
                             separatorBuilder: (_, _) => DSSpacing.hSm,
                             itemBuilder: (context, i) =>
-                                _LogCard(entry: _filtered[i], isDark: isDark),
+                                _LogCard(entry: _filtered[i], isDark: isDark)
+                                    .dsCardEntry(
+                                  delay: DSAnimations.stagger(
+                                    i,
+                                    step: DSAnimations.staggerFine,
+                                  ),
+                                ),
                           ),
                   ),
                 ],
@@ -304,7 +310,7 @@ class _Chip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
+          Icon(icon, size: DSTypography.sizeXs + 1, color: color),
           DSSpacing.wXs,
           Text(
             label,

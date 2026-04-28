@@ -52,8 +52,8 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     final appBar = AppBar(
       scrolledUnderElevation: 0,
       elevation: 0,
-      backgroundColor: backgroundColor ?? Colors.transparent,
-      surfaceTintColor: Colors.transparent,
+      backgroundColor: backgroundColor ?? DSColors.transparent,
+      surfaceTintColor: DSColors.transparent,
       titleSpacing: 0,
       centerTitle: centerTitle,
       leading: leading,
@@ -65,7 +65,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
             Row(
               children: [
                 if (pageIcon != null) ...[
-                  Icon(pageIcon, size: 22, color: colorScheme.onSurface),
+                  Icon(pageIcon, size: DSTypography.sizeXl + 2, color: colorScheme.onSurface),
                   const SizedBox(width: 10),
                 ],
                 Expanded(
@@ -98,7 +98,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
       return Hero(
         tag: heroTag!,
         // Use a material wrapper to prevent text style issues during Hero transition
-        child: Material(color: Colors.transparent, child: appBar),
+        child: Material(color: DSColors.transparent, child: appBar),
       );
     }
     return appBar;
@@ -148,7 +148,7 @@ class NotificationBell extends StatelessWidget {
                     ? Icons.notifications_rounded
                     : Icons.notifications_outlined,
                 key: ValueKey(hasUnread),
-                size: 26,
+                size: DSTypography.sizeXl * 1.3,
                 color: colorScheme.onSurface,
               ),
             ),
@@ -191,7 +191,7 @@ class _Badge extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: DSStyles.alphaActiveAccent),
+            color: DSColors.black.withValues(alpha: DSStyles.alphaActiveAccent),
             blurRadius: 3,
             offset: const Offset(0, 1),
           ),
@@ -200,7 +200,7 @@ class _Badge extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
-        style: DSTypography.label(color: Colors.white).copyWith(
+        style: DSTypography.label(color: DSColors.white).copyWith(
           fontSize: DSTypography.sizeXs,
           fontWeight: FontWeight.w700,
           height: 1.0,
@@ -319,8 +319,8 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
       scrolledUnderElevation: 0,
       elevation: 0,
       toolbarHeight: 72,
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
+      backgroundColor: DSColors.transparent,
+      surfaceTintColor: DSColors.transparent,
       automaticallyImplyLeading: false,
       titleSpacing: 16,
       title: AnimatedSwitcher(
@@ -380,7 +380,7 @@ class _SearchRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
+                  color: DSColors.black.withValues(alpha: 0.06),
                   blurRadius: 4,
                   offset: const Offset(0, 1),
                 ),
@@ -388,7 +388,7 @@ class _SearchRow extends StatelessWidget {
             ),
             child: Icon(
               Icons.arrow_back_rounded,
-              size: 18,
+              size: DSTypography.sizeMd * 1.125,
               color: cs.onSurface,
             ),
           ),
@@ -495,7 +495,7 @@ class _ProfileRow extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
+                  color: DSColors.black.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -511,13 +511,13 @@ class _ProfileRow extends StatelessWidget {
                       // Graceful offline / broken-URL fallback.
                       errorBuilder: (_, __, ___) => const Icon(
                         Icons.person_rounded,
-                        size: 24,
+                        size: DSTypography.sizeXl * 1.2,
                         color: DSColors.labelSecondary,
                       ),
                     )
                   : const Icon(
                       Icons.person_rounded,
-                      size: 24,
+                      size: DSTypography.sizeXl * 1.2,
                       color: DSColors.labelSecondary,
                     ),
             ),
@@ -601,13 +601,13 @@ class _HeaderIconButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: DSColors.black.withValues(alpha: 0.06),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Icon(icon, size: 20, color: Theme.of(context).iconTheme.color),
+        child: Icon(icon, size: DSTypography.sizeMd * 1.25, color: Theme.of(context).iconTheme.color),
       ),
     );
   }

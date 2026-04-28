@@ -102,7 +102,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         'FSI COURIER',
                         textAlign: TextAlign.center,
                         style: DSTypography.heading(
-                          color: Colors.white,
+                          color: DSColors.white,
                         ).copyWith(fontSize: 28, fontWeight: FontWeight.w800),
                       )
                       .animate()
@@ -115,7 +115,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   Text(
                     'Delivery Management',
                     textAlign: TextAlign.center,
-                    style: DSTypography.body(color: Colors.white).copyWith(
+                    style: DSTypography.body(color: DSColors.white).copyWith(
                       fontSize: DSTypography.sizeMd,
                       fontWeight: FontWeight.w600,
                     ),
@@ -173,7 +173,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             SizedBox(
               width: 56,
               height: 56,
-              child: const SpinKitFadingCircle(color: Colors.white, size: 56),
+              child: const SpinKitFadingCircle(color: DSColors.white, size: 56),
             ).animate().fadeIn(delay: 800.ms),
 
             const SizedBox(height: 20),
@@ -181,7 +181,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             Text(
               'Fastrak Services Inc.',
               style: DSTypography.caption(
-                color: Colors.white.withValues(alpha: DSStyles.alphaDarkShadow),
+                color: DSColors.white.withValues(alpha: DSStyles.alphaDarkShadow),
               ).copyWith(fontSize: DSTypography.sizeSm),
             ).animate().fadeIn(delay: 1000.ms),
           ],
@@ -207,21 +207,21 @@ class _SplashChip extends StatelessWidget {
         horizontal: DSSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: DSStyles.alphaActiveAccent),
+        color: DSColors.white.withValues(alpha: DSStyles.alphaActiveAccent),
         borderRadius: DSStyles.cardRadius,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 18),
+          Icon(icon, color: DSColors.white, size: 18),
           const SizedBox(height: 4),
           Text(
             label,
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: DSTypography.label(color: Colors.white).copyWith(
+            style: DSTypography.label(color: DSColors.white).copyWith(
               fontSize: DSTypography.sizeXs,
               fontWeight: FontWeight.w600,
             ),

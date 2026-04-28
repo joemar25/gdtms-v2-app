@@ -66,7 +66,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                             fontSize: DSTypography.sizeXs,
                             color: isDark
                                 ? DSColors.labelSecondaryDark
-                                : Colors.grey.shade500,
+                                : DSColors.labelTertiary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -83,7 +83,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                   Icon(
                     Icons.chevron_right_rounded,
                     size: 18,
-                    color: Colors.grey.shade400,
+                    color: DSColors.labelTertiary,
                   ),
                 ],
               ),
@@ -126,7 +126,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                             fontSize: DSTypography.sizeXs,
                             color: isDark
                                 ? DSColors.labelSecondaryDark
-                                : Colors.grey.shade500,
+                                : DSColors.labelTertiary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -143,7 +143,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                   Icon(
                     Icons.chevron_right_rounded,
                     size: 18,
-                    color: Colors.grey.shade400,
+                    color: DSColors.labelTertiary,
                   ),
                 ],
               ),

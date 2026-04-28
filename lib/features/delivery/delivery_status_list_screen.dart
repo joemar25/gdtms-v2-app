@@ -666,7 +666,7 @@ class _DeliveryStatusListScreenState
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: DSColors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
         decoration: BoxDecoration(
@@ -1121,7 +1121,7 @@ class _FailedFilterChip extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: selected
                         ? color.withValues(alpha: 0.18)
-                        : (isDark ? Colors.white10 : DSColors.separatorLight),
+                        : (isDark ? DSColors.white.withValues(alpha: 0.1) : DSColors.separatorLight),
                     borderRadius: DSStyles.pillRadius,
                   ),
                   child: Text(
@@ -1160,7 +1160,7 @@ class _HelpItem extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: isDark ? Colors.white70 : Colors.black87),
+        Icon(icon, size: 20, color: isDark ? DSColors.white.withValues(alpha: 0.7) : DSColors.black.withValues(alpha: 0.87)),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -1181,7 +1181,7 @@ class _HelpItem extends StatelessWidget {
                 description,
                 style: DSTypography.body().copyWith(
                   fontSize: DSTypography.sizeMd,
-                  color: isDark ? DSColors.labelSecondaryDark : Colors.black54,
+                  color: isDark ? DSColors.labelSecondaryDark : DSColors.black.withValues(alpha: 0.54),
                   height: 1.4,
                 ),
               ),

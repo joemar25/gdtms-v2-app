@@ -36,7 +36,7 @@ class DSInfoTile extends StatelessWidget {
     return Column(
       children: [
         Material(
-          color: Colors.transparent,
+          color: DSColors.transparent,
           child: InkWell(
             onTap: onTap ?? onLongPress,
             onLongPress: onLongPress,

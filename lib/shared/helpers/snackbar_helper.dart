@@ -78,7 +78,7 @@ class AppNotificationManager {
             left: 0,
             right: 0,
             child: Material(
-              color: Colors.transparent,
+              color: DSColors.transparent,
               child: Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.topCenter,
@@ -267,7 +267,7 @@ class _InfoBanner extends StatelessWidget {
                       value: value,
                       strokeWidth: 2,
                       color: DSColors.separatorLight,
-                      backgroundColor: Colors.transparent,
+                      backgroundColor: DSColors.transparent,
                     );
                   },
                 ),
@@ -358,7 +358,7 @@ class _SuccessBanner extends StatelessWidget {
                       value: value,
                       strokeWidth: 2,
                       color: DSColors.separatorLight,
-                      backgroundColor: Colors.transparent,
+                      backgroundColor: DSColors.transparent,
                     );
                   },
                 ),

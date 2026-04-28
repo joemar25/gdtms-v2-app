@@ -210,7 +210,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                       height: 14,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.sync_rounded, size: 18),
+                  : const Icon(Icons.sync_rounded, size: DSTypography.sizeMd * 1.125),
               label: Text(
                 syncState.isSyncing ? 'Syncing…' : 'Sync Now',
                 style: DSTypography.caption(),

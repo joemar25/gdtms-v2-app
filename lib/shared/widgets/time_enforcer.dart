@@ -209,7 +209,7 @@ class _BlockingOverlay extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
-      color: Colors.black.withValues(alpha: 0.72),
+      color: DSColors.black.withValues(alpha: 0.72),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
@@ -220,7 +220,7 @@ class _BlockingOverlay extends StatelessWidget {
               borderRadius: DSStyles.cardRadius,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.12),
+                  color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.12),
                   blurRadius: 28,
                   offset: const Offset(0, 6),
                 ),
@@ -311,7 +311,7 @@ class _BlockingOverlay extends StatelessWidget {
                         onPressed: checking ? null : onRetry,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: DSColors.primary,
-                          foregroundColor: Colors.white,
+                          foregroundColor: DSColors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: DSStyles.cardRadius,
@@ -324,7 +324,7 @@ class _BlockingOverlay extends StatelessWidget {
                                 height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: DSColors.white,
                                 ),
                               )
                             : const Text('Retry'),

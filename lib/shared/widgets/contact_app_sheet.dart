@@ -73,7 +73,7 @@ Future<void> showContactAppSheet(
 
   await showModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.transparent,
+    backgroundColor: DSColors.transparent,
     isScrollControlled: true,
     builder: (ctx) => _ContactAppSheet(phone: cleaned, apps: apps),
   );
@@ -105,13 +105,13 @@ class _ContactAppSheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xxl)),
       ),
       padding: EdgeInsets.fromLTRB(
-        24,
+        DSSpacing.xl,
         12,
-        24,
-        24 + MediaQuery.of(context).padding.bottom,
+        DSSpacing.xl,
+        DSSpacing.xl + MediaQuery.of(context).padding.bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -145,7 +145,7 @@ class _ContactAppSheet extends StatelessWidget {
               fontSize: DSTypography.sizeLg,
             ),
           ),
-          const SizedBox(height: 24),
+          DSSpacing.hXl,
           Wrap(
             spacing: 16,
             runSpacing: 16,

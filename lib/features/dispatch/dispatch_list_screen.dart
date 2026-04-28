@@ -243,6 +243,8 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                           onTap: isChecking
                               ? null
                               : () => _openDispatch(i, dispatchCode),
+                        ).dsCardEntry(
+                          delay: DSAnimations.stagger(i, step: DSAnimations.staggerFine),
                         );
                       },
                     ),

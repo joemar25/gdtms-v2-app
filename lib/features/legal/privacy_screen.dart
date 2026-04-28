@@ -45,22 +45,22 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
-    final cardColor = isDark ? DSColors.cardDark : Colors.white;
+    final cardColor = isDark ? DSColors.cardDark : DSColors.white;
 
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: isDark ? DSColors.cardDark : Colors.white,
+        backgroundColor: isDark ? DSColors.cardDark : DSColors.white,
         elevation: 0,
         title: Text(
           'Privacy Policy',
           style: TextStyle(
             fontSize: DSTypography.sizeMd,
             fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : Colors.black87,
+            color: isDark ? DSColors.white : DSColors.labelPrimary,
           ),
         ),
-        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
+        iconTheme: IconThemeData(color: isDark ? DSColors.white : DSColors.labelPrimary),
       ),
       body: _content.isEmpty
           ? const Center(child: CircularProgressIndicator())

@@ -14,7 +14,7 @@ void showScanModeSheet(BuildContext context) {
     // floating bottom nav bar which lives in ScaffoldWithNavBar's
     // bottomNavigationBar (outside the branch navigator).
     useRootNavigator: true,
-    backgroundColor: Colors.transparent,
+    backgroundColor: DSColors.transparent,
     // Use the builder's context (sheetCtx) for navigation so we never
     // touch the caller's potentially-deactivated context inside callbacks.
     builder: (sheetCtx) => _ScanModeSheet(
@@ -126,7 +126,7 @@ class _ActionTile extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
-      color: Colors.transparent,
+      color: DSColors.transparent,
       child: InkWell(
         borderRadius: DSStyles.cardRadius,
         onTap: onTap,
@@ -150,7 +150,7 @@ class _ActionTile extends StatelessWidget {
                   ),
                   borderRadius: DSStyles.cardRadius,
                 ),
-                child: Icon(icon, color: iconColor, size: 22),
+                child: Icon(icon, color: iconColor, size: DSTypography.sizeMd * 1.375),
               ),
               DSSpacing.wMd,
               Expanded(

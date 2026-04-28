@@ -244,10 +244,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: const Icon(
                             Icons.local_shipping_rounded,
                             size: 36,
-                            color: Colors.white,
+                            color: DSColors.white,
                           ),
                         ),
-                      ),
+                      ).dsHeroEntry(),
                       const SizedBox(height: 28),
 
                       // ── Title ────────────────────────────────────────
@@ -260,7 +260,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: colorScheme.onSurface,
                           letterSpacing: DSTypography.lsSlightlyTight,
                         ),
-                      ),
+                      ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
                       const SizedBox(height: 6),
                       Text(
                         'Enter your credentials to continue',
@@ -269,11 +269,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontSize: DSTypography.sizeMd,
                           color: subtitleColor,
                         ),
-                      ),
+                      ).dsFadeEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
                       const SizedBox(height: 36),
 
                       // ── Phone Number ──────────────────────────────────
-                      _fieldLabel('Phone Number'),
+                      _fieldLabel('Phone Number').dsFadeEntry(delay: DSAnimations.stagger(3, step: DSAnimations.staggerNormal)),
                       const SizedBox(height: 6),
                       TextField(
                         controller: _phoneController,
@@ -286,11 +286,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           errorText: _errors['phone_number'],
                         ),
-                      ),
+                      ).dsFieldEntry(delay: DSAnimations.stagger(4, step: DSAnimations.staggerNormal)),
                       const SizedBox(height: 16),
 
                       // ── Password ──────────────────────────────────────
-                      _fieldLabel('Password'),
+                      _fieldLabel('Password').dsFadeEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
                       const SizedBox(height: 6),
                       TextField(
                         controller: _passwordController,
@@ -311,7 +311,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                         ),
-                      ),
+                      ).dsFieldEntry(delay: DSAnimations.stagger(6, step: DSAnimations.staggerNormal)),
 
                       // ── Forgot Password ───────────────────────────────
                       Align(
@@ -346,7 +346,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
+                      ).dsCtaEntry(delay: DSAnimations.stagger(7, step: DSAnimations.staggerNormal)),
                       const SizedBox(height: 32),
 
                       // ── Contact Admin Footer ──────────────────────────
@@ -380,8 +380,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
           if (_loading)
-            const ColoredBox(
-              color: Colors.black26,
+            ColoredBox(
+              color: DSColors.black.withValues(alpha: 0.26),
               child: Center(child: CircularProgressIndicator()),
             ),
         ],

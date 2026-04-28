@@ -327,7 +327,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.wifi_off_rounded, size: 52, color: DSColors.error),
+              Icon(Icons.wifi_off_rounded, size: DSTypography.sizeXl * 2.6, color: DSColors.error),
               DSSpacing.hBase,
               Text(
                 'You\'re Offline',
@@ -420,7 +420,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline_rounded, size: 48, color: DSColors.error),
+          Icon(Icons.error_outline_rounded, size: DSTypography.sizeXl * 2.4, color: DSColors.error),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Something went wrong.',
@@ -479,7 +479,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.merge_rounded, color: DSColors.warning, size: 18),
+                Icon(Icons.merge_rounded, color: DSColors.warning, size: DSTypography.sizeMd * 1.125),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -510,7 +510,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           deliveriesLabel: widget.isConsolidation
               ? 'ELIGIBLE FOR CONSOLIDATION'
               : 'ELIGIBLE DELIVERIES',
-        ),
+        ).dsCardEntry(delay: DSAnimations.stagger(0, step: DSAnimations.staggerNormal)),
         const SizedBox(height: 12),
 
         // // ── Coverage Period ───────────────────────────────────────────
@@ -534,7 +534,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               fontWeight: FontWeight.w800,
               letterSpacing: DSTypography.lsMegaLoose,
             ),
-          ),
+          ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
           const SizedBox(height: 8),
           DateStripWithDeliveries(
             dailyBreakdown: dailyBreakdown,
@@ -563,7 +563,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 Icon(
                   Icons.info_outline_rounded,
                   color: DSColors.warning,
-                  size: 18,
+                  size: DSTypography.sizeMd * 1.125,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -601,7 +601,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 Icon(
                   Icons.info_outline_rounded,
                   color: DSColors.accent,
-                  size: 18,
+                  size: DSTypography.sizeMd * 1.125,
                 ),
                 SizedBox(width: 10),
                 Expanded(
@@ -780,7 +780,7 @@ class _SummaryCard extends StatelessWidget {
               children: [
                 Icon(
                   Icons.local_shipping_rounded,
-                  size: 16,
+                  size: DSTypography.sizeSm + 2,
                   color: isDark
                       ? DSColors.labelSecondaryDark
                       : DSColors.labelSecondary,

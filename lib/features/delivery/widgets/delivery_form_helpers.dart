@@ -145,7 +145,7 @@ class DeliveryPhotoSourceButton extends StatelessWidget {
               icon,
               color: enabled
                   ? color
-                  : (isDark ? Colors.white24 : Colors.grey.shade400),
+                  : (isDark ? DSColors.white : DSColors.labelTertiary),
               size: 24,
             ),
             const SizedBox(height: 6),

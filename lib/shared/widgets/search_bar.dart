@@ -88,8 +88,8 @@ class _AppSearchBarState extends State<AppSearchBar> {
         border: Border(
           bottom: BorderSide(
             color: isDark
-                ? Colors.white10
-                : Colors.black.withValues(alpha: 0.05),
+                ? DSColors.white.withValues(alpha: 0.1)
+                : DSColors.black.withValues(alpha: 0.05),
             width: 1,
           ),
         ),
@@ -105,7 +105,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
               borderRadius: DSStyles.circularRadius,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: DSStyles.alphaSoft),
+                  color: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

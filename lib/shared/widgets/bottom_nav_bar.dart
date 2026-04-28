@@ -30,10 +30,10 @@ class AppBottomNavBar extends StatelessWidget {
       alignment: Alignment.bottomCenter,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          20,
+          DSSpacing.lg,
           0,
-          20,
-          bottomPadding > 0 ? bottomPadding : 16,
+          DSSpacing.lg,
+          bottomPadding > 0 ? bottomPadding : DSSpacing.base,
         ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
@@ -42,8 +42,8 @@ class AppBottomNavBar extends StatelessWidget {
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.1),
-                  blurRadius: 20,
+                  color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+                  blurRadius: DSSpacing.lg,
                   offset: const Offset(0, 10),
                 ),
               ],
@@ -182,7 +182,7 @@ class _NavBarItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isSelected ? selectedIcon : icon, color: color, size: 26),
+            Icon(isSelected ? selectedIcon : icon, color: color, size: DSTypography.sizeLg * 1.5),
             const SizedBox(height: 4),
             Text(
               label,

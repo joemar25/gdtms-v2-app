@@ -212,7 +212,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         color: DSColors.error,
                       ),
                     ),
-                  ),
+                  ).dsHeroEntry(),
                   const SizedBox(height: 20),
                   Text(
                     title,
@@ -225,7 +225,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           : DSColors.labelPrimary,
                       letterSpacing: -0.3,
                     ),
-                  ),
+                  ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
                   const SizedBox(height: 6),
                   Text(
                     widget.authenticatedMode
@@ -238,7 +238,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           ? DSColors.labelSecondaryDark
                           : DSColors.labelSecondary,
                     ),
-                  ),
+                  ).dsFadeEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
                   const SizedBox(height: 32),
 
                   // ── Courier Code ───────────────────────────────────
@@ -320,12 +320,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           ),
                         ),
                       ),
-                    ),
+                    ).dsFieldEntry(delay: DSAnimations.stagger(widget.authenticatedMode && kDebugMode ? 6 : 4, step: DSAnimations.staggerNormal)),
                     const SizedBox(height: 16),
                   ],
 
                   // ── New Password ───────────────────────────────────
-                  _fieldLabel(context, isDark, 'New Password'),
+                  _fieldLabel(context, isDark, 'New Password').dsFadeEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 7 : 5) : 3, step: DSAnimations.staggerNormal)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _newPassword,
@@ -345,11 +345,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             setState(() => _obscureNew = !_obscureNew),
                       ),
                     ),
-                  ),
+                  ).dsFieldEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 8 : 6) : 4, step: DSAnimations.staggerNormal)),
                   const SizedBox(height: 16),
 
                   // ── Confirm New Password ───────────────────────────
-                  _fieldLabel(context, isDark, 'Confirm New Password'),
+                  _fieldLabel(context, isDark, 'Confirm New Password').dsFadeEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 9 : 7) : 5, step: DSAnimations.staggerNormal)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _confirmPassword,
@@ -369,7 +369,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
                     ),
-                  ),
+                  ).dsFieldEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 10 : 8) : 6, step: DSAnimations.staggerNormal)),
                   const SizedBox(height: 28),
 
                   // ── Submit Button ──────────────────────────────────
@@ -388,14 +388,14 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
+                  ).dsCtaEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 11 : 9) : 7, step: DSAnimations.staggerNormal)),
                 ],
               ),
             ),
           ),
           if (_loading)
-            const ColoredBox(
-              color: Colors.black26,
+            ColoredBox(
+              color: DSColors.black.withValues(alpha: 0.26),
               child: Center(child: CircularProgressIndicator()),
             ),
         ],
