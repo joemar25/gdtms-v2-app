@@ -182,7 +182,7 @@ class _NavItemState extends State<_NavItem>
                   widget.isSelected ? widget.activeIcon : widget.icon,
                   key: ValueKey(widget.isSelected),
                   color: color,
-                  size: 24,
+                  size: DSIconSize.xl,
                 ),
               ),
               const SizedBox(height: 2),

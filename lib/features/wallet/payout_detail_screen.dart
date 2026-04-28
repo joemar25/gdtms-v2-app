@@ -134,7 +134,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                 children: [
                   Icon(
                     Icons.search_off_rounded,
-                    size: DSTypography.sizeMd * 3,
+                    size: DSIconSize.heroLarge,
                     color: Theme.of(context).brightness == Brightness.dark
                         ? DSColors.labelTertiaryDark
                         : DSColors.labelTertiary,

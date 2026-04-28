@@ -130,11 +130,11 @@ class _AppSearchBarState extends State<AppSearchBar> {
                 prefixIcon: Icon(
                   Icons.search_rounded,
                   color: cs.primary,
-                  size: 22,
+                  size: DSIconSize.lg,
                 ),
                 suffixIcon: (widget.query.isNotEmpty || _hasText)
                     ? IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20),
+                        icon: const Icon(Icons.close_rounded, size: DSIconSize.md),
                         color: cs.onSurfaceVariant,
                         onPressed: _clear,
                       )

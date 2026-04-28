@@ -344,7 +344,7 @@ class DeliveryCard extends StatelessWidget {
                                           color: isLocked
                                               ? subtextColor
                                               : DSColors.error,
-                                          size: 15,
+                                          size: DSIconSize.xs,
                                         ),
                                       ),
                                   ],
@@ -382,7 +382,7 @@ class DeliveryCard extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.person_outline_rounded,
-                                  size: 13,
+                                  size: DSIconSize.xs,
                                   color: subtextColor,
                                 ),
                                 const SizedBox(width: 4),
@@ -418,7 +418,7 @@ class DeliveryCard extends StatelessWidget {
                                   padding: const EdgeInsets.only(top: 1),
                                   child: Icon(
                                     Icons.location_on_outlined,
-                                    size: 12,
+                                    size: DSIconSize.xs,
                                     color: subtextColor,
                                   ),
                                 ),
@@ -446,7 +446,7 @@ class DeliveryCard extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.inventory_2_outlined,
-                                  size: 13,
+                                  size: DSIconSize.xs,
                                   color: subtextColor,
                                 ),
                                 const SizedBox(width: 4),
@@ -560,7 +560,7 @@ class DeliveryCard extends StatelessWidget {
                                 ] else if (footerText != null) ...[
                                   Icon(
                                     footerIcon ?? Icons.info_outline,
-                                    size: 13,
+                                    size: DSIconSize.xs,
                                     color: subtextColor,
                                   ),
                                   const SizedBox(width: 4),
@@ -956,7 +956,7 @@ class DeliveryCard extends StatelessWidget {
                           child: Icon(
                             Icons.lock_outline_rounded,
                             color: subtextColor,
-                            size: 14,
+                            size: DSIconSize.xs,
                           ),
                         )
                       else if (!isPrivacyMode && !isVisible)
@@ -965,7 +965,7 @@ class DeliveryCard extends StatelessWidget {
                           child: Icon(
                             Icons.lock_outline_rounded,
                             color: DSColors.error,
-                            size: 14,
+                            size: DSIconSize.xs,
                           ),
                         )
                       else if (showChevron)
@@ -973,7 +973,7 @@ class DeliveryCard extends StatelessWidget {
                           padding: const EdgeInsets.only(left: 6),
                           child: Icon(
                             Icons.chevron_right_rounded,
-                            size: 16,
+                            size: DSIconSize.sm,
                             color: subtextColor,
                           ),
                         ),

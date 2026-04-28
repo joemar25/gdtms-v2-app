@@ -100,7 +100,7 @@ class SyncProgressBar extends ConsumerWidget {
                   isOnline
                       ? Icons.cloud_sync_outlined
                       : Icons.cloud_off_outlined,
-                  size: 14,
+                  size: DSIconSize.xs,
                   color: Theme.of(context).brightness == Brightness.dark
                       ? DSColors.labelSecondaryDark
                       : DSColors.labelSecondary,

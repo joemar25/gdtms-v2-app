@@ -174,10 +174,10 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                     fontSize: DSTypography.sizeMd,
                     letterSpacing: DSTypography.lsLoose,
                   ),
-                  prefixIcon: const Icon(Icons.search_rounded, size: DSTypography.sizeMd * 1.25),
+                  prefixIcon: const Icon(Icons.search_rounded, size: DSIconSize.lg),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: DSTypography.sizeMd * 1.125),
+                          icon: const Icon(Icons.clear_rounded, size: DSIconSize.md),
                           onPressed: () {
                             _searchController.clear();
                             _filter('');

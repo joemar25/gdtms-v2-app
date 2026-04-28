@@ -435,7 +435,7 @@ class _DispatchEligibilityScreenState
                     ),
                   ] else if (!eligible) ...[
                     const SizedBox(height: 40),
-                    Icon(Icons.cancel_rounded, color: DSColors.error, size: DSTypography.sizeXl * 3.2),
+                    Icon(Icons.cancel_rounded, color: DSColors.error, size: DSIconSize.heroLarge),
                     const SizedBox(height: 12),
                     Text(
                       'NOT ELIGIBLE',

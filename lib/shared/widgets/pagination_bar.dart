@@ -103,7 +103,7 @@ class PaginationBar extends StatelessWidget {
                         padding: const EdgeInsets.all(DSSpacing.xs),
                         child: Icon(
                           Icons.keyboard_arrow_left_rounded,
-                          size: 16,
+                          size: DSIconSize.sm,
                           color: cs.onSurface.withValues(
                             alpha: DSStyles.alphaBorder,
                           ),
@@ -134,7 +134,7 @@ class PaginationBar extends StatelessWidget {
                         padding: const EdgeInsets.all(DSSpacing.xs),
                         child: Icon(
                           Icons.keyboard_arrow_right_rounded,
-                          size: 16,
+                          size: DSIconSize.sm,
                           color: cs.onSurface.withValues(
                             alpha: DSStyles.alphaBorder,
                           ),

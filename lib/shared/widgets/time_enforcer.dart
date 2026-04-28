@@ -244,7 +244,7 @@ class _BlockingOverlay extends StatelessWidget {
                   child: const Icon(
                     Icons.access_time_filled_rounded,
                     color: DSColors.error,
-                    size: 32,
+                    size: DSIconSize.xxl,
                   ),
                 ),
                 const SizedBox(height: 16),

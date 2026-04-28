@@ -327,7 +327,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.wifi_off_rounded, size: DSTypography.sizeXl * 2.6, color: DSColors.error),
+              Icon(Icons.wifi_off_rounded, size: DSIconSize.hero, color: DSColors.error),
               DSSpacing.hBase,
               Text(
                 'You\'re Offline',
@@ -420,7 +420,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline_rounded, size: DSTypography.sizeXl * 2.4, color: DSColors.error),
+          Icon(Icons.error_outline_rounded, size: DSIconSize.hero, color: DSColors.error),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Something went wrong.',
@@ -479,7 +479,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.merge_rounded, color: DSColors.warning, size: DSTypography.sizeMd * 1.125),
+                Icon(Icons.merge_rounded, color: DSColors.warning, size: DSIconSize.md),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -563,7 +563,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 Icon(
                   Icons.info_outline_rounded,
                   color: DSColors.warning,
-                  size: DSTypography.sizeMd * 1.125,
+                  size: DSIconSize.md,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -601,7 +601,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 Icon(
                   Icons.info_outline_rounded,
                   color: DSColors.accent,
-                  size: DSTypography.sizeMd * 1.125,
+                  size: DSIconSize.md,
                 ),
                 SizedBox(width: 10),
                 Expanded(
@@ -780,7 +780,7 @@ class _SummaryCard extends StatelessWidget {
               children: [
                 Icon(
                   Icons.local_shipping_rounded,
-                  size: DSTypography.sizeSm + 2,
+                  size: DSIconSize.sm,
                   color: isDark
                       ? DSColors.labelSecondaryDark
                       : DSColors.labelSecondary,

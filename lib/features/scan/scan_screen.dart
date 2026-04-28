@@ -704,7 +704,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                           const Icon(
                             Icons.camera_alt_outlined,
                             color: DSColors.white,
-                            size: 54,
+                            size: DSIconSize.heroLarge,
                           ),
                           DSSpacing.hBase,
                           Text(
@@ -765,7 +765,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                           isOnline
                                               ? Icons.wifi_rounded
                                               : Icons.wifi_off_rounded,
-                                          size: 12,
+                                          size: DSIconSize.xs,
                                           color: isOnline
                                               ? DSColors.white.withValues(alpha: 0.54)
                                               : DSColors.warning,
@@ -814,7 +814,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                   const Icon(
                                     Icons.error_outline_rounded,
                                     color: DSColors.error,
-                                    size: 16,
+                                    size: DSIconSize.sm,
                                   ),
                                   const SizedBox(width: 8),
                                   Flexible(
@@ -833,7 +833,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                         OutlinedButton.icon(
                           icon: const Icon(
                             Icons.keyboard_alt_outlined,
-                            size: 18,
+                            size: DSIconSize.md,
                           ),
                           label: Text(
                             'ENTER MANUALLY',
@@ -1097,7 +1097,7 @@ class _ManualInputArea extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
-            icon: const Icon(Icons.search_rounded, size: DSTypography.sizeMd * 1.125),
+            icon: const Icon(Icons.search_rounded, size: DSIconSize.md),
             label: Text(
               submitLabel.toUpperCase(),
               style: const TextStyle(
@@ -1229,7 +1229,7 @@ class _SearchResultsSheet extends StatelessWidget {
                       child: const Icon(
                         Icons.qr_code_rounded,
                         color: DSColors.primary,
-                        size: 20,
+                        size: DSIconSize.md,
                       ),
                     ),
                     title: Text(

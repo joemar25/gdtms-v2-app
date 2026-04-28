@@ -32,7 +32,7 @@ class LocationRequiredScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.security_rounded, size: DSTypography.sizeXl * 2.8, color: DSColors.error)
+              Icon(Icons.security_rounded, size: DSIconSize.heroLarge, color: DSColors.error)
                   .dsHeroEntry(),
               const SizedBox(height: 20),
               Text(
@@ -230,7 +230,7 @@ class _PermissionCard extends StatelessWidget {
               color: iconColor.withValues(alpha: 0.12),
               borderRadius: DSStyles.cardRadius,
             ),
-            child: Icon(icon, color: iconColor, size: DSTypography.sizeMd * 1.375),
+            child: Icon(icon, color: iconColor, size: DSIconSize.lg),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -256,7 +256,7 @@ class _PermissionCard extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           if (granted)
-            Icon(Icons.check_circle_rounded, color: DSColors.primary, size: DSTypography.sizeMd * 1.625)
+            Icon(Icons.check_circle_rounded, color: DSColors.primary, size: DSIconSize.xl)
           else
             TextButton(
               onPressed: onTap,

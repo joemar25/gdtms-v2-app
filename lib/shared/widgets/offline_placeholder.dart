@@ -24,7 +24,7 @@ class OfflinePlaceholder extends StatelessWidget {
           children: [
             Icon(
               Icons.wifi_off_rounded,
-              size: 64,
+              size: DSIconSize.heroLarge,
               color: Theme.of(context).brightness == Brightness.dark
                   ? DSColors.labelSecondaryDark
                   : DSColors.labelSecondary,
@@ -53,7 +53,7 @@ class OfflinePlaceholder extends StatelessWidget {
             const SizedBox(height: 24),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 16),
+              icon: const Icon(Icons.refresh_rounded, size: DSIconSize.sm),
               label: const Text('Retry'),
             ),
           ],

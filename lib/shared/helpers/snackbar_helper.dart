@@ -235,7 +235,7 @@ class _InfoBanner extends StatelessWidget {
               color: color.withValues(alpha: DSStyles.alphaActiveAccent),
               borderRadius: DSStyles.cardRadius,
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: DSIconSize.md),
           ),
           DSSpacing.wMd,
           Expanded(
@@ -273,7 +273,7 @@ class _InfoBanner extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 16),
+                icon: const Icon(Icons.close, size: DSIconSize.sm),
                 onPressed: onClose,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -325,7 +325,7 @@ class _SuccessBanner extends StatelessWidget {
             child: const Icon(
               Icons.check_circle_outline_rounded,
               color: DSColors.primary,
-              size: 20,
+              size: DSIconSize.md,
             ),
           ),
           DSSpacing.wMd,
@@ -364,7 +364,7 @@ class _SuccessBanner extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 16),
+                icon: const Icon(Icons.close, size: DSIconSize.sm),
                 onPressed: onClose,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),

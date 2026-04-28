@@ -65,7 +65,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
             Row(
               children: [
                 if (pageIcon != null) ...[
-                  Icon(pageIcon, size: DSTypography.sizeXl + 2, color: colorScheme.onSurface),
+                  Icon(pageIcon, size: DSIconSize.lg, color: colorScheme.onSurface),
                   const SizedBox(width: 10),
                 ],
                 Expanded(
@@ -148,7 +148,7 @@ class NotificationBell extends StatelessWidget {
                     ? Icons.notifications_rounded
                     : Icons.notifications_outlined,
                 key: ValueKey(hasUnread),
-                size: DSTypography.sizeXl * 1.3,
+                size: DSIconSize.xl,
                 color: colorScheme.onSurface,
               ),
             ),
@@ -388,7 +388,7 @@ class _SearchRow extends StatelessWidget {
             ),
             child: Icon(
               Icons.arrow_back_rounded,
-              size: DSTypography.sizeMd * 1.125,
+              size: DSIconSize.md,
               color: cs.onSurface,
             ),
           ),
@@ -511,13 +511,13 @@ class _ProfileRow extends StatelessWidget {
                       // Graceful offline / broken-URL fallback.
                       errorBuilder: (_, __, ___) => const Icon(
                         Icons.person_rounded,
-                        size: DSTypography.sizeXl * 1.2,
+                        size: DSIconSize.xl,
                         color: DSColors.labelSecondary,
                       ),
                     )
                   : const Icon(
                       Icons.person_rounded,
-                      size: DSTypography.sizeXl * 1.2,
+                      size: DSIconSize.xl,
                       color: DSColors.labelSecondary,
                     ),
             ),
@@ -607,7 +607,7 @@ class _HeaderIconButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(icon, size: DSTypography.sizeMd * 1.25, color: Theme.of(context).iconTheme.color),
+        child: Icon(icon, size: DSIconSize.lg, color: Theme.of(context).iconTheme.color),
       ),
     );
   }

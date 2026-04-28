@@ -210,7 +210,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                       height: 14,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.sync_rounded, size: DSTypography.sizeMd * 1.125),
+                  : const Icon(Icons.sync_rounded, size: DSIconSize.md),
               label: Text(
                 syncState.isSyncing ? 'Syncing…' : 'Sync Now',
                 style: DSTypography.caption(),
@@ -335,7 +335,7 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                     widget.isOnline
                         ? Icons.wifi_rounded
                         : Icons.wifi_off_rounded,
-                    size: 16,
+                    size: DSIconSize.sm,
                     color: widget.isOnline
                         ? DSColors.success
                         : DSColors.warning,
@@ -491,7 +491,7 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                               children: [
                                 Icon(
                                   Icons.timer,
-                                  size: 14,
+                                  size: DSIconSize.xs,
                                   color:
                                       Theme.of(context).brightness ==
                                           Brightness.dark
@@ -850,7 +850,7 @@ class _EntryTile extends StatelessWidget {
                       if (!isLocked && entry.operationType != 'UPDATE_PROFILE')
                         const Icon(
                           Icons.chevron_right_rounded,
-                          size: 18,
+                          size: DSIconSize.md,
                           color: DSColors.labelTertiary,
                         ),
                     ],
@@ -937,7 +937,7 @@ class _EntryTile extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.error_outline_rounded,
-                          size: 13,
+                          size: DSIconSize.xs,
                           color: theme.colorScheme.error,
                         ),
                         const SizedBox(width: 4),
@@ -1031,7 +1031,7 @@ class _StatusChip extends StatelessWidget {
       _ => (DSColors.labelSecondary, Icons.help_outline_rounded),
     };
 
-    return Icon(icon, color: color, size: 22);
+    return Icon(icon, color: color, size: DSIconSize.lg);
   }
 }
 
@@ -1169,7 +1169,7 @@ class _MetaRow extends StatelessWidget {
       padding: const EdgeInsets.only(top: 3),
       child: Row(
         children: [
-          Icon(icon, size: 13, color: dimColor),
+          Icon(icon, size: DSIconSize.xs, color: dimColor),
           const SizedBox(width: 5),
           Text(
             '$label: ',

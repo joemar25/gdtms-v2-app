@@ -357,7 +357,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         color: DSColors.white.withValues(alpha: 0.7),
                       ),
                     )
-                  : const Icon(Icons.edit_rounded, size: DSTypography.sizeMd * 1.125, color: DSColors.white),
+                  : const Icon(Icons.edit_rounded, size: DSIconSize.md, color: DSColors.white),
               label: Text(
                 _hasPendingSync ? 'SYNC PENDING…' : 'UPDATE STATUS',
                 style: DSTypography.button(
@@ -947,7 +947,7 @@ class _TimelineItem extends StatelessWidget {
                   ),
                   child: Icon(
                     _iconFor(action),
-                    size: DSTypography.sizeSm + 1,
+                    size: DSIconSize.sm,
                     color: isFirst
                         ? DSColors.white
                         : (isDark
@@ -1080,7 +1080,7 @@ class _OfflineBanner extends StatelessWidget {
       color: DSColors.pending,
       child: Row(
         children: [
-          const Icon(Icons.wifi_off_rounded, size: DSTypography.sizeXs + 1, color: DSColors.white),
+          const Icon(Icons.wifi_off_rounded, size: DSIconSize.xs, color: DSColors.white),
           DSSpacing.wSm,
           Text(
             'Offline — showing locally saved data',

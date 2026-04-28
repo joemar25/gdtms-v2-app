@@ -94,7 +94,7 @@ class DeliveryStatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: DSTypography.sizeXs * 0.9, color: color),
+          Icon(icon, size: DSIconSize.xxs, color: color),
           DSSpacing.wXs,
           Text(
             label,
@@ -141,7 +141,7 @@ class DeliveryMiniPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: DSTypography.sizeXs * 0.83, color: fg),
+          Icon(icon, size: DSIconSize.xxs, color: fg),
           DSSpacing.wXs,
           Text(
             label,
@@ -258,7 +258,7 @@ class InfoChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: DSTypography.sizeSm * 0.85, color: color),
+        Icon(icon, size: DSIconSize.xs, color: color),
         DSSpacing.wXs,
         Flexible(
           child: Text(

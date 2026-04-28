@@ -671,7 +671,7 @@ class _ProfileHeroCard extends StatelessWidget {
                             errorBuilder: (_, e, s) => const Center(
                               child: Icon(
                                 Icons.person_rounded,
-                                size: DSTypography.sizeXl * 1.6,
+                                size: DSIconSize.hero,
                                 color: DSColors.white,
                               ),
                             ),
@@ -679,7 +679,7 @@ class _ProfileHeroCard extends StatelessWidget {
                         : const Center(
                             child: Icon(
                               Icons.person_rounded,
-                              size: DSTypography.sizeXl * 1.6,
+                              size: DSIconSize.hero,
                               color: DSColors.white,
                             ),
                           ),
@@ -733,7 +733,7 @@ class _ProfileHeroCard extends StatelessWidget {
                           children: [
                             const Icon(
                               Icons.badge_outlined,
-                              size: DSTypography.sizeXs * 0.83,
+                              size: DSIconSize.xxs,
                               color: DSColors.primary,
                             ),
                             DSSpacing.wXs,
@@ -760,7 +760,7 @@ class _ProfileHeroCard extends StatelessWidget {
                   icon: const Icon(
                     Icons.edit_note_rounded,
                     color: DSColors.white,
-                    size: DSTypography.sizeXl * 1.2,
+                    size: DSIconSize.xxl,
                   ),
                   style: IconButton.styleFrom(
                     backgroundColor: DSColors.white.withValues(
@@ -822,7 +822,7 @@ class _CompactInfoItem extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: DSTypography.sizeXs,
+                size: DSIconSize.xs,
                 color: DSColors.white.withValues(alpha: 0.6),
               ),
               DSSpacing.wXs,
@@ -878,7 +878,7 @@ class _AccountInactiveBanner extends StatelessWidget {
             child: const Icon(
               Icons.warning_amber_rounded,
               color: DSColors.error,
-              size: DSTypography.sizeMd * 1.125,
+              size: DSIconSize.md,
             ),
           ),
           const SizedBox(width: 12),
@@ -1015,7 +1015,7 @@ class _ActionTile extends StatelessWidget {
                 color: iconColor.withValues(alpha: DSStyles.alphaActiveAccent),
                 borderRadius: DSStyles.pillRadius,
               ),
-              child: Icon(icon, size: DSTypography.sizeMd * 1.125, color: iconColor),
+              child: Icon(icon, size: DSIconSize.md, color: iconColor),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1046,7 +1046,7 @@ class _ActionTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              size: DSTypography.sizeMd * 1.125,
+              size: DSIconSize.md,
               color: isDark
                   ? DSColors.labelTertiaryDark
                   : DSColors.labelTertiary,
@@ -1096,7 +1096,7 @@ class _ModernSwitchTile extends StatelessWidget {
               color: iconColor.withValues(alpha: DSStyles.alphaActiveAccent),
               borderRadius: DSStyles.pillRadius,
             ),
-            child: Icon(icon, size: DSTypography.sizeMd * 1.125, color: iconColor),
+            child: Icon(icon, size: DSIconSize.md, color: iconColor),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1182,7 +1182,7 @@ class _SyncRetentionTile extends StatelessWidget {
                 child: Icon(
                   Icons.history_rounded,
                   color: DSColors.success,
-                  size: DSTypography.sizeMd * 1.125,
+                  size: DSIconSize.md,
                 ),
               ),
               const SizedBox(width: 14),
@@ -1277,7 +1277,7 @@ class _ThemeSegmentedTile extends StatelessWidget {
                 child: Icon(
                   Icons.palette_outlined,
                   color: DSColors.pending,
-                  size: DSTypography.sizeMd * 1.125,
+                  size: DSIconSize.md,
                 ),
               ),
               const SizedBox(width: 14),
@@ -1372,7 +1372,7 @@ class _DetailTile extends StatelessWidget {
               color: iconColor.withValues(alpha: DSStyles.alphaActiveAccent),
               borderRadius: DSStyles.pillRadius,
             ),
-            child: Icon(icon, size: DSTypography.sizeMd * 1.125, color: iconColor),
+            child: Icon(icon, size: DSIconSize.md, color: iconColor),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1450,7 +1450,7 @@ class _ErrorLogsTile extends StatelessWidget {
               child: Icon(
                 Icons.bug_report_outlined,
                 color: DSColors.error,
-                size: DSTypography.sizeMd * 1.125,
+                size: DSIconSize.md,
               ),
             ),
             const SizedBox(width: 14),
@@ -1499,7 +1499,7 @@ class _ErrorLogsTile extends StatelessWidget {
             ],
             Icon(
               Icons.chevron_right_rounded,
-              size: DSTypography.sizeMd * 1.125,
+              size: DSIconSize.md,
               color: isDark
                   ? DSColors.labelTertiaryDark
                   : DSColors.labelTertiary,
@@ -1553,7 +1553,7 @@ class _StorageBanner extends StatelessWidget {
               color: color.withValues(alpha: DSStyles.alphaActiveAccent),
               borderRadius: DSStyles.pillRadius,
             ),
-            child: Icon(Icons.warning_amber_rounded, color: color, size: DSTypography.sizeMd),
+            child: Icon(Icons.warning_amber_rounded, color: color, size: DSIconSize.md),
           ),
           const SizedBox(width: 12),
           Expanded(

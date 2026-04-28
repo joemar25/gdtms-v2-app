@@ -150,7 +150,7 @@ class _ActionTile extends StatelessWidget {
                   ),
                   borderRadius: DSStyles.cardRadius,
                 ),
-                child: Icon(icon, color: iconColor, size: DSTypography.sizeMd * 1.375),
+                child: Icon(icon, color: iconColor, size: DSIconSize.lg),
               ),
               DSSpacing.wMd,
               Expanded(
@@ -178,7 +178,7 @@ class _ActionTile extends StatelessWidget {
               ),
               Icon(
                 Icons.arrow_forward_ios_rounded,
-                size: 14,
+                size: DSIconSize.xs,
                 color: isDark
                     ? DSColors.labelSecondaryDark
                     : DSColors.labelSecondary,

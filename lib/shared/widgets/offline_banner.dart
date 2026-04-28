@@ -64,7 +64,7 @@ class _MinimalOfflineBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.wifi_off_rounded, size: DSTypography.sizeSm + 1, color: DSColors.warning),
+          Icon(Icons.wifi_off_rounded, size: DSIconSize.sm, color: DSColors.warning),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -105,7 +105,7 @@ class _StandardOfflineBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.wifi_off_rounded, color: DSColors.warning, size: DSTypography.sizeMd * 1.25),
+          const Icon(Icons.wifi_off_rounded, color: DSColors.warning, size: DSIconSize.lg),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

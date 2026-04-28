@@ -139,7 +139,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              icon: const Icon(Icons.done_all_rounded, size: DSTypography.sizeSm + 1),
+              icon: const Icon(Icons.done_all_rounded, size: DSIconSize.sm),
               label: const Text('Mark all read'),
             ),
         ],
@@ -362,7 +362,7 @@ class _NotificationCard extends StatelessWidget {
                               ),
                               borderRadius: DSStyles.pillRadius,
                             ),
-                            child: Icon(iconData, size: DSTypography.sizeMd * 1.25, color: accentColor),
+                            child: Icon(iconData, size: DSIconSize.lg, color: accentColor),
                           ),
                           const SizedBox(width: 12),
 
@@ -495,7 +495,7 @@ class _NotificationCard extends StatelessWidget {
                                       const SizedBox(width: 4),
                                       Icon(
                                         Icons.chevron_right_rounded,
-                                        size: DSTypography.sizeSm + 2,
+                                        size: DSIconSize.sm,
                                         color: isDark
                                             ? DSColors.labelTertiaryDark
                                             : DSColors.labelTertiary,
@@ -589,13 +589,13 @@ class _EmptyState extends StatelessWidget {
                                 : DSColors.secondarySurfaceLight,
                             borderRadius: DSStyles.cardRadius,
                           ),
-                          child: Icon(
-                            Icons.notifications_none_rounded,
-                            size: DSTypography.sizeMd * 2.125,
-                            color: isDark
-                                ? DSColors.labelTertiaryDark
-                                : DSColors.labelTertiary,
-                          ),
+                            child: Icon(
+                              Icons.notifications_none_rounded,
+                              size: DSIconSize.xxl,
+                              color: isDark
+                                  ? DSColors.labelTertiaryDark
+                                  : DSColors.labelTertiary,
+                            ),
                         )
                         .dsHeroEntry(),
                     const SizedBox(height: 16),
@@ -669,7 +669,7 @@ class _LoadMoreButton extends StatelessWidget {
                     fontSize: DSTypography.sizeMd,
                   ),
                 ),
-                icon: const Icon(Icons.expand_more_rounded, size: DSTypography.sizeMd * 1.125),
+                icon: const Icon(Icons.expand_more_rounded, size: DSIconSize.md),
                 label: const Text('Load more'),
               ),
       ),

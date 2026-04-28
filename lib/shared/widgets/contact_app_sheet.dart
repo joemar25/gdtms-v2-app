@@ -181,7 +181,7 @@ class _AppButton extends StatelessWidget {
                 color: app.color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(app.icon, color: app.color, size: 28),
+              child: Icon(app.icon, color: app.color, size: DSIconSize.xxl),
             ),
             const SizedBox(height: 8),
             Text(

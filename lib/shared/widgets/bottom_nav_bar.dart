@@ -182,7 +182,7 @@ class _NavBarItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isSelected ? selectedIcon : icon, color: color, size: DSTypography.sizeLg * 1.5),
+            Icon(isSelected ? selectedIcon : icon, color: color, size: DSIconSize.xxl),
             const SizedBox(height: 4),
             Text(
               label,

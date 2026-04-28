@@ -310,7 +310,7 @@ class _Chip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: DSTypography.sizeXs + 1, color: color),
+          Icon(icon, size: DSIconSize.xs, color: color),
           DSSpacing.wXs,
           Text(
             label,

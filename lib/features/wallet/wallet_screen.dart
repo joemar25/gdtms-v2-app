@@ -441,7 +441,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                 Icon(
                                   Icons.info_outline_rounded,
                                   color: DSColors.warning,
-                                  size: 18,
+                                  size: DSIconSize.md,
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -523,7 +523,7 @@ class _PayoutWindowBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(Icons.bug_report_rounded, color: DSColors.primary, size: 18),
+            Icon(Icons.bug_report_rounded, color: DSColors.primary, size: DSIconSize.md),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -554,7 +554,7 @@ class _PayoutWindowBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_clock_rounded, color: DSColors.error, size: 18),
+          Icon(Icons.lock_clock_rounded, color: DSColors.error, size: DSIconSize.md),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -791,7 +791,7 @@ class _EarningsCard extends StatelessWidget {
                           color: DSColors.white.withValues(
                             alpha: DSStyles.alphaGlass,
                           ),
-                          size: 18,
+                          size: DSIconSize.md,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -805,7 +805,7 @@ class _EarningsCard extends StatelessWidget {
                           Icon(
                             Icons.unfold_more_rounded,
                             color: DSColors.white.withValues(alpha: 0.6),
-                            size: 16,
+                            size: DSIconSize.sm,
                           ),
                       ],
                     ),
@@ -897,7 +897,7 @@ class _EarningsCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: DSColors.white.withValues(alpha: 0.7), size: 16),
+          Icon(icon, color: DSColors.white.withValues(alpha: 0.7), size: DSIconSize.sm),
           const SizedBox(width: 8),
           Text(
             label,
@@ -1087,7 +1087,7 @@ class _InfoChip extends StatelessWidget {
       children: [
         Icon(
           icon,
-          size: 13,
+          size: DSIconSize.xs,
           color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
         ),
         DSSpacing.wXs,

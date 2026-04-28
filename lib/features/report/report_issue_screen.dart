@@ -145,7 +145,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                   Icon(
                     Icons.info_outline_rounded,
                     color: DSColors.primary,
-                    size: DSTypography.sizeMd * 1.125,
+                    size: DSIconSize.md,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -248,7 +248,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              Icon(icon, size: DSTypography.sizeMd * 1.125, color: DSColors.primary),
+                              Icon(icon, size: DSIconSize.md, color: DSColors.primary),
                               const SizedBox(width: 8),
                               Text(
                                 label,

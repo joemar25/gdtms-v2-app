@@ -713,7 +713,7 @@ class _DeliveryStatusListScreenState
                     child: Icon(
                       Icons.assignment_return_rounded,
                       color: failedDeliveryColor,
-                      size: 28,
+                      size: DSIconSize.xxl,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -834,7 +834,7 @@ class _DeliveryStatusListScreenState
                   children: [
                     Icon(
                       Icons.info_outline_rounded,
-                      size: 18,
+                      size: DSIconSize.md,
                       color: failedDeliveryColor,
                     ),
                     const SizedBox(width: 12),
@@ -956,7 +956,7 @@ class _EmptyState extends StatelessWidget {
                   ),
                   child: Icon(
                     iconData,
-                    size: 28,
+                    size: DSIconSize.xxl,
                     color: statusColor.withValues(alpha: DSStyles.alphaBorder),
                   ),
                 ),
@@ -1028,7 +1028,7 @@ class _StatusInfoBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 15, color: textColor),
+          Icon(icon, size: DSIconSize.sm, color: textColor),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -1101,7 +1101,7 @@ class _FailedFilterChip extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 14, color: fg),
+              Icon(icon, size: DSIconSize.xs, color: fg),
               const SizedBox(width: 6),
               Text(
                 label,
@@ -1160,7 +1160,7 @@ class _HelpItem extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: isDark ? DSColors.white.withValues(alpha: 0.7) : DSColors.black.withValues(alpha: 0.87)),
+        Icon(icon, size: DSIconSize.md, color: isDark ? DSColors.white.withValues(alpha: 0.7) : DSColors.black.withValues(alpha: 0.87)),
         const SizedBox(width: 16),
         Expanded(
           child: Column(

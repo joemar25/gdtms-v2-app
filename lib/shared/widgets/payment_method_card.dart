@@ -124,7 +124,7 @@ class PaymentMethodCard extends StatelessWidget {
         // Header row
         Row(
           children: [
-            Icon(icon, size: 16, color: iconColor),
+            Icon(icon, size: DSIconSize.sm, color: iconColor),
             const SizedBox(width: 6),
             Text(
               label,
@@ -195,7 +195,7 @@ class PaymentMethodCard extends StatelessWidget {
             children: [
               Icon(
                 footerIcon ?? Icons.info_outline_rounded,
-                size: 13,
+                size: DSIconSize.xs,
                 color: isTransparent
                     ? DSColors.white.withValues(alpha: DSStyles.alphaGlass)
                     : DSColors.warningText,
@@ -243,7 +243,7 @@ class PaymentMethodCard extends StatelessWidget {
       children: [
         Icon(
           Icons.account_balance_outlined,
-          size: 18,
+          size: DSIconSize.md,
           color: isTransparent ? DSColors.white.withValues(alpha: 0.7) : DSColors.warning,
         ),
         const SizedBox(width: 10),

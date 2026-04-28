@@ -1246,7 +1246,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               : DSColors.secondarySurfaceLight,
                           child: const Icon(
                             Icons.broken_image_rounded,
-                            size: 32,
+                            size: DSIconSize.xxl,
                             color: DSColors.labelTertiary,
                           ),
                         ),
@@ -1288,7 +1288,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   padding: EdgeInsets.all(DSSpacing.xs),
                                   child: Icon(
                                     Icons.delete_outline_rounded,
-                                    size: 16,
+                                    size: DSIconSize.sm,
                                     color: DSColors.error,
                                   ),
                                 ),
@@ -1303,7 +1303,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     key: const ValueKey('no_photo'),
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, size: 34, color: color),
+                      Icon(icon, size: DSIconSize.hero, color: color),
                       const SizedBox(height: 10),
                       Text(
                         label,
@@ -1446,7 +1446,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   children: [
                     Icon(
                       Icons.draw_rounded,
-                      size: 34,
+                      size: DSIconSize.hero,
                       color: DSColors.primary.withValues(
                         alpha: DSStyles.alphaGlass,
                       ),
@@ -1784,7 +1784,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                 ? IconButton(
                                                     icon: const Icon(
                                                       Icons.clear_rounded,
-                                                      size: 18,
+                                                      size: DSIconSize.md,
                                                     ),
                                                     color: isDark
                                                         ? DSColors
@@ -1836,7 +1836,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                             ).copyWith(
                                               suffixIcon: Icon(
                                                 Icons.search_rounded,
-                                                size: 20,
+                                                size: DSIconSize.md,
                                                 color: isDark
                                                     ? DSColors.labelTertiaryDark
                                                     : DSColors.labelTertiary,
@@ -1866,7 +1866,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           ).copyWith(
                                             prefixIcon: const Icon(
                                               Icons.edit_note_rounded,
-                                              size: 20,
+                                              size: DSIconSize.md,
                                             ),
                                           ),
                                       textCapitalization:
@@ -1939,7 +1939,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                 ? IconButton(
                                                     icon: const Icon(
                                                       Icons.clear_rounded,
-                                                      size: 18,
+                                                      size: DSIconSize.md,
                                                     ),
                                                     color: isDark
                                                         ? DSColors
@@ -2009,7 +2009,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                             ).copyWith(
                                               suffixIcon: Icon(
                                                 Icons.search_rounded,
-                                                size: 20,
+                                                size: DSIconSize.md,
                                                 color: isDark
                                                     ? DSColors.labelTertiaryDark
                                                     : DSColors.labelTertiary,
@@ -2035,7 +2035,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           ).copyWith(
                                             prefixIcon: const Icon(
                                               Icons.edit_note_rounded,
-                                              size: 20,
+                                              size: DSIconSize.md,
                                             ),
                                           ),
                                       textCapitalization:
@@ -2074,7 +2074,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           ).copyWith(
                                             prefixIcon: const Icon(
                                               Icons.person_outline_rounded,
-                                              size: 20,
+                                              size: DSIconSize.md,
                                             ),
                                           ),
                                       textCapitalization:
@@ -2313,7 +2313,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                               ? IconButton(
                                                   icon: const Icon(
                                                     Icons.clear_rounded,
-                                                    size: 18,
+                                                    size: DSIconSize.md,
                                                   ),
                                                   color: isDark
                                                       ? DSColors
@@ -2353,12 +2353,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       .copyWith(
                                         prefixIcon: Icon(
                                           Icons.calendar_today_rounded,
-                                          size: 18,
+                                          size: DSIconSize.md,
                                           color: DSColors.labelTertiary,
                                         ),
                                         suffixIcon: Icon(
                                           Icons.lock_outline_rounded,
-                                          size: 16,
+                                          size: DSIconSize.sm,
                                           color: DSColors.labelTertiary,
                                         ),
                                       ),
@@ -2442,7 +2442,7 @@ class _NotePresetChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (selected) ...[
-              Icon(Icons.check_rounded, size: 13, color: selectedColor),
+              Icon(Icons.check_rounded, size: DSIconSize.xs, color: selectedColor),
               const SizedBox(width: 4),
             ],
             Text(
@@ -2577,7 +2577,7 @@ class _StatusSelectorState extends State<_StatusSelector> {
                                     : (isDark
                                           ? DSColors.white.withValues(alpha: 0.54)
                                           : DSColors.labelSecondary),
-                                size: selected ? 24 : 22,
+                                size: selected ? DSIconSize.xl : DSIconSize.lg,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -2621,7 +2621,7 @@ class _StatusSelectorState extends State<_StatusSelector> {
               children: [
                 Icon(
                   Icons.touch_app_rounded,
-                  size: 12,
+                  size: DSIconSize.xs,
                   color: isDark ? DSColors.white.withValues(alpha: 0.3) : DSColors.labelTertiary,
                 ),
                 const SizedBox(width: 4),
