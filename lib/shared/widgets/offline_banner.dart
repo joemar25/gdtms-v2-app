@@ -50,23 +50,28 @@ class _MinimalOfflineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: margin,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: DSSpacing.md,
+      ),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: DSColors.warning.withValues(alpha: 0.1),
         borderRadius: DSStyles.cardRadius,
-        border: Border.all(color: Colors.orange.shade200, width: 1.2),
+        border: Border.all(
+          color: DSColors.warning.withValues(alpha: 0.3),
+          width: 1.2,
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.wifi_off_rounded, size: 15, color: Colors.orange.shade700),
+          Icon(Icons.wifi_off_rounded, size: 15, color: DSColors.warning),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: TextStyle(
-                fontSize: 12,
+              style: DSTypography.label(color: DSColors.warning).copyWith(
+                fontSize: DSTypography.sizeSm,
                 fontWeight: FontWeight.w600,
-                color: Colors.orange.shade800,
               ),
             ),
           ),
@@ -86,40 +91,40 @@ class _StandardOfflineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: margin,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.base,
+        vertical: DSSpacing.md,
+      ),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: DSStyles.alphaActiveAccent),
+        color: DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: Colors.orange.withValues(alpha: DSStyles.alphaBorder),
+          color: DSColors.warning.withValues(alpha: DSStyles.alphaBorder),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.wifi_off_rounded, color: Colors.orange, size: 20),
+          const Icon(Icons.wifi_off_rounded, color: DSColors.warning, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "You're offline",
-                  style: TextStyle(
+                  style: DSTypography.label(color: DSColors.warning).copyWith(
+                    fontSize: DSTypography.sizeMd,
                     fontWeight: FontWeight.w700,
-                    color: Colors.orange,
-                    fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Local preferences (theme, compact mode, auto-accept) still work. '
                   'Dispatch scanning and data sync require an internet connection.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.orange.shade800,
-                    height: 1.4,
-                  ),
+                  style: DSTypography.body(
+                    color: DSColors.warning,
+                  ).copyWith(fontSize: DSTypography.sizeSm, height: 1.4),
                 ),
               ],
             ),

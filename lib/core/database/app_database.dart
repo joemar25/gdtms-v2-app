@@ -79,7 +79,7 @@ class AppDatabase {
         tracking_number TEXT,
         recipient_name  TEXT,
         delivery_address TEXT,
-        delivery_status  TEXT    NOT NULL DEFAULT 'pending',
+        delivery_status  TEXT    NOT NULL DEFAULT 'FOR_DELIVERY',
         mail_type        TEXT,
         dispatch_code    TEXT,
         raw_json         TEXT    NOT NULL,

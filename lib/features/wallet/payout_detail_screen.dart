@@ -135,12 +135,18 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   Icon(
                     Icons.search_off_rounded,
                     size: 48,
-                    color: Colors.grey.shade400,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? DSColors.labelTertiaryDark
+                        : DSColors.labelTertiary,
                   ),
                   const SizedBox(height: 12),
                   Text(
                     _notFound!,
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                    style: DSTypography.body(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -174,7 +180,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                             style: TextButton.styleFrom(
                               foregroundColor: DSColors.primary,
                               textStyle: const TextStyle(
-                                fontSize: 15,
+                                fontSize: DSTypography.sizeMd,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -351,10 +357,10 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withValues(
+                        ? DSColors.white.withValues(
                             alpha: DSStyles.alphaDarkShadow,
                           )
-                        : Colors.grey.shade300,
+                        : DSColors.labelTertiary,
                     borderRadius: DSStyles.pillRadius,
                   ),
                 ),
@@ -363,10 +369,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                 child: Text(
                   'Transaction History',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? DSColors.white : DSColors.black,
+                  style: DSTypography.heading().copyWith(
+                    fontSize: DSTypography.sizeMd,
                   ),
                 ),
               ),
@@ -410,7 +414,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                     child: Container(
                                       width: 2,
                                       margin: const EdgeInsets.symmetric(
-                                        vertical: 4,
+                                        vertical: DSSpacing.xs,
                                       ),
                                       color: DSColors.primary.withValues(
                                         alpha: 0.25,
@@ -430,20 +434,24 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                 children: [
                                   Text(
                                     label,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? DSColors.white
-                                          : DSColors.black,
-                                    ),
+                                    style:
+                                        DSTypography.body(
+                                          color: isDark
+                                              ? DSColors.labelPrimaryDark
+                                              : DSColors.labelPrimary,
+                                        ).copyWith(
+                                          fontSize: DSTypography.sizeMd,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     timestamp,
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: DSColors.subSecondary,
+                                      fontSize: DSTypography.sizeSm,
+                                      color: isDark
+                                          ? DSColors.labelSecondaryDark
+                                          : DSColors.labelSecondary,
                                     ),
                                   ),
                                   if (by != null && by.isNotEmpty) ...[
@@ -451,8 +459,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                     Text(
                                       'By: $by',
                                       style: TextStyle(
-                                        fontSize: 12,
-                                        color: DSColors.secondary,
+                                        fontSize: DSTypography.sizeSm,
+                                        color: DSColors.accent,
                                       ),
                                     ),
                                   ],
@@ -462,8 +470,10 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                     Text(
                                       remarks,
                                       style: TextStyle(
-                                        fontSize: 12,
-                                        color: DSColors.subSecondary,
+                                        fontSize: DSTypography.sizeSm,
+                                        color: isDark
+                                            ? DSColors.labelSecondaryDark
+                                            : DSColors.labelSecondary,
                                         fontStyle: FontStyle.italic,
                                       ),
                                     ),
@@ -523,7 +533,9 @@ class _SectionCard extends StatelessWidget {
                   child: Text(
                     title,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Colors.grey.shade500,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
                       letterSpacing: 0.6,
                       fontWeight: FontWeight.w600,
                     ),
@@ -566,11 +578,16 @@ class _StatusBadgeLight extends StatelessWidget {
       ),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: 5,
+      ),
       decoration: BoxDecoration(color: bg, borderRadius: DSStyles.cardRadius),
       child: Text(
         status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
-        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
+        style: DSTypography.label(
+          color: fg,
+        ).copyWith(fontSize: DSTypography.sizeSm, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -640,14 +657,15 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
+          style: DSTypography.caption(
+            color: Colors.white70,
+          ).copyWith(fontSize: DSTypography.sizeSm),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
+          style: DSTypography.body(color: Colors.white).copyWith(
+            fontSize: DSTypography.sizeMd,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -659,7 +677,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF007A36), Color(0xFF00B14F)],
+          colors: [DSColors.primary, DSColors.success],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -672,16 +690,18 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(DSSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Payout Amount',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+                style: DSTypography.caption(
+                  color: Colors.white70,
+                ).copyWith(fontSize: DSTypography.sizeMd),
               ),
               _StatusBadgeLight(widget.status),
             ],
@@ -689,12 +709,9 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           const SizedBox(height: 6),
           Text(
             '₱ ${widget.amount.toStringAsFixed(2)}',
-            style: const TextStyle(
+            style: DSTypography.display(
               color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-            ),
+            ).copyWith(fontSize: 32, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 16),
           const Divider(color: Colors.white24, height: 1),
@@ -722,10 +739,9 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
             Center(
               child: Text(
                 'Tap to reveal breakdown',
-                style: TextStyle(
-                  fontSize: 11,
+                style: DSTypography.caption(
                   color: Colors.white.withValues(alpha: DSStyles.alphaBorder),
-                ),
+                ).copyWith(fontSize: DSTypography.sizeSm),
               ),
             ),
           ],
@@ -747,7 +763,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           ).dividerColor.withValues(alpha: DSStyles.alphaSoft),
         ),
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(DSSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -758,7 +774,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
               Text(
                 'Breakdown Details',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: DSTypography.sizeMd,
                   fontWeight: FontWeight.w700,
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white
@@ -794,7 +810,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                                 ? '⚠ ${_formatKey(e.key)}'
                                 : _formatKey(e.key),
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: DSTypography.sizeMd,
                               color: isCoordinator
                                   ? Colors.red.shade700
                                   : (isDark
@@ -819,7 +835,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                       Text(
                         '${isDeduction ? '-' : ''}₱ ${val.abs().toStringAsFixed(2)}',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: DSTypography.sizeMd,
                           fontWeight: FontWeight.w600,
                           color: isCoordinator
                               ? Colors.red.shade700
@@ -836,10 +852,9 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           Center(
             child: Text(
               'Tap to flip back',
-              style: TextStyle(
-                fontSize: 11,
+              style: DSTypography.caption(
                 color: Colors.grey.withValues(alpha: DSStyles.alphaGlass),
-              ),
+              ).copyWith(fontSize: DSTypography.sizeSm),
             ),
           ),
         ],

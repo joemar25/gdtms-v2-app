@@ -43,6 +43,7 @@ import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_placeholder.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class DispatchListScreen extends ConsumerStatefulWidget {
   const DispatchListScreen({super.key});
@@ -183,7 +184,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                       ],
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(DSSpacing.base),
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemCount: _dispatches.length,
                       itemBuilder: (_, i) {

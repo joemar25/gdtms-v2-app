@@ -74,17 +74,17 @@ class PaymentMethodCard extends StatelessWidget {
         context: context,
         borderColor: isTransparent
             ? Colors.transparent
-            : Colors.amber.withValues(alpha: DSStyles.alphaBorder),
+            : DSColors.warning.withValues(alpha: DSStyles.alphaBorder),
         bgColor: isTransparent
             ? Colors.transparent
-            : Colors.amber.withValues(alpha: DSStyles.alphaSoft),
+            : DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
         icon: Icons.account_balance_rounded,
-        iconColor: isTransparent ? Colors.white70 : Colors.amber.shade700,
+        iconColor: isTransparent ? Colors.white70 : DSColors.warning,
         label: 'Payout Account',
-        labelColor: isTransparent ? Colors.white70 : Colors.amber.shade700,
+        labelColor: isTransparent ? Colors.white70 : DSColors.warning,
         badge: _Badge(
           text: 'INACTIVE',
-          color: isTransparent ? Colors.white : Colors.amber.shade700,
+          color: isTransparent ? Colors.white : DSColors.warning,
           isTransparent: isTransparent,
         ),
         bankName: bankName ?? '—',
@@ -128,11 +128,10 @@ class PaymentMethodCard extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 11,
+              style: DSTypography.label(color: labelColor).copyWith(
+                fontSize: DSTypography.sizeSm,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-                color: labelColor,
+                letterSpacing: DSTypography.lsExtraLoose,
               ),
             ),
             const Spacer(),
@@ -143,11 +142,11 @@ class PaymentMethodCard extends StatelessWidget {
         // Bank name
         Text(
           bankName,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: isTransparent ? Colors.white : null,
-          ),
+          style: DSTypography.label(color: isTransparent ? Colors.white : null)
+              .copyWith(
+                fontSize: DSTypography.sizeMd,
+                fontWeight: FontWeight.w800,
+              ),
         ),
         // Account details
         if (accountName != null || accountNumber != null) ...[
@@ -158,12 +157,13 @@ class PaymentMethodCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     accountName,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: DSTypography.caption(
                       color: isTransparent
                           ? Colors.white.withValues(alpha: DSStyles.alphaGlass)
-                          : Colors.grey.shade600,
-                    ),
+                          : (Theme.of(context).brightness == Brightness.dark
+                                ? DSColors.labelSecondaryDark
+                                : DSColors.labelSecondary),
+                    ).copyWith(fontSize: DSTypography.sizeSm),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -171,13 +171,17 @@ class PaymentMethodCard extends StatelessWidget {
                 if (accountName != null) const SizedBox(width: 8),
                 Text(
                   _maskAccount(accountNumber),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isTransparent
-                        ? Colors.white.withValues(alpha: 0.6)
-                        : Colors.grey.shade500,
-                    fontFamily: 'monospace',
-                  ),
+                  style:
+                      DSTypography.caption(
+                        color: isTransparent
+                            ? Colors.white.withValues(alpha: 0.6)
+                            : (Theme.of(context).brightness == Brightness.dark
+                                  ? DSColors.labelSecondaryDark
+                                  : DSColors.labelSecondary),
+                      ).copyWith(
+                        fontSize: DSTypography.sizeSm,
+                        fontFamily: 'monospace',
+                      ),
                 ),
               ],
             ],
@@ -200,12 +204,11 @@ class PaymentMethodCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   footerMessage,
-                  style: TextStyle(
-                    fontSize: 11,
+                  style: DSTypography.caption(
                     color: isTransparent
                         ? Colors.white.withValues(alpha: DSStyles.alphaGlass)
-                        : Colors.amber.shade700,
-                  ),
+                        : DSColors.warning,
+                  ).copyWith(fontSize: DSTypography.sizeSm),
                 ),
               ),
             ],
@@ -222,7 +225,10 @@ class PaymentMethodCard extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         border: Border.all(color: borderColor),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.base,
+        vertical: 14,
+      ),
       child: content,
     );
   }
@@ -238,7 +244,7 @@ class PaymentMethodCard extends StatelessWidget {
         Icon(
           Icons.account_balance_outlined,
           size: 18,
-          color: isTransparent ? Colors.white70 : Colors.amber.shade700,
+          color: isTransparent ? Colors.white70 : DSColors.warning,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -247,22 +253,23 @@ class PaymentMethodCard extends StatelessWidget {
             children: [
               Text(
                 'No Bank Account on File',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: isTransparent ? Colors.white : Colors.amber.shade800,
-                ),
+                style:
+                    DSTypography.label(
+                      color: isTransparent ? Colors.white : DSColors.warning,
+                    ).copyWith(
+                      fontSize: DSTypography.sizeMd,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
               const SizedBox(height: 4),
               Text(
                 message ??
                     'A default GCash account will be automatically set up when you submit a payout request.',
-                style: TextStyle(
-                  fontSize: 12,
+                style: DSTypography.caption(
                   color: isTransparent
                       ? Colors.white.withValues(alpha: DSStyles.alphaGlass)
-                      : Colors.amber.shade700,
-                ),
+                      : DSColors.warning,
+                ).copyWith(fontSize: DSTypography.sizeSm),
               ),
             ],
           ),
@@ -280,7 +287,10 @@ class PaymentMethodCard extends StatelessWidget {
           color: Colors.amber.withValues(alpha: DSStyles.alphaBorder),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.base,
+        vertical: 14,
+      ),
       child: content,
     );
   }
@@ -315,7 +325,10 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.sm,
+        vertical: 3,
+      ),
       decoration: BoxDecoration(
         color: isTransparent
             ? Colors.white.withValues(alpha: DSStyles.alphaActiveAccent)
@@ -329,10 +342,9 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 10,
+        style: DSTypography.label(color: color).copyWith(
+          fontSize: DSTypography.sizeXs,
           fontWeight: FontWeight.w700,
-          color: color,
           letterSpacing: 0.4,
         ),
       ),

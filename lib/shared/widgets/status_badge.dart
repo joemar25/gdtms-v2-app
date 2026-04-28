@@ -13,11 +13,14 @@ class StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final ds = DeliveryStatus.fromString(status);
     final color = switch (ds) {
-      DeliveryStatus.pending => Colors.orange,
-      DeliveryStatus.delivered => Colors.green,
-      DeliveryStatus.failedDelivery => Colors.red,
-      DeliveryStatus.osa => Colors.amber,
-      _ => Colors.grey,
+      DeliveryStatus.pending => DSColors.warning,
+      DeliveryStatus.delivered => DSColors.success,
+      DeliveryStatus.failedDelivery => DSColors.error,
+      DeliveryStatus.osa => DSColors.warning,
+      _ =>
+        Theme.of(context).brightness == Brightness.dark
+            ? DSColors.labelSecondaryDark
+            : DSColors.labelSecondary,
     };
 
     final displayStatus = ds != DeliveryStatus.unknown
@@ -26,8 +29,10 @@ class StatusBadge extends StatelessWidget {
 
     return Chip(
       label: Text(displayStatus),
-      backgroundColor: color.withValues(alpha: DSStyles.alphaActiveAccent),
-      labelStyle: TextStyle(color: color.shade700, fontWeight: FontWeight.w600),
+      backgroundColor: color.withValues(alpha: DSStyles.alphaSoft),
+      labelStyle: DSTypography.label(
+        color: color,
+      ).copyWith(fontWeight: FontWeight.w600),
       side: BorderSide(
         color: color.withValues(alpha: DSStyles.alphaDarkShadow),
       ),

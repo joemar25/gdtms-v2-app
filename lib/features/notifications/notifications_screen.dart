@@ -101,7 +101,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? DSColors.scaffoldDark : const Color(0xFFF5F6FA),
+      backgroundColor: isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight,
       appBar: AppHeaderBar(
         showNotificationBell: false,
         titleWidget: Row(
@@ -109,7 +109,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             const SizedBox(width: 8),
             Text(
               'Notifications',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: DSTypography.heading().copyWith(
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.4,
               ),
@@ -130,12 +130,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               style: TextButton.styleFrom(
                 foregroundColor: DSColors.primary,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: DSSpacing.md,
+                  vertical: DSSpacing.sm,
                 ),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: const TextStyle(
-                  fontSize: 12,
+                textStyle: DSTypography.button().copyWith(
+                  fontSize: DSTypography.sizeSm,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -282,15 +282,16 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(top: 20, bottom: 8, left: 4),
       child: Text(
         label.toUpperCase(),
-        style: TextStyle(
-          fontSize: 11,
+        style: DSTypography.label().copyWith(
+          fontSize: DSTypography.sizeSm,
           fontWeight: FontWeight.w700,
-          color: Colors.grey.shade500,
-          letterSpacing: 1.2,
+          color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
+          letterSpacing: DSTypography.lsMegaLoose,
         ),
       ),
     );
@@ -382,8 +383,8 @@ class _NotificationCard extends StatelessWidget {
                                     Expanded(
                                       child: Text(
                                         notification.message,
-                                        style: TextStyle(
-                                          fontSize: 13.5,
+                                        style: DSTypography.body().copyWith(
+                                          fontSize: DSTypography.sizeMd,
                                           fontWeight: isUnread
                                               ? FontWeight.w600
                                               : FontWeight.w400,
@@ -416,16 +417,16 @@ class _NotificationCard extends StatelessWidget {
                                   const SizedBox(height: 5),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
+                                      horizontal: DSSpacing.sm,
+                                      vertical: DSSpacing.xs,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: DSColors.red.withValues(
+                                      color: DSColors.error.withValues(
                                         alpha: DSStyles.alphaSoft,
                                       ),
                                       borderRadius: DSStyles.pillRadius,
                                       border: Border.all(
-                                        color: DSColors.red.withValues(
+                                        color: DSColors.error.withValues(
                                           alpha: 0.15,
                                         ),
                                       ),
@@ -434,9 +435,9 @@ class _NotificationCard extends StatelessWidget {
                                       notification.rejectionReason!,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: DSColors.red,
+                                      style: DSTypography.caption().copyWith(
+                                        fontSize: DSTypography.sizeSm,
+                                        color: DSColors.error,
                                         fontWeight: FontWeight.w500,
                                         height: 1.3,
                                       ),
@@ -454,7 +455,7 @@ class _NotificationCard extends StatelessWidget {
                                         notification.dispatchCode == null) ...[
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
+                                          horizontal: DSSpacing.sm,
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
@@ -469,11 +470,12 @@ class _NotificationCard extends StatelessWidget {
                                           notification.transactionReference!,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 10,
+                                          style: DSTypography.label().copyWith(
+                                            fontSize: DSTypography.sizeXs,
                                             fontWeight: FontWeight.w700,
                                             color: accentColor,
-                                            letterSpacing: 0.2,
+                                            letterSpacing:
+                                                DSTypography.lsSlightlyLoose,
                                           ),
                                         ),
                                       ),
@@ -485,8 +487,8 @@ class _NotificationCard extends StatelessWidget {
                                           notification.date,
                                           includeTime: true,
                                         ),
-                                        style: TextStyle(
-                                          fontSize: 11,
+                                        style: DSTypography.caption().copyWith(
+                                          fontSize: DSTypography.sizeSm,
                                           color: isDark
                                               ? DSColors.labelTertiaryDark
                                               : DSColors.labelTertiary,
@@ -523,13 +525,13 @@ class _NotificationCard extends StatelessWidget {
   }
 
   static (IconData, Color) _resolve(String type) => switch (type) {
-    'new_dispatch' => (Icons.local_shipping_rounded, DSColors.systemBlue),
-    'payout_requested' => (Icons.send_rounded, const Color(0xFF6366F1)),
+    'new_dispatch' => (Icons.local_shipping_rounded, DSColors.primary),
+    'payout_requested' => (Icons.send_rounded, DSColors.primary),
     'payout_approved' => (Icons.check_circle_rounded, DSColors.primary),
-    'payout_rejected' => (Icons.cancel_rounded, DSColors.red),
+    'payout_rejected' => (Icons.cancel_rounded, DSColors.error),
     'payout_paid' => (Icons.payments_rounded, DSColors.primary),
-    'transaction_due_soon' => (Icons.schedule_rounded, const Color(0xFFF59E0B)),
-    'transaction_due_today' => (Icons.today_rounded, DSColors.red),
+    'transaction_due_soon' => (Icons.schedule_rounded, DSColors.warning),
+    'transaction_due_today' => (Icons.today_rounded, DSColors.error),
     _ => (Icons.notifications_rounded, DSColors.labelTertiary),
   };
 }
@@ -550,8 +552,8 @@ class _UnreadPill extends StatelessWidget {
       ),
       child: Text(
         count > 99 ? '99+' : '$count',
-        style: const TextStyle(
-          fontSize: 11,
+        style: DSTypography.caption().copyWith(
+          fontSize: DSTypography.sizeSm,
           fontWeight: FontWeight.w700,
           color: Colors.white,
           height: 1.3,
@@ -611,8 +613,8 @@ class _EmptyState extends StatelessWidget {
                     const SizedBox(height: 16),
                     Text(
                       'All caught up',
-                      style: TextStyle(
-                        fontSize: 17,
+                      style: DSTypography.heading().copyWith(
+                        fontSize: DSTypography.sizeMd,
                         fontWeight: FontWeight.w700,
                         color: isDark
                             ? DSColors.labelPrimaryDark
@@ -623,8 +625,8 @@ class _EmptyState extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       'No notifications yet. Pull to refresh.',
-                      style: TextStyle(
-                        fontSize: 13,
+                      style: DSTypography.body().copyWith(
+                        fontSize: DSTypography.sizeMd,
                         color: isDark
                             ? DSColors.labelTertiaryDark
                             : DSColors.labelTertiary,
@@ -651,7 +653,7 @@ class _LoadMoreButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: DSSpacing.lg),
       child: Center(
         child: loading
             ? const SizedBox(
@@ -668,15 +670,15 @@ class _LoadMoreButton extends StatelessWidget {
                   foregroundColor: DSColors.primary,
                   side: const BorderSide(color: DSColors.primary),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
+                    horizontal: DSSpacing.lg,
+                    vertical: DSSpacing.md,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: DSStyles.cardRadius,
                   ),
-                  textStyle: const TextStyle(
+                  textStyle: DSTypography.button().copyWith(
                     fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                    fontSize: DSTypography.sizeMd,
                   ),
                 ),
                 icon: const Icon(Icons.expand_more_rounded, size: 18),

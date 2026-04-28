@@ -78,14 +78,17 @@ class _StatCardState extends State<StatCard>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
     final effectiveColor = widget.subdued
         ? widget.color.withValues(alpha: 0.6)
         : widget.color;
     final isDisabled = widget.onTap == null;
 
     final content = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: DSSpacing.base,
+      ),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: DSStyles.cardRadius,
@@ -107,7 +110,7 @@ class _StatCardState extends State<StatCard>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(DSSpacing.sm),
                 decoration: BoxDecoration(
                   color: widget.color.withValues(alpha: DSStyles.alphaSoft),
                   shape: BoxShape.circle,
@@ -125,24 +128,18 @@ class _StatCardState extends State<StatCard>
             widget.count,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: effectiveColor,
-              letterSpacing: -0.5,
-            ),
+            style: DSTypography.display(color: effectiveColor),
           ),
           const SizedBox(height: 2),
           Text(
             widget.label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-              letterSpacing: 1.1,
-            ),
+            style: DSTypography.label(
+              color: isDark
+                  ? DSColors.labelSecondaryDark
+                  : DSColors.labelSecondary,
+            ).copyWith(letterSpacing: 1.1),
           ),
           if (widget.details != null) ...[
             const SizedBox(height: 8),
@@ -150,11 +147,11 @@ class _StatCardState extends State<StatCard>
               widget.details!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
-                height: 1.3,
-              ),
+              style: DSTypography.caption(
+                color: isDark
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
+              ).copyWith(height: 1.3),
             ),
           ],
         ],
@@ -213,8 +210,8 @@ class ScanButton extends StatelessWidget {
       child:
           Container(
                 padding: const EdgeInsets.symmetric(
-                  vertical: 20,
-                  horizontal: 12,
+                  vertical: DSSpacing.lg,
+                  horizontal: DSSpacing.md,
                 ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -241,7 +238,7 @@ class ScanButton extends StatelessWidget {
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(DSSpacing.md),
                       decoration: BoxDecoration(
                         color: color.withValues(
                           alpha: DSStyles.alphaActiveAccent,
@@ -255,11 +252,9 @@ class ScanButton extends StatelessWidget {
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: color,
-                        letterSpacing: 0.8,
+                      style: DSTypography.label(color: color).copyWith(
+                        fontSize: DSTypography.sizeSm,
+                        letterSpacing: DSTypography.lsExtraLoose,
                       ),
                     ),
                     if (details != null) ...[
@@ -268,13 +263,11 @@ class ScanButton extends StatelessWidget {
                         details!,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
+                        style: DSTypography.caption(
                           color: isDark
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade600,
-                          height: 1.2,
-                        ),
+                              ? DSColors.labelSecondaryDark
+                              : DSColors.labelSecondary,
+                        ).copyWith(height: 1.2),
                         textAlign: TextAlign.center,
                       ),
                     ],

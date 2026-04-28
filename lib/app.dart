@@ -48,138 +48,11 @@ class FsiCourierApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: appScaffoldMessengerKey,
       themeMode: auth.themeMode,
-      theme: _buildTheme(Brightness.light),
-      darkTheme: _buildTheme(Brightness.dark),
+      theme: DSColors.buildTheme(Brightness.light),
+      darkTheme: DSColors.buildTheme(Brightness.dark),
       routerConfig: router,
       builder: (context, child) =>
           TimeEnforcer(child: _AutoSyncListener(child: child!)),
-    );
-  }
-
-  ThemeData _buildTheme(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-
-    final scaffoldColor = isDark
-        ? DSColors.scaffoldDark
-        : DSColors.scaffoldLight;
-    final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final appBarColor = isDark ? DSColors.appBarDark : DSColors.appBarLight;
-    final primaryLabel = isDark
-        ? DSColors.labelPrimaryDark
-        : DSColors.labelPrimary;
-    final secondaryLabel = isDark
-        ? DSColors.labelSecondaryDark
-        : DSColors.labelSecondary;
-
-    // Core theme properties
-    return ThemeData(
-      brightness: brightness,
-      primaryColor: DSColors.primary,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: DSColors.primary,
-        brightness: brightness,
-        primary: DSColors.primary,
-      ),
-      fontFamily: 'Montserrat',
-      useMaterial3: true,
-      scaffoldBackgroundColor: scaffoldColor,
-
-      // App Bar modern styling
-      appBarTheme: AppBarTheme(
-        backgroundColor: appBarColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: primaryLabel),
-        titleTextStyle: TextStyle(
-          fontFamily: 'Montserrat',
-          color: primaryLabel,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-
-      actionIconTheme: ActionIconThemeData(
-        backButtonIconBuilder: (BuildContext context) =>
-            const Icon(Icons.arrow_back_ios_new_rounded),
-      ),
-
-      // Text Theme
-      textTheme: TextTheme(
-        bodyLarge: TextStyle(color: primaryLabel),
-        bodyMedium: TextStyle(color: primaryLabel),
-        bodySmall: TextStyle(color: secondaryLabel),
-        titleLarge: TextStyle(color: primaryLabel, fontWeight: FontWeight.w700),
-        titleMedium: TextStyle(
-          color: primaryLabel,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-
-      // Card Theme: no hard borders, soft styling
-      cardTheme: CardThemeData(
-        color: cardColor,
-        elevation: 0,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-      ),
-
-      // Elevated Buttons: pills
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: DSColors.primary,
-          foregroundColor: Colors.white,
-          elevation: 0, // Flat styling
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'Montserrat',
-          ),
-          shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-        ),
-      ),
-
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: DSColors.primary,
-          textStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'Montserrat',
-          ),
-        ),
-      ),
-
-      // Inputs styling
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: isDark
-            ? DSColors.secondarySurfaceDark
-            : DSColors.secondarySurfaceLight,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: DSStyles.cardRadius,
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: DSStyles.cardRadius,
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: DSStyles.cardRadius,
-          borderSide: BorderSide(color: DSColors.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: DSStyles.cardRadius,
-          borderSide: BorderSide(color: DSColors.red, width: 1),
-        ),
-        labelStyle: TextStyle(color: secondaryLabel, fontFamily: 'Montserrat'),
-      ),
     );
   }
 }
@@ -528,18 +401,10 @@ class _SyncPillContent extends ConsumerWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDark
-                        ? const Color(0xFF2C2C2E).withValues(alpha: 0.97)
+                        ? DSColors.cardElevatedDark.withValues(alpha: 0.97)
                         : Colors.white.withValues(alpha: 0.97),
                     borderRadius: DSStyles.circularRadius,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: isDark ? 0.35 : 0.10,
-                        ),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    boxShadow: DSStyles.shadowSoft(context),
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -568,12 +433,11 @@ class _SyncPillContent extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Text(
                             '$processed/$total',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: isDark
-                                      ? Colors.white38
-                                      : Colors.grey.shade500,
-                                ),
+                            style: DSTypography.label(
+                              color: isDark
+                                  ? DSColors.labelSecondaryDark
+                                  : DSColors.labelSecondary,
+                            ).copyWith(fontSize: DSTypography.sizeXs),
                           ),
                         ],
                       ] else ...[
@@ -583,10 +447,10 @@ class _SyncPillContent extends ConsumerWidget {
                               : Icons.cloud_off_outlined,
                           size: 14,
                           color: failed > 0
-                              ? Colors.red.shade600
+                              ? DSColors.error
                               : (isDark
-                                    ? Colors.white54
-                                    : Colors.grey.shade600),
+                                    ? DSColors.labelSecondaryDark
+                                    : DSColors.labelSecondary),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -594,11 +458,9 @@ class _SyncPillContent extends ConsumerWidget {
                             if (pending > 0) '$pending pending',
                             if (failed > 0) '$failed failed',
                           ].join(' · '),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: failed > 0 ? Colors.red.shade700 : null,
-                              ),
+                          style: DSTypography.caption(
+                            color: failed > 0 ? DSColors.error : null,
+                          ).copyWith(fontWeight: FontWeight.w600),
                         ),
                       ],
                     ],

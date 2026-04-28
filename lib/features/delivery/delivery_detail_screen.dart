@@ -52,6 +52,7 @@ import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,291 +61,9 @@ import 'package:fsi_courier_app/design_system/design_system.dart';
 // Background/surface constants delegate to ColorStyles — do NOT duplicate.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _DS {
-  // Radii
-  static const double radiusSheet = 28;
-  static const double radiusCard = 20;
-  static const double radiusBadge = 10;
-  // Spacing
-  static const double spacingSM = 8;
-  static const double spacingMD = 16;
-  static const double spacingLG = 24;
-  static const double spacingXL = 32;
+// Local design tokens migrated to global Design System.
 
-  // Typography
-  static const TextStyle labelCaps = TextStyle(
-    fontSize: 10,
-    fontWeight: FontWeight.w600,
-    letterSpacing: 0.8,
-  );
-
-  static const TextStyle micro = TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
-  );
-
-  static const TextStyle body = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w400,
-    height: 1.5,
-  );
-
-  static const TextStyle bodyMedium = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-  );
-
-  static const TextStyle headline = TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.w800,
-    letterSpacing: -0.6,
-  );
-
-  // ── Colors ────────────────────────────────────────────────────────────────
-  // Background: use [ColorStyles] tokens — do NOT hardcode raw Color() values.
-  // These aliases keep existing references compiling while pointing to the
-  // single source of truth.
-  static const Color surface = DSColors.white; // light card surface
-  static const Color surfaceDark = DSColors.cardDark; // dark card surface
-
-  // Dividers / separators
-  static const Color separator = Color(0xFFE5E5EA);
-  static const Color separatorDark = Color(0xFF38383A);
-
-  // Text labels — these are intentional iOS-style greys, kept local.
-  static const Color labelPrimary = Color(0xFF1C1C1E);
-  static const Color labelSecondary = Color(0xFF8E8E93);
-  static const Color labelPrimaryDark = Color(0xFFFFFFFF);
-  static const Color labelSecondaryDark = Color(0xFF8E8E93);
-
-  // FSI brand accent (green CTA) and action blue — local aliases.
-  static const Color accent = DSColors.primary;
-  static const Color accentBlue = DSColors.systemBlue;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Contact App Sheet — premium redesign (logic unchanged)
-// ─────────────────────────────────────────────────────────────────────────────
-
-Future<void> showContactAppSheet(
-  BuildContext context,
-  String phone, {
-  String? messageTemplate,
-}) async {
-  final cleaned = phone.trim();
-  if (cleaned.isEmpty) return;
-  final noPlus = cleaned.replaceAll('+', '');
-
-  final encodedMsg = messageTemplate != null
-      ? Uri.encodeComponent(messageTemplate)
-      : null;
-
-  final apps = <_CommApp>[
-    _CommApp(
-      label: 'SMS',
-      icon: Icons.message_rounded,
-      color: const Color(0xFF34C759),
-      uri: encodedMsg != null
-          ? Uri.parse('sms:$cleaned?body=$encodedMsg')
-          : Uri(scheme: 'sms', path: cleaned),
-    ),
-    _CommApp(
-      label: 'Call',
-      icon: Icons.phone_rounded,
-      color: const Color(0xFF007AFF),
-      uri: Uri(scheme: 'tel', path: cleaned),
-    ),
-    _CommApp(
-      label: 'Viber',
-      icon: Icons.chat_bubble_rounded,
-      color: const Color(0xFF7360F2),
-      uri: Uri.parse(
-        encodedMsg != null
-            ? 'viber://chat?number=$noPlus&text=$encodedMsg'
-            : 'viber://chat?number=$noPlus',
-      ),
-    ),
-  ];
-
-  final optionalCandidates = [
-    _CommApp(
-      label: 'WhatsApp',
-      icon: Icons.chat_bubble_rounded,
-      color: const Color(0xFF25D366),
-      uri: Uri.parse(
-        encodedMsg != null
-            ? 'whatsapp://send?phone=$noPlus&text=$encodedMsg'
-            : 'whatsapp://send?phone=$noPlus',
-      ),
-    ),
-    _CommApp(
-      label: 'Telegram',
-      icon: Icons.near_me_rounded,
-      color: const Color(0xFF229ED9),
-      uri: Uri.parse('tg://resolve?phone=$cleaned'),
-    ),
-  ];
-
-  for (final app in optionalCandidates) {
-    if (await canLaunchUrl(app.uri)) {
-      apps.add(app);
-    }
-  }
-
-  if (!context.mounted) return;
-
-  await showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
-    builder: (ctx) => _ContactAppSheet(phone: cleaned, apps: apps),
-  );
-}
-
-class _CommApp {
-  const _CommApp({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.uri,
-  });
-  final String label;
-  final IconData icon;
-  final Color color;
-  final Uri uri;
-}
-
-class _ContactAppSheet extends StatelessWidget {
-  const _ContactAppSheet({required this.phone, required this.apps});
-  final String phone;
-  final List<_CommApp> apps;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? _DS.surfaceDark : _DS.surface;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(_DS.radiusSheet),
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        _DS.spacingLG,
-        12,
-        _DS.spacingLG,
-        _DS.spacingLG + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: _DS.spacingMD),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white24 : Colors.black12,
-                borderRadius: DSStyles.pillRadius,
-              ),
-            ),
-          ),
-
-          // Label + number
-          Text(
-            'Contact',
-            style: _DS.labelCaps.copyWith(
-              color: isDark ? _DS.labelSecondaryDark : _DS.labelSecondary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            phone,
-            style: _DS.headline.copyWith(
-              color: isDark ? _DS.labelPrimaryDark : _DS.labelPrimary,
-            ),
-          ),
-          const SizedBox(height: _DS.spacingLG),
-
-          // App grid
-          Wrap(
-            spacing: _DS.spacingMD,
-            runSpacing: _DS.spacingMD,
-            children: apps
-                .map(
-                  (app) => _AppTile(
-                    app: app,
-                    isDark: isDark,
-                    onTap: () {
-                      Navigator.pop(context);
-                      HapticFeedback.lightImpact();
-                      launchUrl(app.uri, mode: LaunchMode.externalApplication);
-                    },
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AppTile extends StatelessWidget {
-  const _AppTile({
-    required this.app,
-    required this.onTap,
-    required this.isDark,
-  });
-  final _CommApp app;
-  final VoidCallback onTap;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 72,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: app.color,
-                borderRadius: DSStyles.cardRadius,
-                boxShadow: [
-                  BoxShadow(
-                    color: app.color.withValues(
-                      alpha: DSStyles.alphaDarkShadow,
-                    ),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(app.icon, color: Colors.white, size: 26),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              app.label,
-              textAlign: TextAlign.center,
-              style: _DS.micro.copyWith(
-                color: isDark ? _DS.labelPrimaryDark : _DS.labelPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// Contact app sheet logic moved to shared/widgets/contact_app_sheet.dart
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DeliveryDetailScreen — all logic and conditions preserved
@@ -430,11 +149,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       // Pop back gracefully — the user should not see a blank/broken screen.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(reason),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
+          SnackBar(content: Text(reason), backgroundColor: DSColors.error),
         );
         // Use go('/dashboard') if nothing is beneath us in the stack.
         if (context.canPop()) {
@@ -630,8 +345,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       context.push('/deliveries/${widget.barcode}/update');
                     },
               backgroundColor: _hasPendingSync
-                  ? _DS.labelSecondary
-                  : _DS.accent,
+                  ? DSColors.labelSecondary
+                  : DSColors.primary,
               elevation: _hasPendingSync ? 0 : 6,
               icon: _hasPendingSync
                   ? SizedBox(
@@ -645,12 +360,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   : const Icon(Icons.edit_rounded, color: Colors.white),
               label: Text(
                 _hasPendingSync ? 'SYNC PENDING…' : 'UPDATE STATUS',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: 0.6,
-                ),
+                style: DSTypography.button(
+                  color: DSColors.white,
+                ).copyWith(letterSpacing: DSTypography.lsSlightlyLoose),
               ),
             )
           : null,
@@ -658,7 +370,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           ? const Center(
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: _DS.accent,
+                color: DSColors.primary,
               ),
             )
           : Column(
@@ -666,71 +378,55 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 if (_isOfflineMode) const _OfflineBanner(),
                 Expanded(
                   child: RefreshIndicator(
-                    color: _DS.accent,
+                    color: DSColors.primary,
                     onRefresh: _load,
                     child: ListView(
                       padding: EdgeInsets.fromLTRB(
-                        _DS.spacingMD,
-                        _DS.spacingSM,
-                        _DS.spacingMD,
+                        DSSpacing.base,
+                        DSSpacing.sm,
+                        DSSpacing.base,
                         showFab
-                            ? _DS.spacingXL +
+                            ? DSSpacing.xxl +
                                   88.0 +
                                   MediaQuery.of(context).padding.bottom
-                            : _DS.spacingXL,
+                            : DSSpacing.xxl,
                       ),
                       children: [
                         // ── Account details card ──────────────────────────
                         if (!checkIsLockedFromMap(_delivery))
-                          _IosCard(
-                            isDark: isDark,
+                          DSCard(
+                            margin: const EdgeInsets.only(
+                              bottom: DSSpacing.base,
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _CardSectionHeader(
-                                  label: 'Account Details',
-                                  isDark: isDark,
-                                ),
-                                _IosRow(
+                                const DSSectionHeader(title: 'Account Details'),
+                                DSInfoTile(
                                   label: 'Name',
                                   value: _str('name'),
-                                  bold: true,
-                                  isDark: isDark,
                                   onLongPress: () =>
                                       _copyToClipboard(_str('name'), 'Name'),
                                 ),
-                                // ── Piece count badge (barcode with "/") ─────
-                                if (_pieceCountFromBarcode > 0) ...[
-                                  _IosRowDivider(isDark: isDark),
-                                  _IosRow(
+                                if (_pieceCountFromBarcode > 0)
+                                  DSInfoTile(
                                     label: 'Pieces',
                                     value:
                                         '$_pieceCountFromBarcode piece${_pieceCountFromBarcode > 1 ? 's' : ''} in this bundle',
-                                    isDark: isDark,
                                   ),
-                                ],
-                                // Address and contact are only shown when delivery
-                                // is still actionable (PENDING or unverified FAILED_DELIVERY).
                                 if (_canShowContactInfo) ...[
-                                  _IosRowDivider(isDark: isDark),
-                                  _IosTappableRow(
+                                  DSInfoTile(
                                     label: 'Address',
                                     value: _str('address'),
-                                    icon: Icons.map_rounded,
-                                    accentColor: _DS.accentBlue,
                                     onTap: () => _launchMaps(_str('address')),
                                     onLongPress: () => _copyToClipboard(
                                       _str('address'),
                                       'Address',
                                     ),
-                                    isDark: isDark,
                                   ),
-                                  _IosRowDivider(isDark: isDark),
-                                  _IosTappableRow(
+                                  DSInfoTile(
                                     label: 'Contact',
                                     value: _str('contact').cleanContactNumber(),
-                                    icon: Icons.phone_rounded,
-                                    accentColor: _DS.accent,
                                     onTap: () => _onPhoneTap(
                                       _str('contact').cleanContactNumber(),
                                     ),
@@ -738,19 +434,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                                       _str('contact').cleanContactNumber(),
                                       'Contact',
                                     ),
-                                    isDark: isDark,
+                                    showDivider: false,
                                   ),
-                                  // _IosRowDivider(isDark: isDark),
-                                  // _IosTappableRow(
-                                  //   label: 'Viber',
-                                  //   value: _str('contact').cleanContactNumber(),
-                                  //   icon: Icons.chat_bubble_rounded,
-                                  //   accentColor: const Color(0xFF7360F2),
-                                  //   onTap: () => _onViberTap(
-                                  //     _str('contact').cleanContactNumber(),
-                                  //   ),
-                                  //   isDark: isDark,
-                                  // ),
                                 ],
                               ],
                             ),
@@ -785,23 +470,31 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   widget.barcode,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2,
-                  ),
+                  style:
+                      DSTypography.title(
+                        color: isDark
+                            ? DSColors.labelPrimaryDark
+                            : DSColors.labelPrimary,
+                      ).copyWith(
+                        fontSize: DSTypography.sizeMd,
+                        letterSpacing: DSTypography.lsSlightlyLoose,
+                      ),
                 ),
               ),
-              const SizedBox(width: 10),
+              DSSpacing.wMd,
             ],
           )
         : Text(
             widget.barcode,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
+            style:
+                DSTypography.title(
+                  color: isDark
+                      ? DSColors.labelPrimaryDark
+                      : DSColors.labelPrimary,
+                ).copyWith(
+                  fontSize: DSTypography.sizeMd,
+                  letterSpacing: DSTypography.lsSlightlyLoose,
+                ),
           );
   }
 
@@ -865,50 +558,36 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     if (!hasAny) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: _DS.spacingMD),
-      child: _IosCard(
-        isDark: isDark,
+      padding: const EdgeInsets.only(top: DSSpacing.base),
+      child: DSCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardSectionHeader(label: 'Proof of Delivery', isDark: isDark),
-            if (recipient.isNotEmpty) ...[
-              _IosRow(
+            const DSSectionHeader(title: 'Proof of Delivery'),
+            if (recipient.isNotEmpty)
+              DSInfoTile(
                 label: 'Received By',
                 value: recipient,
-                bold: true,
-                isDark: isDark,
                 onLongPress: () =>
                     _copyToClipboard(recipient, 'Recipient Name'),
               ),
-            ],
-            if (authRep.isNotEmpty) ...[
-              _IosRowDivider(isDark: isDark),
-              _IosRow(
+            if (authRep.isNotEmpty)
+              DSInfoTile(
                 label: 'Authorized Rep',
                 value: authRep,
-                isDark: isDark,
                 onLongPress: () =>
                     _copyToClipboard(authRep, 'Authorized Rep Name'),
               ),
-            ],
-            if (relationship.isNotEmpty) ...[
-              _IosRowDivider(isDark: isDark),
-              _IosRow(
-                label: 'Relationship',
-                value: relationship,
-                isDark: isDark,
-              ),
-            ],
+            if (relationship.isNotEmpty)
+              DSInfoTile(label: 'Relationship', value: relationship),
             // Do not expose auth-rep contact number after delivery is complete.
             if (contactRep.isNotEmpty &&
-                _str('delivery_status').toUpperCase() != 'DELIVERED') ...[
-              _IosRowDivider(isDark: isDark),
-              _IosTappableRow(
+                _str('delivery_status').toUpperCase() != 'DELIVERED')
+              DSInfoTile(
                 label: 'Contact',
                 value: contactRep.cleanContactNumber(),
                 icon: Icons.phone_rounded,
-                accentColor: _DS.accent,
+                accentColor: DSColors.primary,
                 onTap: () => _onPhoneTap(
                   contactRep.cleanContactNumber(),
                   targetName: authRep,
@@ -917,33 +596,18 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   contactRep.cleanContactNumber(),
                   'Rep Contact',
                 ),
-                isDark: isDark,
               ),
-            ],
-            if (placementType.isNotEmpty && relationship.isEmpty) ...[
-              _IosRowDivider(isDark: isDark),
-              _IosRow(label: 'Placement', value: placementType, isDark: isDark),
-            ],
-            if (note.isNotEmpty) ...[
-              _IosRowDivider(isDark: isDark),
-              _IosRow(label: 'Note', value: note, isDark: isDark),
-            ],
-            if (transactionDateToShow.isNotEmpty) ...[
-              _IosRowDivider(isDark: isDark),
-              _IosRow(
-                label: 'Transaction',
-                value: transactionDateToShow,
-                isDark: isDark,
-              ),
-            ],
-            if (deliveredDateToShow.isNotEmpty) ...[
-              _IosRowDivider(isDark: isDark),
-              _IosRow(
+            if (placementType.isNotEmpty && relationship.isEmpty)
+              DSInfoTile(label: 'Placement', value: placementType),
+            if (note.isNotEmpty) DSInfoTile(label: 'Note', value: note),
+            if (transactionDateToShow.isNotEmpty)
+              DSInfoTile(label: 'Transaction', value: transactionDateToShow),
+            if (deliveredDateToShow.isNotEmpty)
+              DSInfoTile(
                 label: 'Delivered',
                 value: deliveredDateToShow,
-                isDark: isDark,
+                showDivider: false,
               ),
-            ],
           ],
         ),
       ),
@@ -969,50 +633,41 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
         isWithPay || failedDeliveryVerifStatus == 'verified_no_pay';
 
     return Padding(
-      padding: const EdgeInsets.only(top: _DS.spacingMD),
-      child: _IosCard(
-        isDark: isDark,
+      padding: const EdgeInsets.only(top: DSSpacing.base),
+      child: DSCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header row with pay-status badge
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                _DS.spacingMD,
-                _DS.spacingMD,
-                _DS.spacingMD,
-                _DS.spacingSM,
-              ),
-              child: Row(
+            DSSectionHeader(
+              title: 'Delivery Attempts',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'DELIVERY ATTEMPTS',
-                    style: _DS.labelCaps.copyWith(
-                      color: isDark
-                          ? _DS.labelSecondaryDark
-                          : _DS.labelSecondary,
-                    ),
-                  ),
-                  const SizedBox(width: _DS.spacingSM),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 7,
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: (isDark ? Colors.white : _DS.labelPrimary)
+                      color: (isDark ? DSColors.white : DSColors.labelPrimary)
                           .withValues(alpha: DSStyles.alphaSoft),
-                      borderRadius: BorderRadius.circular(_DS.radiusBadge),
+                      borderRadius: BorderRadius.circular(DSStyles.radiusBadge),
                     ),
                     child: Text(
                       '${typedAttempts.length}',
-                      style: _DS.micro.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? _DS.labelPrimaryDark : _DS.labelPrimary,
-                      ),
+                      style:
+                          DSTypography.caption(
+                            fontSize: DSTypography.sizeSm,
+                            fontWeight: FontWeight.w700,
+                          ).copyWith(
+                            color: isDark
+                                ? DSColors.labelPrimaryDark
+                                : DSColors.labelPrimary,
+                          ),
                     ),
                   ),
-                  const Spacer(),
+                  DSSpacing.wSm,
                   if (isValidated) _PayBadge(isWithPay: isWithPay),
                 ],
               ),
@@ -1030,73 +685,17 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       ?.toString() ??
                   '';
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _IosRowDivider(isDark: isDark),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      _DS.spacingMD,
-                      10,
-                      _DS.spacingMD,
-                      10,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(
-                              alpha: DSStyles.alphaActiveAccent,
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              _DS.radiusBadge,
-                            ),
-                          ),
-                          child: Text(
-                            label,
-                            style: _DS.micro.copyWith(
-                              color: Colors.orange.shade700,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: _DS.spacingSM),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (timestamp.isNotEmpty)
-                                Text(
-                                  formatDate(timestamp, includeTime: true),
-                                  style: _DS.micro.copyWith(
-                                    color: isDark
-                                        ? _DS.labelSecondaryDark
-                                        : _DS.labelSecondary,
-                                  ),
-                                ),
-                              if (reason.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  reason,
-                                  style: _DS.bodyMedium.copyWith(
-                                    color: isDark
-                                        ? _DS.labelPrimaryDark
-                                        : _DS.labelPrimary,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              return DSInfoTile(
+                label: label,
+                value: reason.isNotEmpty ? reason : 'No reason provided',
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DSSpacing.base,
+                  vertical: DSSpacing.md,
+                ),
+                icon: Icons.access_time_rounded,
+                accentColor: DSColors.warning,
+                onTap: () {}, // Make it feel interactive
+                showDivider: idx < typedAttempts.length - 1,
               );
             }),
           ],
@@ -1124,50 +723,54 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   Widget _buildDeliveryDetailsCard(bool isDark) {
     final rows = <Widget>[];
 
-    void addRow(String label, String raw, {bool includeTime = false}) {
+    void addRow(String label, String raw, {bool isLast = false}) {
       final v = raw.isNotEmpty
           ? (label == 'Product' || label == 'Transmittal' || label == 'TAT'
                 ? formatDate(raw)
                 : raw)
           : '';
       if (v.isEmpty) return;
-      if (rows.isNotEmpty) rows.add(_IosRowDivider(isDark: isDark));
-      rows.add(_IosRow(label: label, value: v, isDark: isDark));
+      rows.add(DSInfoTile(label: label, value: v, showDivider: !isLast));
     }
 
     if (_str('product').isNotEmpty) addRow('Product', _str('product'));
-    // dispatch_code intentionally hidden from delivery views (ENH-005)
     if (_str('special_instruction').isNotEmpty) {
-      if (rows.isNotEmpty) rows.add(_IosRowDivider(isDark: isDark));
-      rows.add(
-        _IosRow(
-          label: 'Instructions',
-          value: _str('special_instruction'),
-          isDark: isDark,
-        ),
-      );
+      addRow('Instructions', _str('special_instruction'));
     }
     if (_str('remarks').isNotEmpty) {
-      if (rows.isNotEmpty) rows.add(_IosRowDivider(isDark: isDark));
-      rows.add(
-        _IosRow(label: 'Remarks', value: _str('remarks'), isDark: isDark),
-      );
+      addRow('Remarks', _str('remarks'));
     }
     if (_str('transmittal_date').isNotEmpty) {
       addRow('Transmittal', _str('transmittal_date'));
     }
     if (_str('tat').isNotEmpty) addRow('TAT', _str('tat'));
 
+    // Ensure the last row doesn't have a divider
+    if (rows.isNotEmpty) {
+      final last = rows.last;
+      if (last is DSInfoTile) {
+        rows[rows.length - 1] = DSInfoTile(
+          label: last.label,
+          value: last.value,
+          icon: last.icon,
+          onTap: last.onTap,
+          onLongPress: last.onLongPress,
+          accentColor: last.accentColor,
+          padding: last.padding,
+          showDivider: false,
+        );
+      }
+    }
+
     if (rows.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: _DS.spacingMD),
-      child: _IosCard(
-        isDark: isDark,
+      padding: const EdgeInsets.only(top: DSSpacing.base),
+      child: DSCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardSectionHeader(label: 'Delivery Details', isDark: isDark),
+            const DSSectionHeader(title: 'Delivery Details'),
             ...rows,
           ],
         ),
@@ -1188,13 +791,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     ).reversed.toList();
 
     return Padding(
-      padding: const EdgeInsets.only(top: _DS.spacingMD),
-      child: _IosCard(
-        isDark: isDark,
+      padding: const EdgeInsets.only(top: DSSpacing.base),
+      child: DSCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardSectionHeader(label: 'History (Debug)', isDark: isDark),
+            const DSSectionHeader(title: 'History (Debug)'),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -1227,16 +829,22 @@ class _PayBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = isWithPay ? Colors.teal.shade50 : Colors.red.shade50;
-    final borderColor = isWithPay ? Colors.teal.shade200 : Colors.red.shade200;
-    final dotColor = isWithPay ? Colors.green.shade500 : Colors.red.shade400;
-    final textColor = isWithPay ? Colors.teal.shade700 : Colors.red.shade600;
+    final bgColor = (isWithPay ? DSColors.success : DSColors.error).withValues(
+      alpha: DSStyles.alphaSoft,
+    );
+    final borderColor = (isWithPay ? DSColors.success : DSColors.error)
+        .withValues(alpha: DSStyles.alphaBorder);
+    final dotColor = isWithPay ? DSColors.success : DSColors.error;
+    final textColor = isWithPay ? DSColors.success : DSColors.error;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.sm,
+        vertical: DSSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(_DS.radiusBadge),
+        borderRadius: BorderRadius.circular(DSStyles.radiusBadge),
         border: Border.all(color: borderColor, width: 0.8),
       ),
       child: Row(
@@ -1250,7 +858,7 @@ class _PayBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             isWithPay ? 'WITH PAY' : 'NO PAY',
-            style: _DS.labelCaps.copyWith(
+            style: DSTypography.labelCaps.copyWith(
               color: textColor,
               fontSize: 9,
               letterSpacing: 0.6,
@@ -1262,269 +870,7 @@ class _PayBadge extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// iOS-style grouped card
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _IosCard extends StatelessWidget {
-  const _IosCard({required this.child, required this.isDark});
-  final Widget child;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? _DS.surfaceDark : _DS.surface,
-        borderRadius: BorderRadius.circular(_DS.radiusCard),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(_DS.radiusCard),
-        child: child,
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Card section header
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _CardSectionHeader extends StatelessWidget {
-  const _CardSectionHeader({required this.label, required this.isDark});
-  final String label;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        _DS.spacingMD,
-        _DS.spacingMD,
-        _DS.spacingMD,
-        _DS.spacingSM,
-      ),
-      child: Text(
-        label.toUpperCase(),
-        style: _DS.labelCaps.copyWith(
-          color: isDark ? _DS.labelSecondaryDark : _DS.labelSecondary,
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// iOS-style row components
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _IosRowDivider extends StatelessWidget {
-  const _IosRowDivider({required this.isDark});
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: _DS.spacingMD),
-      child: Divider(
-        height: 0.5,
-        thickness: 0.5,
-        color: isDark ? _DS.separatorDark : _DS.separator,
-      ),
-    );
-  }
-}
-
-class _IosRow extends StatefulWidget {
-  const _IosRow({
-    required this.label,
-    required this.value,
-    required this.isDark,
-    this.bold = false,
-    this.onLongPress,
-  });
-
-  final String label;
-  final String value;
-  final bool isDark;
-  final bool bold;
-  final VoidCallback? onLongPress;
-
-  @override
-  State<_IosRow> createState() => _IosRowState();
-}
-
-class _IosRowState extends State<_IosRow> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.value.isEmpty) return const SizedBox.shrink();
-
-    return AnimatedScale(
-      scale: _isPressed ? 0.98 : 1.0,
-      duration: const Duration(milliseconds: 100),
-      curve: Curves.easeOutCubic,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTapDown: (_) => setState(() => _isPressed = true),
-          onTapUp: (_) => setState(() => _isPressed = false),
-          onTapCancel: () => setState(() => _isPressed = false),
-          onLongPress: widget.onLongPress != null
-              ? () {
-                  HapticFeedback.lightImpact();
-                  widget.onLongPress?.call();
-                }
-              : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: _DS.spacingMD,
-              vertical: 11,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 110,
-                  child: Text(
-                    widget.label,
-                    style: _DS.bodyMedium.copyWith(
-                      color: widget.isDark
-                          ? _DS.labelSecondaryDark
-                          : _DS.labelSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    widget.value,
-                    style: _DS.bodyMedium.copyWith(
-                      fontSize: 14,
-                      fontWeight: widget.bold
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: widget.isDark
-                          ? _DS.labelPrimaryDark
-                          : _DS.labelPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _IosTappableRow extends StatefulWidget {
-  const _IosTappableRow({
-    required this.label,
-    required this.value,
-    required this.isDark,
-    required this.icon,
-    required this.accentColor,
-    this.onTap,
-    this.onLongPress,
-  });
-
-  final String label;
-  final String value;
-  final bool isDark;
-  final IconData icon;
-  final Color accentColor;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-
-  @override
-  State<_IosTappableRow> createState() => _IosTappableRowState();
-}
-
-class _IosTappableRowState extends State<_IosTappableRow> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.value.isEmpty) return const SizedBox.shrink();
-
-    return AnimatedScale(
-      scale: _isPressed ? 0.98 : 1.0,
-      duration: const Duration(milliseconds: 100),
-      curve: Curves.easeOutCubic,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTapDown: (_) => setState(() => _isPressed = true),
-          onTapUp: (_) => setState(() => _isPressed = false),
-          onTapCancel: () => setState(() => _isPressed = false),
-          onTap: () {
-            HapticFeedback.selectionClick();
-            widget.onTap?.call();
-          },
-          onLongPress: widget.onLongPress != null
-              ? () {
-                  HapticFeedback.lightImpact();
-                  widget.onLongPress?.call();
-                }
-              : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: _DS.spacingMD,
-              vertical: 11,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 110,
-                  child: Text(
-                    widget.label,
-                    style: _DS.bodyMedium.copyWith(
-                      color: widget.isDark
-                          ? _DS.labelSecondaryDark
-                          : _DS.labelSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    widget.value,
-                    style: _DS.bodyMedium.copyWith(
-                      fontSize: 14,
-                      color: widget.accentColor,
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: widget.accentColor.withValues(
-                      alpha: DSStyles.alphaSoft,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(widget.icon, size: 13, color: widget.accentColor),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// Legacy row components removed. Used DSInfoTile and DSCard instead.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Timeline item — redesigned
@@ -1574,20 +920,23 @@ class _TimelineItem extends StatelessWidget {
                 Container(
                   width: 32,
                   height: 32,
-                  margin: const EdgeInsets.only(top: 12, left: _DS.spacingMD),
+                  margin: const EdgeInsets.only(
+                    top: DSSpacing.md,
+                    left: DSSpacing.base,
+                  ),
                   decoration: BoxDecoration(
                     color: isFirst
-                        ? _DS.accent
+                        ? DSColors.primary
                         : (isDark
-                              ? Colors.white.withValues(
+                              ? DSColors.white.withValues(
                                   alpha: DSStyles.alphaSoft,
                                 )
-                              : Colors.grey.shade100),
+                              : DSColors.secondarySurfaceLight),
                     shape: BoxShape.circle,
                     boxShadow: isFirst
                         ? [
                             BoxShadow(
-                              color: _DS.accent.withValues(
+                              color: DSColors.primary.withValues(
                                 alpha: DSStyles.alphaDarkShadow,
                               ),
                               blurRadius: 8,
@@ -1600,16 +949,20 @@ class _TimelineItem extends StatelessWidget {
                     _iconFor(action),
                     size: 15,
                     color: isFirst
-                        ? Colors.white
-                        : (isDark ? Colors.white38 : Colors.grey.shade400),
+                        ? DSColors.white
+                        : (isDark
+                              ? DSColors.labelSecondaryDark
+                              : DSColors.labelSecondary),
                   ),
                 ),
                 if (!isLast)
                   Expanded(
                     child: Container(
                       width: 1.5,
-                      margin: const EdgeInsets.only(left: _DS.spacingMD),
-                      color: isDark ? Colors.white12 : Colors.grey.shade200,
+                      margin: const EdgeInsets.only(left: DSSpacing.base),
+                      color: isDark
+                          ? DSColors.separatorDark
+                          : DSColors.separatorLight,
                     ),
                   ),
               ],
@@ -1620,10 +973,10 @@ class _TimelineItem extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
-                _DS.spacingSM,
-                12,
-                _DS.spacingMD,
-                16,
+                DSSpacing.sm,
+                DSSpacing.md,
+                DSSpacing.base,
+                DSSpacing.base,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1634,36 +987,39 @@ class _TimelineItem extends StatelessWidget {
                       Expanded(
                         child: Text(
                           action.toDisplayStatus(),
-                          style: _DS.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
+                          style: DSTypography.body(
                             color: isFirst
-                                ? _DS.accent
+                                ? DSColors.primary
                                 : (isDark
-                                      ? _DS.labelPrimaryDark
-                                      : _DS.labelPrimary),
-                          ),
+                                      ? DSColors.labelPrimaryDark
+                                      : DSColors.labelPrimary),
+                          ).copyWith(fontWeight: FontWeight.w600),
                         ),
                       ),
                       if (status.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
+                            horizontal: DSSpacing.sm,
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
                             color: (isDark ? Colors.white : Colors.black)
                                 .withValues(alpha: DSStyles.alphaSoft),
                             borderRadius: BorderRadius.circular(
-                              _DS.radiusBadge,
+                              DSStyles.radiusBadge,
                             ),
                           ),
                           child: Text(
                             status.toDisplayStatus(),
-                            style: _DS.labelCaps.copyWith(
-                              color: isDark
-                                  ? _DS.labelSecondaryDark
-                                  : _DS.labelSecondary,
-                            ),
+                            style:
+                                DSTypography.caption(
+                                  color: isDark
+                                      ? DSColors.labelSecondaryDark
+                                      : DSColors.labelSecondary,
+                                ).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: DSTypography.lsExtraLoose,
+                                ),
                           ),
                         ),
                     ],
@@ -1671,26 +1027,29 @@ class _TimelineItem extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     formatDate(timestamp, includeTime: true),
-                    style: _DS.micro.copyWith(
-                      color: isDark
-                          ? _DS.labelSecondaryDark
-                          : _DS.labelSecondary,
-                    ),
+                    style:
+                        DSTypography.caption(
+                          fontSize: DSTypography.sizeSm,
+                          fontWeight: FontWeight.w500,
+                        ).copyWith(
+                          color: isDark
+                              ? DSColors.labelSecondaryDark
+                              : DSColors.labelSecondary,
+                        ),
                   ),
                   if (note.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       note,
-                      style: _DS.body.copyWith(
-                        fontSize: 13,
+                      style: DSTypography.body(
                         color: isDark
-                            ? _DS.labelPrimaryDark.withValues(
+                            ? DSColors.labelPrimaryDark.withValues(
                                 alpha: DSStyles.alphaGlass,
                               )
-                            : _DS.labelPrimary.withValues(
+                            : DSColors.labelPrimary.withValues(
                                 alpha: DSStyles.alphaGlass,
                               ),
-                      ),
+                      ).copyWith(fontSize: DSTypography.sizeMd),
                     ),
                   ],
                 ],
@@ -1715,20 +1074,20 @@ class _OfflineBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: _DS.spacingMD,
+        horizontal: DSSpacing.base,
         vertical: 9,
       ),
-      color: Colors.orange.shade700,
+      color: DSColors.pending,
       child: Row(
         children: [
-          const Icon(Icons.wifi_off_rounded, size: 13, color: Colors.white),
-          const SizedBox(width: _DS.spacingSM),
+          const Icon(Icons.wifi_off_rounded, size: 13, color: DSColors.white),
+          DSSpacing.wSm,
           Text(
             'Offline — showing locally saved data',
-            style: _DS.micro.copyWith(
-              color: Colors.white,
+            style: DSTypography.caption(
+              fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w600,
-            ),
+            ).copyWith(color: DSColors.white),
           ),
         ],
       ),

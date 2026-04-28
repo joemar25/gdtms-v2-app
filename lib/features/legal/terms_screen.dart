@@ -90,21 +90,23 @@ class _TermsScreenState extends State<TermsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF13131F) : const Color(0xFFF5F6FA);
-    final cardColor = isDark ? const Color(0xFF1C1C28) : Colors.white;
+    final bg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
+    final cardColor = isDark ? DSColors.cardDark : Colors.white;
 
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1C1C28) : Colors.white,
+        backgroundColor: isDark ? DSColors.cardDark : Colors.white,
         elevation: 0,
         title: Text(
           widget.viewOnly ? 'Terms & Conditions' : 'Terms & Conditions',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : Colors.black87,
-          ),
+          style:
+              DSTypography.title(
+                color: isDark ? Colors.white : Colors.black87,
+              ).copyWith(
+                fontSize: DSTypography.sizeMd,
+                fontWeight: FontWeight.w700,
+              ),
         ),
         iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
         automaticallyImplyLeading: widget.viewOnly,
@@ -115,14 +117,14 @@ class _TermsScreenState extends State<TermsScreen> {
             child: _content.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : Container(
-                    margin: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.all(DSSpacing.base),
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: DSStyles.cardRadius,
                     ),
                     child: SingleChildScrollView(
                       controller: _scrollCtrl,
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(DSSpacing.lg),
                       child: LegalMarkdownText(
                         content: _content,
                         isDark: isDark,
@@ -133,7 +135,7 @@ class _TermsScreenState extends State<TermsScreen> {
           if (!widget.viewOnly) ...[
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-              color: isDark ? const Color(0xFF1C1C28) : Colors.white,
+              color: isDark ? DSColors.cardDark : Colors.white,
               child: Column(
                 children: [
                   if (!_scrolledToEnd)
@@ -141,10 +143,9 @@ class _TermsScreenState extends State<TermsScreen> {
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Text(
                         'Scroll to the bottom to accept',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: DSTypography.caption(
                           color: isDark ? Colors.white38 : Colors.black38,
-                        ),
+                        ).copyWith(fontSize: DSTypography.sizeSm),
                       ),
                     ),
                   SizedBox(
@@ -177,12 +178,9 @@ class _TermsScreenState extends State<TermsScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
+                          : Text(
                               'I Accept the Terms & Conditions',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: DSTypography.button(color: Colors.white),
                             ),
                     ),
                   ),
@@ -223,10 +221,9 @@ class LegalMarkdownText extends StatelessWidget {
         widgets.add(
           Text(
             line.substring(2),
-            style: TextStyle(
-              fontSize: 20,
+            style: DSTypography.heading(color: baseColor).copyWith(
+              fontSize: DSTypography.sizeLg,
               fontWeight: FontWeight.w800,
-              color: baseColor,
             ),
           ),
         );
@@ -236,10 +233,9 @@ class LegalMarkdownText extends StatelessWidget {
         widgets.add(
           Text(
             line.substring(3),
-            style: TextStyle(
-              fontSize: 15,
+            style: DSTypography.title(color: baseColor).copyWith(
+              fontSize: DSTypography.sizeMd,
               fontWeight: FontWeight.w700,
-              color: baseColor,
             ),
           ),
         );
@@ -249,10 +245,9 @@ class LegalMarkdownText extends StatelessWidget {
         widgets.add(
           Text(
             line.substring(4),
-            style: TextStyle(
-              fontSize: 14,
+            style: DSTypography.subTitle(color: baseColor).copyWith(
+              fontSize: DSTypography.sizeMd,
               fontWeight: FontWeight.w600,
-              color: baseColor,
             ),
           ),
         );
@@ -268,7 +263,7 @@ class LegalMarkdownText extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('• ', style: TextStyle(color: DSColors.primary)),
+                Text('• ', style: DSTypography.body(color: DSColors.primary)),
                 Expanded(child: _buildInlineText(line.substring(2), baseColor)),
               ],
             ),
@@ -282,9 +277,8 @@ class LegalMarkdownText extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 3),
             child: Text(
               line.replaceAll('*', '').trim(),
-              style: TextStyle(
-                fontSize: 12,
-                color: mutedColor,
+              style: DSTypography.caption(color: mutedColor).copyWith(
+                fontSize: DSTypography.sizeSm,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -312,7 +306,9 @@ class LegalMarkdownText extends StatelessWidget {
     if (!boldPattern.hasMatch(line)) {
       return Text(
         line,
-        style: TextStyle(fontSize: 13.5, color: baseColor, height: 1.5),
+        style: DSTypography.body(
+          color: baseColor,
+        ).copyWith(fontSize: DSTypography.sizeMd, height: 1.5),
       );
     }
 
@@ -325,7 +321,7 @@ class LegalMarkdownText extends StatelessWidget {
       spans.add(
         TextSpan(
           text: match.group(1),
-          style: const TextStyle(fontWeight: FontWeight.w700),
+          style: DSTypography.body().copyWith(fontWeight: FontWeight.w700),
         ),
       );
       lastEnd = match.end;
@@ -336,7 +332,9 @@ class LegalMarkdownText extends StatelessWidget {
 
     return RichText(
       text: TextSpan(
-        style: TextStyle(fontSize: 13.5, color: baseColor, height: 1.5),
+        style: DSTypography.body(
+          color: baseColor,
+        ).copyWith(fontSize: 13.5, height: 1.5),
         children: spans,
       ),
     );

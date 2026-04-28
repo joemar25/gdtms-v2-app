@@ -112,7 +112,7 @@ class LocalDelivery {
       deliveryAddress: _str(json, 'address'),
       // API boundary: parse and normalise via DeliveryStatus (maps to failedDelivery).
       deliveryStatus: DeliveryStatus.fromString(
-        _str(json, 'delivery_status') ?? 'PENDING',
+        _str(json, 'delivery_status') ?? 'FOR_DELIVERY',
       ).toDbString(),
       // 'product' carries the mail/product type in the eligibility response.
       mailType: _str(json, 'product') ?? _str(json, 'mail_type'),
@@ -156,7 +156,7 @@ class LocalDelivery {
         _str(json, 'tracking_number') ??
         '';
 
-    // serverStatus is the endpoint bucket we fetched from ('PENDING', 'DELIVERED',
+    // serverStatus is the endpoint bucket we fetched from ('FOR_DELIVERY', 'DELIVERED',
     // 'FAILED_DELIVERY', 'OSA'). We previously used it as the primary status, which caused
     // issues when the API item contains a more specific state like 'DISPATCHED'.
     //
@@ -164,14 +164,12 @@ class LocalDelivery {
     // bucket status to prevent regressions (e.g. DISPATCHED showing as DELIVERED
     // if the server inadvertently includes it in the wrong list).
     // API boundary: resolve status from JSON field, falling back to the server
-    // bucket ('PENDING', 'FAILED_DELIVERY', etc.) when the item itself omits delivery_status.
+    // bucket ('FOR_DELIVERY', 'FAILED_DELIVERY', etc.) when the item itself omits delivery_status.
     // DeliveryStatus.fromString normalises 'FAILED_DELIVERY' (and 'FOR_DELIVERY'
     // → pending) so no raw string comparisons are needed below.
     final jsonStatus = (_str(json, 'delivery_status') ?? '').toUpperCase();
     final rawStatus =
-        (jsonStatus.isNotEmpty &&
-                    jsonStatus != 'PENDING' &&
-                    jsonStatus != 'FOR_DELIVERY'
+        (jsonStatus.isNotEmpty && jsonStatus != 'FOR_DELIVERY'
                 ? jsonStatus
                 : (serverStatus.isNotEmpty ? serverStatus : 'FOR_DELIVERY'))
             .toUpperCase();
@@ -250,7 +248,7 @@ class LocalDelivery {
       trackingNumber: row['tracking_number'] as String?,
       recipientName: row['recipient_name'] as String?,
       deliveryAddress: row['delivery_address'] as String?,
-      deliveryStatus: row['delivery_status'] as String? ?? 'PENDING',
+      deliveryStatus: row['delivery_status'] as String? ?? 'FOR_DELIVERY',
       mailType: row['mail_type'] as String?,
       dispatchCode: row['dispatch_code'] as String?,
       rawJson: row['raw_json'] as String,

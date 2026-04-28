@@ -27,6 +27,7 @@ class DeliveryRecipientCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -34,16 +35,17 @@ class DeliveryRecipientCards extends StatelessWidget {
           GestureDetector(
             onTap: () => onSelectRecipient(recipientName, 'OWNER'),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DSSpacing.md,
+                vertical: DSSpacing.md,
+              ),
               decoration: BoxDecoration(
-                color: const Color(
-                  0xFF007A36,
-                ).withValues(alpha: DSStyles.alphaSoft),
+                color: DSColors.success.withValues(alpha: DSStyles.alphaSoft),
                 borderRadius: DSStyles.cardRadius,
                 border: Border.all(
-                  color: const Color(
-                    0xFF007A36,
-                  ).withValues(alpha: DSStyles.alphaDarkShadow),
+                  color: DSColors.success.withValues(
+                    alpha: DSStyles.alphaDarkShadow,
+                  ),
                 ),
               ),
               child: Row(
@@ -51,7 +53,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                   const Icon(
                     Icons.person_rounded,
                     size: 16,
-                    color: Color(0xFF007A36),
+                    color: DSColors.success,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -60,16 +62,18 @@ class DeliveryRecipientCards extends StatelessWidget {
                       children: [
                         Text(
                           'Recipient',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade500,
+                          style: DSTypography.caption().copyWith(
+                            fontSize: DSTypography.sizeXs,
+                            color: isDark
+                                ? DSColors.labelSecondaryDark
+                                : Colors.grey.shade500,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
                           recipientName,
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: DSTypography.body().copyWith(
+                            fontSize: DSTypography.sizeSm,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -91,12 +95,15 @@ class DeliveryRecipientCards extends StatelessWidget {
           GestureDetector(
             onTap: () => onSelectRecipient(authorizedRep, null),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DSSpacing.md,
+                vertical: DSSpacing.md,
+              ),
               decoration: BoxDecoration(
-                color: Colors.purple.withValues(alpha: DSStyles.alphaSoft),
+                color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
                 borderRadius: DSStyles.cardRadius,
                 border: Border.all(
-                  color: Colors.purple.withValues(
+                  color: DSColors.primary.withValues(
                     alpha: DSStyles.alphaDarkShadow,
                   ),
                 ),
@@ -106,7 +113,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                   const Icon(
                     Icons.person_add_rounded,
                     size: 16,
-                    color: Colors.purple,
+                    color: DSColors.primary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -115,16 +122,18 @@ class DeliveryRecipientCards extends StatelessWidget {
                       children: [
                         Text(
                           'Auth. Rep',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade500,
+                          style: DSTypography.caption().copyWith(
+                            fontSize: DSTypography.sizeXs,
+                            color: isDark
+                                ? DSColors.labelSecondaryDark
+                                : Colors.grey.shade500,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
                           authorizedRep,
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: DSTypography.body().copyWith(
+                            fontSize: DSTypography.sizeSm,
                             fontWeight: FontWeight.w700,
                           ),
                         ),

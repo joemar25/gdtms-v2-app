@@ -80,27 +80,36 @@ Write production-grade code on the first pass. No `// TODO: optimize later`, no 
 ### Rules
 
 #### 01 — Max 600 executable lines per file
+
 Controllers, Screens, and Providers should stay lean.
+
 - **When to split:**
   - Screen file getting fat? → Extract widgets into `<feature>_components.dart`.
   - Provider doing too much? → Split the state logic or extract repositories.
 
 #### 02 — Strict Type Safety and No `dynamic` by default
+
 - Do not use `dynamic` unless absolutely necessary (e.g., parsing raw JSON).
 - Always use strongly typed variables and return types.
 - Ensure `flutter analyze` passes with zero warnings.
 
 #### 03 — Use `const` everywhere possible
+
 - Always add `const` constructors to Widgets.
 - Always use `const` for structural widget compositions to prevent unnecessary widget rebuilds.
 - Enable `prefer_const_constructors` in `analysis_options.yaml`.
 
-#### 04 — Search before creating
-Duplicate UI code is a bug vector.
-- Check `lib/shared/widgets/` before building a new UI component.
-- Check `lib/design_system/tokens/` before hardcoding colors or spacing.
+#### 04 — Design System Strict Compliance
+
+Duplicate UI code and hardcoded values are technical debt.
+
+- **Centralized Tokens**: **NEVER hardcode colors, spacing, or animation durations**. Use `DSColors`, `DSSpacing`, and `DSStyles`.
+- **Typography for All**: **NEVER** use direct `TextStyle()` constructors. Always use `DSTypography` methods. This ensures the correct Montserrat weight mapping and theme-aware colors are used app-wide.
+- **Search Before Creating**: Check `lib/shared/widgets/` for existing molecules/atoms before building a new UI component.
+- **Icons**: Use `DSColors.labelSecondary` or `Theme.of(context).iconTheme.color` for icons. Do not hardcode `Colors.black54` etc.
 
 #### 05 — Single Responsibility
+
 - **Screen (`.dart`)**: UI layout, user interaction, connecting to Riverpod.
 - **Provider (`.dart`)**: State management, business logic orchestration.
 - **Repository/DAO (`.dart`)**: Data access, API calls, SQLite queries.
@@ -135,26 +144,30 @@ lib/
 
 ### Quick Reference
 
-| Concern | Rule |
-| --- | --- |
+| Concern          | Rule                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------- |
 | State Management | Use `Riverpod` (`ConsumerWidget`, `ConsumerStatefulWidget`). No `setState` for global data. |
-| Navigation | Use `go_router` (`context.push`, `context.go`). |
-| Database | Use `sqflite` with robust DAO classes. |
-| Styling | **Never hardcode colors**. Always use `DSColors` and `DSStyles`. |
-| API Calls | Route through `ApiClient` for consistent error handling and token injection. |
-| Offline | Always read from Local DB. Background sync queues update the server. |
+| Navigation       | Use `go_router` (`context.push`, `context.go`).                                             |
+| Database         | Use `sqflite` with robust DAO classes.                                                      |
+| Styling          | **Never hardcode values**. Strictly use `DSColors`, `DSStyles`, and `DSTypography`.         |
+| API Calls        | Route through `ApiClient` for consistent error handling and token injection.                |
+| Offline          | Always read from Local DB. Background sync queues update the server.                        |
 
 ---
 
 ## Logging & Observability Standards
 
 ### 1. Appropriate Log Levels
+
 Use a logging package (like `logger`) or custom debug wrappers.
+
 - `debugPrint()` for simple development checks.
 - Structured logging for critical operations (e.g., Sync Service, API Errors).
 
 ### 2. Capture Sufficient Context
+
 When logging an error, capture:
+
 - Delivery/Barcode ID
 - Sync attempt count
 - Error stack trace
@@ -172,10 +185,12 @@ print('Error syncing');
 ## Testing Requirements
 
 ### Test-First Mindset
+
 - Write unit tests for your data parsing and domain models.
 - Write unit tests for local SQLite DAO logic (using sqflite_common_ffi for desktop).
 
 ### Widget Testing
+
 - Test critical UI flows using `WidgetTester`.
 - Ensure custom components render correctly with mock Riverpod providers.
 
@@ -184,12 +199,15 @@ print('Error syncing');
 ## Documentation Standards
 
 ### Updating Docs
+
 **ALWAYS update docs when**:
+
 - Modifying offline sync behavior.
 - Adding a new feature module.
 - Changing API payload structures.
 
 ### Formatting
+
 - Use Markdown for repository docs.
 - Use `///` DartDoc comments for public classes and methods.
 
@@ -206,22 +224,35 @@ print('Error syncing');
 ## Performance & Optimization
 
 ### Widget Rebuilds
+
 - Use `Consumer` localized to the exact widget tree that needs rebuilding instead of wrapping the entire screen.
 - Use `select` in Riverpod to listen only to specific property changes: `ref.watch(provider.select((s) => s.property))`.
 
 ### Lists and Scrolling
+
 - Always use `ListView.builder` or `SliverList` for dynamic lists. Never map a huge list into a `Column`.
 - Ensure images and assets are properly sized.
+
+---
+
+## File Management & Navigation
+
+- Keep feature modules small and well-scoped under `lib/features/{feature}`.
+- Reuse shared widgets in `lib/shared/widgets/` and design-system tokens from `lib/design_system/`.
+- Prefer `go_router` for navigation with `context.push` / `context.go`; avoid raw `Navigator` chains unless explicitly required.
+- Separate large screens into smaller components and providers when a file grows past a few hundred lines.
 
 ---
 
 ## Error Handling & Recovery
 
 ### API and Network
+
 - Distinguish between `ApiNetworkError` (offline) and `ApiServerError` (500).
 - The app must gracefully degrade when offline, caching requests into the sync queue.
 
 ### User Feedback
+
 - Use `showErrorNotification()` and `showInfoNotification()` for uniform snackbars.
 - Never show a raw Exception string directly to the user.
 

@@ -146,6 +146,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final failedDeliveryCount = _summary['failed_delivery'] ?? 0;
     final osaCount = _summary['osa'] ?? 0;
     final deliveredCount = _summary['delivered_today'] ?? 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Use summary values for sync to ensure consistency after load
     final pendingSyncCount = _summary['pending_sync'] ?? 0;
@@ -191,10 +192,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // ),
           body: _loading
               ? const Center(
-                  child: SpinKitFadingCircle(
-                    color: Color(0xFF00B14F),
-                    size: 52,
-                  ),
+                  child: SpinKitFadingCircle(color: DSColors.primary, size: 52),
                 )
               : RefreshIndicator(
                   onRefresh: _onRefresh,
@@ -210,7 +208,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       label: 'DISPATCH',
                                       count: '$pendingDispatchCount',
                                       icon: Icons.qr_code_rounded,
-                                      color: DSColors.red,
+                                      color: DSColors.error,
                                       onTap: pendingDispatchCount == 0
                                           ? null
                                           : () => context.push('/dispatches'),
@@ -265,7 +263,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       label: 'Attempted',
                                       count: '$failedDeliveryCount',
                                       icon: Icons.assignment_return_outlined,
-                                      color: Colors.red,
+                                      color: DSColors.error,
                                       onTap: failedDeliveryCount == 0
                                           ? null
                                           : () => context.push(
@@ -289,7 +287,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       label: 'Misrouted',
                                       count: '$osaCount',
                                       icon: Icons.lock_outline_rounded,
-                                      color: Colors.grey,
+                                      color: isDark
+                                          ? DSColors.labelSecondaryDark
+                                          : DSColors.labelSecondary,
                                       onTap: osaCount == 0
                                           ? null
                                           : () => context.push('/osa'),
@@ -310,8 +310,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                           : '$syncedTotalCount',
                                       icon: Icons.sync_rounded,
                                       color: pendingSyncCount > 0
-                                          ? Colors.blueAccent
-                                          : Colors.blueGrey,
+                                          ? DSColors.primary
+                                          : (isDark
+                                                ? DSColors.labelSecondaryDark
+                                                : DSColors.labelSecondary),
                                       onTap: () => context.push('/sync'),
                                       subdued:
                                           pendingSyncCount == 0 &&
@@ -338,7 +340,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ScanButton(
                                       label: 'SCAN DISPATCH',
                                       icon: Icons.qr_code_scanner_rounded,
-                                      color: DSColors.red,
+                                      color: DSColors.error,
                                       onTap: () => context.push(
                                         '/scan',
                                         extra: {'mode': 'dispatch'},

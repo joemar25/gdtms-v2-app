@@ -213,7 +213,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                   : const Icon(Icons.sync_rounded, size: 18),
               label: Text(
                 syncState.isSyncing ? 'Syncing…' : 'Sync Now',
-                style: const TextStyle(fontSize: 12),
+                style: DSTypography.caption(),
               ),
             ),
           // ── Reload from server (online only) ─────────────────────────
@@ -227,7 +227,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.cloud_download_outlined, size: 18),
-              label: const Text('Reload', style: TextStyle(fontSize: 12)),
+              label: Text('Reload', style: DSTypography.caption()),
             ),
         ],
       ),
@@ -322,7 +322,9 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
         // Online / offline indicator
         Container(
           width: double.infinity,
-          color: theme.colorScheme.surfaceContainerHighest,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? DSColors.scaffoldDark
+              : DSColors.scaffoldLight,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,25 +336,30 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                         ? Icons.wifi_rounded
                         : Icons.wifi_off_rounded,
                     size: 16,
-                    color: widget.isOnline ? Colors.green : Colors.orange,
+                    color: widget.isOnline
+                        ? DSColors.success
+                        : DSColors.warning,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     widget.isOnline ? 'Online' : 'Offline',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: widget.isOnline ? Colors.green : Colors.orange,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: DSTypography.label(
+                      color: widget.isOnline
+                          ? DSColors.success
+                          : DSColors.warning,
+                    ).copyWith(fontSize: DSTypography.sizeSm),
                   ),
                 ],
               ),
               if (lastSyncTime != null) ...[
-                const SizedBox(height: 4),
+                DSSpacing.hXs,
                 Text(
                   'Last sync: ${DateFormat('MMM d, yyyy · h:mm a').format(lastSyncTime.toUtc().add(const Duration(hours: 8)))}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: DSTypography.caption(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? DSColors.labelSecondaryDark
+                        : DSColors.labelSecondary,
+                  ).copyWith(fontSize: DSTypography.sizeXs),
                 ),
               ],
 
@@ -390,9 +397,13 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                           padding: const EdgeInsets.only(top: 6),
                           child: Text(
                             'Sync history retention: $retentionLabel',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
+                            style: DSTypography.caption(
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? DSColors.labelSecondaryDark
+                                  : DSColors.labelSecondary,
+                            ).copyWith(fontSize: DSTypography.sizeXs),
                           ),
                         );
                       }
@@ -481,14 +492,22 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                                 Icon(
                                   Icons.timer,
                                   size: 14,
-                                  color: theme.colorScheme.onSurfaceVariant,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? DSColors.labelSecondaryDark
+                                      : DSColors.labelSecondary,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   label,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
+                                  style: DSTypography.caption(
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? DSColors.labelSecondaryDark
+                                        : DSColors.labelSecondary,
+                                  ).copyWith(fontSize: DSTypography.sizeXs),
                                 ),
                               ],
                             ),
@@ -505,7 +524,10 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
         ),
         // Shared sync progress bar (spinner + progress or pending/failed count)
         const SyncProgressBar(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: DSSpacing.base,
+            vertical: DSSpacing.sm,
+          ),
         ),
       ],
     );
@@ -793,7 +815,10 @@ class _EntryTile extends StatelessWidget {
           : () => context.push('/deliveries/${entry.barcode}'),
       onLongPress: onDelete,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DSSpacing.base,
+          vertical: DSSpacing.md,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -802,7 +827,7 @@ class _EntryTile extends StatelessWidget {
               padding: const EdgeInsets.only(top: 2),
               child: _StatusChip(status: entry.status, isSyncing: isSyncing),
             ),
-            const SizedBox(width: 12),
+            DSSpacing.wMd,
 
             // ── Content ──────────────────────────────────────────────────
             Expanded(
@@ -818,7 +843,7 @@ class _EntryTile extends StatelessWidget {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             fontFamily: 'monospace',
-                            letterSpacing: 0.5,
+                            letterSpacing: DSTypography.lsLoose,
                           ),
                         ),
                       ),
@@ -826,7 +851,7 @@ class _EntryTile extends StatelessWidget {
                         const Icon(
                           Icons.chevron_right_rounded,
                           size: 18,
-                          color: Colors.grey,
+                          color: DSColors.labelTertiary,
                         ),
                     ],
                   ),
@@ -861,7 +886,7 @@ class _EntryTile extends StatelessWidget {
                     ],
                   ),
 
-                  const SizedBox(height: 8),
+                  DSSpacing.hSm,
 
                   // Delivery date
                   if (dates.deliveryDate.isNotEmpty)
@@ -901,7 +926,7 @@ class _EntryTile extends StatelessWidget {
                       icon: Icons.check_circle_outline_rounded,
                       label: 'Synced',
                       value: syncedStr,
-                      valueColor: Colors.green.shade700,
+                      valueColor: DSColors.success,
                     ),
 
                   // Error message
@@ -998,12 +1023,12 @@ class _StatusChip extends StatelessWidget {
     }
 
     final (color, icon) = switch (status) {
-      'pending' => (Colors.amber.shade700, Icons.schedule_rounded),
-      'synced' => (Colors.green, Icons.check_circle_rounded),
-      'error' => (Colors.red, Icons.error_rounded),
-      'failed' => (Colors.red, Icons.error_rounded),
-      'conflict' => (Colors.orange, Icons.warning_rounded),
-      _ => (Colors.grey, Icons.help_outline_rounded),
+      'pending' => (DSColors.warning, Icons.schedule_rounded),
+      'synced' => (DSColors.success, Icons.check_circle_rounded),
+      'error' => (DSColors.error, Icons.error_rounded),
+      'failed' => (DSColors.error, Icons.error_rounded),
+      'conflict' => (DSColors.pending, Icons.warning_rounded),
+      _ => (DSColors.labelSecondary, Icons.help_outline_rounded),
     };
 
     return Icon(icon, color: color, size: 22);
@@ -1020,41 +1045,46 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ds = DeliveryStatus.fromString(status);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final (bg, fg, label) = switch (ds) {
       DeliveryStatus.delivered => (
-        Colors.green.shade50,
-        Colors.green.shade700,
+        DSColors.success.withValues(alpha: 0.1),
+        DSColors.success,
         DeliveryStatus.delivered.displayName,
       ),
       DeliveryStatus.pending => (
-        Colors.amber.shade50,
-        Colors.amber.shade800,
+        DSColors.warning.withValues(alpha: 0.1),
+        DSColors.warning,
         DeliveryStatus.pending.displayName,
       ),
       DeliveryStatus.failedDelivery => (
-        Colors.orange.shade50,
-        Colors.orange.shade800,
+        DSColors.error.withValues(alpha: 0.1),
+        DSColors.error,
         DeliveryStatus.failedDelivery.displayName,
       ),
       DeliveryStatus.osa => (
-        Colors.purple.shade50,
-        Colors.purple.shade700,
+        DSColors.secondarySurfaceDark,
+        isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
         DeliveryStatus.osa.displayName,
       ),
-      _ => (Colors.grey.shade100, Colors.grey.shade700, status.toUpperCase()),
+      _ => (
+        DSColors.secondarySurfaceLight,
+        DSColors.labelSecondary,
+        status.toUpperCase(),
+      ),
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.sm,
+        vertical: 2,
+      ),
       decoration: BoxDecoration(color: bg, borderRadius: DSStyles.pillRadius),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
+        style: DSTypography.label(
           color: fg,
-          letterSpacing: 0.3,
-        ),
+        ).copyWith(fontSize: DSTypography.sizeSm, letterSpacing: 0.3),
       ),
     );
   }
@@ -1072,17 +1102,21 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? DSColors.cardDark
+            : DSColors.secondarySurfaceLight,
         borderRadius: DSStyles.pillRadius,
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? DSColors.separatorDark
+              : DSColors.separatorLight,
+        ),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: Colors.grey.shade700,
-        ),
+        style: DSTypography.caption(
+          color: DSColors.labelSecondary,
+        ).copyWith(fontSize: DSTypography.sizeSm, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -1097,18 +1131,15 @@ class _ArchivedChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.purple.shade50,
+        color: DSColors.accentSurface,
         borderRadius: DSStyles.pillRadius,
-        border: Border.all(color: Colors.purple.shade200),
+        border: Border.all(color: DSColors.accent.withValues(alpha: 0.2)),
       ),
       child: Text(
         'ARCHIVED',
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: Colors.purple.shade700,
-          letterSpacing: 0.3,
-        ),
+        style: DSTypography.label(
+          color: DSColors.accent,
+        ).copyWith(fontSize: DSTypography.sizeSm, letterSpacing: 0.3),
       ),
     );
   }
@@ -1213,12 +1244,12 @@ class _EmptyStateState extends State<_EmptyState>
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.7,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xxl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (widget.isSyncing) ...[
-                  const SpinKitDoubleBounce(color: Color(0xFF00B14F), size: 80),
+                  const SpinKitDoubleBounce(color: DSColors.primary, size: 80),
                   const SizedBox(height: 16),
                   Text('Syncing…', style: theme.textTheme.titleMedium),
                 ] else ...[
@@ -1240,7 +1271,7 @@ class _EmptyStateState extends State<_EmptyState>
                   Text(
                     'No pending deliveries to sync.',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade500,
+                      color: DSColors.labelTertiary,
                     ),
                   ),
                 ],

@@ -78,7 +78,6 @@ class DeliveryBootstrapService {
       serverBarcodesPerStatus['DELTA'] = deltaBarcodes;
     } else {
       const statusLabels = {
-        'PENDING': 'Fetching pending deliveries...',
         'FOR_DELIVERY': 'Fetching for-delivery items...',
         'FAILED_DELIVERY': 'Fetching failed deliveries...',
         'OSA': 'Fetching OSA orders...',
@@ -213,7 +212,7 @@ class DeliveryBootstrapService {
       // Step 2: Fetch server's pending list (all pages).
       final serverPendingBarcodes = await _fetchAllBarcodesForStatus(
         client,
-        'pending',
+        'FOR_DELIVERY',
       );
 
       // Step 3: Find locally-pending items missing from server's pending list.
@@ -257,7 +256,9 @@ class DeliveryBootstrapService {
       if (item is! Map<String, dynamic>) return;
 
       final serverStatus = item['delivery_status']?.toString() ?? '';
-      if (serverStatus.isEmpty || serverStatus == 'pending') return;
+      if (serverStatus.isEmpty ||
+          DeliveryStatus.fromString(serverStatus) == DeliveryStatus.pending)
+        return;
 
       // Server has a non-pending status — update the local record.
       await LocalDeliveryDao.instance.insertAllFromApiItems([

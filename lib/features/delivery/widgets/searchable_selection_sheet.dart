@@ -95,7 +95,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-    final bgColor = widget.isDark ? const Color(0xFF1A1A2E) : Colors.white;
+    final bgColor = widget.isDark ? DSColors.cardDark : Colors.white;
     final surfaceColor = widget.isDark ? Colors.white12 : Colors.grey.shade50;
 
     return Container(
@@ -127,14 +127,14 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
 
           // ── Header ──────────────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: DSSpacing.lg),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     widget.title.toUpperCase(),
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: DSTypography.sizeMd,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.0,
                     ),
@@ -152,7 +152,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
 
           // ── Search Bar ──────────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: DSSpacing.lg),
             child: Container(
               decoration: BoxDecoration(
                 color: surfaceColor,
@@ -168,11 +168,11 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                 onChanged: _filter,
                 decoration: InputDecoration(
                   hintText: 'SEARCH OPTIONS...',
-                  labelStyle: const TextStyle(fontSize: 13),
+                  labelStyle: const TextStyle(fontSize: DSTypography.sizeMd),
                   hintStyle: TextStyle(
                     color: Colors.grey.shade500,
-                    fontSize: 13,
-                    letterSpacing: 0.5,
+                    fontSize: DSTypography.sizeMd,
+                    letterSpacing: DSTypography.lsLoose,
                   ),
                   prefixIcon: const Icon(Icons.search_rounded, size: 20),
                   suffixIcon: _searchController.text.isNotEmpty
@@ -208,7 +208,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                         Text(
                           'NO MATCHES FOUND',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: DSTypography.sizeSm,
                             fontWeight: FontWeight.w700,
                             color: Colors.grey.shade500,
                             letterSpacing: 1.0,
@@ -234,8 +234,8 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
+                              horizontal: DSSpacing.base,
+                              vertical: DSSpacing.base,
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
@@ -257,7 +257,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                                   child: Text(
                                     label,
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: DSTypography.sizeMd,
                                       fontWeight: isSelected
                                           ? FontWeight.w800
                                           : FontWeight.w500,

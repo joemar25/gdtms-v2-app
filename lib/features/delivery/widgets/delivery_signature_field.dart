@@ -51,7 +51,7 @@ class DeliverySignatureField extends StatelessWidget {
                   child: Text(
                     'Sign above',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: DSTypography.sizeSm,
                       color: Colors.grey.shade300,
                       fontStyle: FontStyle.italic,
                     ),
@@ -66,7 +66,10 @@ class DeliverySignatureField extends StatelessWidget {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               errorText!,
-              style: const TextStyle(color: Colors.red, fontSize: 12),
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: DSTypography.sizeSm,
+              ),
             ),
           ),
         const SizedBox(height: 6),
@@ -77,11 +80,17 @@ class DeliverySignatureField extends StatelessWidget {
             icon: const Icon(Icons.refresh_rounded, size: 14),
             label: const Text(
               'CLEAR SIGNATURE',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: DSTypography.sizeSm,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             style: TextButton.styleFrom(
               foregroundColor: Colors.grey.shade500,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DSSpacing.sm,
+                vertical: DSSpacing.xs,
+              ),
               minimumSize: Size.zero,
             ),
           ),

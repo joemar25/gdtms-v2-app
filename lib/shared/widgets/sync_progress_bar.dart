@@ -47,11 +47,17 @@ class SyncProgressBar extends ConsumerWidget {
     if (!hasActivity) return const SizedBox.shrink();
 
     final effectivePadding =
-        padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8);
+        padding ??
+        const EdgeInsets.symmetric(
+          horizontal: DSSpacing.base,
+          vertical: DSSpacing.sm,
+        );
 
     return Container(
       width: double.infinity,
-      color: theme.colorScheme.surfaceContainerHighest,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? DSColors.scaffoldDark
+          : DSColors.scaffoldLight,
       padding: effectivePadding,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -69,7 +75,11 @@ class SyncProgressBar extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     syncState.lastMessage ?? 'Syncing…',
-                    style: theme.textTheme.bodySmall,
+                    style: DSTypography.caption(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? DSColors.labelPrimaryDark
+                          : DSColors.labelPrimary,
+                    ).copyWith(fontSize: DSTypography.sizeSm),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -91,7 +101,9 @@ class SyncProgressBar extends ConsumerWidget {
                       ? Icons.cloud_sync_outlined
                       : Icons.cloud_off_outlined,
                   size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.labelSecondary,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -99,11 +111,17 @@ class SyncProgressBar extends ConsumerWidget {
                     if (pending > 0) '$pending pending',
                     if (failed > 0) '$failed failed',
                   ].join(' · '),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: failed > 0
-                        ? theme.colorScheme.error
-                        : theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style:
+                      DSTypography.caption(
+                        color: failed > 0
+                            ? DSColors.error
+                            : (Theme.of(context).brightness == Brightness.dark
+                                  ? DSColors.labelSecondaryDark
+                                  : DSColors.labelSecondary),
+                      ).copyWith(
+                        fontSize: DSTypography.sizeSm,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),

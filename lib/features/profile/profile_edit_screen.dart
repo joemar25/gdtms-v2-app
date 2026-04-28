@@ -61,6 +61,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   File? _profileImage;
   bool _loading = false;
   final _picker = ImagePicker();
+  bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
   @override
   void initState() {
@@ -197,7 +198,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       child: Scaffold(
         appBar: const AppHeaderBar(title: 'Edit Profile'),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+          padding: const EdgeInsets.fromLTRB(
+            DSSpacing.xl,
+            DSSpacing.xxl,
+            DSSpacing.xl,
+            DSSpacing.xxxl,
+          ),
           child: Form(
             key: _formKey,
             child: Column(
@@ -216,7 +222,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                   height: 110,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: Colors.grey.shade100,
+                                    color: isDark
+                                        ? DSColors.secondarySurfaceDark
+                                        : DSColors.secondarySurfaceLight,
                                     border: Border.all(
                                       color: DSColors.primary.withValues(
                                         alpha: 0.40,
@@ -237,24 +245,18 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                                   fit: BoxFit.cover,
                                                 )
                                               : null),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.10,
-                                        ),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
+                                    boxShadow: DSStyles.shadowSoft(context),
                                   ),
                                   child:
                                       _profileImage == null &&
                                           (currentProfilePic == null ||
                                               currentProfilePic.isEmpty)
-                                      ? const Icon(
+                                      ? Icon(
                                           Icons.person_rounded,
                                           size: 50,
-                                          color: Colors.grey,
+                                          color: isDark
+                                              ? DSColors.labelTertiaryDark
+                                              : DSColors.labelTertiary,
                                         )
                                       : null,
                                 ),
@@ -262,7 +264,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                   bottom: 0,
                                   right: 2,
                                   child: Container(
-                                    padding: const EdgeInsets.all(7),
+                                    padding: const EdgeInsets.all(DSSpacing.sm),
                                     decoration: const BoxDecoration(
                                       color: DSColors.primary,
                                       shape: BoxShape.circle,
@@ -285,12 +287,14 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                           ),
                 ),
                 const SizedBox(height: 8),
-                const Center(
+                Center(
                   child: Text(
                     'Tap to change photo',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: DSColors.labelSecondary,
+                    style: DSTypography.caption().copyWith(
+                      fontSize: DSTypography.sizeSm,
+                      color: isDark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
                     ),
                   ),
                 ),
@@ -298,7 +302,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
                 // ── Username ─────────────────────────────────────────────
                 _fieldLabel('Username'),
-                const SizedBox(height: 6),
+                const SizedBox(height: DSSpacing.sm),
                 TextFormField(
                   controller: _usernameController,
                   decoration: const InputDecoration(
@@ -311,7 +315,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
                 // ── First Name ───────────────────────────────────────────
                 _fieldLabel('First Name'),
-                const SizedBox(height: 6),
+                const SizedBox(height: DSSpacing.sm),
                 TextFormField(
                   controller: _firstNameController,
                   textCapitalization: TextCapitalization.characters,
@@ -324,7 +328,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
                 // ── Middle Name ──────────────────────────────────────────
                 _fieldLabel('Middle Name'),
-                const SizedBox(height: 6),
+                const SizedBox(height: DSSpacing.sm),
                 TextFormField(
                   controller: _middleNameController,
                   textCapitalization: TextCapitalization.characters,
@@ -335,7 +339,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
                 // ── Last Name ────────────────────────────────────────────
                 _fieldLabel('Last Name'),
-                const SizedBox(height: 6),
+                const SizedBox(height: DSSpacing.sm),
                 TextFormField(
                   controller: _lastNameController,
                   textCapitalization: TextCapitalization.characters,
@@ -348,7 +352,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
                 // ── Email ────────────────────────────────────────────────
                 _fieldLabel('Email'),
-                const SizedBox(height: 6),
+                const SizedBox(height: DSSpacing.sm),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -373,12 +377,15 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(double.infinity, 52),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: DSStyles.cardRadius,
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Save Changes',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    style: DSTypography.button().copyWith(
+                      fontSize: DSTypography.sizeMd,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ).animate().fadeIn(delay: 600.ms).scaleXY(begin: 0.95, end: 1),
                 const SizedBox(height: 20),
@@ -393,10 +400,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   Widget _fieldLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 13,
+      style: DSTypography.label().copyWith(
+        fontSize: DSTypography.sizeMd,
         fontWeight: FontWeight.w600,
-        color: Color(0xFF374151),
+        color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
       ),
     );
   }

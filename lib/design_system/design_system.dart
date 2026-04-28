@@ -12,3 +12,4 @@ export 'widgets/atoms/ds_input.dart';
 // Molecules
 export 'widgets/molecules/ds_card.dart';
 export 'widgets/molecules/ds_section_header.dart';
+export 'widgets/molecules/ds_info_tile.dart';

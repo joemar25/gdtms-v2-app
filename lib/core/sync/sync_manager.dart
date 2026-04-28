@@ -510,7 +510,8 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           //   processed. The server returns the original success payload.
           final isDuplicateRequestCode = responseCode == 'DUPLICATE_REQUEST';
 
-          final shouldAutoResolve = isImmutableStop ||
+          final shouldAutoResolve =
+              isImmutableStop ||
               isDeliveredImmutableLegacy ||
               isSameStatusTransitionCode ||
               isDuplicateRequestCode;

@@ -84,10 +84,12 @@ class _AppSearchBarState extends State<AppSearchBar> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A2E) : cs.surface,
+        color: isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? Colors.white12 : Colors.grey.shade200,
+            color: isDark
+                ? Colors.white10
+                : Colors.black.withValues(alpha: 0.05),
             width: 1,
           ),
         ),
@@ -99,9 +101,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF2A2A3E)
-                  : cs.surfaceContainerHighest,
+              color: isDark ? DSColors.cardDark : DSColors.cardLight,
               borderRadius: DSStyles.circularRadius,
               boxShadow: [
                 BoxShadow(
@@ -122,14 +122,11 @@ class _AppSearchBarState extends State<AppSearchBar> {
               ),
               decoration: InputDecoration(
                 hintText: widget.hintText,
-                hintStyle: TextStyle(
-                  color: cs.onSurfaceVariant.withValues(
-                    alpha: DSStyles.alphaBorder,
-                  ),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                  letterSpacing: 0.4,
-                ),
+                hintStyle: DSTypography.caption(
+                  color: isDark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.labelSecondary,
+                ).copyWith(fontSize: DSTypography.sizeMd, letterSpacing: 0.4),
                 prefixIcon: Icon(
                   Icons.search_rounded,
                   color: cs.primary,
@@ -145,7 +142,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 14,
-                  horizontal: 4,
+                  horizontal: DSSpacing.xs,
                 ),
               ),
               onChanged: _onChanged,
@@ -167,17 +164,14 @@ class _AppSearchBarState extends State<AppSearchBar> {
                 const SizedBox(width: 8),
                 Text(
                   'SEARCHING…',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: cs.primary,
-                    letterSpacing: 0.8,
-                  ),
+                  style: DSTypography.label(
+                    color: DSColors.primary,
+                  ).copyWith(fontSize: DSTypography.sizeSm),
                 ),
               ] else if (widget.resultCount != null) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
+                    horizontal: DSSpacing.sm,
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
@@ -188,23 +182,19 @@ class _AppSearchBarState extends State<AppSearchBar> {
                   ),
                   child: Text(
                     '${widget.resultCount} RESULT${widget.resultCount == 1 ? '' : 'S'}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: cs.primary,
-                      letterSpacing: 0.8,
-                    ),
+                    style: DSTypography.label(
+                      color: DSColors.primary,
+                    ).copyWith(fontSize: DSTypography.sizeSm),
                   ),
                 ),
               ] else if (widget.totalCount != null) ...[
                 Text(
                   '${widget.totalCount} ITEM${widget.totalCount == 1 ? '' : 'S'} TOTAL',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-                    letterSpacing: 0.6,
-                  ),
+                  style: DSTypography.caption(
+                    color: isDark
+                        ? DSColors.labelSecondaryDark
+                        : DSColors.labelSecondary,
+                  ).copyWith(fontSize: DSTypography.sizeSm, letterSpacing: 0.6),
                 ),
               ],
             ],

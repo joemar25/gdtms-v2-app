@@ -127,6 +127,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     final estimatedNet =
         (preview['estimated_net_payable'] as num?)?.toDouble() ?? 0;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -135,20 +136,28 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           widget.isConsolidation
               ? 'Confirm Consolidated Request'
               : 'Confirm Payout Request',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          style: DSTypography.heading().copyWith(
+            fontSize: DSTypography.sizeMd,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'You are about to submit a payout request for:',
-              style: TextStyle(fontSize: 13),
+              style: DSTypography.body().copyWith(
+                fontSize: DSTypography.sizeMd,
+              ),
             ),
-            const SizedBox(height: 12),
+            DSSpacing.hMd,
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DSSpacing.base,
+                vertical: DSSpacing.md,
+              ),
               decoration: BoxDecoration(
                 color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
                 borderRadius: DSStyles.cardRadius,
@@ -160,17 +169,20 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               ),
               child: Text(
                 '₱ ${estimatedNet.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 24,
+                style: DSTypography.display(color: DSColors.primary).copyWith(
+                  fontSize: DSTypography.sizeXl,
                   fontWeight: FontWeight.w800,
-                  color: DSColors.primary,
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            const Text(
+            DSSpacing.hSm,
+            Text(
               'This action cannot be undone. Proceed?',
-              style: TextStyle(fontSize: 12, color: DSColors.subSecondary),
+              style: DSTypography.caption(
+                color: isDark
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
+              ).copyWith(fontSize: DSTypography.sizeSm),
             ),
           ],
         ),
@@ -299,7 +311,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     // Use the canonical theme tokens so this screen matches every other screen.
     // Do NOT hardcode raw Color() values here — use ColorStyles constants.
     final scaffoldBg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
-    final appBarBg = isDark ? DSColors.appBarDark : DSColors.appBarLight;
+    final appBarBg = isDark ? DSColors.cardDark : DSColors.cardLight;
 
     if (!isOnline) {
       return Scaffold(
@@ -315,17 +327,22 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.wifi_off_rounded, size: 52, color: DSColors.red),
-              const SizedBox(height: 16),
-              const Text(
+              Icon(Icons.wifi_off_rounded, size: 52, color: DSColors.error),
+              DSSpacing.hBase,
+              Text(
                 'You\'re Offline',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                style: DSTypography.heading().copyWith(
+                  fontSize: DSTypography.sizeMd,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              const SizedBox(height: 8),
+              DSSpacing.hSm,
               Text(
                 'Payout requests require an internet\nconnection. Please reconnect and try again.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: DSColors.secondary),
+                style: DSTypography.caption(
+                  color: DSColors.accent,
+                ).copyWith(fontSize: DSTypography.sizeMd),
               ),
             ],
           ),
@@ -341,7 +358,12 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          padding: const EdgeInsets.fromLTRB(
+            DSSpacing.base,
+            DSSpacing.sm,
+            DSSpacing.base,
+            DSSpacing.md,
+          ),
           child: FilledButton.icon(
             icon: _submitting
                 ? const SizedBox(
@@ -361,10 +383,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               widget.isConsolidation
                   ? 'SUBMIT CONSOLIDATED REQUEST'
                   : 'SUBMIT REQUEST',
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-              ),
+              style: DSTypography.label().copyWith(fontWeight: FontWeight.w700),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: DSColors.primary,
@@ -401,11 +420,13 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline_rounded, size: 48, color: DSColors.red),
+          Icon(Icons.error_outline_rounded, size: 48, color: DSColors.error),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Something went wrong.',
-            style: TextStyle(fontSize: 14, color: DSColors.secondary),
+            style: DSTypography.caption(
+              color: DSColors.accent,
+            ).copyWith(fontSize: DSTypography.sizeMd),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -442,33 +463,34 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         // ── Consolidation notice ──────────────────────────────────────
         if (widget.isConsolidation) ...[
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: DSSpacing.md,
+            ),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: DSStyles.alphaSoft),
+              color: DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: Colors.amber.withValues(alpha: DSStyles.alphaDarkShadow),
+                color: DSColors.warning.withValues(
+                  alpha: DSStyles.alphaDarkShadow,
+                ),
               ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.merge_rounded,
-                  color: Colors.amber.shade700,
-                  size: 18,
-                ),
+                Icon(Icons.merge_rounded, color: DSColors.warning, size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     preview['has_existing_request_today'] == true
                         ? "You've already submitted a payout request today. Only one request per day is allowed. Your eligible deliveries will automatically be included in tomorrow's request if you submit again."
                         : 'You currently have a pending payout request. If you submit another request, all eligible deliveries will be combined into a single consolidated payout.',
-                    style: TextStyle(
-                      color: Colors.amber.shade700,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: DSTypography.caption(color: DSColors.warning)
+                        .copyWith(
+                          fontSize: DSTypography.sizeMd,
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                 ),
               ],
@@ -507,11 +529,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             widget.isConsolidation
                 ? 'ELIGIBLE FOR CONSOLIDATION'
                 : 'DELIVERIES',
-            style: TextStyle(
-              fontSize: 11,
+            style: DSTypography.label(color: DSColors.accent).copyWith(
+              fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-              color: DSColors.secondary,
+              letterSpacing: DSTypography.lsMegaLoose,
             ),
           ),
           const SizedBox(height: 8),
@@ -527,30 +548,32 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             preview['has_existing_request_today'] == true) ...[
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(DSSpacing.md),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: DSStyles.alphaSoft),
+              color: DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: Colors.amber.withValues(alpha: DSStyles.alphaDarkShadow),
+                color: DSColors.warning.withValues(
+                  alpha: DSStyles.alphaDarkShadow,
+                ),
               ),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.info_outline_rounded,
-                  color: Colors.amber.shade700,
+                  color: DSColors.warning,
                   size: 18,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'You have already submitted a request today.',
-                    style: TextStyle(
-                      color: Colors.amber.shade700,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: DSTypography.caption(color: DSColors.warning)
+                        .copyWith(
+                          fontSize: DSTypography.sizeMd,
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                 ),
               ],
@@ -559,26 +582,36 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         ] else if (eligibleCount == 0) ...[
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(DSSpacing.md),
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: DSStyles.alphaSoft),
+              color:
+                  (isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary)
+                      .withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: Colors.grey.withValues(alpha: DSStyles.alphaDarkShadow),
+                color:
+                    (isDark
+                            ? DSColors.labelTertiaryDark
+                            : DSColors.labelTertiary)
+                        .withValues(alpha: DSStyles.alphaDarkShadow),
               ),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline_rounded, color: Colors.grey, size: 18),
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: DSColors.accent,
+                  size: 18,
+                ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'No eligible deliveries found for payout.',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: DSTypography.caption(color: DSColors.accent)
+                        .copyWith(
+                          fontSize: DSTypography.sizeMd,
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                 ),
               ],
@@ -590,19 +623,20 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         if (_error != null) ...[
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(DSSpacing.md),
             decoration: BoxDecoration(
-              color: DSColors.red.withValues(alpha: DSStyles.alphaSoft),
+              color: DSColors.error.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
-                color: DSColors.red.withValues(alpha: DSStyles.alphaDarkShadow),
+                color: DSColors.error.withValues(
+                  alpha: DSStyles.alphaDarkShadow,
+                ),
               ),
             ),
             child: Text(
               _error!,
-              style: TextStyle(
-                color: DSColors.red,
-                fontSize: 13,
+              style: DSTypography.body(color: DSColors.error).copyWith(
+                fontSize: DSTypography.sizeMd,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -638,7 +672,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //         : '${fmtShort(fromDate)}  –  ${fmtShort(toDate)}';
 
 //     return Container(
-//       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+//       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
 //       decoration: BoxDecoration(
 //         color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
 //         borderRadius: DSStyles.cardRadius,
@@ -659,7 +693,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //                 Text(
 //                   'COVERAGE PERIOD',
 //                   style: TextStyle(
-//                     fontSize: 10,
+//                     fontSize: DSTypography.sizeXs,
 //                     fontWeight: FontWeight.w700,
 //                     letterSpacing: 1.0,
 //                     color: DSColors.primary,
@@ -669,7 +703,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //                 Text(
 //                   label,
 //                   style: const TextStyle(
-//                     fontSize: 15,
+//                     fontSize: DSTypography.sizeMd,
 //                     fontWeight: FontWeight.w800,
 //                   ),
 //                 ),
@@ -678,7 +712,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //           ),
 //           if (!isSingleDay)
 //             Container(
-//               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+//               padding: const EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: DSSpacing.xs),
 //               decoration: BoxDecoration(
 //                 color: DSColors.primary.withValues(alpha: DSStyles.alphaActiveAccent),
 //                 borderRadius: DSStyles.cardRadius,
@@ -686,7 +720,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //               child: Text(
 //                 '7 DAYS',
 //                 style: TextStyle(
-//                   fontSize: 10,
+//                   fontSize: DSTypography.sizeXs,
 //                   fontWeight: FontWeight.w800,
 //                   color: DSColors.primary,
 //                 ),
@@ -723,8 +757,8 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cardBg = isDark ? DSColors.cardDark : DSColors.white;
     final cardBorder = isDark
-        ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
-        : DSColors.tertiary;
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
+        : DSColors.separatorLight;
     return Container(
       decoration: BoxDecoration(
         color: cardBg,
@@ -747,26 +781,30 @@ class _SummaryCard extends StatelessWidget {
                 Icon(
                   Icons.local_shipping_rounded,
                   size: 16,
-                  color: DSColors.subSecondary,
+                  color: isDark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.labelSecondary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     deliveriesLabel,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: DSColors.subSecondary,
-                    ),
+                    style:
+                        DSTypography.caption(
+                          color: isDark
+                              ? DSColors.labelSecondaryDark
+                              : DSColors.labelSecondary,
+                        ).copyWith(
+                          fontSize: DSTypography.sizeSm,
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ),
                 Text(
                   '$eligibleCount',
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: DSTypography.label(color: DSColors.primary).copyWith(
+                    fontSize: DSTypography.sizeMd,
                     fontWeight: FontWeight.w800,
-                    color: DSColors.primary,
                   ),
                 ),
               ],
@@ -774,7 +812,10 @@ class _SummaryCard extends StatelessWidget {
           ),
           const Divider(height: 1),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DSSpacing.base,
+              vertical: 14,
+            ),
             decoration: BoxDecoration(
               color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: const BorderRadius.vertical(
@@ -809,20 +850,17 @@ class _SummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       'ESTIMATED NET PAYABLE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
-                        color: isDark ? DSColors.primary : DSColors.primary,
-                      ),
+                      style: DSTypography.label(
+                        color: DSColors.primary,
+                      ).copyWith(fontSize: DSTypography.sizeSm),
                     ),
                     Text(
                       '₱ ${estimatedNet.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: DSColors.primary,
-                      ),
+                      style: DSTypography.heading(color: DSColors.primary)
+                          .copyWith(
+                            fontSize: DSTypography.sizeLg,
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
                   ],
                 ),
@@ -851,8 +889,8 @@ class _AmountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isDebug
-        ? Colors.red.shade700
-        : (isDeduction ? DSColors.red : DSColors.secondary);
+        ? DSColors.errorText
+        : (isDeduction ? DSColors.error : DSColors.accent);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -864,29 +902,25 @@ class _AmountRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color,
+                style: DSTypography.caption(color: color).copyWith(
+                  fontSize: DSTypography.sizeSm,
                   fontWeight: isDebug ? FontWeight.w700 : FontWeight.normal,
                 ),
               ),
               if (isDebug)
                 Text(
                   'DEBUG ONLY — not visible in production',
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: Colors.red.shade400,
-                    letterSpacing: 0.3,
-                  ),
+                  style: DSTypography.caption(
+                    color: DSColors.error.withValues(alpha: 0.7),
+                  ).copyWith(fontSize: 9, letterSpacing: 0.3),
                 ),
             ],
           ),
           Text(
             '${isDeduction ? '-' : ''}₱ ${amount.abs().toStringAsFixed(2)}',
-            style: TextStyle(
-              fontSize: 12,
+            style: DSTypography.label(color: color).copyWith(
+              fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w600,
-              color: color,
             ),
           ),
         ],

@@ -18,7 +18,7 @@ class DeliveryCard extends StatelessWidget {
     required this.onTap,
     this.compact = false,
     this.showChevron = true,
-    this.enableHoldToReveal = true, // Legacy: ignored now
+    this.enableHoldToReveal = true,
     this.footerText,
     this.footerIcon,
     this.isChecking = false,
@@ -43,13 +43,7 @@ class DeliveryCard extends StatelessWidget {
   final VoidCallback? onUpdateTap;
 
   static Color statusColor(String status) {
-    return switch (DeliveryStatus.fromString(status)) {
-      DeliveryStatus.pending => const Color(0xFFFF6E00),
-      DeliveryStatus.delivered => const Color(0xFF00B14F),
-      DeliveryStatus.failedDelivery => const Color(0xFFE53935),
-      DeliveryStatus.osa => const Color(0xFFFFB300),
-      _ => const Color(0xFF607D8B),
-    };
+    return DSColors.statusColor(status);
   }
 
   static IconData statusIcon(String status) {
@@ -90,9 +84,7 @@ class DeliveryCard extends StatelessWidget {
     final isDirty = syncStatus == 'dirty';
     final inSyncQueue = delivery['_in_sync_queue'] == true;
 
-    final colorForStatus = isDirty
-        ? const Color(0xFFFFB300)
-        : statusColor(status);
+    final colorForStatus = isDirty ? DSColors.warning : statusColor(status);
     final iconForStatus = statusIcon(status);
 
     final failedDeliveryVerifStatus =
@@ -171,8 +163,12 @@ class DeliveryCard extends StatelessWidget {
 
     // ── Colors ──────────────────────────────────────────────────────────────
     final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final cardBorder = isDark ? DSColors.separatorDark : DSColors.separatorLight;
-    final subtextColor = isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary;
+    final cardBorder = isDark
+        ? DSColors.separatorDark
+        : DSColors.separatorLight;
+    final subtextColor = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
 
     // ── Slide actions (expanded only) ────────────────────────────────────────
     final cleanedContact = contact.cleanContactNumber();
@@ -212,7 +208,9 @@ class DeliveryCard extends StatelessWidget {
             child: InkWell(
               borderRadius: effectiveRadius,
               onTap: isChecking ? null : onTap,
-              onLongPress: isChecking ? null : () => _showHoldOptions(context, isDark),
+              onLongPress: isChecking
+                  ? null
+                  : () => _showHoldOptions(context, isDark),
               splashColor: colorForStatus.withValues(alpha: DSStyles.alphaSoft),
               highlightColor: colorForStatus.withValues(
                 alpha: DSStyles.alphaSoft,
@@ -275,26 +273,26 @@ class DeliveryCard extends StatelessWidget {
                                       Flexible(
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
+                                            horizontal: DSSpacing.sm,
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF2196F3)
-                                                .withValues(
-                                                  alpha: DSStyles.alphaSoft,
-                                                ),
+                                            color: DSColors.primary.withValues(
+                                              alpha: DSStyles.alphaSoft,
+                                            ),
                                             borderRadius: DSStyles.pillRadius,
                                           ),
                                           child: Text(
                                             mailType,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(0xFF2196F3),
-                                              letterSpacing: 0.3,
-                                            ),
+                                            style:
+                                                DSTypography.label(
+                                                  color: DSColors.primary,
+                                                ).copyWith(
+                                                  fontSize: DSTypography.sizeSm,
+                                                  letterSpacing: 0.3,
+                                                ),
                                           ),
                                         ),
                                       )
@@ -306,11 +304,12 @@ class DeliveryCard extends StatelessWidget {
                                           product,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: subtextColor,
-                                          ),
+                                          style:
+                                              DSTypography.caption(
+                                                color: subtextColor,
+                                              ).copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                         ),
                                       ),
                                     if (attemptsCount > 0)
@@ -321,15 +320,19 @@ class DeliveryCard extends StatelessWidget {
                                               ? 'FAILED ATTEMPTS: $attemptsCount'
                                               : 'ATTEMPTS: $attemptsCount',
                                           icon: Icons.autorenew_rounded,
-                                          bg: attemptsCount >= 3
-                                              ? Colors.red.shade50
-                                              : Colors.orange.shade50,
-                                          border: attemptsCount >= 3
-                                              ? Colors.red.shade300
-                                              : Colors.orange.shade300,
+                                          bg:
+                                              (attemptsCount >= 3
+                                                      ? DSColors.error
+                                                      : DSColors.warning)
+                                                  .withValues(alpha: 0.08),
+                                          border:
+                                              (attemptsCount >= 3
+                                                      ? DSColors.error
+                                                      : DSColors.warning)
+                                                  .withValues(alpha: 0.25),
                                           fg: attemptsCount >= 3
-                                              ? Colors.red.shade700
-                                              : Colors.orange.shade800,
+                                              ? DSColors.error
+                                              : DSColors.warning,
                                         ),
                                       ),
                                     if (showLockIcon &&
@@ -340,7 +343,7 @@ class DeliveryCard extends StatelessWidget {
                                           Icons.lock_outline_rounded,
                                           color: isLocked
                                               ? subtextColor
-                                              : Colors.red.shade400,
+                                              : DSColors.error,
                                           size: 15,
                                         ),
                                       ),
@@ -357,15 +360,17 @@ class DeliveryCard extends StatelessWidget {
                             barcode.isEmpty ? 'UNKNOWN' : barcode,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                              letterSpacing: 1.2,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF111827),
-                            ),
+                            style:
+                                DSTypography.title(
+                                  color: isDark
+                                      ? DSColors.white
+                                      : DSColors.labelPrimary,
+                                ).copyWith(
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: DSTypography.sizeMd,
+                                  letterSpacing: DSTypography.lsMegaLoose,
+                                ),
                           ),
 
                           // ── Row 3: Recipient name ────────────────────────────
@@ -386,13 +391,15 @@ class DeliveryCard extends StatelessWidget {
                                     name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? const Color(0xFFCBD5E1)
-                                          : const Color(0xFF374151),
-                                    ),
+                                    style:
+                                        DSTypography.body(
+                                          color: isDark
+                                              ? DSColors.labelPrimaryDark
+                                              : DSColors.labelPrimary,
+                                        ).copyWith(
+                                          fontSize: DSTypography.sizeSm,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                   ),
                                 ),
                               ],
@@ -423,11 +430,9 @@ class DeliveryCard extends StatelessWidget {
                                     overflow: isExpanded
                                         ? null
                                         : TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      height: 1.4,
+                                    style: DSTypography.caption(
                                       color: subtextColor,
-                                    ),
+                                    ).copyWith(height: 1.4),
                                   ),
                                 ),
                               ],
@@ -450,12 +455,13 @@ class DeliveryCard extends StatelessWidget {
                                     product.toUpperCase(),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: subtextColor,
-                                      letterSpacing: 0.5,
-                                    ),
+                                    style:
+                                        DSTypography.caption(
+                                          color: subtextColor,
+                                        ).copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: DSTypography.lsLoose,
+                                        ),
                                   ),
                                 ),
                               ],
@@ -492,25 +498,37 @@ class DeliveryCard extends StatelessWidget {
                                   DeliveryMiniPill(
                                     label: 'UNSYNCED',
                                     icon: Icons.sync_problem_rounded,
-                                    bg: Colors.amber.shade50,
-                                    border: Colors.amber.shade300,
-                                    fg: Colors.amber.shade800,
+                                    bg: DSColors.warning.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    border: DSColors.warning.withValues(
+                                      alpha: 0.25,
+                                    ),
+                                    fg: DSColors.warning,
                                   ),
                                 if (isPaid)
                                   DeliveryMiniPill(
                                     label: 'PAID',
                                     icon: Icons.check_circle_outline_rounded,
-                                    bg: Colors.green.shade50,
-                                    border: Colors.green.shade200,
-                                    fg: Colors.green.shade700,
+                                    bg: DSColors.success.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    border: DSColors.success.withValues(
+                                      alpha: 0.25,
+                                    ),
+                                    fg: DSColors.success,
                                   ),
                                 if (inSyncQueue)
                                   DeliveryMiniPill(
                                     label: 'PENDING SYNC',
                                     icon: Icons.sync_lock_rounded,
-                                    bg: Colors.blue.shade50,
-                                    border: Colors.blue.shade200,
-                                    fg: Colors.blue.shade800,
+                                    bg: DSColors.primary.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    border: DSColors.primary.withValues(
+                                      alpha: 0.25,
+                                    ),
+                                    fg: DSColors.primary,
                                   ),
                               ],
                             ),
@@ -528,17 +546,16 @@ class DeliveryCard extends StatelessWidget {
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                       valueColor: AlwaysStoppedAnimation(
-                                        DSColors.red,
+                                        DSColors.error,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Checking eligibility…',
-                                    style: TextStyle(
-                                      fontSize: 11,
+                                    style: DSTypography.caption(
                                       color: subtextColor,
-                                    ),
+                                    ).copyWith(fontSize: DSTypography.sizeSm),
                                   ),
                                 ] else if (footerText != null) ...[
                                   Icon(
@@ -549,10 +566,9 @@ class DeliveryCard extends StatelessWidget {
                                   const SizedBox(width: 4),
                                   Text(
                                     footerText!,
-                                    style: TextStyle(
-                                      fontSize: 11,
+                                    style: DSTypography.caption(
                                       color: subtextColor,
-                                    ),
+                                    ).copyWith(fontSize: DSTypography.sizeSm),
                                   ),
                                 ],
                               ],
@@ -582,7 +598,8 @@ class DeliveryCard extends StatelessWidget {
 
   void _showHoldOptions(BuildContext context, bool isDark) {
     final identifier = resolveDeliveryIdentifier(delivery);
-    final address = delivery['address']?.toString() ??
+    final address =
+        delivery['address']?.toString() ??
         delivery['delivery_address']?.toString() ??
         '';
     final contact = delivery['contact']?.toString() ?? '';
@@ -596,12 +613,14 @@ class DeliveryCard extends StatelessWidget {
       context: context,
       backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(DSStyles.radiusCard)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(DSStyles.radiusCard),
+        ),
       ),
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(DSSpacing.base),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -619,33 +638,52 @@ class DeliveryCard extends StatelessWidget {
                 ),
                 if (hasMap)
                   ListTile(
-                    leading: const Icon(Icons.map_rounded, color: DSColors.systemBlue),
+                    leading: const Icon(
+                      Icons.map_rounded,
+                      color: DSColors.primary,
+                    ),
                     title: const Text('Open in Maps'),
                     onTap: () {
                       Navigator.pop(ctx);
-                      final url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(address)}';
-                      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                      final url =
+                          'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(address)}';
+                      launchUrl(
+                        Uri.parse(url),
+                        mode: LaunchMode.externalApplication,
+                      );
                     },
                   ),
                 if (hasCall)
                   ListTile(
-                    leading: const Icon(Icons.phone_rounded, color: DSColors.primary),
+                    leading: const Icon(
+                      Icons.phone_rounded,
+                      color: DSColors.primary,
+                    ),
                     title: const Text('Call Contact'),
                     subtitle: Text(cleanedContact),
                     onTap: () {
                       Navigator.pop(ctx);
-                      launchUrl(Uri.parse('tel:$cleanedContact'), mode: LaunchMode.externalApplication);
+                      launchUrl(
+                        Uri.parse('tel:$cleanedContact'),
+                        mode: LaunchMode.externalApplication,
+                      );
                     },
                   ),
                 if (accountNumber.isNotEmpty)
                   ListTile(
-                    leading: Icon(Icons.account_balance_wallet_rounded, color: isDark ? Colors.white70 : Colors.black54),
+                    leading: Icon(
+                      Icons.account_balance_wallet_rounded,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
                     title: const Text('Account Number'),
                     subtitle: Text(accountNumber),
                   ),
                 if (authRepNumber.isNotEmpty)
                   ListTile(
-                    leading: Icon(Icons.badge_rounded, color: isDark ? Colors.white70 : Colors.black54),
+                    leading: Icon(
+                      Icons.badge_rounded,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
                     title: const Text('Auth Rep Number'),
                     subtitle: Text(authRepNumber),
                   ),
@@ -750,7 +788,7 @@ class DeliveryCard extends StatelessWidget {
             value: specialInstr,
             isDark: isDark,
             subtextColor: subtextColor,
-            valueColor: const Color(0xFF2196F3),
+            valueColor: DSColors.primary,
             isItalic: true,
           ),
         ],
@@ -780,8 +818,12 @@ class DeliveryCard extends StatelessWidget {
   }) {
     final ds = DeliveryStatus.fromString(status);
     final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final subtextColor = isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary;
-    final cardBorder = isDark ? DSColors.separatorDark : DSColors.separatorLight;
+    final subtextColor = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
+    final cardBorder = isDark
+        ? DSColors.separatorDark
+        : DSColors.separatorLight;
 
     return Container(
       width: double.infinity,
@@ -825,7 +867,7 @@ class DeliveryCard extends StatelessWidget {
                 onTap: onTap,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
+                    horizontal: DSSpacing.md,
                     vertical: 9,
                   ),
                   child: Row(
@@ -839,15 +881,17 @@ class DeliveryCard extends StatelessWidget {
                               barcode.isEmpty ? 'UNKNOWN' : barcode,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13,
-                                letterSpacing: 0.8,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF111827),
-                              ),
+                              style:
+                                  DSTypography.body(
+                                    color: isDark
+                                        ? DSColors.labelPrimaryDark
+                                        : DSColors.labelPrimary,
+                                  ).copyWith(
+                                    fontFamily: 'monospace',
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: DSTypography.sizeMd,
+                                    letterSpacing: DSTypography.lsExtraLoose,
+                                  ),
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -859,12 +903,12 @@ class DeliveryCard extends StatelessWidget {
                                     ].where((e) => e.isNotEmpty).join(' · '),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: subtextColor,
-                                letterSpacing: 0.3,
-                              ),
+                              style: DSTypography.caption(color: subtextColor)
+                                  .copyWith(
+                                    fontSize: DSTypography.sizeXs,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.3,
+                                  ),
                             ),
                           ],
                         ),
@@ -877,17 +921,17 @@ class DeliveryCard extends StatelessWidget {
                             if (isDirty)
                               DeliveryTinyPill(
                                 label: 'UNSYNC',
-                                color: Colors.amber.shade700,
+                                color: DSColors.warning,
                               ),
                             if (inSyncQueue)
                               DeliveryTinyPill(
                                 label: 'SYNC',
-                                color: Colors.blue.shade600,
+                                color: DSColors.primary,
                               ),
                             if (isPaid)
                               DeliveryTinyPill(
                                 label: 'PAID',
-                                color: Colors.green.shade600,
+                                color: DSColors.success,
                               ),
                             if (attemptsCount > 0)
                               DeliveryTinyPill(
@@ -895,8 +939,8 @@ class DeliveryCard extends StatelessWidget {
                                     ? 'FA:$attemptsCount'
                                     : 'A:$attemptsCount',
                                 color: attemptsCount >= 3
-                                    ? Colors.red.shade600
-                                    : Colors.orange.shade600,
+                                    ? DSColors.error
+                                    : DSColors.pending,
                               ),
                           ],
                         ),
@@ -914,7 +958,7 @@ class DeliveryCard extends StatelessWidget {
                           padding: const EdgeInsets.only(left: 6),
                           child: Icon(
                             Icons.lock_outline_rounded,
-                            color: Colors.red.shade400,
+                            color: DSColors.error,
                             size: 14,
                           ),
                         )
@@ -938,7 +982,3 @@ class DeliveryCard extends StatelessWidget {
     );
   }
 }
-
-
-
-

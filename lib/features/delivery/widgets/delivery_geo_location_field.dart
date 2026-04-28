@@ -22,20 +22,25 @@ class DeliveryGeoLocationField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? DSColors.elevatedCardDark : Colors.white;
-    final borderColor = isDark ? Colors.white10 : Colors.grey.shade300;
+    final bgColor = isDark ? DSColors.cardElevatedDark : DSColors.white;
+    final borderColor = isDark
+        ? DSColors.separatorDark
+        : DSColors.separatorLight;
     final hasFix = latitude != null && longitude != null;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: hasFix
-              ? const Color(0xFF007A36).withValues(alpha: DSStyles.alphaBorder)
+              ? DSColors.success.withValues(alpha: DSStyles.alphaBorder)
               : isLoading
-              ? Colors.orange.withValues(alpha: DSStyles.alphaBorder)
+              ? DSColors.warning.withValues(alpha: DSStyles.alphaBorder)
               : borderColor,
         ),
       ),
@@ -51,7 +56,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(Color(0xFFFF6B00)),
+                    valueColor: const AlwaysStoppedAnimation(DSColors.pending),
                   ),
                 )
               else
@@ -60,61 +65,63 @@ class DeliveryGeoLocationField extends StatelessWidget {
                       ? Icons.my_location_rounded
                       : Icons.location_off_rounded,
                   size: 18,
-                  color: hasFix
-                      ? const Color(0xFF007A36)
-                      : Colors.grey.shade400,
+                  color: hasFix ? DSColors.success : DSColors.labelSecondary,
                 ),
-              const SizedBox(width: 10),
+              DSSpacing.wMd,
               Expanded(
                 child: isLoading
                     ? Text(
                         'Getting your location\u2026',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: DSTypography.caption().copyWith(
+                          fontSize: DSTypography.sizeSm,
                           fontStyle: FontStyle.italic,
-                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                          color: isDark
+                              ? DSColors.labelSecondaryDark
+                              : DSColors.labelSecondary,
                         ),
                       )
                     : hasFix
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'GPS Coordinates Captured',
-                            style: TextStyle(
-                              fontSize: 12,
+                            style: DSTypography.label().copyWith(
+                              fontSize: DSTypography.sizeSm,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF007A36),
+                              color: DSColors.success,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             'Lat: ${latitude!.toStringAsFixed(6)}  |  Lng: ${longitude!.toStringAsFixed(6)}',
-                            style: TextStyle(
-                              fontSize: 11,
+                            style: DSTypography.body().copyWith(
+                              fontSize: DSTypography.sizeSm,
                               fontFamily: 'monospace',
                               color: isDark
-                                  ? Colors.white70
-                                  : Colors.grey.shade700,
+                                  ? DSColors.labelSecondaryDark
+                                  : DSColors.labelPrimary,
                             ),
                           ),
                           if (geoAccuracy != null)
                             Text(
                               'Accuracy: \u00b1${geoAccuracy!.toStringAsFixed(1)} m',
-                              style: TextStyle(
-                                fontSize: 10,
+                              style: DSTypography.caption().copyWith(
+                                fontSize: DSTypography.sizeXs,
                                 color: isDark
-                                    ? Colors.white38
-                                    : Colors.grey.shade500,
+                                    ? DSColors.labelTertiaryDark
+                                    : DSColors.labelTertiary,
                               ),
                             ),
                         ],
                       )
                     : Text(
                         'Location not captured',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white38 : Colors.grey.shade500,
+                        style: DSTypography.caption().copyWith(
+                          fontSize: DSTypography.sizeSm,
+                          color: isDark
+                              ? DSColors.labelTertiaryDark
+                              : DSColors.labelTertiary,
                         ),
                       ),
               ),
@@ -127,7 +134,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
                     child: Icon(
                       Icons.refresh_rounded,
                       size: 18,
-                      color: Colors.grey.shade400,
+                      color: DSColors.labelSecondary,
                     ),
                   ),
                 ),
@@ -135,22 +142,26 @@ class DeliveryGeoLocationField extends StatelessWidget {
           ),
           // Fallback button – only shown when auto-capture failed
           if (!hasFix && !isLoading) ...[
-            const SizedBox(height: 10),
+            DSSpacing.hMd,
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.gps_fixed_rounded, size: 15),
-                label: const Text(
+                label: Text(
                   'GET MY LOCATION',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: DSTypography.button().copyWith(
+                    fontSize: DSTypography.sizeSm,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
+                    letterSpacing: DSTypography.lsLoose,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: DSColors.red,
-                  side: BorderSide(color: DSColors.red.withValues(alpha: 0.6)),
+                  foregroundColor: DSColors.error,
+                  side: BorderSide(
+                    color: DSColors.error.withValues(
+                      alpha: DSStyles.alphaBorder,
+                    ),
+                  ),
                   minimumSize: const Size.fromHeight(40),
                   shape: RoundedRectangleBorder(
                     borderRadius: DSStyles.cardRadius,

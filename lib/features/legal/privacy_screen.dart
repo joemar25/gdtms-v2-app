@@ -44,18 +44,18 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF13131F) : const Color(0xFFF5F6FA);
-    final cardColor = isDark ? const Color(0xFF1C1C28) : Colors.white;
+    final bg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
+    final cardColor = isDark ? DSColors.cardDark : Colors.white;
 
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1C1C28) : Colors.white,
+        backgroundColor: isDark ? DSColors.cardDark : Colors.white,
         elevation: 0,
         title: Text(
           'Privacy Policy',
           style: TextStyle(
-            fontSize: 17,
+            fontSize: DSTypography.sizeMd,
             fontWeight: FontWeight.w700,
             color: isDark ? Colors.white : Colors.black87,
           ),
@@ -65,13 +65,13 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
       body: _content.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : Container(
-              margin: const EdgeInsets.all(16),
+              margin: const EdgeInsets.all(DSSpacing.base),
               decoration: BoxDecoration(
                 color: cardColor,
                 borderRadius: DSStyles.cardRadius,
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(DSSpacing.lg),
                 child: LegalMarkdownText(content: _content, isDark: isDark),
               ),
             ),

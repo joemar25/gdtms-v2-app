@@ -11,14 +11,35 @@ InputDecoration deliveryFieldDecoration(
   String? errorText,
 }) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
-  final fill = isDark ? DSColors.elevatedCardDark : Colors.white;
-  final borderColor = isDark ? Colors.white12 : Colors.grey.shade300;
+  final fill = isDark
+      ? DSColors.secondarySurfaceDark
+      : DSColors.secondarySurfaceLight;
+  final borderColor = isDark ? DSColors.separatorDark : DSColors.separatorLight;
+
   return InputDecoration(
     labelText: labelText,
     hintText: hintText,
     errorText: errorText,
     filled: true,
     fillColor: fill,
+    contentPadding: const EdgeInsets.symmetric(
+      horizontal: DSSpacing.base,
+      vertical: DSSpacing.base,
+    ),
+    labelStyle: DSTypography.body().copyWith(
+      color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
+      fontSize: DSTypography.sizeMd,
+      fontWeight: FontWeight.w500,
+    ),
+    hintStyle: DSTypography.body().copyWith(
+      color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
+      fontSize: DSTypography.sizeMd,
+    ),
+    errorStyle: DSTypography.caption().copyWith(
+      color: DSColors.error,
+      fontSize: DSTypography.sizeSm,
+      fontWeight: FontWeight.w500,
+    ),
     border: OutlineInputBorder(
       borderRadius: DSStyles.cardRadius,
       borderSide: BorderSide(color: borderColor),
@@ -31,6 +52,10 @@ InputDecoration deliveryFieldDecoration(
       borderRadius: DSStyles.cardRadius,
       borderSide: const BorderSide(color: DSColors.primary, width: 1.5),
     ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: DSStyles.cardRadius,
+      borderSide: const BorderSide(color: DSColors.error, width: 1.0),
+    ),
   );
 }
 
@@ -41,14 +66,34 @@ class DeliverySectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.2,
-        color: Colors.grey.shade600,
-      ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 14,
+          decoration: BoxDecoration(
+            color: DSColors.primary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label.toUpperCase(),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: DSTypography.label().copyWith(
+              fontSize: DSTypography.sizeSm,
+              fontWeight: FontWeight.w900,
+              letterSpacing: DSTypography.lsGiantLoose,
+              color: isDark
+                  ? DSColors.labelTertiaryDark
+                  : DSColors.labelSecondary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -72,33 +117,49 @@ class DeliveryPhotoSourceButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        padding: const EdgeInsets.symmetric(
+          vertical: 14,
+          horizontal: DSSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: enabled
-              ? color.withValues(alpha: DSStyles.alphaSoft)
-              : DSColors.elevatedCardDark,
+              ? color.withValues(alpha: 0.1)
+              : (isDark
+                    ? DSColors.white.withValues(alpha: 0.05)
+                    : DSColors.secondarySurfaceLight),
           borderRadius: DSStyles.cardRadius,
           border: Border.all(
             color: enabled
-                ? color.withValues(alpha: DSStyles.alphaBorder)
-                : DSColors.cardDark,
+                ? color.withValues(alpha: 0.2)
+                : (isDark ? DSColors.separatorDark : DSColors.separatorLight),
           ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: enabled ? color : Colors.grey.shade400, size: 22),
-            const SizedBox(height: 4),
+            Icon(
+              icon,
+              color: enabled
+                  ? color
+                  : (isDark ? Colors.white24 : Colors.grey.shade400),
+              size: 24,
+            ),
+            const SizedBox(height: 6),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: enabled ? color : Colors.grey.shade400,
-                letterSpacing: 0.5,
+              style: DSTypography.label().copyWith(
+                fontSize: DSTypography.sizeSm,
+                fontWeight: FontWeight.w800,
+                color: enabled
+                    ? color
+                    : (isDark
+                          ? DSColors.labelTertiaryDark
+                          : DSColors.labelTertiary),
+                letterSpacing: DSTypography.lsExtraLoose,
               ),
             ),
           ],

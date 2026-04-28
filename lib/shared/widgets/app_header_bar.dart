@@ -72,7 +72,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
                   child: Text(
                     title ?? '',
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    style: DSTypography.heading().copyWith(
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.4,
                     ),
@@ -128,7 +128,7 @@ class NotificationBell extends StatelessWidget {
           : 'No unread notifications',
       button: true,
       child: IconButton(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(DSSpacing.sm),
         constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
         tooltip: 'Notifications',
         onPressed: () {
@@ -200,10 +200,9 @@ class _Badge extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 10.2,
+        style: DSTypography.label(color: Colors.white).copyWith(
+          fontSize: DSTypography.sizeXs,
           fontWeight: FontWeight.w700,
-          color: Colors.white,
           height: 1.0,
           letterSpacing: -0.3,
         ),
@@ -405,14 +404,20 @@ class _SearchRow extends StatelessWidget {
               focusNode: focusNode,
               textInputAction: TextInputAction.search,
               onSubmitted: onSubmit,
-              style: const TextStyle(fontSize: 14),
+              style: DSTypography.body().copyWith(
+                fontSize: DSTypography.sizeMd,
+              ),
               decoration: InputDecoration(
                 hintText: 'Barcode, account name…',
-                hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                hintStyle: DSTypography.body(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.labelSecondary,
+                ).copyWith(fontSize: DSTypography.sizeMd),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+                  horizontal: DSSpacing.md,
+                  vertical: DSSpacing.md,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -429,7 +434,9 @@ class _SearchRow extends StatelessWidget {
                   ),
                 ),
                 filled: true,
-                fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.6),
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? DSColors.scaffoldDark
+                    : DSColors.scaffoldLight,
               ),
             ),
           ),
@@ -479,9 +486,11 @@ class _ProfileRow extends StatelessWidget {
             height: 46,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.grey.shade200,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? DSColors.secondarySurfaceDark
+                  : DSColors.secondarySurfaceLight,
               border: Border.all(
-                color: const Color(0xFF00B14F).withValues(alpha: 0.3),
+                color: DSColors.primary.withValues(alpha: 0.2),
                 width: 2,
               ),
               boxShadow: [
@@ -500,16 +509,16 @@ class _ProfileRow extends StatelessWidget {
                       height: 46,
                       fit: BoxFit.cover,
                       // Graceful offline / broken-URL fallback.
-                      errorBuilder: (_, __, ___) => Icon(
+                      errorBuilder: (_, __, ___) => const Icon(
                         Icons.person_rounded,
                         size: 24,
-                        color: Colors.grey.shade400,
+                        color: DSColors.labelSecondary,
                       ),
                     )
-                  : Icon(
+                  : const Icon(
                       Icons.person_rounded,
                       size: 24,
-                      color: Colors.grey.shade400,
+                      color: DSColors.labelSecondary,
                     ),
             ),
           ),
@@ -524,8 +533,8 @@ class _ProfileRow extends StatelessWidget {
             children: [
               Text(
                 name,
-                style: const TextStyle(
-                  fontSize: 15,
+                style: DSTypography.label().copyWith(
+                  fontSize: DSTypography.sizeMd,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,
                   height: 1.2,
@@ -536,12 +545,16 @@ class _ProfileRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 role,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade500,
-                  height: 1.2,
-                ),
+                style:
+                    DSTypography.caption(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
+                    ).copyWith(
+                      fontSize: DSTypography.sizeSm,
+                      fontWeight: FontWeight.w500,
+                      height: 1.2,
+                    ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

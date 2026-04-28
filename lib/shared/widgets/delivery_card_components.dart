@@ -3,7 +3,11 @@ import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ── Bouncing card wrapper ──────────────────────────────────────────────────────
 class BouncingCardWrapper extends StatefulWidget {
-  const BouncingCardWrapper({super.key, required this.child, required this.onTap});
+  const BouncingCardWrapper({
+    super.key,
+    required this.child,
+    required this.onTap,
+  });
   final Widget child;
   final VoidCallback? onTap;
 
@@ -75,7 +79,10 @@ class DeliveryStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.sm,
+        vertical: DSSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: DSStyles.alphaActiveAccent),
         borderRadius: DSStyles.pillRadius,
@@ -88,14 +95,12 @@ class DeliveryStatusBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 11, color: color),
-          const SizedBox(width: 4),
+          DSSpacing.wXs,
           Text(
             label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: color,
-              letterSpacing: 0.6,
+            style: DSTypography.label(color: color).copyWith(
+              fontSize: DSTypography.sizeXs,
+              letterSpacing: DSTypography.lsMediumLoose,
             ),
           ),
         ],
@@ -124,7 +129,10 @@ class DeliveryMiniPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.sm,
+        vertical: DSSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: DSStyles.pillRadius,
@@ -134,15 +142,12 @@ class DeliveryMiniPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 10, color: fg),
-          const SizedBox(width: 3),
+          DSSpacing.wXs,
           Text(
             label,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
+            style: DSTypography.label(
               color: fg,
-              letterSpacing: 0.5,
-            ),
+            ).copyWith(fontSize: 9, letterSpacing: DSTypography.lsLoose),
           ),
         ],
       ),
@@ -159,8 +164,11 @@ class DeliveryTinyPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(left: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      margin: const EdgeInsets.only(left: DSSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.xs + 1,
+        vertical: 2,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: DSStyles.alphaActiveAccent),
         borderRadius: DSStyles.pillRadius,
@@ -170,12 +178,9 @@ class DeliveryTinyPill extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 7,
-          fontWeight: FontWeight.w800,
+        style: DSTypography.label(
           color: color,
-          letterSpacing: 0.3,
-        ),
+        ).copyWith(fontSize: 7, letterSpacing: DSTypography.lsSmallLoose),
       ),
     );
   }
@@ -207,24 +212,25 @@ class DeliveryDetailCell extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
+          style: DSTypography.label(
             color: subtextColor,
-            letterSpacing: 0.9,
-          ),
+          ).copyWith(fontSize: 9, letterSpacing: DSTypography.lsExtraLoose),
         ),
-        const SizedBox(height: 3),
+        DSSpacing.hXs,
         Text(
           value,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color:
-                valueColor ??
-                (isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary),
-            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
-          ),
+          style:
+              DSTypography.body(
+                color:
+                    valueColor ??
+                    (isDark
+                        ? DSColors.labelPrimaryDark
+                        : DSColors.labelPrimary),
+              ).copyWith(
+                fontSize: DSTypography.sizeSm,
+                fontWeight: FontWeight.w600,
+                fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+              ),
         ),
       ],
     );
@@ -246,17 +252,21 @@ class InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary;
+    final color = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 12, color: color),
-        const SizedBox(width: 3),
+        DSSpacing.wXs,
         Flexible(
           child: Text(
             label,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 11, color: color),
+            style: DSTypography.caption(
+              color: color,
+            ).copyWith(fontSize: DSTypography.sizeSm),
           ),
         ),
       ],

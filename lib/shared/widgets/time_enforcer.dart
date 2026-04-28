@@ -178,7 +178,7 @@ class _LoadingScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Verifying device time…',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              style: DSTypography.caption(
                 color: isDark
                     ? DSColors.labelSecondaryDark
                     : DSColors.labelSecondary,
@@ -214,7 +214,7 @@ class _BlockingOverlay extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
+            margin: const EdgeInsets.symmetric(horizontal: DSSpacing.lg),
             decoration: BoxDecoration(
               color: isDark ? DSColors.cardDark : DSColors.cardLight,
               borderRadius: DSStyles.cardRadius,
@@ -226,7 +226,10 @@ class _BlockingOverlay extends StatelessWidget {
                 ),
               ],
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DSSpacing.xl,
+              vertical: 28,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -235,27 +238,27 @@ class _BlockingOverlay extends StatelessWidget {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: DSColors.red.withValues(alpha: 0.12),
+                    color: DSColors.error.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.access_time_filled_rounded,
-                    color: DSColors.red,
+                    color: DSColors.error,
                     size: 32,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Incorrect Device Time',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: DSTypography.heading().copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'This app requires Philippine Standard Time (UTC+8).',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  style: DSTypography.body(
                     color: isDark
                         ? DSColors.labelSecondaryDark
                         : DSColors.labelSecondary,
@@ -265,22 +268,21 @@ class _BlockingOverlay extends StatelessWidget {
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(DSSpacing.md),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? DSColors.red.withValues(alpha: 0.08)
-                        : DSColors.red.withValues(alpha: 0.06),
+                        ? DSColors.error.withValues(alpha: 0.08)
+                        : DSColors.error.withValues(alpha: 0.06),
                     borderRadius: DSStyles.pillRadius,
                     border: Border.all(
-                      color: DSColors.red.withValues(alpha: 0.25),
+                      color: DSColors.error.withValues(alpha: 0.25),
                     ),
                   ),
                   child: Text(
                     message,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: DSColors.red,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: DSTypography.caption(
+                      color: DSColors.error,
+                    ).copyWith(fontWeight: FontWeight.w500),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -333,7 +335,7 @@ class _BlockingOverlay extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Enable "Automatic date & time" and set timezone to Asia/Manila.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  style: DSTypography.caption(
                     color: isDark
                         ? DSColors.labelSecondaryDark
                         : DSColors.labelSecondary,

@@ -68,7 +68,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xxl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -78,16 +78,18 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                   child: _done
                       ? Lottie.asset(AppAssets.animSuccess, repeat: false)
                       : const SpinKitDoubleBounce(
-                          color: Color(0xFF00B14F),
+                          color: DSColors.primary,
                           size: 80,
                         ),
                 ),
                 const SizedBox(height: 24),
                 Text(
                   'Setting Up Your App',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: DSTypography.title(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? DSColors.labelPrimaryDark
+                        : DSColors.labelPrimary,
+                  ).copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
@@ -96,8 +98,10 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                   child: Text(
                     _progressText,
                     key: ValueKey(_progressText),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    style: DSTypography.body(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),

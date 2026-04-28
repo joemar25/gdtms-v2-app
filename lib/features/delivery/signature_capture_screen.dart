@@ -56,8 +56,8 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
     super.initState();
     _controller = SignatureController(
       penStrokeWidth: 2.5,
-      penColor: Colors.black87,
-      exportBackgroundColor: Colors.white,
+      penColor: DSColors.black,
+      exportBackgroundColor: DSColors.white,
       onDrawEnd: () => setState(() {}),
     );
     SystemChrome.setPreferredOrientations([]);
@@ -89,18 +89,19 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
       appBar: AppHeaderBar(
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
-          color: isDark ? Colors.white : Colors.black87,
+          color: isDark ? DSColors.white : DSColors.black,
           tooltip: 'Cancel',
           onPressed: () => Navigator.of(context).pop(null),
         ),
-        titleWidget: const Text(
+        titleWidget: Text(
           'RECIPIENT SIGNATURE',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 13,
+          style: DSTypography.heading().copyWith(
+            fontSize: DSTypography.sizeMd,
             fontWeight: FontWeight.w800,
-            letterSpacing: 1.0,
+            letterSpacing: DSTypography.lsMegaLoose,
+            color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
           ),
         ),
         actions: [
@@ -109,36 +110,41 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
             icon: Icon(
               Icons.refresh_rounded,
               size: 16,
-              color: hasStrokes ? Colors.grey.shade600 : Colors.grey.shade300,
+              color: hasStrokes
+                  ? DSColors.labelSecondary
+                  : DSColors.separatorLight,
             ),
             label: Text(
               'CLEAR',
-              style: TextStyle(
-                fontSize: 12,
+              style: DSTypography.label().copyWith(
+                fontSize: DSTypography.sizeSm,
                 fontWeight: FontWeight.w700,
-                color: hasStrokes ? Colors.grey.shade600 : Colors.grey.shade300,
+                color: hasStrokes ? DSColors.error : DSColors.separatorLight,
               ),
             ),
           ),
-          const SizedBox(width: 4),
+          DSSpacing.wXs,
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.icon(
               icon: const Icon(Icons.check_rounded, size: 16),
-              label: const Text(
+              label: Text(
                 'DONE',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                style: DSTypography.button().copyWith(
+                  fontSize: DSTypography.sizeSm,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               style: FilledButton.styleFrom(
                 backgroundColor: hasStrokes
                     ? DSColors.primary
-                    : Colors.grey.shade300,
+                    : DSColors.separatorLight,
                 foregroundColor: hasStrokes
-                    ? Colors.white
-                    : Colors.grey.shade500,
+                    ? DSColors.white
+                    : DSColors.labelSecondary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
-                  vertical: 8,
+                  vertical: DSSpacing.sm,
                 ),
                 minimumSize: Size.zero,
                 shape: RoundedRectangleBorder(
@@ -149,7 +155,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
             ),
           ),
         ],
-        backgroundColor: isDark ? DSColors.appBarDark : DSColors.appBarLight,
+        backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
         showNotificationBell: false,
       ),
       body: Stack(
@@ -157,10 +163,10 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
           // Full-screen white canvas
           Positioned.fill(
             child: Container(
-              color: Colors.white,
+              color: DSColors.white,
               child: Signature(
                 controller: _controller,
-                backgroundColor: Colors.white,
+                backgroundColor: DSColors.white,
               ),
             ),
           ),
@@ -173,8 +179,10 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
               child: Center(
                 child: Container(
                   height: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: 48),
-                  color: Colors.grey.shade200,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: DSSpacing.xxxl,
+                  ),
+                  color: DSColors.separatorLight,
                 ),
               ),
             ),
@@ -187,9 +195,9 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
               child: Center(
                 child: Text(
                   'Sign above the line',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade300,
+                  style: DSTypography.caption().copyWith(
+                    fontSize: DSTypography.sizeSm,
+                    color: DSColors.separatorLight,
                     fontStyle: FontStyle.italic,
                   ),
                 ),

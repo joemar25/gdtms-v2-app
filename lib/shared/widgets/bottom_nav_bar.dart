@@ -14,7 +14,7 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? DSColors.appBarDark : DSColors.appBarLight;
+    final backgroundColor = isDark ? DSColors.cardDark : DSColors.cardLight;
     final borderColor = isDark
         ? DSColors.separatorDark
         : DSColors.separatorLight;
@@ -186,9 +186,8 @@ class _NavBarItem extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
+              style: DSTypography.caption(color: color).copyWith(
+                fontSize: DSTypography.sizeSm,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),

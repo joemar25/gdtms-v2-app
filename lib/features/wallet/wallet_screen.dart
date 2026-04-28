@@ -417,7 +417,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                   : 'Consolidate Payout Request',
                             ),
                             style: FilledButton.styleFrom(
-                              backgroundColor: Colors.amber.shade700,
+                              backgroundColor: DSColors.warning,
                               minimumSize: const Size.fromHeight(50),
                               shape: RoundedRectangleBorder(
                                 borderRadius: DSStyles.cardRadius,
@@ -427,16 +427,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         else
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
+                              horizontal: DSSpacing.base,
+                              vertical: DSSpacing.md,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.amber.withValues(
+                              color: DSColors.warning.withValues(
                                 alpha: DSStyles.alphaSoft,
                               ),
                               borderRadius: DSStyles.cardRadius,
                               border: Border.all(
-                                color: Colors.amber.withValues(
+                                color: DSColors.warning.withValues(
                                   alpha: DSStyles.alphaDarkShadow,
                                 ),
                               ),
@@ -445,7 +445,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                               children: [
                                 Icon(
                                   Icons.info_outline_rounded,
-                                  color: Colors.amber.shade700,
+                                  color: DSColors.warning,
                                   size: 18,
                                 ),
                                 const SizedBox(width: 10),
@@ -454,10 +454,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                     hasExistingRequestToday
                                         ? 'You have already submitted a request today. You can consolidate your deliveries tomorrow.'
                                         : 'You have a pending payout request',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.amber.shade700,
-                                    ),
+                                    style: DSTypography.caption(
+                                      color: DSColors.warning,
+                                    ).copyWith(fontSize: DSTypography.sizeSm),
                                   ),
                                 ),
                               ],
@@ -516,30 +515,26 @@ class _PayoutWindowBanner extends StatelessWidget {
     // returns true), but guard here defensively just in case.
     if (kAppDebugMode) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: DSSpacing.md,
+        ),
         decoration: BoxDecoration(
-          color: Colors.deepPurple.withValues(alpha: DSStyles.alphaSoft),
+          color: DSColors.accent.withValues(alpha: DSStyles.alphaSoft),
           borderRadius: DSStyles.cardRadius,
           border: Border.all(
-            color: Colors.deepPurple.withValues(
-              alpha: DSStyles.alphaDarkShadow,
-            ),
+            color: DSColors.accent.withValues(alpha: DSStyles.alphaDarkShadow),
           ),
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.bug_report_rounded,
-              color: Colors.deepPurple.shade400,
-              size: 18,
-            ),
+            Icon(Icons.bug_report_rounded, color: DSColors.primary, size: 18),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 '(DEBUG) Time restriction bypassed — requests allowed at any hour.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.deepPurple.shade400,
+                style: DSTypography.caption(color: DSColors.primary).copyWith(
+                  fontSize: DSTypography.sizeSm,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -550,18 +545,21 @@ class _PayoutWindowBanner extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: DSSpacing.md,
+      ),
       decoration: BoxDecoration(
-        color: DSColors.red.withValues(alpha: DSStyles.alphaSoft),
+        color: DSColors.error.withValues(alpha: DSStyles.alphaSoft),
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: DSColors.red.withValues(alpha: DSStyles.alphaDarkShadow),
+          color: DSColors.error.withValues(alpha: DSStyles.alphaDarkShadow),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_clock_rounded, color: DSColors.red, size: 18),
+          Icon(Icons.lock_clock_rounded, color: DSColors.error, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -569,10 +567,9 @@ class _PayoutWindowBanner extends StatelessWidget {
               children: [
                 Text(
                   'Payout Requests: Morning Only',
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: DSTypography.body(color: DSColors.error).copyWith(
+                    fontSize: DSTypography.sizeMd,
                     fontWeight: FontWeight.w700,
-                    color: DSColors.red,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -582,11 +579,11 @@ class _PayoutWindowBanner extends StatelessWidget {
                   'and '
                   '${kPayoutWindowEndHour == 12 ? '12:00 PM (noon)' : '${kPayoutWindowEndHour.toString().padLeft(2, '0')}:00'}. '
                   'Please come back during that window.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: DSColors.red.withValues(alpha: DSStyles.alphaGlass),
-                    height: 1.4,
-                  ),
+                  style: DSTypography.caption(
+                    color: DSColors.error.withValues(
+                      alpha: DSStyles.alphaGlass,
+                    ),
+                  ).copyWith(height: 1.4),
                 ),
               ],
             ),
@@ -714,11 +711,13 @@ class _WalletFlipCardState extends State<_WalletFlipCard>
           const SizedBox(height: 12),
           Text(
             'Tap to flip back',
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.white.withValues(alpha: DSStyles.alphaGlass),
-              fontStyle: FontStyle.italic,
-            ),
+            style:
+                DSTypography.caption(
+                  color: DSColors.white.withValues(alpha: DSStyles.alphaGlass),
+                ).copyWith(
+                  fontSize: DSTypography.sizeXs,
+                  fontStyle: FontStyle.italic,
+                ),
           ),
         ],
       ),
@@ -759,8 +758,8 @@ class _EarningsCard extends StatelessWidget {
     return Container(
       margin: EdgeInsets.zero,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF007A36), Color(0xFF00B14F)],
+        gradient: LinearGradient(
+          colors: [DSColors.primary.withValues(alpha: 0.9), DSColors.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -778,10 +777,13 @@ class _EarningsCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: DSStyles.cardRadius,
-          highlightColor: Colors.white.withValues(alpha: DSStyles.alphaSoft),
-          splashColor: Colors.white.withValues(alpha: DSStyles.alphaSoft),
+          highlightColor: DSColors.white.withValues(alpha: DSStyles.alphaSoft),
+          splashColor: DSColors.white.withValues(alpha: DSStyles.alphaSoft),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DSSpacing.xl,
+              vertical: 28,
+            ),
             child:
                 child ??
                 Column(
@@ -791,7 +793,7 @@ class _EarningsCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.account_balance_wallet_rounded,
-                          color: Colors.white.withValues(
+                          color: DSColors.white.withValues(
                             alpha: DSStyles.alphaGlass,
                           ),
                           size: 18,
@@ -799,16 +801,15 @@ class _EarningsCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           displayLabel,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
+                          style: DSTypography.caption(
+                            color: DSColors.white.withValues(alpha: 0.7),
+                          ).copyWith(fontSize: DSTypography.sizeMd),
                         ),
                         const Spacer(),
                         if (isLatestPending)
-                          const Icon(
+                          Icon(
                             Icons.unfold_more_rounded,
-                            color: Colors.white60,
+                            color: DSColors.white.withValues(alpha: 0.6),
                             size: 16,
                           ),
                       ],
@@ -822,23 +823,22 @@ class _EarningsCard extends StatelessWidget {
                           width: 24,
                           child: Text(
                             '₱',
-                            style: TextStyle(
-                              color: Colors.white.withValues(
-                                alpha: DSStyles.alphaGlass,
-                              ),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style:
+                                DSTypography.title(
+                                  color: DSColors.white.withValues(
+                                    alpha: DSStyles.alphaSoft,
+                                  ),
+                                ).copyWith(
+                                  fontSize: DSTypography.sizeMd,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ),
                         Text(
                           _fmt(displayAmt),
-                          style: const TextStyle(
+                          style: DSTypography.display(
                             color: Colors.white,
-                            fontSize: 34,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
+                          ).copyWith(fontSize: 34, fontWeight: FontWeight.w800),
                         ),
                       ],
                     ),
@@ -848,13 +848,15 @@ class _EarningsCard extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         'Tap to view payout account',
-                        style: TextStyle(
-                          color: Colors.white.withValues(
-                            alpha: DSStyles.alphaBorder,
-                          ),
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                        ),
+                        style:
+                            DSTypography.caption(
+                              color: DSColors.white.withValues(
+                                alpha: DSStyles.alphaSoft,
+                              ),
+                            ).copyWith(
+                              fontSize: DSTypography.sizeSm,
+                              fontStyle: FontStyle.italic,
+                            ),
                       ),
                     ],
 
@@ -886,30 +888,34 @@ class _EarningsCard extends StatelessWidget {
     required String amount,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: DSSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: Colors.white.withValues(alpha: DSStyles.alphaBorder),
+          color: DSColors.white.withValues(alpha: DSStyles.alphaBorder),
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white70, size: 16),
+          Icon(icon, color: DSColors.white.withValues(alpha: 0.7), size: 16),
           const SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: DSTypography.caption(
+              color: DSColors.white.withValues(alpha: 0.7),
+            ).copyWith(fontSize: DSTypography.sizeMd),
           ),
           const Spacer(),
           Text(
             '₱ $amount',
-            style: const TextStyle(
-              color: Colors.white,
+            style: DSTypography.title(color: Colors.white).copyWith(
               fontWeight: FontWeight.w700,
-              fontSize: 15,
+              fontSize: DSTypography.sizeMd,
             ),
           ),
         ],
@@ -956,7 +962,10 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
         onTap: onTap,
         borderRadius: DSStyles.cardRadius,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DSSpacing.base,
+            vertical: DSSpacing.md,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -968,7 +977,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                       reference,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
+                        fontSize: DSTypography.sizeMd,
                       ),
                     ),
                   ),
@@ -1003,7 +1012,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                         TextSpan(
                           text: '₱ ',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: DSTypography.sizeMd,
                             fontWeight: FontWeight.w600,
                             color: DSColors.primary.withValues(
                               alpha: DSStyles.alphaGlass,
@@ -1037,22 +1046,34 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final (bg, fg) = switch (status.toUpperCase()) {
-      'PAID' => (const Color(0xFFE6F9EE), DSColors.primary),
-      'APPROVED' ||
-      'OPS_APPROVED' ||
-      'HR_APPROVED' => (const Color(0xFFE6F2FF), Colors.blue.shade700),
-      'REJECTED' => (const Color(0xFFFFEBEB), Colors.red.shade600),
-      'PENDING' ||
-      'PROCESSING' => (const Color(0xFFFFF4E0), Colors.orange.shade700),
-      _ => (Colors.grey.shade100, Colors.grey.shade600),
+      'PAID' => (DSColors.success.withValues(alpha: 0.1), DSColors.success),
+      'APPROVED' || 'OPS_APPROVED' || 'HR_APPROVED' => (
+        DSColors.primary.withValues(alpha: 0.1),
+        DSColors.primary,
+      ),
+      'REJECTED' => (DSColors.error.withValues(alpha: 0.1), DSColors.error),
+      'PENDING' || 'PROCESSING' => (
+        DSColors.warning.withValues(alpha: 0.1),
+        DSColors.warning,
+      ),
+      _ => (
+        isDark ? DSColors.secondarySurfaceDark : DSColors.secondarySurfaceLight,
+        isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
+      ),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.xs,
+      ),
       decoration: BoxDecoration(color: bg, borderRadius: DSStyles.cardRadius),
       child: Text(
         status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
-        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
+        style: DSTypography.label(
+          color: fg,
+        ).copyWith(fontSize: DSTypography.sizeSm),
       ),
     );
   }
@@ -1065,17 +1086,26 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: Colors.grey.shade500),
+        Icon(
+          icon,
+          size: 13,
+          color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
+        ),
         const SizedBox(width: 4),
         Flexible(
           child: Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: DSTypography.caption(
+              color: isDark
+                  ? DSColors.labelSecondaryDark
+                  : DSColors.labelSecondary,
+            ).copyWith(fontSize: DSTypography.sizeSm),
           ),
         ),
       ],
@@ -1089,13 +1119,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       text,
-      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-        color: Colors.grey.shade500,
-        letterSpacing: 0.6,
-        fontWeight: FontWeight.w600,
-      ),
+      style: DSTypography.label(
+        color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
+      ).copyWith(letterSpacing: 0.6),
     );
   }
 }

@@ -80,10 +80,9 @@ All files use kebab-case names. Organized to mirror the `lib/` folder structure.
 
 ---
 
-## UI Primitives
+## Design System
 
-- [components.md](components.md) — `lib/components/` — `StyledTextBox`, `StyledDropDown`, `AppHeader`
-- [styles.md](styles.md) — `lib/styles/` — color and text style tokens
+- [styles.md](styles.md) — `lib/design_system/` — color, typography tokens, and atomic widgets
 
 ---
 

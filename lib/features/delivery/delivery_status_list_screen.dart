@@ -342,7 +342,7 @@ class _DeliveryStatusListScreenState
     );
     final status = widget.status.toUpperCase();
     return switch (status) {
-      'PENDING' || 'FOR_DELIVERY' => [
+      'FOR_DELIVERY' => [
         searchBtn,
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -368,7 +368,7 @@ class _DeliveryStatusListScreenState
   }
 
   String _emptyMessage() => switch (widget.status.toUpperCase()) {
-    'PENDING' || 'FOR_DELIVERY' => 'No active deliveries.',
+    'FOR_DELIVERY' => 'No active deliveries.',
     'DELIVERED' => 'No delivered items today.',
     'DISPATCHED' => 'No dispatched items.',
     'FAILED_DELIVERY' =>
@@ -512,7 +512,7 @@ class _DeliveryStatusListScreenState
                         icon: Icons.local_shipping_rounded,
                         selected: _failedSubFilter == 'redelivery',
                         count: _countFailedSubGroup('redelivery'),
-                        color: DSColors.red,
+                        color: DSColors.error,
                         isDark: isDark,
                         onTap: () => setState(() {
                           _failedSubFilter = 'redelivery';
@@ -539,18 +539,18 @@ class _DeliveryStatusListScreenState
               // ── List ───────────────────────────────────────────────────────────
               Expanded(
                 child: RefreshIndicator(
-                  color: DSColors.red,
+                  color: DSColors.error,
                   onRefresh: _onRefresh,
                   child: _loading
                       ? Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation(DSColors.red),
+                            valueColor: AlwaysStoppedAnimation(DSColors.error),
                           ),
                         )
                       : (_searchLoading && displayed.isEmpty)
                       ? Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation(DSColors.red),
+                            valueColor: AlwaysStoppedAnimation(DSColors.error),
                           ),
                         )
                       : displayed.isEmpty
@@ -563,82 +563,82 @@ class _DeliveryStatusListScreenState
                           isDark: isDark,
                         )
                       : ListView.builder(
-                            controller: _scrollController,
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                            itemCount:
-                                displayed.length + _bannerCount(isOnline),
-                            itemBuilder: (context, index) {
-                              final banners = _bannerCount(isOnline);
-                              if (index < banners) {
-                                return _buildBanner(index, isOnline, isDark);
-                              }
-                              final d = displayed[index - banners];
-                              final identifier = resolveDeliveryIdentifier(d);
-                              final deliveryStatus =
-                                  d['delivery_status']?.toString() ?? 'PENDING';
-                              final isLocked = checkIsLockedFromMap(d);
-                              final canUpdate =
-                                  identifier.isNotEmpty &&
-                                  !isLocked &&
-                                  deliveryStatus.toUpperCase() != 'OSA';
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                          itemCount: displayed.length + _bannerCount(isOnline),
+                          itemBuilder: (context, index) {
+                            final banners = _bannerCount(isOnline);
+                            if (index < banners) {
+                              return _buildBanner(index, isOnline, isDark);
+                            }
+                            final d = displayed[index - banners];
+                            final identifier = resolveDeliveryIdentifier(d);
+                            final deliveryStatus =
+                                d['delivery_status']?.toString() ??
+                                'FOR_DELIVERY';
+                            final isLocked = checkIsLockedFromMap(d);
+                            final canUpdate =
+                                identifier.isNotEmpty &&
+                                !isLocked &&
+                                deliveryStatus.toUpperCase() != 'OSA';
 
-                              return DeliveryCard(
-                                delivery: d,
-                                compact: isCompact,
-                                showChevron: !isLocked,
-                                onUpdateTap: canUpdate
-                                    ? () => context.push(
-                                        '/deliveries/$identifier/update',
-                                      )
-                                    : null,
-                                onTap: (identifier.isEmpty)
-                                    ? () {}
-                                    : (isLocked)
-                                    ? () {
-                                        final s = deliveryStatus.toUpperCase();
-                                        final v =
-                                            (d['_rts_verification_status'] ??
-                                                    d['_failed_delivery_verification_status'] ??
-                                                    'unvalidated')
-                                                .toString()
-                                                .toLowerCase();
-                                        final attemptsCount =
-                                            getAttemptsCountFromMap(d);
+                            return DeliveryCard(
+                              delivery: d,
+                              compact: isCompact,
+                              showChevron: !isLocked,
+                              onUpdateTap: canUpdate
+                                  ? () => context.push(
+                                      '/deliveries/$identifier/update',
+                                    )
+                                  : null,
+                              onTap: (identifier.isEmpty)
+                                  ? () {}
+                                  : (isLocked)
+                                  ? () {
+                                      final s = deliveryStatus.toUpperCase();
+                                      final v =
+                                          (d['_rts_verification_status'] ??
+                                                  d['_failed_delivery_verification_status'] ??
+                                                  'unvalidated')
+                                              .toString()
+                                              .toLowerCase();
+                                      final attemptsCount =
+                                          getAttemptsCountFromMap(d);
 
-                                        final ds = DeliveryStatus.fromString(s);
-                                        final rv =
-                                            FailedDeliveryVerificationStatus.fromString(
-                                              v,
-                                            );
-                                        String msg =
-                                            'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
-                                        if (ds == DeliveryStatus.osa) {
-                                          msg =
-                                              'This item is marked OSA and cannot be opened.';
-                                        } else if (ds ==
-                                            DeliveryStatus.delivered) {
-                                          msg =
-                                              'This item has already been delivered and is sealed.';
-                                        } else if (ds ==
-                                                DeliveryStatus.failedDelivery &&
-                                            attemptsCount >= 3) {
-                                          msg =
-                                              'This failed delivery has reached the maximum number of attempts and is locked.';
-                                        } else if (ds ==
-                                                DeliveryStatus.failedDelivery &&
-                                            rv.isVerified) {
-                                          msg =
-                                              'This failed delivery has already been verified and is no longer actionable.';
-                                        }
-                                        showInfoNotification(context, msg);
+                                      final ds = DeliveryStatus.fromString(s);
+                                      final rv =
+                                          FailedDeliveryVerificationStatus.fromString(
+                                            v,
+                                          );
+                                      String msg =
+                                          'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
+                                      if (ds == DeliveryStatus.osa) {
+                                        msg =
+                                            'This item is marked OSA and cannot be opened.';
+                                      } else if (ds ==
+                                          DeliveryStatus.delivered) {
+                                        msg =
+                                            'This item has already been delivered and is sealed.';
+                                      } else if (ds ==
+                                              DeliveryStatus.failedDelivery &&
+                                          attemptsCount >= 3) {
+                                        msg =
+                                            'This failed delivery has reached the maximum number of attempts and is locked.';
+                                      } else if (ds ==
+                                              DeliveryStatus.failedDelivery &&
+                                          rv.isVerified) {
+                                        msg =
+                                            'This failed delivery has already been verified and is no longer actionable.';
                                       }
-                                    : () => context.push(
-                                        '/deliveries/$identifier/update',
-                                      ),
-                              );
-                            },
-                          ),
+                                      showInfoNotification(context, msg);
+                                    }
+                                  : () => context.push(
+                                      '/deliveries/$identifier/update',
+                                    ),
+                            );
+                          },
+                        ),
                 ),
               ),
 
@@ -670,11 +670,11 @@ class _DeliveryStatusListScreenState
       isScrollControlled: true,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          color: isDark ? DSColors.cardDark : DSColors.white,
+          borderRadius: DSStyles.cardRadius,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: DSStyles.alphaDarkShadow),
+              color: DSColors.black.withValues(alpha: DSStyles.alphaDarkShadow),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -689,7 +689,9 @@ class _DeliveryStatusListScreenState
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white24 : Colors.black12,
+                color: isDark
+                    ? DSColors.labelTertiaryDark
+                    : DSColors.labelTertiary,
                 borderRadius: DSStyles.pillRadius,
               ),
             ),
@@ -697,11 +699,11 @@ class _DeliveryStatusListScreenState
 
             // Header Icon & Title
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xl),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(DSSpacing.md),
                     decoration: BoxDecoration(
                       color: failedDeliveryColor.withValues(
                         alpha: DSStyles.alphaSoft,
@@ -721,20 +723,22 @@ class _DeliveryStatusListScreenState
                       children: [
                         Text(
                           'Failed Delivery & Payments',
-                          style: TextStyle(
-                            fontSize: 18,
+                          style: DSTypography.heading().copyWith(
+                            fontSize: DSTypography.sizeMd,
                             fontWeight: FontWeight.w700,
                             color: isDark
-                                ? Colors.white
-                                : const Color(0xFF0F172A),
-                            letterSpacing: -0.5,
+                                ? DSColors.labelPrimaryDark
+                                : DSColors.labelPrimary,
+                            letterSpacing: DSTypography.lsSlightlyTight,
                           ),
                         ),
                         Text(
                           'How things work in the system',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark ? Colors.white60 : Colors.black54,
+                          style: DSTypography.caption().copyWith(
+                            fontSize: DSTypography.sizeMd,
+                            color: isDark
+                                ? DSColors.labelSecondaryDark
+                                : DSColors.labelSecondary,
                           ),
                         ),
                       ],
@@ -744,7 +748,9 @@ class _DeliveryStatusListScreenState
                     onPressed: () => Navigator.pop(context),
                     icon: Icon(
                       Icons.close_rounded,
-                      color: isDark ? Colors.white38 : Colors.black26,
+                      color: isDark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
                     ),
                   ),
                 ],
@@ -755,16 +761,18 @@ class _DeliveryStatusListScreenState
 
             // Help Content
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xl),
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(DSSpacing.lg),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
-                      : const Color(0xFFF8FAFC),
+                      ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
+                      : DSColors.secondarySurfaceLight,
                   borderRadius: DSStyles.cardRadius,
                   border: Border.all(
-                    color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
+                    color: isDark
+                        ? DSColors.separatorDark
+                        : DSColors.separatorLight,
                   ),
                 ),
                 child: Column(
@@ -777,7 +785,7 @@ class _DeliveryStatusListScreenState
                       isDark: isDark,
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: DSSpacing.base),
                       child: Divider(height: 1),
                     ),
                     _HelpItem(
@@ -788,7 +796,7 @@ class _DeliveryStatusListScreenState
                       isDark: isDark,
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: DSSpacing.base),
                       child: Divider(height: 1),
                     ),
                     _HelpItem(
@@ -807,10 +815,10 @@ class _DeliveryStatusListScreenState
 
             // Footer note
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(DSSpacing.xl),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(DSSpacing.base),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -833,15 +841,11 @@ class _DeliveryStatusListScreenState
                     Expanded(
                       child: Text(
                         'This ensures your payments are tracked accurately without manual intervention.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark
-                              ? failedDeliveryColor.withValues(
-                                  alpha: DSStyles.alphaGlass,
-                                )
-                              : failedDeliveryColor.withValues(
-                                  alpha: DSStyles.alphaGlass,
-                                ),
+                        style: DSTypography.body().copyWith(
+                          fontSize: DSTypography.sizeSm,
+                          color: failedDeliveryColor.withValues(
+                            alpha: DSStyles.alphaGlass,
+                          ),
                           height: 1.4,
                           fontWeight: FontWeight.w500,
                         ),
@@ -890,15 +894,6 @@ class _DeliveryStatusListScreenState
         isDark: isDark,
       );
     }
-    // if (ds == DeliveryStatus.failedDelivery && index == slot) {
-    //   return _StatusInfoBanner(
-    //     icon: Icons.assignment_return_rounded,
-    //     message:
-    //         'Failed attempts can be re-delivered if still with you, unless already verified on-site.',
-    //     statusColor: DeliveryCard.statusColor('FAILED_DELIVERY'),
-    //     isDark: isDark,
-    //   );
-    // }
     if (ds == DeliveryStatus.delivered && index == slot) {
       return _StatusInfoBanner(
         icon: Icons.check_circle_rounded,
@@ -933,8 +928,8 @@ class _EmptyState extends StatelessWidget {
         ? Icons.search_off_rounded
         : DeliveryCard.statusIcon(status);
     final subtextColor = isDark
-        ? const Color(0xFF6B7280)
-        : const Color(0xFF9CA3AF);
+        ? DSColors.labelTertiaryDark
+        : DSColors.labelTertiary;
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -969,18 +964,21 @@ class _EmptyState extends StatelessWidget {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: DSTypography.label().copyWith(
+                    fontSize: DSTypography.sizeMd,
                     fontWeight: FontWeight.w600,
                     color: isDark
-                        ? const Color(0xFFCBD5E1)
-                        : const Color(0xFF374151),
+                        ? DSColors.labelPrimaryDark
+                        : DSColors.labelPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Pull down to refresh',
-                  style: TextStyle(fontSize: 11, color: subtextColor),
+                  style: DSTypography.caption().copyWith(
+                    fontSize: DSTypography.sizeSm,
+                    color: subtextColor,
+                  ),
                 ),
               ],
             ),
@@ -1019,7 +1017,10 @@ class _StatusInfoBanner extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: DSSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: DSStyles.cardRadius,
@@ -1032,8 +1033,8 @@ class _StatusInfoBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: TextStyle(
-                fontSize: 12,
+              style: DSTypography.body().copyWith(
+                fontSize: DSTypography.sizeSm,
                 fontWeight: FontWeight.w500,
                 color: textColor,
                 height: 1.4,
@@ -1070,13 +1071,15 @@ class _FailedFilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = selected
         ? color.withValues(alpha: 0.14)
-        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9));
+        : (isDark
+              ? DSColors.secondarySurfaceDark
+              : DSColors.secondarySurfaceLight);
     final border = selected
         ? color.withValues(alpha: 0.45)
-        : (isDark ? Colors.white12 : const Color(0xFFE2E8F0));
+        : (isDark ? DSColors.separatorDark : DSColors.separatorLight);
     final fg = selected
         ? color
-        : (isDark ? Colors.white54 : const Color(0xFF64748B));
+        : (isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary);
 
     return Expanded(
       child: GestureDetector(
@@ -1086,7 +1089,10 @@ class _FailedFilterChip extends StatelessWidget {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DSSpacing.md,
+            vertical: DSSpacing.md,
+          ),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: DSStyles.cardRadius,
@@ -1099,8 +1105,8 @@ class _FailedFilterChip extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
+                style: DSTypography.label().copyWith(
+                  fontSize: DSTypography.sizeSm,
                   fontWeight: FontWeight.w600,
                   color: fg,
                 ),
@@ -1109,19 +1115,19 @@ class _FailedFilterChip extends StatelessWidget {
                 const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
+                    horizontal: DSSpacing.sm,
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
                     color: selected
                         ? color.withValues(alpha: 0.18)
-                        : (isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
-                    borderRadius: BorderRadius.circular(10),
+                        : (isDark ? Colors.white10 : DSColors.separatorLight),
+                    borderRadius: DSStyles.pillRadius,
                   ),
                   child: Text(
                     '$count',
-                    style: TextStyle(
-                      fontSize: 10,
+                    style: DSTypography.label().copyWith(
+                      fontSize: DSTypography.sizeXs,
                       fontWeight: FontWeight.w700,
                       color: fg,
                     ),
@@ -1162,18 +1168,20 @@ class _HelpItem extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 14,
+                style: DSTypography.label().copyWith(
+                  fontSize: DSTypography.sizeMd,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                  color: isDark
+                      ? DSColors.labelPrimaryDark
+                      : DSColors.labelPrimary,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 description,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? Colors.white60 : Colors.black54,
+                style: DSTypography.body().copyWith(
+                  fontSize: DSTypography.sizeMd,
+                  color: isDark ? DSColors.labelSecondaryDark : Colors.black54,
                   height: 1.4,
                 ),
               ),

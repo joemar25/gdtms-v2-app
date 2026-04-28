@@ -24,12 +24,12 @@ class FloatingBottomNavBar extends StatelessWidget {
 
     // iOS-style glass: semi-transparent bg layered over blur
     final glassBg = isDark
-        ? const Color(0xFF1C1C1E).withValues(alpha: DSStyles.alphaGlass)
-        : Colors.white.withValues(alpha: DSStyles.alphaGlass);
+        ? DSColors.cardDark.withValues(alpha: DSStyles.alphaGlass)
+        : DSColors.white.withValues(alpha: DSStyles.alphaGlass);
 
     final borderColor = isDark
-        ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
-        : Colors.white.withValues(alpha: DSStyles.alphaBorder);
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
+        : DSColors.white.withValues(alpha: DSStyles.alphaBorder);
 
     return SafeArea(
       child: Padding(
@@ -45,7 +45,9 @@ class FloatingBottomNavBar extends StatelessWidget {
                 border: Border.all(color: borderColor, width: 0.8),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+                    color: DSColors.black.withValues(
+                      alpha: isDark ? 0.35 : 0.10,
+                    ),
                     blurRadius: 32,
                     spreadRadius: -4,
                     offset: const Offset(0, 8),
@@ -53,7 +55,10 @@ class FloatingBottomNavBar extends StatelessWidget {
                 ],
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: DSSpacing.sm,
+                  horizontal: DSSpacing.sm,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -143,7 +148,9 @@ class _NavItemState extends State<_NavItem>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.isSelected ? DSColors.primary : Colors.grey;
+    final color = widget.isSelected
+        ? DSColors.primary
+        : DSColors.labelSecondary;
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -154,7 +161,10 @@ class _NavItemState extends State<_NavItem>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DSSpacing.lg,
+            vertical: DSSpacing.sm,
+          ),
           decoration: BoxDecoration(
             color: widget.isSelected
                 ? DSColors.primary.withValues(alpha: DSStyles.alphaActiveAccent)
@@ -178,8 +188,8 @@ class _NavItemState extends State<_NavItem>
               const SizedBox(height: 2),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 220),
-                style: TextStyle(
-                  fontSize: 10,
+                style: DSTypography.label().copyWith(
+                  fontSize: DSTypography.sizeXs,
                   fontWeight: widget.isSelected
                       ? FontWeight.w700
                       : FontWeight.w400,

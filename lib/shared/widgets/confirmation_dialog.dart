@@ -42,49 +42,53 @@ class ConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final confirmColor = isDestructive ? Colors.red.shade600 : DSColors.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final confirmColor = isDestructive ? DSColors.error : DSColors.primary;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DSSpacing.xl,
+          vertical: DSSpacing.xl,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: DSTypography.sizeMd,
+              ),
             ),
-            const SizedBox(height: 10),
+            DSSpacing.hSm,
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey.shade600,
+                color: isDark
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 24),
+            DSSpacing.hXl,
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: confirmColor,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: DSStyles.cardRadius,
-                ),
+                minimumSize: const Size(double.infinity, 52),
               ),
               onPressed: () => Navigator.pop(context, true),
               child: Text(confirmLabel),
             ),
-            const SizedBox(height: 8),
+            DSSpacing.hSm,
             OutlinedButton(
               style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: DSStyles.cardRadius,
+                minimumSize: const Size(double.infinity, 52),
+                side: BorderSide(
+                  color: isDark
+                      ? DSColors.separatorDark
+                      : DSColors.separatorLight,
                 ),
               ),
               onPressed: () => Navigator.pop(context, false),

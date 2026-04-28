@@ -16,6 +16,7 @@ import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -217,7 +218,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 28,
-                  vertical: 40,
+                  vertical: DSSpacing.xs,
                 ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
@@ -230,13 +231,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           width: 72,
                           height: 72,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00B14F),
+                            color: DSColors.error,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(
-                                  0xFF00B14F,
-                                ).withValues(alpha: 0.30),
+                                color: DSColors.error.withValues(alpha: 0.30),
                                 blurRadius: 20,
                                 offset: const Offset(0, 8),
                               ),
@@ -255,18 +254,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Sign In',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 26,
+                        style: DSTypography.heading().copyWith(
+                          fontSize: DSTypography.sizeXl,
                           fontWeight: FontWeight.w700,
                           color: colorScheme.onSurface,
-                          letterSpacing: -0.5,
+                          letterSpacing: DSTypography.lsSlightlyTight,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'Enter your credentials to continue',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: subtitleColor),
+                        style: DSTypography.body().copyWith(
+                          fontSize: DSTypography.sizeMd,
+                          color: subtitleColor,
+                        ),
                       ),
                       const SizedBox(height: 36),
 
@@ -316,6 +318,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () => context.push('/reset-password'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: DSColors.error,
+                          ),
                           child: const Text('Forgot password?'),
                         ),
                       ),
@@ -336,8 +341,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _rateLimitRemaining > 0
                               ? 'Wait ($_rateLimitRemaining s)'
                               : 'Sign In',
-                          style: const TextStyle(
-                            fontSize: 15,
+                          style: DSTypography.button().copyWith(
+                            fontSize: DSTypography.sizeMd,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -350,18 +355,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         children: [
                           Text(
                             'Having trouble? ',
-                            style: TextStyle(
-                              fontSize: 13,
+                            style: DSTypography.body().copyWith(
+                              fontSize: DSTypography.sizeMd,
                               color: subtitleColor,
                             ),
                           ),
                           GestureDetector(
                             onTap: _callAdmin,
-                            child: const Text(
+                            child: Text(
                               'Contact your admin',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF00B14F),
+                              style: DSTypography.body().copyWith(
+                                fontSize: DSTypography.sizeMd,
+                                color: DSColors.error,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -387,8 +392,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget _fieldLabel(String text) {
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 13,
+      style: DSTypography.label().copyWith(
+        fontSize: DSTypography.sizeMd,
         fontWeight: FontWeight.w600,
         color: Theme.of(context).colorScheme.onSurface,
       ),

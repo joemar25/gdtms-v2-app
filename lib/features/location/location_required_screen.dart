@@ -27,12 +27,12 @@ class LocationRequiredScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.security_rounded, size: 56, color: DSColors.red),
+              Icon(Icons.security_rounded, size: 56, color: DSColors.error),
               const SizedBox(height: 20),
               Text(
                 'Permissions Required',
@@ -200,7 +200,7 @@ class _PermissionCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final iconColor = granted ? DSColors.primary : DSColors.red;
+    final iconColor = granted ? DSColors.primary : DSColors.error;
     final statusColor = granted
         ? DSColors.primary
         : theme.colorScheme.onSurfaceVariant;
@@ -216,7 +216,10 @@ class _PermissionCard extends StatelessWidget {
           width: 1,
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.base,
+        vertical: 14,
+      ),
       child: Row(
         children: [
           Container(
@@ -224,7 +227,7 @@ class _PermissionCard extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: DSStyles.cardRadius,
             ),
             child: Icon(icon, color: iconColor, size: 22),
           ),
@@ -257,15 +260,15 @@ class _PermissionCard extends StatelessWidget {
             TextButton(
               onPressed: onTap,
               style: TextButton.styleFrom(
-                foregroundColor: DSColors.red,
+                foregroundColor: DSColors.error,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: DSSpacing.md,
+                  vertical: DSSpacing.sm,
                 ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: const TextStyle(
-                  fontSize: 12,
+                textStyle: DSTypography.button().copyWith(
+                  fontSize: DSTypography.sizeSm,
                   fontWeight: FontWeight.w700,
                 ),
               ),

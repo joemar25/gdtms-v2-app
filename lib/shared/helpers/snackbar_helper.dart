@@ -13,9 +13,9 @@ void showAppSnackbar(
   SnackbarType type = SnackbarType.info,
 }) {
   final color = switch (type) {
-    SnackbarType.success => Colors.green,
-    SnackbarType.error => Colors.red,
-    SnackbarType.info => Colors.blue,
+    SnackbarType.success => DSColors.success,
+    SnackbarType.error => DSColors.error,
+    SnackbarType.info => DSColors.primary,
   };
 
   final messenger = context != null
@@ -94,7 +94,9 @@ class AppNotificationManager {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutCubic,
                         margin: EdgeInsets.only(top: i * 12.0),
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: DSSpacing.base,
+                        ),
                         child: AnimatedScale(
                           scale: 1.0 - (i * 0.05),
                           alignment: Alignment.topCenter,
@@ -170,7 +172,7 @@ void showInfoNotification(
   BuildContext? context,
   String message, {
   IconData icon = Icons.lock_outline_rounded,
-  Color color = const Color(0xFFF59E0B), // amber-500
+  Color color = DSColors.warning, // amber-500
 }) {
   final ctx = context ?? appScaffoldMessengerKey.currentContext;
   if (ctx == null || !ctx.mounted) return;
@@ -192,12 +194,7 @@ void showErrorNotification(
   String message, {
   IconData icon = Icons.error_outline_rounded,
 }) {
-  showInfoNotification(
-    context,
-    message,
-    icon: icon,
-    color: Colors.red.shade600,
-  );
+  showInfoNotification(context, message, icon: icon, color: DSColors.error);
 }
 
 class _InfoBanner extends StatelessWidget {
@@ -221,7 +218,7 @@ class _InfoBanner extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: DSStyles.alphaActiveAccent),
+            color: DSColors.black.withValues(alpha: DSStyles.alphaActiveAccent),
             blurRadius: 24,
             offset: const Offset(0, 6),
           ),
@@ -240,14 +237,20 @@ class _InfoBanner extends StatelessWidget {
             ),
             child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(width: 12),
+          DSSpacing.wMd,
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                height: 1.4,
-              ),
+              style:
+                  DSTypography.body(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? DSColors.labelPrimaryDark
+                        : DSColors.labelPrimary,
+                  ).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: DSTypography.sizeMd,
+                    height: 1.4,
+                  ),
             ),
           ),
           Stack(
@@ -263,7 +266,7 @@ class _InfoBanner extends StatelessWidget {
                     return CircularProgressIndicator(
                       value: value,
                       strokeWidth: 2,
-                      color: Colors.grey.shade300,
+                      color: DSColors.separatorLight,
                       backgroundColor: Colors.transparent,
                     );
                   },
@@ -275,7 +278,7 @@ class _InfoBanner extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 style: IconButton.styleFrom(
-                  foregroundColor: Colors.grey.shade500,
+                  foregroundColor: DSColors.labelSecondary,
                 ),
               ),
             ],
@@ -300,7 +303,7 @@ class _SuccessBanner extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: DSStyles.alphaActiveAccent),
+            color: DSColors.black.withValues(alpha: DSStyles.alphaActiveAccent),
             blurRadius: 24,
             offset: const Offset(0, 6),
           ),
@@ -325,14 +328,20 @@ class _SuccessBanner extends StatelessWidget {
               size: 20,
             ),
           ),
-          const SizedBox(width: 12),
+          DSSpacing.wMd,
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                height: 1.4,
-              ),
+              style:
+                  DSTypography.body(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? DSColors.labelPrimaryDark
+                        : DSColors.labelPrimary,
+                  ).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: DSTypography.sizeMd,
+                    height: 1.4,
+                  ),
             ),
           ),
           Stack(
@@ -348,7 +357,7 @@ class _SuccessBanner extends StatelessWidget {
                     return CircularProgressIndicator(
                       value: value,
                       strokeWidth: 2,
-                      color: Colors.grey.shade300,
+                      color: DSColors.separatorLight,
                       backgroundColor: Colors.transparent,
                     );
                   },
@@ -360,7 +369,7 @@ class _SuccessBanner extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 style: IconButton.styleFrom(
-                  foregroundColor: Colors.grey.shade500,
+                  foregroundColor: DSColors.labelSecondary,
                 ),
               ),
             ],

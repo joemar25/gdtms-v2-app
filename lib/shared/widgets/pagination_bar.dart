@@ -30,14 +30,17 @@ class PaginationBar extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF161625) : cs.surface,
+        color: isDark ? DSColors.cardDark : DSColors.cardLight,
         border: Border(
           top: BorderSide(
-            color: isDark ? Colors.white10 : Colors.grey.shade200,
+            color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
           ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.base,
+        vertical: DSSpacing.md,
+      ),
       child: SafeArea(
         top: false,
         child: Row(
@@ -50,34 +53,43 @@ class PaginationBar extends StatelessWidget {
               children: [
                 Text(
                   'LISTING $firstItem – $lastItem',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: cs.onSurfaceVariant.withValues(
-                      alpha: DSStyles.alphaBorder,
-                    ),
-                    letterSpacing: 1.1,
-                  ),
+                  style:
+                      DSTypography.label(
+                        color: isDark
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelSecondary,
+                      ).copyWith(
+                        fontSize: DSTypography.sizeXs,
+                        letterSpacing: DSTypography.lsGiantLoose,
+                        fontWeight: FontWeight.w800,
+                      ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'OF $totalCount ENTRIES',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface,
-                  ),
+                  style:
+                      DSTypography.label(
+                        color: isDark
+                            ? DSColors.labelPrimaryDark
+                            : DSColors.labelPrimary,
+                      ).copyWith(
+                        fontSize: DSTypography.sizeSm,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
               ],
             ),
 
             // Right: Page Indicator + Swipe Prompt
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DSSpacing.md,
+                vertical: DSSpacing.sm,
+              ),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withValues(alpha: DSStyles.alphaSoft)
-                    : Colors.grey.shade100,
+                    ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
+                    : DSColors.secondarySurfaceLight,
                 borderRadius: DSStyles.cardRadius,
               ),
               child: Row(
@@ -88,7 +100,7 @@ class PaginationBar extends StatelessWidget {
                       borderRadius: DSStyles.cardRadius,
                       onTap: () => onPageChanged(currentPage - 1),
                       child: Padding(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(DSSpacing.xs),
                         child: Icon(
                           Icons.keyboard_arrow_left_rounded,
                           size: 16,
@@ -100,15 +112,17 @@ class PaginationBar extends StatelessWidget {
                     ),
 
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DSSpacing.sm,
+                    ),
                     child: Text(
                       'PAGE ${currentPage + 1} / $totalPages',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: cs.primary,
-                        letterSpacing: 0.5,
-                      ),
+                      style: DSTypography.label(color: DSColors.primary)
+                          .copyWith(
+                            fontSize: DSTypography.sizeSm,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: DSTypography.lsLoose,
+                          ),
                     ),
                   ),
 
@@ -117,7 +131,7 @@ class PaginationBar extends StatelessWidget {
                       borderRadius: DSStyles.cardRadius,
                       onTap: () => onPageChanged(currentPage + 1),
                       child: Padding(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(DSSpacing.xs),
                         child: Icon(
                           Icons.keyboard_arrow_right_rounded,
                           size: 16,

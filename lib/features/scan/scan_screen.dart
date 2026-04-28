@@ -584,10 +584,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             _title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: DSTypography.subTitle(
               color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+            ).copyWith(fontWeight: FontWeight.w700),
           ),
           backgroundColor: Colors.transparent,
           leading: IconButton(
@@ -605,7 +604,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                             isTorchOn
                                 ? Icons.flashlight_on_rounded
                                 : Icons.flashlight_off_rounded,
-                            color: isTorchOn ? DSColors.primary : Colors.white,
+                            color: isTorchOn
+                                ? DSColors.primary
+                                : DSColors.white,
                           )
                           .animate(key: ValueKey(isTorchOn))
                           .scaleXY(
@@ -696,31 +697,26 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   onTap: _requestPermission,
                   child: Container(
                     color: Colors.black87,
-                    child: const Center(
+                    child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.camera_alt_outlined,
                             color: Colors.white,
                             size: 54,
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
                             'Camera permission required',
-                            style: TextStyle(
+                            style: DSTypography.title(
                               color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            ).copyWith(fontWeight: FontWeight.w600),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
                             'Tap to grant camera access',
-                            style: TextStyle(
-                              color: Colors.white60,
-                              fontSize: 13,
-                            ),
+                            style: DSTypography.caption(color: Colors.white60),
                           ),
                         ],
                       ),
@@ -783,7 +779,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                             color: isOnline
                                                 ? Colors.white54
                                                 : Colors.orange,
-                                            fontSize: 11,
+                                            fontSize: DSTypography.sizeSm,
                                           ),
                                         ),
                                       ],
@@ -799,7 +795,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
-                                vertical: 8,
+                                vertical: DSSpacing.sm,
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.red.withValues(
@@ -826,7 +822,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                       _inlineError!,
                                       style: const TextStyle(
                                         color: Colors.redAccent,
-                                        fontSize: 12,
+                                        fontSize: DSTypography.sizeSm,
                                       ),
                                     ),
                                   ),
@@ -839,13 +835,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                             Icons.keyboard_alt_outlined,
                             size: 18,
                           ),
-                          label: const Text(
+                          label: Text(
                             'ENTER MANUALLY',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.8,
-                              fontSize: 13,
-                            ),
+                            style: DSTypography.label(color: Colors.white)
+                                .copyWith(
+                                  fontSize: DSTypography.sizeSm,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: DSTypography.lsExtraLoose,
+                                ),
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
@@ -903,7 +900,7 @@ class _ScanScrimPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xAA000000);
+    final paint = Paint()..color = DSColors.black.withValues(alpha: 0.65);
     final vfTop = (size.height - viewfinderH) * 0.42;
     final vfBottom = vfTop + viewfinderH;
     final vfLeft = viewfinderMargin;
@@ -999,9 +996,11 @@ class _ManualInputArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? DSColors.cardDark
+            : DSColors.cardLight,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       child: Column(
@@ -1020,13 +1019,11 @@ class _ManualInputArea extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'MANUAL BARCODE/ACCOUNT NAME ENTRY',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
+            style: DSTypography.label(color: Colors.white70).copyWith(
               fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
+              letterSpacing: DSTypography.lsMegaLoose,
             ),
           ),
           const SizedBox(height: 12),
@@ -1035,8 +1032,8 @@ class _ManualInputArea extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: DSSpacing.md,
+                  vertical: DSSpacing.sm,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.red.withValues(
@@ -1049,19 +1046,21 @@ class _ManualInputArea extends StatelessWidget {
                 ),
                 child: Text(
                   error!,
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                  style: DSTypography.body(
+                    color: DSColors.error,
+                  ).copyWith(fontSize: DSTypography.sizeMd),
                 ),
               ),
             ),
           TextField(
             controller: controller,
-            style: const TextStyle(color: Colors.white),
+            style: DSTypography.body(color: Colors.white),
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
             inputFormatters: [UpperCaseFormatter()],
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: TextStyle(
+              hintStyle: DSTypography.body(
                 color: Colors.white.withValues(alpha: DSStyles.alphaDarkShadow),
               ),
               filled: true,
@@ -1090,7 +1089,7 @@ class _ManualInputArea extends StatelessWidget {
                 ),
               ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
+                horizontal: DSSpacing.base,
                 vertical: 14,
               ),
             ),
@@ -1102,9 +1101,9 @@ class _ManualInputArea extends StatelessWidget {
             label: Text(
               submitLabel.toUpperCase(),
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: DSTypography.sizeMd,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
+                letterSpacing: DSTypography.lsExtraLoose,
               ),
             ),
             style: FilledButton.styleFrom(
@@ -1135,7 +1134,7 @@ class _SearchResultsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final bg = isDark ? DSColors.cardDark : DSColors.cardLight;
 
     return DraggableScrollableSheet(
       expand: false,
@@ -1171,17 +1170,17 @@ class _SearchResultsSheet extends StatelessWidget {
                         Text(
                           '${results.length} RESULT${results.length == 1 ? '' : 'S'} FOUND',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: DSTypography.sizeSm,
                             fontWeight: FontWeight.w800,
                             color: Colors.grey.shade500,
-                            letterSpacing: 1.2,
+                            letterSpacing: DSTypography.lsMegaLoose,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Tap one to open delivery details',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: DSTypography.sizeMd,
                             color: isDark ? Colors.white70 : Colors.black54,
                           ),
                         ),
@@ -1199,7 +1198,7 @@ class _SearchResultsSheet extends StatelessWidget {
             Expanded(
               child: ListView.separated(
                 controller: scrollController,
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: DSSpacing.sm),
                 itemCount: results.length,
                 separatorBuilder: (_, _) =>
                     const Divider(height: 1, indent: 16, endIndent: 16),
@@ -1235,9 +1234,9 @@ class _SearchResultsSheet extends StatelessWidget {
                     ),
                     title: Text(
                       barcode,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                      style: DSTypography.body().copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: DSTypography.sizeMd,
                       ),
                     ),
                     subtitle: Column(
@@ -1246,7 +1245,9 @@ class _SearchResultsSheet extends StatelessWidget {
                         if (name.isNotEmpty)
                           Text(
                             name,
-                            style: const TextStyle(fontSize: 12),
+                            style: const TextStyle(
+                              fontSize: DSTypography.sizeSm,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1254,7 +1255,7 @@ class _SearchResultsSheet extends StatelessWidget {
                           Text(
                             address,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: DSTypography.sizeSm,
                               color: Colors.grey.shade500,
                             ),
                             maxLines: 1,
@@ -1264,7 +1265,7 @@ class _SearchResultsSheet extends StatelessWidget {
                     ),
                     trailing: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                        horizontal: DSSpacing.sm,
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
@@ -1276,7 +1277,7 @@ class _SearchResultsSheet extends StatelessWidget {
                       child: Text(
                         status.toUpperCase(),
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: DSTypography.sizeXs,
                           fontWeight: FontWeight.w700,
                           color: Colors.blueGrey,
                         ),

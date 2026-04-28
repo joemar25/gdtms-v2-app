@@ -73,10 +73,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             // ── Brand Card (Text-only, no logo) ──────────────────────────
             Container(
               width: 240,
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(DSSpacing.xl),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF00B14F), Color(0xFF007A36)],
+                gradient: LinearGradient(
+                  colors: [
+                    DSColors.primary.withValues(alpha: 0.9),
+                    DSColors.primary,
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -98,12 +101,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   Text(
                         'FSI COURIER',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: DSTypography.heading(
                           color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.5,
-                        ),
+                        ).copyWith(fontSize: 28, fontWeight: FontWeight.w800),
                       )
                       .animate()
                       .fadeIn(duration: 600.ms)
@@ -115,11 +115,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   Text(
                     'Delivery Management',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
+                    style: DSTypography.body(color: Colors.white).copyWith(
+                      fontSize: DSTypography.sizeMd,
                       fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
                     ),
                   ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
 
@@ -182,11 +180,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
             Text(
               'Fastrak Services Inc.',
-              style: TextStyle(
+              style: DSTypography.caption(
                 color: Colors.white.withValues(alpha: DSStyles.alphaDarkShadow),
-                fontSize: 12,
-                letterSpacing: 0.5,
-              ),
+              ).copyWith(fontSize: DSTypography.sizeSm),
             ).animate().fadeIn(delay: 1000.ms),
           ],
         ),
@@ -206,7 +202,10 @@ class _SplashChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      padding: const EdgeInsets.symmetric(
+        vertical: DSSpacing.md,
+        horizontal: DSSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: DSStyles.alphaActiveAccent),
         borderRadius: DSStyles.cardRadius,
@@ -222,9 +221,8 @@ class _SplashChip extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
+            style: DSTypography.label(color: Colors.white).copyWith(
+              fontSize: DSTypography.sizeXs,
               fontWeight: FontWeight.w600,
             ),
           ),

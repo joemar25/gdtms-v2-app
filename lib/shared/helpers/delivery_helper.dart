@@ -95,7 +95,7 @@ int getAttemptsCountFromMap(Map<String, dynamic> delivery) {
 
 /// Helper to check locking state from a delivery map (rawJson decoded).
 bool checkIsLockedFromMap(Map<String, dynamic> delivery) {
-  final status = (delivery['delivery_status'] ?? 'PENDING').toString();
+  final status = (delivery['delivery_status'] ?? 'FOR_DELIVERY').toString();
   final failedDeliveryVerif =
       (delivery['rts_verification_status'] ??
               delivery['_rts_verification_status'] ??

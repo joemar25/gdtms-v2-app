@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// Wraps [child] and overlays a semi-transparent loading spinner when
 /// [isLoading] is true. Used on screens that perform async operations
@@ -39,9 +40,8 @@ class LoadingOverlay extends StatelessWidget {
                     const SizedBox(height: 16),
                     Text(
                       message!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
+                      style: DSTypography.body(color: Colors.white).copyWith(
+                        fontSize: DSTypography.sizeMd,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

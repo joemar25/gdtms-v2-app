@@ -46,10 +46,10 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
   ];
 
   static const _severities = [
-    ('low', 'Low', Colors.blue),
-    ('medium', 'Medium', Colors.orange),
-    ('high', 'High', Colors.red),
-    ('critical', 'Critical', Colors.purple),
+    ('low', 'Low', DSColors.accent),
+    ('medium', 'Medium', DSColors.warning),
+    ('high', 'High', DSColors.error),
+    ('critical', 'Critical', DSColors.errorText),
   ];
 
   @override
@@ -109,24 +109,27 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF1C1C28) : Colors.white;
+    final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
     final borderColor = isDark
-        ? const Color(0xFF2A2A3A)
-        : const Color(0xFFF0F0F5);
+        ? DSColors.separatorDark
+        : DSColors.separatorLight;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF13131F)
-          : const Color(0xFFF5F6FA),
+      backgroundColor: isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight,
       appBar: AppHeaderBar(title: 'Report an Issue'),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: const EdgeInsets.fromLTRB(
+            DSSpacing.base,
+            DSSpacing.base,
+            DSSpacing.base,
+            DSSpacing.xxl,
+          ),
           children: [
             // ── Info banner ────────────────────────────────────────────────
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(DSSpacing.md),
               decoration: BoxDecoration(
                 color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
                 borderRadius: DSStyles.cardRadius,
@@ -149,21 +152,22 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                     child: Text(
                       'Reports are sent directly to the FSI admin team. '
                       'Include as much detail as possible to help us resolve the issue faster.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? Colors.white70 : Colors.black87,
-                        height: 1.4,
-                      ),
+                      style: DSTypography.body(
+                        fontSize: DSTypography.sizeMd,
+                        color: isDark
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelPrimary,
+                      ).copyWith(height: 1.4),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            DSSpacing.hLg,
 
             // ── Summary / Subject ──────────────────────────────────────────
             _SectionLabel('Summary *', isDark: isDark),
-            const SizedBox(height: 8),
+            DSSpacing.hSm,
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
@@ -172,21 +176,25 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
               ),
               child: TextFormField(
                 controller: _summaryController,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white : Colors.black87,
+                style: DSTypography.body(
+                  fontSize: DSTypography.sizeMd,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? DSColors.labelPrimaryDark
+                      : DSColors.labelPrimary,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Briefly describe the issue',
-                  hintStyle: TextStyle(
-                    color: isDark ? Colors.white38 : Colors.black38,
-                    fontSize: 13,
+                  hintStyle: DSTypography.body(
+                    color: isDark
+                        ? DSColors.labelTertiaryDark
+                        : DSColors.labelTertiary,
+                    fontSize: DSTypography.sizeMd,
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
-                    vertical: 12,
+                    vertical: DSSpacing.md,
                   ),
                 ),
                 validator: (v) =>
@@ -197,7 +205,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
 
             // ── Category ───────────────────────────────────────────────────
             _SectionLabel('Type', isDark: isDark),
-            const SizedBox(height: 8),
+            DSSpacing.hSm,
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
@@ -214,8 +222,8 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                         onTap: () => setState(() => _selectedType = value),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
+                            horizontal: DSSpacing.md,
+                            vertical: DSSpacing.md,
                           ),
                           child: Row(
                             children: [
@@ -233,7 +241,9 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                                   side: BorderSide(
                                     color: _selectedType == value
                                         ? DSColors.primary
-                                        : Colors.grey,
+                                        : (isDark
+                                              ? DSColors.labelTertiaryDark
+                                              : DSColors.labelTertiary),
                                   ),
                                 ),
                               ),
@@ -242,10 +252,12 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 label,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDark ? Colors.white : Colors.black87,
+                                style: DSTypography.body(
+                                  fontSize: DSTypography.sizeMd,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? DSColors.labelPrimaryDark
+                                      : DSColors.labelPrimary,
                                 ),
                               ),
                             ],
@@ -263,7 +275,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
 
             // ── Severity ───────────────────────────────────────────────────
             _SectionLabel('Severity', isDark: isDark),
-            const SizedBox(height: 8),
+            DSSpacing.hSm,
             Row(
               children: _severities.map((s) {
                 final (value, label, color) = s;
@@ -273,9 +285,11 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                     onTap: () => setState(() => _selectedSeverity = value),
                     child: Container(
                       margin: EdgeInsets.only(
-                        right: value != _severities.last.$1 ? 8 : 0,
+                        right: value != _severities.last.$1 ? DSSpacing.sm : 0,
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: DSSpacing.md,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected ? color : cardColor,
                         borderRadius: DSStyles.cardRadius,
@@ -297,13 +311,13 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                       child: Center(
                         child: Text(
                           label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                          style: DSTypography.label(
                             color: isSelected
-                                ? Colors.white
-                                : (isDark ? Colors.white54 : Colors.black54),
-                          ),
+                                ? DSColors.white
+                                : (isDark
+                                      ? DSColors.labelSecondaryDark
+                                      : DSColors.labelSecondary),
+                          ).copyWith(fontSize: DSTypography.sizeSm),
                         ),
                       ),
                     ),
@@ -315,7 +329,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
 
             // ── Description ────────────────────────────────────────────────
             _SectionLabel('Description (optional)', isDark: isDark),
-            const SizedBox(height: 8),
+            DSSpacing.hSm,
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
@@ -326,22 +340,28 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                 controller: _messageController,
                 maxLines: 4,
                 maxLength: 500,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.white : Colors.black87,
+                style: DSTypography.body(
+                  fontSize: DSTypography.sizeMd,
+                  color: isDark
+                      ? DSColors.labelPrimaryDark
+                      : DSColors.labelPrimary,
                 ),
                 decoration: InputDecoration(
                   hintText:
                       'Describe what happened, what you expected, and any steps to reproduce…',
-                  hintStyle: TextStyle(
-                    color: isDark ? Colors.white38 : Colors.black38,
-                    fontSize: 13,
+                  hintStyle: DSTypography.body(
+                    color: isDark
+                        ? DSColors.labelTertiaryDark
+                        : DSColors.labelTertiary,
+                    fontSize: DSTypography.sizeMd,
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(14),
-                  counterStyle: TextStyle(
-                    color: isDark ? Colors.white38 : Colors.black38,
-                    fontSize: 11,
+                  contentPadding: const EdgeInsets.all(DSSpacing.md),
+                  counterStyle: DSTypography.caption(
+                    color: isDark
+                        ? DSColors.labelTertiaryDark
+                        : DSColors.labelTertiary,
+                    fontSize: DSTypography.sizeSm,
                   ),
                 ),
               ),
@@ -360,24 +380,27 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                 onChanged: (v) => setState(() => _includeLogs = v ?? true),
                 title: Text(
                   'Include diagnostic logs',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? Colors.white : Colors.black87,
+                  style: DSTypography.body(
+                    fontSize: DSTypography.sizeMd,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? DSColors.labelPrimaryDark
+                        : DSColors.labelPrimary,
                   ),
                 ),
                 subtitle: Text(
                   'Attaches recent error logs from this device to help the admin diagnose the issue.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white54 : Colors.black54,
-                    height: 1.4,
-                  ),
+                  style: DSTypography.caption(
+                    fontSize: DSTypography.sizeSm,
+                    color: isDark
+                        ? DSColors.labelSecondaryDark
+                        : DSColors.labelSecondary,
+                  ).copyWith(height: 1.4),
                 ),
                 activeColor: DSColors.primary,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
+                  horizontal: DSSpacing.md,
+                  vertical: DSSpacing.xs,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: DSStyles.cardRadius,
@@ -394,8 +417,10 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                 onPressed: _submitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: DSColors.primary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade400,
+                  foregroundColor: DSColors.white,
+                  disabledBackgroundColor: isDark
+                      ? DSColors.separatorDark
+                      : DSColors.separatorLight,
                   shape: RoundedRectangleBorder(
                     borderRadius: DSStyles.cardRadius,
                   ),
@@ -407,14 +432,13 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: DSColors.white,
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Submit Report',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                        style: DSTypography.button().copyWith(
+                          fontSize: DSTypography.sizeMd,
                         ),
                       ),
               ),
@@ -435,11 +459,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.8,
-        color: isDark ? Colors.white54 : Colors.black45,
+      style: DSTypography.label(
+        color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
       ),
     );
   }

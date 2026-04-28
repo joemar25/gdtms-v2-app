@@ -127,14 +127,19 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                   // ── Level filter ───────────────────────────────────────────
                   if (_all.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      padding: const EdgeInsets.fromLTRB(
+                        DSSpacing.base,
+                        0,
+                        DSSpacing.base,
+                        DSSpacing.sm,
+                      ),
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: DSStyles.cardRadius,
                           border: Border.all(
-                            color: Colors.grey.withValues(
-                              alpha: DSStyles.alphaDarkShadow,
-                            ),
+                            color: isDark
+                                ? DSColors.separatorDark
+                                : DSColors.separatorLight,
                           ),
                         ),
                         child: SegmentedButton<String>(
@@ -158,7 +163,7 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                             textStyle: WidgetStateProperty.all(
                               const TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 12,
+                                fontSize: DSTypography.sizeSm,
                               ),
                             ),
                             shape: WidgetStateProperty.all(
@@ -181,10 +186,14 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                     child: _filtered.isEmpty
                         ? _EmptyState(isDark: isDark)
                         : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                            padding: const EdgeInsets.fromLTRB(
+                              DSSpacing.base,
+                              0,
+                              DSSpacing.base,
+                              DSSpacing.xl,
+                            ),
                             itemCount: _filtered.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 8),
+                            separatorBuilder: (_, _) => DSSpacing.hSm,
                             itemBuilder: (context, i) =>
                                 _LogCard(entry: _filtered[i], isDark: isDark),
                           ),
@@ -208,20 +217,23 @@ class _SummaryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (errorCount == 0 && warningCount == 0) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DSSpacing.base,
+          vertical: DSSpacing.md,
+        ),
         child: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle_outline_rounded,
               size: 16,
-              color: Colors.green.shade500,
+              color: DSColors.success,
             ),
-            const SizedBox(width: 8),
+            DSSpacing.wSm,
             Text(
               'No errors recorded.',
               style: TextStyle(
-                fontSize: 13,
-                color: Colors.green.shade600,
+                fontSize: DSTypography.sizeMd,
+                color: DSColors.successText,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -230,22 +242,29 @@ class _SummaryBar extends StatelessWidget {
       );
     }
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.base,
+        vertical: DSSpacing.md,
+      ),
       child: Row(
         children: [
           if (errorCount > 0) ...[
             _Chip(
               icon: Icons.error_outline_rounded,
               label: '$errorCount error${errorCount == 1 ? '' : 's'}',
-              color: Colors.red,
+              color: DSColors.error,
+              textColor: DSColors.errorText,
+              surfaceColor: DSColors.errorSurface,
             ),
-            const SizedBox(width: 8),
+            DSSpacing.wSm,
           ],
           if (warningCount > 0)
             _Chip(
               icon: Icons.warning_amber_rounded,
               label: '$warningCount warning${warningCount == 1 ? '' : 's'}',
-              color: Colors.orange,
+              color: DSColors.warning,
+              textColor: DSColors.warningText,
+              surfaceColor: DSColors.warningSurface,
             ),
         ],
       ),
@@ -254,18 +273,29 @@ class _SummaryBar extends StatelessWidget {
 }
 
 class _Chip extends StatelessWidget {
-  const _Chip({required this.icon, required this.label, required this.color});
+  const _Chip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.textColor,
+    required this.surfaceColor,
+  });
 
   final IconData icon;
   final String label;
-  final MaterialColor color;
+  final Color color;
+  final Color textColor;
+  final Color surfaceColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.xs,
+      ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: DSStyles.alphaSoft),
+        color: surfaceColor,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: color.withValues(alpha: DSStyles.alphaDarkShadow),
@@ -274,14 +304,14 @@ class _Chip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color.shade600),
-          const SizedBox(width: 4),
+          Icon(icon, size: 13, color: color),
+          DSSpacing.wXs,
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w600,
-              color: color.shade700,
+              color: textColor,
             ),
           ),
         ],
@@ -309,19 +339,19 @@ class _LogCardState extends State<_LogCard> {
   Widget build(BuildContext context) {
     final e = widget.entry;
     final isError = e.level.toLowerCase() == 'error';
-    final color = isError ? Colors.red : Colors.orange;
+    final color = isError ? DSColors.error : DSColors.warning;
     final fmt = DateFormat('MMM d, y HH:mm:ss');
 
     return Container(
       decoration: BoxDecoration(
-        color: widget.isDark ? const Color(0xFF1E1E2E) : Colors.white,
+        color: widget.isDark ? DSColors.cardDark : DSColors.cardLight,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: color.withValues(alpha: DSStyles.alphaDarkShadow),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.04),
+            color: DSColors.black.withValues(alpha: widget.isDark ? 0.2 : 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -358,13 +388,15 @@ class _LogCardState extends State<_LogCard> {
                           children: [
                             _ContextBadge(context: e.context),
                             if (e.barcode != null) ...[
-                              const SizedBox(width: 6),
+                              DSSpacing.wXs,
                               Flexible(
                                 child: Text(
                                   e.barcode!,
                                   style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade500,
+                                    fontSize: DSTypography.sizeSm,
+                                    color: widget.isDark
+                                        ? DSColors.labelTertiaryDark
+                                        : DSColors.labelTertiary,
                                     fontFamily: 'monospace',
                                   ),
                                   overflow: TextOverflow.ellipsis,
@@ -378,7 +410,7 @@ class _LogCardState extends State<_LogCard> {
                         Text(
                           e.message,
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: DSTypography.sizeMd,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -387,8 +419,10 @@ class _LogCardState extends State<_LogCard> {
                         Text(
                           fmt.format(e.createdAt),
                           style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
+                            fontSize: DSTypography.sizeSm,
+                            color: widget.isDark
+                                ? DSColors.labelSecondaryDark
+                                : DSColors.labelSecondary,
                           ),
                         ),
                       ],
@@ -400,7 +434,9 @@ class _LogCardState extends State<_LogCard> {
                           ? Icons.expand_less_rounded
                           : Icons.expand_more_rounded,
                       size: 18,
-                      color: Colors.grey.shade400,
+                      color: widget.isDark
+                          ? DSColors.labelTertiaryDark
+                          : DSColors.labelTertiary,
                     ),
                 ],
               ),
@@ -436,20 +472,22 @@ class _LogCardState extends State<_LogCard> {
                     Text(
                       e.detail!,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: DSTypography.sizeSm,
                         fontFamily: 'monospace',
                         color: widget.isDark
-                            ? Colors.grey.shade300
-                            : Colors.grey.shade700,
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelSecondary,
                         height: 1.5,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    DSSpacing.hXs,
                     Text(
                       'Long-press to copy',
                       style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade400,
+                        fontSize: DSTypography.sizeXs,
+                        color: widget.isDark
+                            ? DSColors.labelTertiaryDark
+                            : DSColors.labelTertiary,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -471,17 +509,20 @@ class _ContextBadge extends StatelessWidget {
   final String context;
 
   static const _colors = <String, Color>{
-    'sync': Color(0xFF0EA5E9),
-    'delivery_update': Color(0xFF8B5CF6),
-    'api': Color(0xFFEC4899),
-    'scan': Color(0xFF10B981),
+    'sync': DSColors.primary,
+    'delivery_update': DSColors.accent,
+    'api': DSColors.error,
+    'scan': DSColors.primary,
   };
 
   @override
   Widget build(BuildContext ctx) {
-    final color = _colors[context] ?? Colors.blueGrey;
+    final color = _colors[context] ?? DSColors.labelSecondary;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.sm,
+        vertical: 2,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: DSStyles.alphaActiveAccent),
         borderRadius: DSStyles.pillRadius,
@@ -492,7 +533,7 @@ class _ContextBadge extends StatelessWidget {
           fontSize: 9,
           fontWeight: FontWeight.w700,
           color: color,
-          letterSpacing: 0.5,
+          letterSpacing: DSTypography.lsLoose,
         ),
       ),
     );
@@ -515,20 +556,25 @@ class _EmptyState extends StatelessWidget {
           Icon(
             Icons.check_circle_outline_rounded,
             size: 56,
-            color: Colors.green.shade300,
+            color: DSColors.success,
           ),
           const SizedBox(height: 16),
           const Text(
             'No logs to show',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: DSTypography.sizeMd,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             'Errors and warnings will appear here\nwhen they occur.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade500,
+              fontSize: DSTypography.sizeMd,
+              color: isDark
+                  ? DSColors.labelSecondaryDark
+                  : DSColors.labelSecondary,
               height: 1.5,
             ),
           ),

@@ -16,6 +16,7 @@ Courier mobile application for dispatch, delivery updates (POD), wallet, and pro
 Project follows a feature-first structure with shared core infrastructure:
 
 - `lib/core`: config, constants, auth, API client, settings, device, models
+- `lib/design_system`: premium design tokens (colors, typography) and core widgets
 - `lib/features`: auth, dashboard, dispatch, delivery, wallet, profile, notifications
 - `lib/shared`: reusable widgets, helpers, router
 
@@ -76,10 +77,9 @@ Full index: [docs/index.md](docs/index.md)
 - [Router — full route table & guards](docs/shared/router.md)
 - [Widgets](docs/shared/widgets.md)
 
-### UI Primitives
+### Design System
 
-- [Components](docs/components.md)
-- [Styles — colors & typography](docs/styles.md)
+- [Styles & Design System](docs/styles.md) — tokens (colors, typography, spacing) and atomic widgets
 
 ### Legacy / Specific Reports
 

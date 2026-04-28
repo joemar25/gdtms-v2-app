@@ -39,14 +39,21 @@ class _ScanModeSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final bgColor = isDark ? DSColors.cardDark : DSColors.cardLight;
 
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(DSStyles.radiusSheet),
+        ),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      padding: const EdgeInsets.fromLTRB(
+        DSSpacing.xl,
+        DSSpacing.base,
+        DSSpacing.xl,
+        DSSpacing.xxl,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,19 +64,25 @@ class _ScanModeSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: isDark
+                    ? DSColors.labelSecondaryDark.withValues(alpha: 0.2)
+                    : DSColors.separatorLight,
                 borderRadius: DSStyles.pillRadius,
               ),
             ),
           ),
           Text(
             'CHOOSE ACTION',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Colors.grey.shade500,
-              letterSpacing: 1.2,
-            ),
+            style:
+                DSTypography.label(
+                  color: isDark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.labelSecondary,
+                ).copyWith(
+                  fontSize: DSTypography.sizeSm,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: DSTypography.lsMegaLoose,
+                ),
           ),
           const SizedBox(height: 14),
           _ActionTile(
@@ -82,7 +95,7 @@ class _ScanModeSheet extends StatelessWidget {
           const SizedBox(height: 8),
           _ActionTile(
             icon: Icons.inventory_2_outlined,
-            iconColor: DSColors.red,
+            iconColor: DSColors.error,
             title: 'Scan POD',
             subtitle: 'Scan a barcode to update status',
             onTap: onPod,
@@ -118,9 +131,12 @@ class _ActionTile extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DSSpacing.base,
+            vertical: DSSpacing.md,
+          ),
           decoration: BoxDecoration(
-            color: isDark ? DSColors.elevatedCardDark : DSColors.cardLight,
+            color: isDark ? DSColors.cardElevatedDark : DSColors.cardLight,
             borderRadius: DSStyles.cardRadius,
           ),
           child: Row(
@@ -136,25 +152,26 @@ class _ActionTile extends StatelessWidget {
                 ),
                 child: Icon(icon, color: iconColor, size: 22),
               ),
-              const SizedBox(width: 14),
+              DSSpacing.wMd,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: DSTypography.label().copyWith(
                         fontWeight: FontWeight.w600,
-                        fontSize: 15,
+                        fontSize: DSTypography.sizeMd,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
+                      style: DSTypography.caption(
+                        color: isDark
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelSecondary,
+                      ).copyWith(fontSize: DSTypography.sizeSm),
                     ),
                   ],
                 ),
@@ -162,7 +179,9 @@ class _ActionTile extends StatelessWidget {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 14,
-                color: Colors.grey.shade400,
+                color: isDark
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
               ),
             ],
           ),

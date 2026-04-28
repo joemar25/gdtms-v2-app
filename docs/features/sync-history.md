@@ -39,7 +39,7 @@ Tapping the header SYNC button calls `SyncManagerNotifier.runSync()`. The button
 | `pending` | Blue | Queued, not yet attempted |
 | `processing` | Orange | Currently being synced |
 | `failed` | Red | Last attempt failed — will retry |
-| `conflict` | Purple | Server rejected with a conflict |
+| `conflict` | accent | Server rejected with a conflict |
 
 ## Notes
 

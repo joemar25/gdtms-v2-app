@@ -1,6 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// A full-page placeholder for offline states that requires connectivity to proceed.
 class OfflinePlaceholder extends StatelessWidget {
@@ -17,25 +18,37 @@ class OfflinePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(DSSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey.shade400),
+            Icon(
+              Icons.wifi_off_rounded,
+              size: 64,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? DSColors.labelSecondaryDark
+                  : DSColors.labelSecondary,
+            ),
             const SizedBox(height: 16),
             Text(
               'No Internet Connection',
-              style: TextStyle(
+              style: DSTypography.heading().copyWith(
                 fontWeight: FontWeight.w700,
-                fontSize: 16,
-                color: Colors.grey.shade700,
+                fontSize: DSTypography.sizeMd,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? DSColors.labelPrimaryDark
+                    : DSColors.labelPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              style: DSTypography.caption(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
+              ).copyWith(fontSize: DSTypography.sizeMd),
             ),
             const SizedBox(height: 24),
             OutlinedButton.icon(

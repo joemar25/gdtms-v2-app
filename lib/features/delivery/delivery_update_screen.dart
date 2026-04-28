@@ -71,11 +71,15 @@ import 'package:fsi_courier_app/features/delivery/widgets/delivery_geo_location_
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_recipient_cards.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/searchable_selection_sheet.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─── Consistent spacing constants ───────────────────────────────────────────
@@ -92,17 +96,17 @@ final _kStatusMeta = {
   DeliveryStatus.delivered.toApiString(): (
     label: 'DELIVERED',
     icon: Icons.check_circle_rounded,
-    color: const Color(0xFF00B14F),
+    color: DSColors.success,
   ),
   DeliveryStatus.failedDelivery.toApiString(): (
     label: 'FAILED',
     icon: Icons.keyboard_return_rounded,
-    color: Colors.purple,
+    color: DSColors.error,
   ),
   DeliveryStatus.osa.toApiString(): (
     label: 'MISROUTED',
     icon: Icons.inbox_rounded,
-    color: Colors.amber,
+    color: DSColors.warning,
   ),
 };
 
@@ -791,56 +795,216 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   void _showAccountDetailsDialog(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final name = _delivery['name']?.toString() ?? '';
-    final address = _delivery['address']?.toString() ?? _delivery['delivery_address']?.toString() ?? '';
+    final address =
+        _delivery['address']?.toString() ??
+        _delivery['delivery_address']?.toString() ??
+        '';
     final contact = _delivery['contact']?.toString() ?? '';
     final accountNumber = _delivery['account_number']?.toString() ?? '';
     final authRepNumber = _delivery['auth_rep_number']?.toString() ?? '';
 
-    showDialog(
+    // Delivery details
+    final product = (_delivery['product']?.toString() ?? '').toDisplayStatus();
+    final specialInstruction =
+        _delivery['special_instruction']?.toString() ?? '';
+    final transmittalDate = _delivery['transmittal_date']?.toString() ?? '';
+    final tat = _delivery['tat']?.toString() ?? '';
+
+    // Piece count from barcode (e.g. "FSI123/2" -> 2 pieces)
+    final b = widget.barcode;
+    final slashIdx = b.lastIndexOf('/');
+    final pieceCount = (slashIdx >= 0 && slashIdx < b.length - 1)
+        ? int.tryParse(b.substring(slashIdx + 1).trim()) ?? 0
+        : 0;
+
+    void copyToClipboard(String text, String label) {
+      if (text.isEmpty) return;
+      Clipboard.setData(ClipboardData(text: text));
+      HapticFeedback.mediumImpact();
+      if (context.mounted) {
+        showSuccessNotification(context, 'Copied $label to clipboard');
+      }
+    }
+
+    Future<void> launchMaps(String address) async {
+      final destination = address.trim();
+      if (destination.isEmpty) return;
+      final url =
+          'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(destination)}';
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
+
+    Future<void> onPhoneTap(String phone, String targetName) async {
+      final barcode = widget.barcode;
+      final template =
+          'Hi $targetName! '
+          "I'm your FSI courier "
+          '${barcode.isNotEmpty ? 'with tracking number $barcode' : 'with your delivery'}. '
+          'Please be ready or contact me for re-scheduling. Thank you!';
+      await showContactAppSheet(context, phone, messageTemplate: template);
+    }
+
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
-          shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-          title: const Text('Account Details'),
-          content: SingleChildScrollView(
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? DSColors.cardDark : DSColors.cardLight,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (name.isNotEmpty) ...[
-                  Text('Name', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? DSColors.separatorDark
+                          : DSColors.separatorLight,
+                      borderRadius: DSStyles.cardRadius,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const DSSectionHeader(
+                  title: 'Account Details',
+                  padding: EdgeInsets.zero,
+                ),
+
+                // ─── Contact Info Card ───────────────────────────────────────
+                DSCard(
+                  margin: const EdgeInsets.only(top: 10),
+                  child: Column(
+                    children: [
+                      if (name.isNotEmpty)
+                        DSInfoTile(
+                          label: 'Recipient Name',
+                          value: name,
+                          onLongPress: () => copyToClipboard(name, 'Name'),
+                        ),
+                      if (address.isNotEmpty)
+                        DSInfoTile(
+                          label: 'Delivery Address',
+                          value: address,
+                          onTap: () => launchMaps(address),
+                          onLongPress: () =>
+                              copyToClipboard(address, 'Address'),
+                        ),
+                      if (contact.isNotEmpty)
+                        ...contact.split('/').asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final cleanContact = entry.value.trim();
+                          if (cleanContact.isEmpty)
+                            return const SizedBox.shrink();
+                          final isLast = idx == contact.split('/').length - 1;
+                          return DSInfoTile(
+                            label: 'Contact Number',
+                            value: cleanContact,
+                            onTap: () => onPhoneTap(cleanContact, name),
+                            onLongPress: () =>
+                                copyToClipboard(cleanContact, 'Contact number'),
+                            showDivider: !isLast,
+                          );
+                        }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // ─── Account Identifiers Card ────────────────────────────────
+                if (accountNumber.isNotEmpty ||
+                    authRepNumber.isNotEmpty ||
+                    pieceCount > 0)
+                  DSCard(
+                    child: Column(
+                      children: [
+                        if (accountNumber.isNotEmpty)
+                          DSInfoTile(
+                            label: 'Account Number',
+                            value: accountNumber,
+                            onLongPress: () => copyToClipboard(
+                              accountNumber,
+                              'Account number',
+                            ),
+                          ),
+                        if (authRepNumber.isNotEmpty)
+                          DSInfoTile(
+                            label: 'Auth Rep Number',
+                            value: authRepNumber,
+                            onLongPress: () => copyToClipboard(
+                              authRepNumber,
+                              'Auth rep number',
+                            ),
+                          ),
+                        if (pieceCount > 0)
+                          DSInfoTile(
+                            label: 'Bundle Size',
+                            value:
+                                '$pieceCount piece${pieceCount > 1 ? 's' : ''}',
+                            showDivider: false,
+                          ),
+                      ],
+                    ),
+                  ),
+
+                if (product.isNotEmpty ||
+                    specialInstruction.isNotEmpty ||
+                    transmittalDate.isNotEmpty ||
+                    tat.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const DSSectionHeader(
+                    title: 'Shipment Details',
+                    padding: EdgeInsets.zero,
+                  ),
+                  DSCard(
+                    margin: const EdgeInsets.only(top: 10),
+                    child: Column(
+                      children: [
+                        if (product.isNotEmpty)
+                          DSInfoTile(label: 'Product', value: product),
+                        if (specialInstruction.isNotEmpty)
+                          DSInfoTile(
+                            label: 'Instructions',
+                            value: specialInstruction,
+                            onLongPress: () => copyToClipboard(
+                              specialInstruction,
+                              'Instructions',
+                            ),
+                          ),
+                        if (transmittalDate.isNotEmpty)
+                          DSInfoTile(
+                            label: 'Transmittal Date',
+                            value: formatDate(transmittalDate),
+                          ),
+                        if (tat.isNotEmpty)
+                          DSInfoTile(
+                            label: 'TAT',
+                            value: formatDate(tat),
+                            showDivider: false,
+                          ),
+                      ],
+                    ),
+                  ),
                 ],
-                if (address.isNotEmpty) ...[
-                  Text('Address', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
-                  Text(address, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                ],
-                if (contact.isNotEmpty) ...[
-                  Text('Contact', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
-                  Text(contact, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                ],
-                if (accountNumber.isNotEmpty) ...[
-                  Text('Account Number', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
-                  Text(accountNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                ],
-                if (authRepNumber.isNotEmpty) ...[
-                  Text('Auth Rep Number', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
-                  Text(authRepNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
+                const SizedBox(height: 24),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('CLOSE'),
-            ),
-          ],
         );
       },
     );
@@ -891,15 +1055,15 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text(
+        title: Text(
           'SWITCH STATUS?',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+          style: DSTypography.heading().copyWith(fontSize: DSTypography.sizeMd),
         ),
         content: Text(
           'You have already filled in $detail for $from. '
           'Switching to $to will clear all of that data.\n\n'
           'Are you sure you want to continue?',
-          style: const TextStyle(fontSize: 13),
+          style: DSTypography.body().copyWith(fontSize: DSTypography.sizeMd),
         ),
         actions: [
           TextButton(
@@ -907,7 +1071,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             child: const Text('CANCEL'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: DSColors.error),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('YES, SWITCH'),
           ),
@@ -980,7 +1144,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               } else if (_isOsa) {
                 presets = kOsaConfig.remarksPresets;
               } else {
-                presets = (_reason != null
+                presets =
+                    (_reason != null
                         ? kReasonConfigs[_reason]?.remarksPresets
                         : null) ??
                     [];
@@ -1048,14 +1213,16 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           height: _kPhotoHeight,
           decoration: BoxDecoration(
             color: hasPhoto
-                ? Colors.transparent
-                : (isDark ? DSColors.elevatedCardDark : Colors.white),
+                ? DSColors.transparent
+                : (isDark ? DSColors.cardElevatedDark : DSColors.cardLight),
             borderRadius: DSStyles.cardRadius,
             border: Border.all(
               color: hasError
-                  ? Colors.red
+                  ? DSColors.error
                   : hasPhoto
-                  ? (isDark ? Colors.white10 : Colors.grey.shade200)
+                  ? (isDark
+                        ? DSColors.separatorDark
+                        : DSColors.secondarySurfaceLight)
                   : color.withValues(alpha: DSStyles.alphaBorder),
               width: hasError ? 1.5 : 1.2,
             ),
@@ -1074,11 +1241,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         File(photo.file),
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
-                          color: isDark ? Colors.white10 : Colors.grey.shade100,
-                          child: Icon(
+                          color: isDark
+                              ? DSColors.cardElevatedDark
+                              : DSColors.secondarySurfaceLight,
+                          child: const Icon(
                             Icons.broken_image_rounded,
                             size: 32,
-                            color: Colors.grey.shade400,
+                            color: DSColors.labelTertiary,
                           ),
                         ),
                       ),
@@ -1087,21 +1256,22 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         left: 0,
                         right: 0,
                         child: Container(
-                          color: Colors.black54,
+                          color: DSColors.black.withValues(alpha: 0.54),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                            horizontal: DSSpacing.md,
+                            vertical: DSSpacing.sm,
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 label,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                ),
+                                style: DSTypography.label(color: DSColors.white)
+                                    .copyWith(
+                                      fontSize: DSTypography.sizeSm,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: DSTypography.lsLoose,
+                                    ),
                               ),
                               GestureDetector(
                                 behavior: HitTestBehavior.opaque,
@@ -1115,11 +1285,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   }
                                 }),
                                 child: const Padding(
-                                  padding: EdgeInsets.all(4),
+                                  padding: EdgeInsets.all(DSSpacing.xs),
                                   child: Icon(
                                     Icons.delete_outline_rounded,
                                     size: 16,
-                                    color: Colors.redAccent,
+                                    color: DSColors.error,
                                   ),
                                 ),
                               ),
@@ -1137,21 +1307,24 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       const SizedBox(height: 10),
                       Text(
                         label,
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: DSTypography.label(color: color).copyWith(
+                          fontSize: DSTypography.sizeSm,
                           fontWeight: FontWeight.w800,
-                          color: color,
-                          letterSpacing: 0.5,
+                          letterSpacing: DSTypography.lsLoose,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'TAP TO CAPTURE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey.shade500,
-                          letterSpacing: 0.3,
-                        ),
+                        style:
+                            DSTypography.label(
+                              color: isDark
+                                  ? DSColors.labelTertiaryDark
+                                  : DSColors.labelTertiary,
+                            ).copyWith(
+                              fontSize: DSTypography.sizeXs,
+                              letterSpacing: 0.3,
+                            ),
                       ),
                     ],
                   ),
@@ -1174,9 +1347,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           borderRadius: DSStyles.cardRadius,
           border: Border.all(
             color: hasError
-                ? Colors.red
+                ? DSColors.error
                 : hasSignature
-                ? (isDark ? Colors.white10 : Colors.grey.shade200)
+                ? (isDark ? DSColors.separatorDark : DSColors.separatorLight)
                 : DSColors.primary.withValues(alpha: DSStyles.alphaBorder),
             width: hasError ? 1.5 : 1.2,
           ),
@@ -1192,7 +1365,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   fit: StackFit.expand,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(DSSpacing.md),
                       child: Image.file(
                         File(_signaturePath!),
                         fit: BoxFit.contain,
@@ -1203,39 +1376,40 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       left: 0,
                       right: 0,
                       child: Container(
-                        color: Colors.black54,
+                        color: DSColors.black.withValues(alpha: 0.54),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                          horizontal: DSSpacing.md,
+                          vertical: DSSpacing.sm,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'SIGNATURE',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                              ),
+                              style: DSTypography.label(color: DSColors.white)
+                                  .copyWith(
+                                    fontSize: DSTypography.sizeSm,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: DSTypography.lsLoose,
+                                  ),
                             ),
                             Row(
                               children: [
                                 GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: _openSignatureCapture,
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: DSSpacing.sm,
+                                      vertical: DSSpacing.xs,
                                     ),
                                     child: Text(
                                       'RE-SIGN',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white70,
-                                      ),
+                                      style: DSTypography.label(
+                                        color: DSColors.white.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                      ).copyWith(fontSize: DSTypography.sizeSm),
                                     ),
                                   ),
                                 ),
@@ -1245,15 +1419,15 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       setState(() => _signaturePath = null),
                                   child: const Padding(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
+                                      horizontal: DSSpacing.sm,
+                                      vertical: DSSpacing.xs,
                                     ),
                                     child: Text(
                                       'CLEAR',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: DSTypography.sizeSm,
                                         fontWeight: FontWeight.w700,
-                                        color: Colors.redAccent,
+                                        color: DSColors.error,
                                       ),
                                     ),
                                   ),
@@ -1280,23 +1454,28 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     const SizedBox(height: 10),
                     Text(
                       'SIGNATURE',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: DSColors.primary.withValues(
-                          alpha: DSStyles.alphaGlass,
-                        ),
-                        letterSpacing: 0.5,
-                      ),
+                      style:
+                          DSTypography.label(
+                            color: DSColors.primary.withValues(
+                              alpha: DSStyles.alphaGlass,
+                            ),
+                          ).copyWith(
+                            fontSize: DSTypography.sizeSm,
+                            letterSpacing: DSTypography.lsLoose,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'TAP TO SIGN (OPTIONAL)',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade500,
-                        letterSpacing: 0.3,
-                      ),
+                      style:
+                          DSTypography.label(
+                            color: isDark
+                                ? DSColors.labelTertiaryDark
+                                : DSColors.labelTertiary,
+                          ).copyWith(
+                            fontSize: DSTypography.sizeXs,
+                            letterSpacing: 0.3,
+                          ),
                     ),
                   ],
                 ),
@@ -1351,9 +1530,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text(
+                child: Text(
                   'DISCARD',
-                  style: TextStyle(color: Colors.red),
+                  style: DSTypography.button().copyWith(color: DSColors.error),
                 ),
               ),
             ],
@@ -1369,32 +1548,54 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         // We only override if it needs to be different from the page default.
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: FilledButton.icon(
-            icon: _loading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.check_circle_outline_rounded),
-            label: const Text(
-              'SUBMIT UPDATE',
-              style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8),
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: DSColors.primary,
-              minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-              elevation: 6,
-              shadowColor: DSColors.primary.withValues(
-                alpha: DSStyles.alphaBorder,
+          padding: const EdgeInsets.symmetric(horizontal: DSSpacing.base),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: DSStyles.cardRadius,
+              boxShadow: [
+                BoxShadow(
+                  color: DSColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+              gradient: LinearGradient(
+                colors: [
+                  DSColors.primary,
+                  DSColors.primary.withValues(alpha: 0.8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-            onPressed: _loading ? null : _submit,
+            child: FilledButton.icon(
+              icon: _loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle_outline_rounded),
+              label: Text(
+                'SUBMIT UPDATE',
+                style: DSTypography.button().copyWith(
+                  letterSpacing: DSTypography.lsMegaLoose,
+                  fontSize: DSTypography.sizeMd,
+                ),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                minimumSize: const Size(double.infinity, 60),
+                shape: RoundedRectangleBorder(
+                  borderRadius: DSStyles.cardRadius,
+                ),
+              ),
+              onPressed: _loading ? null : _submit,
+            ),
           ),
         ),
         appBar: AppHeaderBar(
@@ -1406,20 +1607,24 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 'UPDATE STATUS',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
+                style: DSTypography.heading().copyWith(
+                  fontSize: DSTypography.sizeMd,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.0,
-                  color: isDark ? Colors.white : Colors.black,
+                  color: isDark
+                      ? DSColors.labelPrimaryDark
+                      : DSColors.labelPrimary,
                 ),
               ),
               Text(
                 widget.barcode,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isDark ? Colors.white54 : Colors.grey.shade500,
+                style: DSTypography.caption().copyWith(
+                  fontSize: DSTypography.sizeSm,
+                  color: isDark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.labelSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1432,7 +1637,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               onPressed: () => _showAccountDetailsDialog(context),
             ),
           ],
-          backgroundColor: isDark ? DSColors.appBarDark : DSColors.appBarLight,
+          backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
         ),
         body: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -1495,7 +1700,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       _errors['delivery_status']!,
                                       style: const TextStyle(
                                         color: Colors.red,
-                                        fontSize: 12,
+                                        fontSize: DSTypography.sizeSm,
                                       ),
                                     ),
                                   ),
@@ -1544,6 +1749,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           }) => null,
                                       textCapitalization:
                                           TextCapitalization.characters,
+                                      style: DSTypography.body().copyWith(
+                                        color: isDark
+                                            ? DSColors.labelPrimaryDark
+                                            : DSColors.labelPrimary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                       inputFormatters: [
                                         TextInputFormatter.withFunction(
                                           (oldValue, newValue) =>
@@ -1575,7 +1786,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                       Icons.clear_rounded,
                                                       size: 18,
                                                     ),
-                                                    color: Colors.grey.shade500,
+                                                    color: isDark
+                                                        ? DSColors
+                                                              .labelTertiaryDark
+                                                        : DSColors
+                                                              .labelTertiary,
                                                     onPressed: () {
                                                       _recipient.clear();
                                                       setState(() {
@@ -1604,6 +1819,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                   e['value'] == _relationship,
                                               orElse: () => {'label': ''},
                                             )['label'],
+                                        style: DSTypography.body().copyWith(
+                                          color: isDark
+                                              ? DSColors.labelPrimaryDark
+                                              : DSColors.labelPrimary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                         decoration:
                                             deliveryFieldDecoration(
                                               context,
@@ -1616,7 +1837,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                               suffixIcon: Icon(
                                                 Icons.search_rounded,
                                                 size: 20,
-                                                color: Colors.grey.shade500,
+                                                color: isDark
+                                                    ? DSColors.labelTertiaryDark
+                                                    : DSColors.labelTertiary,
                                               ),
                                             ),
                                       ),
@@ -1628,6 +1851,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     _kFieldGap,
                                     TextFormField(
                                       controller: _relationshipSpecify,
+                                      style: DSTypography.body().copyWith(
+                                        color: isDark
+                                            ? DSColors.labelPrimaryDark
+                                            : DSColors.labelPrimary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                       decoration:
                                           deliveryFieldDecoration(
                                             context,
@@ -1679,6 +1908,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           }) => null,
                                       textCapitalization:
                                           TextCapitalization.characters,
+                                      style: DSTypography.body().copyWith(
+                                        color: isDark
+                                            ? DSColors.labelPrimaryDark
+                                            : DSColors.labelPrimary,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 2.0,
+                                      ),
                                       inputFormatters: [
                                         TextInputFormatter.withFunction(
                                           (old, newVal) => newVal.copyWith(
@@ -1705,7 +1941,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                       Icons.clear_rounded,
                                                       size: 18,
                                                     ),
-                                                    color: Colors.grey.shade500,
+                                                    color: isDark
+                                                        ? DSColors
+                                                              .labelTertiaryDark
+                                                        : DSColors
+                                                              .labelTertiary,
                                                     onPressed: () => setState(
                                                       () => _confirmationCode
                                                           .clear(),
@@ -1755,6 +1995,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       child: TextFormField(
                                         key: ValueKey(_reason),
                                         initialValue: _reason,
+                                        style: DSTypography.body().copyWith(
+                                          color: isDark
+                                              ? DSColors.labelPrimaryDark
+                                              : DSColors.labelPrimary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                         decoration:
                                             deliveryFieldDecoration(
                                               context,
@@ -1764,7 +2010,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                               suffixIcon: Icon(
                                                 Icons.search_rounded,
                                                 size: 20,
-                                                color: Colors.grey.shade500,
+                                                color: isDark
+                                                    ? DSColors.labelTertiaryDark
+                                                    : DSColors.labelTertiary,
                                               ),
                                             ),
                                       ),
@@ -1822,8 +2070,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                             labelText:
                                                 'ACCORDING TO (NAME OF INFORMANT)',
                                             hintText: 'e.g. GUARD, NEIGHBOR',
-                                            errorText:
-                                                _errors['according_to'],
+                                            errorText: _errors['according_to'],
                                           ).copyWith(
                                             prefixIcon: const Icon(
                                               Icons.person_outline_rounded,
@@ -1896,18 +2143,23 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                             final confirmed = await showDialog<bool>(
                                               context: context,
                                               builder: (ctx) => AlertDialog(
-                                                title: const Text(
+                                                title: Text(
                                                   'ADD SIGNATURE?',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w800,
-                                                    fontSize: 15,
-                                                  ),
+                                                  style: DSTypography.heading()
+                                                      .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        fontSize:
+                                                            DSTypography.sizeMd,
+                                                      ),
                                                 ),
-                                                content: const Text(
+                                                content: Text(
                                                   'Do you want to capture the recipient\'s signature?',
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                  ),
+                                                  style: DSTypography.body()
+                                                      .copyWith(
+                                                        fontSize:
+                                                            DSTypography.sizeMd,
+                                                      ),
                                                 ),
                                                 actions: [
                                                   TextButton(
@@ -1945,9 +2197,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           }
                                         },
                                       ),
-                                      const Text(
+                                      Text(
                                         'Include recipient signature',
-                                        style: TextStyle(fontSize: 13),
+                                        style: DSTypography.body().copyWith(
+                                          fontSize: DSTypography.sizeMd,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -1971,7 +2225,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         label: 'MAILPACK',
                                         photo: _mailpackPhoto,
                                         icon: Icons.inventory_2_rounded,
-                                        color: Colors.amber,
+                                        color: DSColors.warning,
                                         isDark: isDark,
                                         onTapOverride: () =>
                                             _pickPhotoForSlot('mailpack'),
@@ -2019,11 +2273,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   padding: const EdgeInsets.only(bottom: 8),
                                   child: Text(
                                     'TAP A PRESET TO FILL — YOU CAN STILL ADD MORE DETAILS BELOW',
-                                    style: TextStyle(
-                                      fontSize: 10,
+                                    style: DSTypography.label().copyWith(
+                                      fontSize: DSTypography.sizeXs,
                                       color: isDark
-                                          ? Colors.white38
-                                          : Colors.grey.shade500,
+                                          ? DSColors.labelTertiaryDark
+                                          : DSColors.labelTertiary,
                                       letterSpacing: 0.3,
                                     ),
                                   ),
@@ -2038,6 +2292,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     maxLines: 6,
                                     textCapitalization:
                                         TextCapitalization.sentences,
+                                    style: DSTypography.body().copyWith(
+                                      color: isDark
+                                          ? DSColors.labelPrimaryDark
+                                          : DSColors.labelPrimary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                     decoration:
                                         deliveryFieldDecoration(
                                           context,
@@ -2055,7 +2315,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                     Icons.clear_rounded,
                                                     size: 18,
                                                   ),
-                                                  color: Colors.grey.shade500,
+                                                  color: isDark
+                                                      ? DSColors
+                                                            .labelTertiaryDark
+                                                      : DSColors.labelTertiary,
                                                   onPressed: () {
                                                     _note.clear();
                                                     setState(
@@ -2079,12 +2342,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 TextFormField(
                                   initialValue: _getCurrentDateTimePST(),
                                   enabled: false,
-                                  style: TextStyle(
+                                  style: DSTypography.body().copyWith(
                                     fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                                    fontSize: DSTypography.sizeMd,
                                     color: isDark
-                                        ? Colors.white70
-                                        : Colors.black87,
+                                        ? DSColors.labelPrimaryDark
+                                        : DSColors.labelPrimary,
                                   ),
                                   decoration: deliveryFieldDecoration(context)
                                       .copyWith(
@@ -2159,7 +2422,10 @@ class _NotePresetChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DSSpacing.md,
+          vertical: 7,
+        ),
         decoration: BoxDecoration(
           color: selected
               ? selectedColor.withValues(alpha: DSStyles.alphaActiveAccent)
@@ -2181,13 +2447,15 @@ class _NotePresetChip extends StatelessWidget {
             ],
             Text(
               label,
-              style: TextStyle(
-                fontSize: 11,
+              style: DSTypography.label().copyWith(
+                fontSize: DSTypography.sizeSm,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected
                     ? selectedColor
-                    : (isDark ? Colors.white70 : Colors.grey.shade700),
-                letterSpacing: 0.2,
+                    : (isDark
+                          ? DSColors.labelSecondaryDark
+                          : Colors.grey.shade700),
+                letterSpacing: DSTypography.lsSlightlyLoose,
               ),
             ),
           ],
@@ -2251,25 +2519,30 @@ class _StatusSelectorState extends State<_StatusSelector> {
                     : selectedIndex == 1
                     ? Alignment.center
                     : Alignment.centerRight,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.elasticOut,
                 child: FractionallySizedBox(
                   widthFactor: 1 / 3,
                   heightFactor: 1.0,
                   child: Padding(
-                    padding: const EdgeInsets.all(4.0),
+                    padding: const EdgeInsets.all(DSSpacing.sm),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       decoration: BoxDecoration(
-                        color: activeMeta.color,
+                        gradient: LinearGradient(
+                          colors: [
+                            activeMeta.color,
+                            activeMeta.color.withValues(alpha: 0.8),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: DSStyles.cardRadius,
                         boxShadow: [
                           BoxShadow(
-                            color: activeMeta.color.withValues(
-                              alpha: DSStyles.alphaDarkShadow,
-                            ),
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
+                            color: activeMeta.color.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
@@ -2310,7 +2583,7 @@ class _StatusSelectorState extends State<_StatusSelector> {
                             const SizedBox(height: 4),
                             AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 250),
-                              style: TextStyle(
+                              style: DSTypography.label().copyWith(
                                 fontWeight: selected
                                     ? FontWeight.w800
                                     : FontWeight.w600,
@@ -2318,9 +2591,9 @@ class _StatusSelectorState extends State<_StatusSelector> {
                                 color: selected
                                     ? Colors.white
                                     : (isDark
-                                          ? Colors.white54
+                                          ? DSColors.labelSecondaryDark
                                           : Colors.grey.shade600),
-                                letterSpacing: 0.5,
+                                letterSpacing: DSTypography.lsLoose,
                               ),
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
@@ -2354,9 +2627,11 @@ class _StatusSelectorState extends State<_StatusSelector> {
                 const SizedBox(width: 4),
                 Text(
                   'Tap or Swipe below to change status',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isDark ? Colors.white30 : Colors.grey.shade500,
+                  style: DSTypography.label().copyWith(
+                    fontSize: DSTypography.sizeXs,
+                    color: isDark
+                        ? DSColors.labelTertiaryDark
+                        : Colors.grey.shade500,
                     letterSpacing: 0.3,
                   ),
                 ),

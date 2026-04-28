@@ -203,13 +203,13 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: DSColors.primary.withValues(alpha: 0.12),
+                        color: DSColors.error.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: const Icon(
                         Icons.lock_reset_rounded,
                         size: 32,
-                        color: DSColors.primary,
+                        color: DSColors.error,
                       ),
                     ),
                   ),
@@ -217,8 +217,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22,
+                    style: DSTypography.heading().copyWith(
+                      fontSize: DSTypography.sizeLg,
                       fontWeight: FontWeight.w700,
                       color: isDark
                           ? DSColors.labelPrimaryDark
@@ -232,8 +232,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         ? 'Update your current password securely.'
                         : 'Enter your courier code and new password.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
+                    style: DSTypography.body().copyWith(
+                      fontSize: DSTypography.sizeMd,
                       color: isDark
                           ? DSColors.labelSecondaryDark
                           : DSColors.labelSecondary,
@@ -383,8 +383,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                     child: Text(
                       widget.authenticatedMode ? 'Change Password' : 'Submit',
-                      style: const TextStyle(
-                        fontSize: 15,
+                      style: DSTypography.button().copyWith(
+                        fontSize: DSTypography.sizeMd,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -406,8 +406,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   Widget _fieldLabel(BuildContext context, bool isDark, String text) {
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 13,
+      style: DSTypography.label().copyWith(
+        fontSize: DSTypography.sizeMd,
         fontWeight: FontWeight.w600,
         color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
       ),
