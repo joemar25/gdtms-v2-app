@@ -471,7 +471,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         if (_hasPermission) await _scannerController.start();
         return;
       }
-      await context.push('/deliveries/${match.barcode}');
+      await context.push('/deliveries/${match.barcode}/update');
       if (mounted && _hasPermission) await _scannerController.start();
       return;
     }
@@ -486,7 +486,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       if (!mounted) return;
       if (chosen != null) {
         final barcode = resolveDeliveryIdentifier(chosen);
-        if (barcode.isNotEmpty) context.go('/deliveries/$barcode');
+        if (barcode.isNotEmpty) context.go('/deliveries/$barcode/update');
       } else {
         if (_hasPermission) await _scannerController.start();
       }

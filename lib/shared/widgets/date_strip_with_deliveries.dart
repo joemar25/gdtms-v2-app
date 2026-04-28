@@ -12,7 +12,6 @@ import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 
 /// A horizontally-scrollable date strip paired with a delivery list for the
 /// selected day.
@@ -470,8 +469,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
         ],
 
         // ── Delivery list ────────────────────────────────────────────────────
-        SlidableAutoCloseBehavior(
-          child: Column(
+        Column(
             children: deliveries.map((d) {
               if (widget.itemBuilder != null) {
                 return widget.itemBuilder!(context, d);
@@ -518,7 +516,6 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
               );
             }).toList(),
           ),
-        ),
       ],
     );
   }

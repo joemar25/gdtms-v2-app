@@ -1,7 +1,7 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
@@ -9,7 +9,6 @@ import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
-import 'package:fsi_courier_app/shared/widgets/delivery_card_components.dart';
 
 class DeliveryCard extends StatelessWidget {
   const DeliveryCard({
@@ -170,9 +169,13 @@ class DeliveryCard extends StatelessWidget {
     }
 
     // ── Colors ──────────────────────────────────────────────────────────────
-    final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final cardBorder = isDark ? DSColors.separatorDark : DSColors.separatorLight;
-    final subtextColor = isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary;
+    final cardBg = isDark ? const Color(0xFF161625) : Colors.white;
+    final cardBorder = isDark
+        ? const Color(0xFF2A2A40)
+        : const Color(0xFFE8EAF0);
+    final subtextColor = isDark
+        ? const Color(0xFF6B7280)
+        : const Color(0xFF9CA3AF);
 
     // ── Slide actions (expanded only) ────────────────────────────────────────
     final cleanedContact = contact.cleanContactNumber();
@@ -185,7 +188,7 @@ class DeliveryCard extends StatelessWidget {
     // ── Card widget — radius is controlled externally by _SlidableRadiusMorph ─
     Widget buildCard({BorderRadius? borderRadius}) {
       final effectiveRadius = borderRadius ?? DSStyles.cardRadius;
-      return BouncingCardWrapper(
+      return _BouncingCardWrapper(
         onTap: isChecking ? null : onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 260),
@@ -212,7 +215,6 @@ class DeliveryCard extends StatelessWidget {
             child: InkWell(
               borderRadius: effectiveRadius,
               onTap: isChecking ? null : onTap,
-              onLongPress: isChecking ? null : () => _showHoldOptions(context, isDark),
               splashColor: colorForStatus.withValues(alpha: DSStyles.alphaSoft),
               highlightColor: colorForStatus.withValues(
                 alpha: DSStyles.alphaSoft,
@@ -249,7 +251,7 @@ class DeliveryCard extends StatelessWidget {
                             children: [
                               if (!isPrivacyMode &&
                                   (status.isNotEmpty || isDirty))
-                                DeliveryStatusBadge(
+                                _StatusBadge(
                                   label: isDirty
                                       ? 'UNSYNCED'
                                       : status.replaceAll('_', ' '),
@@ -316,7 +318,7 @@ class DeliveryCard extends StatelessWidget {
                                     if (attemptsCount > 0)
                                       Padding(
                                         padding: const EdgeInsets.only(left: 6),
-                                        child: DeliveryMiniPill(
+                                        child: _MiniPill(
                                           label: ds == DeliveryStatus.delivered
                                               ? 'FAILED ATTEMPTS: $attemptsCount'
                                               : 'ATTEMPTS: $attemptsCount',
@@ -489,7 +491,7 @@ class DeliveryCard extends StatelessWidget {
                               runSpacing: 6,
                               children: [
                                 if (isDirty)
-                                  DeliveryMiniPill(
+                                  _MiniPill(
                                     label: 'UNSYNCED',
                                     icon: Icons.sync_problem_rounded,
                                     bg: Colors.amber.shade50,
@@ -497,7 +499,7 @@ class DeliveryCard extends StatelessWidget {
                                     fg: Colors.amber.shade800,
                                   ),
                                 if (isPaid)
-                                  DeliveryMiniPill(
+                                  _MiniPill(
                                     label: 'PAID',
                                     icon: Icons.check_circle_outline_rounded,
                                     bg: Colors.green.shade50,
@@ -505,7 +507,7 @@ class DeliveryCard extends StatelessWidget {
                                     fg: Colors.green.shade700,
                                   ),
                                 if (inSyncQueue)
-                                  DeliveryMiniPill(
+                                  _MiniPill(
                                     label: 'PENDING SYNC',
                                     icon: Icons.sync_lock_rounded,
                                     bg: Colors.blue.shade50,
@@ -574,97 +576,212 @@ class DeliveryCard extends StatelessWidget {
       );
     }
 
+    if (slideCount == 0) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: buildCard(),
+      );
+    }
+
+    // ── Radius token for action pane right-edge rounding ─────────────────────
+    const actionRadius = BorderRadius.only(
+      topRight: Radius.circular(DSStyles.radiusCard),
+      bottomRight: Radius.circular(DSStyles.radiusCard),
+    );
+    final mapsRadius = (hasMap && !hasCall && !hasUpdate)
+        ? actionRadius
+        : BorderRadius.zero;
+    final callRadius = (hasCall && !hasUpdate)
+        ? actionRadius
+        : BorderRadius.zero;
+    const updateRadius = actionRadius;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: buildCard(),
-    );
-  }
-
-  void _showHoldOptions(BuildContext context, bool isDark) {
-    final identifier = resolveDeliveryIdentifier(delivery);
-    final address = delivery['address']?.toString() ??
-        delivery['delivery_address']?.toString() ??
-        '';
-    final contact = delivery['contact']?.toString() ?? '';
-    final cleanedContact = contact.cleanContactNumber();
-    final hasMap = address.isNotEmpty && !isPrivacyMode && !isChecking;
-    final hasCall = cleanedContact.isNotEmpty && !isPrivacyMode && !isChecking;
-    final accountNumber = delivery['account_number']?.toString() ?? '';
-    final authRepNumber = delivery['auth_rep_number']?.toString() ?? '';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(DSStyles.radiusCard)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 24.0),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white24 : Colors.black12,
-                      borderRadius: BorderRadius.circular(2),
+      child: Slidable(
+        key: ValueKey(barcode),
+        groupTag: 'delivery_cards',
+        endActionPane: ActionPane(
+          motion: const DrawerMotion(),
+          extentRatio: slideCount * 0.25,
+          children: [
+            if (hasMap)
+              CustomSlidableAction(
+                onPressed: (_) async {
+                  final url =
+                      'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(address)}';
+                  await launchUrl(
+                    Uri.parse(url),
+                    mode: LaunchMode.externalApplication,
+                  );
+                },
+                backgroundColor: Colors.transparent,
+                foregroundColor: DSColors.systemBlue,
+                borderRadius: mapsRadius,
+                padding: EdgeInsets.zero,
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    border: Border(
+                      top: BorderSide(color: cardBorder, width: 1),
+                      bottom: BorderSide(color: cardBorder, width: 1),
+                      right: (!hasCall && !hasUpdate)
+                          ? BorderSide(color: cardBorder, width: 1)
+                          : BorderSide.none,
                     ),
+                    borderRadius: mapsRadius,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: DSColors.systemBlue.withValues(
+                            alpha: DSStyles.alphaSoft,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.map_rounded,
+                          color: DSColors.systemBlue,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'MAPS',
+                        style: TextStyle(
+                          color: DSColors.systemBlue,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                if (hasMap)
-                  ListTile(
-                    leading: const Icon(Icons.map_rounded, color: DSColors.systemBlue),
-                    title: const Text('Open in Maps'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      final url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(address)}';
-                      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-                    },
+              ),
+            if (hasCall)
+              CustomSlidableAction(
+                onPressed: (_) async {
+                  await launchUrl(
+                    Uri.parse('tel:$cleanedContact'),
+                    mode: LaunchMode.externalApplication,
+                  );
+                },
+                backgroundColor: Colors.transparent,
+                foregroundColor: DSColors.primary,
+                borderRadius: callRadius,
+                padding: EdgeInsets.zero,
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    border: Border(
+                      top: BorderSide(color: cardBorder, width: 1),
+                      bottom: BorderSide(color: cardBorder, width: 1),
+                      left: hasMap
+                          ? BorderSide(color: cardBorder, width: 1)
+                          : BorderSide.none,
+                      right: (!hasUpdate)
+                          ? BorderSide(color: cardBorder, width: 1)
+                          : BorderSide.none,
+                    ),
+                    borderRadius: callRadius,
                   ),
-                if (hasCall)
-                  ListTile(
-                    leading: const Icon(Icons.phone_rounded, color: DSColors.primary),
-                    title: const Text('Call Contact'),
-                    subtitle: Text(cleanedContact),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      launchUrl(Uri.parse('tel:$cleanedContact'), mode: LaunchMode.externalApplication);
-                    },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: DSColors.primary.withValues(
+                            alpha: DSStyles.alphaSoft,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.call_rounded,
+                          color: DSColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'CALL',
+                        style: TextStyle(
+                          color: DSColors.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
                   ),
-                if (accountNumber.isNotEmpty)
-                  ListTile(
-                    leading: Icon(Icons.account_balance_wallet_rounded, color: isDark ? Colors.white70 : Colors.black54),
-                    title: const Text('Account Number'),
-                    subtitle: Text(accountNumber),
-                  ),
-                if (authRepNumber.isNotEmpty)
-                  ListTile(
-                    leading: Icon(Icons.badge_rounded, color: isDark ? Colors.white70 : Colors.black54),
-                    title: const Text('Auth Rep Number'),
-                    subtitle: Text(authRepNumber),
-                  ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.info_outline_rounded),
-                  title: const Text('View Delivery Details'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    if (identifier.isNotEmpty) {
-                      context.push('/deliveries/$identifier');
-                    }
-                  },
                 ),
-              ],
-            ),
-          ),
-        );
-      },
+              ),
+            if (hasUpdate)
+              CustomSlidableAction(
+                onPressed: (_) => onUpdateTap!(),
+                backgroundColor: Colors.transparent,
+                foregroundColor: DSColors.primary,
+                borderRadius: updateRadius,
+                padding: EdgeInsets.zero,
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    border: Border(
+                      top: BorderSide(color: cardBorder, width: 1),
+                      bottom: BorderSide(color: cardBorder, width: 1),
+                      left: (hasMap || hasCall)
+                          ? BorderSide(color: cardBorder, width: 1)
+                          : BorderSide.none,
+                      right: BorderSide(color: cardBorder, width: 1),
+                    ),
+                    borderRadius: updateRadius,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: DSColors.primary.withValues(
+                            alpha: DSStyles.alphaSoft,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.edit_rounded,
+                          color: DSColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'UPDATE',
+                        style: TextStyle(
+                          color: DSColors.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        // ── Wrap the card so its right corners morph as the pane opens ──────
+        child: _SlidableRadiusMorph(buildCard: buildCard),
+      ),
     );
   }
 
@@ -713,16 +830,16 @@ class DeliveryCard extends StatelessWidget {
           children: [
             if (seqNum.isNotEmpty)
               Expanded(
-                child: DeliveryDetailCell(
+                child: _DetailCell(
                   label: 'SEQUENCE',
                   value: seqNum,
                   isDark: isDark,
                   subtextColor: subtextColor,
                 ),
               ),
-            if (transactionAt.isNotEmpty && product.toLowerCase() != 'delivery')
+            if (transactionAt.isNotEmpty)
               Expanded(
-                child: DeliveryDetailCell(
+                child: _DetailCell(
                   label: 'TRANSACTION',
                   value: formatDate(transactionAt, includeTime: true),
                   isDark: isDark,
@@ -735,7 +852,7 @@ class DeliveryCard extends StatelessWidget {
         if (showProductMailType &&
             (product.isNotEmpty || mailType.isNotEmpty)) ...[
           const SizedBox(height: 12),
-          DeliveryDetailCell(
+          _DetailCell(
             label: 'PRODUCT / MAIL TYPE',
             value: [product, mailType].where((e) => e.isNotEmpty).join(' · '),
             isDark: isDark,
@@ -745,7 +862,7 @@ class DeliveryCard extends StatelessWidget {
 
         if (specialInstr.isNotEmpty) ...[
           const SizedBox(height: 12),
-          DeliveryDetailCell(
+          _DetailCell(
             label: 'SPECIAL INSTRUCTIONS',
             value: specialInstr,
             isDark: isDark,
@@ -779,9 +896,10 @@ class DeliveryCard extends StatelessWidget {
     required int attemptsCount,
   }) {
     final ds = DeliveryStatus.fromString(status);
-    final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final subtextColor = isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary;
-    final cardBorder = isDark ? DSColors.separatorDark : DSColors.separatorLight;
+    final cardBg = isDark ? const Color(0xFF161625) : Colors.white;
+    final subtextColor = isDark
+        ? const Color(0xFF6B7280)
+        : const Color(0xFF9CA3AF);
 
     return Container(
       width: double.infinity,
@@ -789,7 +907,9 @@ class DeliveryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: DSStyles.cardRadius,
-        border: Border.all(color: cardBorder),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2A2A40) : const Color(0xFFE8EAF0),
+        ),
         boxShadow: [
           BoxShadow(
             color: isDark
@@ -875,22 +995,22 @@ class DeliveryCard extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (isDirty)
-                              DeliveryTinyPill(
+                              _TinyPill(
                                 label: 'UNSYNC',
                                 color: Colors.amber.shade700,
                               ),
                             if (inSyncQueue)
-                              DeliveryTinyPill(
+                              _TinyPill(
                                 label: 'SYNC',
                                 color: Colors.blue.shade600,
                               ),
                             if (isPaid)
-                              DeliveryTinyPill(
+                              _TinyPill(
                                 label: 'PAID',
                                 color: Colors.green.shade600,
                               ),
                             if (attemptsCount > 0)
-                              DeliveryTinyPill(
+                              _TinyPill(
                                 label: ds == DeliveryStatus.delivered
                                     ? 'FA:$attemptsCount'
                                     : 'A:$attemptsCount',
@@ -939,6 +1059,325 @@ class DeliveryCard extends StatelessWidget {
   }
 }
 
+// ── Slidable radius morph ──────────────────────────────────────────────────────
+/// Listens to the nearest [Slidable]'s drag ratio and smoothly squares off the
+/// card's right-side border corners while the action pane slides open, so the
+/// card edge and the action pane always appear as one continuous surface.
+class _SlidableRadiusMorph extends StatefulWidget {
+  const _SlidableRadiusMorph({required this.buildCard});
 
+  /// Builder receives the live [BorderRadius] so the card can rebuild its
+  /// decoration without the morph wrapper needing to know about card internals.
+  final Widget Function({BorderRadius? borderRadius}) buildCard;
 
+  @override
+  State<_SlidableRadiusMorph> createState() => _SlidableRadiusMorphState();
+}
+
+class _SlidableRadiusMorphState extends State<_SlidableRadiusMorph> {
+  SlidableController? _ctrl;
+  double _ratio = 0.0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Re-subscribe whenever the inherited controller changes.
+    _ctrl?.animation.removeListener(_onRatio);
+    _ctrl = Slidable.of(context);
+    _ctrl?.animation.addListener(_onRatio);
+  }
+
+  void _onRatio() {
+    // animation.value is negative when the end pane opens.
+    final next = (_ctrl?.animation.value ?? 0.0).abs();
+    if ((next - _ratio).abs() > 0.001) {
+      setState(() => _ratio = next);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl?.animation.removeListener(_onRatio);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Left corners stay fully rounded at all times.
+    // Right corners shrink to 0 as the action pane opens (ratio 0 → 1).
+    final rightCorner = Radius.circular(
+      DSStyles.radiusCard * (1.0 - _ratio.clamp(0.0, 1.0)),
+    );
+    const leftCorner = Radius.circular(DSStyles.radiusCard);
+
+    final radius = BorderRadius.only(
+      topLeft: leftCorner,
+      bottomLeft: leftCorner,
+      topRight: rightCorner,
+      bottomRight: rightCorner,
+    );
+
+    return widget.buildCard(borderRadius: radius);
+  }
+}
+
+// ── Bouncing card wrapper ──────────────────────────────────────────────────────
+class _BouncingCardWrapper extends StatefulWidget {
+  const _BouncingCardWrapper({required this.child, required this.onTap});
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  State<_BouncingCardWrapper> createState() => _BouncingCardWrapperState();
+}
+
+class _BouncingCardWrapperState extends State<_BouncingCardWrapper>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.98,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(_) {
+    if (widget.onTap != null) _controller.forward();
+  }
+
+  void _onTapUp(_) {
+    if (widget.onTap != null) _controller.reverse();
+  }
+
+  void _onTapCancel(_) {
+    if (widget.onTap != null) _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.onTap == null) return widget.child;
+    return Listener(
+      onPointerDown: _onTapDown,
+      onPointerUp: _onTapUp,
+      onPointerCancel: _onTapCancel,
+      child: ScaleTransition(scale: _scale, child: widget.child),
+    );
+  }
+}
+
+// ── Status badge ───────────────────────────────────────────────────────────────
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: DSStyles.alphaActiveAccent),
+        borderRadius: DSStyles.pillRadius,
+        border: Border.all(
+          color: color.withValues(alpha: DSStyles.alphaDarkShadow),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Mini pill ──────────────────────────────────────────────────────────────────
+class _MiniPill extends StatelessWidget {
+  const _MiniPill({
+    required this.label,
+    required this.icon,
+    required this.bg,
+    required this.border,
+    required this.fg,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color bg;
+  final Color border;
+  final Color fg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: DSStyles.pillRadius,
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: fg),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: fg,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Tiny pill ──────────────────────────────────────────────────────────────────
+class _TinyPill extends StatelessWidget {
+  const _TinyPill({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: DSStyles.alphaActiveAccent),
+        borderRadius: DSStyles.pillRadius,
+        border: Border.all(
+          color: color.withValues(alpha: DSStyles.alphaDarkShadow),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 7,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Detail cell ────────────────────────────────────────────────────────────────
+class _DetailCell extends StatelessWidget {
+  const _DetailCell({
+    required this.label,
+    required this.value,
+    required this.isDark,
+    required this.subtextColor,
+    this.valueColor,
+    this.isItalic = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isDark;
+  final Color subtextColor;
+  final Color? valueColor;
+  final bool isItalic;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: subtextColor,
+            letterSpacing: 0.9,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color:
+                valueColor ??
+                (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1F2937)),
+            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Info chip ──────────────────────────────────────────────────────────────────
+class InfoChip extends StatelessWidget {
+  const InfoChip({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.isDark = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: color),
+        const SizedBox(width: 3),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11, color: color),
+          ),
+        ),
+      ],
+    );
+  }
+}
 

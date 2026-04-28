@@ -57,7 +57,6 @@ import 'package:fsi_courier_app/shared/widgets/search_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 
 /// A single list screen reused for every delivery status filter
 /// (pending, delivered, failed_delivery, osa, dispatched).
@@ -563,9 +562,7 @@ class _DeliveryStatusListScreenState
                           isSearching: isSearching,
                           isDark: isDark,
                         )
-                      : SlidableAutoCloseBehavior(
-                          // Ensure other Slidables close automatically when one opens
-                          child: ListView.builder(
+                      : ListView.builder(
                             controller: _scrollController,
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -637,12 +634,11 @@ class _DeliveryStatusListScreenState
                                         showInfoNotification(context, msg);
                                       }
                                     : () => context.push(
-                                        '/deliveries/$identifier',
+                                        '/deliveries/$identifier/update',
                                       ),
                               );
                             },
                           ),
-                        ),
                 ),
               ),
 

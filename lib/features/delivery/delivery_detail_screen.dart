@@ -119,7 +119,7 @@ class _DS {
 
   // FSI brand accent (green CTA) and action blue — local aliases.
   static const Color accent = DSColors.primary;
-  static const Color accentBlue = Color(0xFF007AFF);
+  static const Color accentBlue = DSColors.systemBlue;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

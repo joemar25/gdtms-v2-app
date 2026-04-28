@@ -788,6 +788,64 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _errors.clear();
   }
 
+  void _showAccountDetailsDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final name = _delivery['name']?.toString() ?? '';
+    final address = _delivery['address']?.toString() ?? _delivery['delivery_address']?.toString() ?? '';
+    final contact = _delivery['contact']?.toString() ?? '';
+    final accountNumber = _delivery['account_number']?.toString() ?? '';
+    final authRepNumber = _delivery['auth_rep_number']?.toString() ?? '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
+          shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
+          title: const Text('Account Details'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (name.isNotEmpty) ...[
+                  Text('Name', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
+                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                ],
+                if (address.isNotEmpty) ...[
+                  Text('Address', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
+                  Text(address, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                ],
+                if (contact.isNotEmpty) ...[
+                  Text('Contact', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
+                  Text(contact, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                ],
+                if (accountNumber.isNotEmpty) ...[
+                  Text('Account Number', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
+                  Text(accountNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                ],
+                if (authRepNumber.isNotEmpty) ...[
+                  Text('Auth Rep Number', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
+                  Text(authRepNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CLOSE'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _onStatusTap(String newStatus) async {
     if (newStatus == _status) return;
 
@@ -1367,6 +1425,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               ),
             ],
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.info_outline_rounded),
+              tooltip: 'Account Details',
+              onPressed: () => _showAccountDetailsDialog(context),
+            ),
+          ],
           backgroundColor: isDark ? DSColors.appBarDark : DSColors.appBarLight,
         ),
         body: GestureDetector(
