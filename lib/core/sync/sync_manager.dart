@@ -510,11 +510,22 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           //   processed. The server returns the original success payload.
           final isDuplicateRequestCode = responseCode == 'DUPLICATE_REQUEST';
 
+          // Case 4 — Max FAILED_DELIVERY attempts reached (400, no code field).
+          //   Server message: "Maximum RTS attempts (3) reached for this delivery."
+          //   Auto-resolve so the Sync screen shows the server's human-readable
+          //   message (stored in lastError) instead of a confusing "conflict" label.
+          //   The delivery is still correctly locked by isVisibleToRider (attempts >= 3).
+          final isMaxAttemptsReached =
+              result is ApiBadRequest<Map<String, dynamic>> &&
+              (errorMsg.toLowerCase().contains('maximum') ||
+               errorMsg.toLowerCase().contains('attempts'));
+
           final shouldAutoResolve =
               isImmutableStop ||
               isDeliveredImmutableLegacy ||
               isSameStatusTransitionCode ||
-              isDuplicateRequestCode;
+              isDuplicateRequestCode ||
+              isMaxAttemptsReached;
 
           if (shouldAutoResolve) {
             final now = DateTime.now().millisecondsSinceEpoch;

@@ -26,18 +26,18 @@ class LoadingOverlay extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: DSColors.black.withValues(alpha: 0.54),
+            color: DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: SpinKitFadingCircle(color: DSColors.white, size: 56),
+                    width: DSIconSize.heroSm,
+                    height: DSIconSize.heroSm,
+                    child: SpinKitFadingCircle(color: DSColors.white, size: DSIconSize.heroSm),
                   ),
                   if (message != null) ...[
-                    const SizedBox(height: 16),
+                    DSSpacing.hMd,
                     Text(
                       message!,
                       style: DSTypography.body(color: DSColors.white).copyWith(

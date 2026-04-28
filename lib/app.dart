@@ -48,8 +48,8 @@ class FsiCourierApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: appScaffoldMessengerKey,
       themeMode: auth.themeMode,
-      theme: DSColors.buildTheme(Brightness.light),
-      darkTheme: DSColors.buildTheme(Brightness.dark),
+      theme: DSTheme.build(Brightness.light),
+      darkTheme: DSTheme.build(Brightness.dark),
       routerConfig: router,
       builder: (context, child) =>
           TimeEnforcer(child: _AutoSyncListener(child: child!)),
@@ -391,7 +391,7 @@ class _SyncPillContent extends ConsumerWidget {
         child: Align(
           alignment: Alignment.topCenter,
           child: Padding(
-            padding: EdgeInsets.fromLTRB(16, top + 6, 16, 0),
+            padding: EdgeInsets.fromLTRB(DSSpacing.md, top + DSSpacing.sm, DSSpacing.md, 0),
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.85,
@@ -401,12 +401,12 @@ class _SyncPillContent extends ConsumerWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDark
-                        ? DSColors.cardElevatedDark.withValues(alpha: 0.97)
-                        : DSColors.white.withValues(alpha: 0.97),
+                        ? DSColors.cardElevatedDark.withValues(alpha: DSStyles.alphaOpaque)
+                        : DSColors.white.withValues(alpha: DSStyles.alphaOpaque),
                     borderRadius: DSStyles.circularRadius,
-                    boxShadow: DSStyles.shadowSoft(context),
+                    boxShadow: DSStyles.shadowXS(context),
                   ),
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 9,
                   ),
@@ -417,9 +417,9 @@ class _SyncPillContent extends ConsumerWidget {
                         const SizedBox(
                           width: 13,
                           height: 13,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
                         ),
-                        const SizedBox(width: 8),
+                        DSSpacing.wSm,
                         Flexible(
                           child: Text(
                             _trimMessage(lastMessage ?? 'Syncing…'),
@@ -430,7 +430,7 @@ class _SyncPillContent extends ConsumerWidget {
                           ),
                         ),
                         if (total > 0) ...[
-                          const SizedBox(width: 8),
+                          DSSpacing.wSm,
                           Text(
                             '$processed/$total',
                             style: DSTypography.label(
@@ -445,14 +445,14 @@ class _SyncPillContent extends ConsumerWidget {
                           isOnline
                               ? Icons.cloud_sync_outlined
                               : Icons.cloud_off_outlined,
-                          size: 14,
+                          size: DSIconSize.xs,
                           color: failed > 0
                               ? DSColors.error
                               : (isDark
                                     ? DSColors.labelSecondaryDark
                                     : DSColors.labelSecondary),
                         ),
-                        const SizedBox(width: 6),
+                        DSSpacing.wSm,
                         Text(
                           [
                             if (pending > 0) '$pending pending',

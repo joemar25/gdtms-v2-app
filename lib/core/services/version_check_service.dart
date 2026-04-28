@@ -85,9 +85,9 @@ class VersionCheckService {
         canPop: false,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-          title: const Text(
+          title: Text(
             'Update Required',
-            style: TextStyle(fontWeight: FontWeight.w700),
+            style: DSTypography.body().copyWith(fontWeight: FontWeight.w700),
           ),
           content: const Text(
             'A new version of the FSI Courier app is required. '

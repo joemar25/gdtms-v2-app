@@ -56,6 +56,7 @@ import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/search_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/ds_segmented_selector.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// A single list screen reused for every delivery status filter
@@ -504,33 +505,27 @@ class _DeliveryStatusListScreenState
               // ── Failed-delivery sub-filter chips ──────────────────────────────
               if (isFailedDelivery)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: Row(
-                    children: [
-                      _FailedFilterChip(
+                  padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, 0),
+                  child: DSSegmentedSelector<String>(
+                    selected: _failedSubFilter,
+                    onChanged: (v) => setState(() {
+                      _failedSubFilter = v;
+                      _currentPage = 0;
+                    }),
+                    options: [
+                      DSSegmentOption(
+                        value: 'redelivery',
                         label: 'For Redelivery',
                         icon: Icons.local_shipping_rounded,
-                        selected: _failedSubFilter == 'redelivery',
-                        count: _countFailedSubGroup('redelivery'),
                         color: DSColors.error,
-                        isDark: isDark,
-                        onTap: () => setState(() {
-                          _failedSubFilter = 'redelivery';
-                          _currentPage = 0;
-                        }),
+                        badge: _countFailedSubGroup('redelivery'),
                       ),
-                      const SizedBox(width: 8),
-                      _FailedFilterChip(
+                      DSSegmentOption(
+                        value: 'rts',
                         label: 'For Return',
                         icon: Icons.assignment_return_rounded,
-                        selected: _failedSubFilter == 'rts',
-                        count: _countFailedSubGroup('rts'),
                         color: DeliveryCard.statusColor('FAILED_DELIVERY'),
-                        isDark: isDark,
-                        onTap: () => setState(() {
-                          _failedSubFilter = 'rts';
-                          _currentPage = 0;
-                        }),
+                        badge: _countFailedSubGroup('rts'),
                       ),
                     ],
                   ),
@@ -565,7 +560,7 @@ class _DeliveryStatusListScreenState
                       : ListView.builder(
                           controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                          padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, DSSpacing.sm),
                           itemCount: displayed.length + _bannerCount(isOnline),
                           itemBuilder: (context, index) {
                             final banners = _bannerCount(isOnline);
@@ -674,8 +669,8 @@ class _DeliveryStatusListScreenState
           borderRadius: DSStyles.cardRadius,
           boxShadow: [
             BoxShadow(
-              color: DSColors.black.withValues(alpha: DSStyles.alphaDarkShadow),
-              blurRadius: 20,
+              color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
+              blurRadius: DSStyles.radiusXL,
               offset: const Offset(0, -5),
             ),
           ],
@@ -684,9 +679,9 @@ class _DeliveryStatusListScreenState
           mainAxisSize: MainAxisSize.min,
           children: [
             // Handle bar
-            const SizedBox(height: 12),
+            DSSpacing.hMd,
             Container(
-              width: 40,
+              width: DSIconSize.heroSm,
               height: 4,
               decoration: BoxDecoration(
                 color: isDark
@@ -695,15 +690,15 @@ class _DeliveryStatusListScreenState
                 borderRadius: DSStyles.pillRadius,
               ),
             ),
-            const SizedBox(height: 24),
+            DSSpacing.hLg,
 
             // Header Icon & Title
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xl),
+              padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(DSSpacing.md),
+                    padding: EdgeInsets.all(DSSpacing.md),
                     decoration: BoxDecoration(
                       color: failedDeliveryColor.withValues(
                         alpha: DSStyles.alphaSoft,
@@ -713,10 +708,10 @@ class _DeliveryStatusListScreenState
                     child: Icon(
                       Icons.assignment_return_rounded,
                       color: failedDeliveryColor,
-                      size: DSIconSize.xxl,
+                      size: DSIconSize.xl,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  DSSpacing.wMd,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -757,13 +752,13 @@ class _DeliveryStatusListScreenState
               ),
             ),
 
-            const SizedBox(height: 24),
+            DSSpacing.hLg,
 
             // Help Content
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xl),
+              padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
               child: Container(
-                padding: const EdgeInsets.all(DSSpacing.lg),
+                padding: EdgeInsets.all(DSSpacing.lg),
                 decoration: BoxDecoration(
                   color: isDark
                       ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
@@ -785,7 +780,7 @@ class _DeliveryStatusListScreenState
                       isDark: isDark,
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: DSSpacing.base),
+                      padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
                       child: Divider(height: 1),
                     ),
                     _HelpItem(
@@ -796,7 +791,7 @@ class _DeliveryStatusListScreenState
                       isDark: isDark,
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: DSSpacing.base),
+                      padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
                       child: Divider(height: 1),
                     ),
                     _HelpItem(
@@ -811,19 +806,19 @@ class _DeliveryStatusListScreenState
               ),
             ),
 
-            const SizedBox(height: 12),
+            DSSpacing.hMd,
 
             // Footer note
             Padding(
-              padding: const EdgeInsets.all(DSSpacing.xl),
+              padding: EdgeInsets.all(DSSpacing.xl),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(DSSpacing.base),
+                padding: EdgeInsets.all(DSSpacing.md),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
                       failedDeliveryColor.withValues(
-                        alpha: DSStyles.alphaActiveAccent,
+                        alpha: DSStyles.alphaSubtle,
                       ),
                       failedDeliveryColor.withValues(alpha: DSStyles.alphaSoft),
                     ],
@@ -837,16 +832,16 @@ class _DeliveryStatusListScreenState
                       size: DSIconSize.md,
                       color: failedDeliveryColor,
                     ),
-                    const SizedBox(width: 12),
+                    DSSpacing.wMd,
                     Expanded(
                       child: Text(
                         'This ensures your payments are tracked accurately without manual intervention.',
                         style: DSTypography.body().copyWith(
                           fontSize: DSTypography.sizeSm,
                           color: failedDeliveryColor.withValues(
-                            alpha: DSStyles.alphaGlass,
+                            alpha: DSStyles.alphaDisabled,
                           ),
-                          height: 1.4,
+                          height: DSStyles.heightNormal,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -879,7 +874,7 @@ class _DeliveryStatusListScreenState
     if (!isOnline) {
       if (index == slot) {
         return const Padding(
-          padding: EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.only(bottom: DSSpacing.sm),
           child: OfflineBanner(isMinimal: true),
         );
       }
@@ -935,32 +930,32 @@ class _EmptyState extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         SizedBox(
-          height: 400,
+          height: DSIconSize.heroSm,
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Icon circle
                 Container(
-                  width: 64,
-                  height: 64,
+                  width: DSIconSize.heroLg,
+                  height: DSIconSize.heroLg,
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: DSStyles.alphaSoft),
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: statusColor.withValues(
-                        alpha: DSStyles.alphaActiveAccent,
+                        alpha: DSStyles.alphaSubtle,
                       ),
-                      width: 1.5,
+                      width: DSStyles.borderWidth * 1.5,
                     ),
                   ),
                   child: Icon(
                     iconData,
-                    size: DSIconSize.xxl,
-                    color: statusColor.withValues(alpha: DSStyles.alphaBorder),
+                    size: DSIconSize.xl,
+                    color: statusColor.withValues(alpha: DSStyles.alphaMuted),
                   ),
                 ),
-                const SizedBox(height: 16),
+                DSSpacing.hMd,
                 Text(
                   message,
                   textAlign: TextAlign.center,
@@ -972,7 +967,7 @@ class _EmptyState extends StatelessWidget {
                         : DSColors.labelPrimary,
                   ),
                 ),
-                const SizedBox(height: 6),
+                DSSpacing.hSm,
                 Text(
                   'Pull down to refresh',
                   style: DSTypography.caption().copyWith(
@@ -1009,15 +1004,15 @@ class _StatusInfoBanner extends StatelessWidget {
         ? DSColors.cardDark
         : statusColor.withValues(alpha: DSStyles.alphaSoft);
     final border = isDark
-        ? statusColor.withValues(alpha: DSStyles.alphaDarkShadow)
-        : statusColor.withValues(alpha: 0.22);
+        ? statusColor.withValues(alpha: DSStyles.alphaMuted)
+        : statusColor.withValues(alpha: DSStyles.alphaMuted);
     final textColor = isDark
-        ? statusColor.withValues(alpha: DSStyles.alphaGlass)
-        : statusColor.withValues(alpha: DSStyles.alphaGlass);
+        ? statusColor.withValues(alpha: DSStyles.alphaDisabled)
+        : statusColor.withValues(alpha: DSStyles.alphaDisabled);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(
+      margin: EdgeInsets.only(bottom: DSSpacing.sm),
+      padding: EdgeInsets.symmetric(
         horizontal: 14,
         vertical: DSSpacing.md,
       ),
@@ -1029,7 +1024,7 @@ class _StatusInfoBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: DSIconSize.sm, color: textColor),
-          const SizedBox(width: 10),
+          DSSpacing.wSm,
           Expanded(
             child: Text(
               message,
@@ -1037,7 +1032,7 @@ class _StatusInfoBanner extends StatelessWidget {
                 fontSize: DSTypography.sizeSm,
                 fontWeight: FontWeight.w500,
                 color: textColor,
-                height: 1.4,
+                height: DSStyles.heightNormal,
               ),
             ),
           ),
@@ -1047,100 +1042,6 @@ class _StatusInfoBanner extends StatelessWidget {
   }
 }
 
-// ── Failed-delivery sub-filter chip ───────────────────────────────────────────
-class _FailedFilterChip extends StatelessWidget {
-  const _FailedFilterChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.count,
-    required this.color,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final int count;
-  final Color color;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = selected
-        ? color.withValues(alpha: 0.14)
-        : (isDark
-              ? DSColors.secondarySurfaceDark
-              : DSColors.secondarySurfaceLight);
-    final border = selected
-        ? color.withValues(alpha: 0.45)
-        : (isDark ? DSColors.separatorDark : DSColors.separatorLight);
-    final fg = selected
-        ? color
-        : (isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary);
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(
-            horizontal: DSSpacing.md,
-            vertical: DSSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: DSStyles.cardRadius,
-            border: Border.all(color: border),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: DSIconSize.xs, color: fg),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: DSTypography.label().copyWith(
-                  fontSize: DSTypography.sizeSm,
-                  fontWeight: FontWeight.w600,
-                  color: fg,
-                ),
-              ),
-              if (count > 0) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: DSSpacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? color.withValues(alpha: 0.18)
-                        : (isDark ? DSColors.white.withValues(alpha: 0.1) : DSColors.separatorLight),
-                    borderRadius: DSStyles.pillRadius,
-                  ),
-                  child: Text(
-                    '$count',
-                    style: DSTypography.label().copyWith(
-                      fontSize: DSTypography.sizeXs,
-                      fontWeight: FontWeight.w700,
-                      color: fg,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _HelpItem extends StatelessWidget {
   const _HelpItem({
@@ -1160,8 +1061,8 @@ class _HelpItem extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: DSIconSize.md, color: isDark ? DSColors.white.withValues(alpha: 0.7) : DSColors.black.withValues(alpha: 0.87)),
-        const SizedBox(width: 16),
+        Icon(icon, size: DSIconSize.md, color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.black.withValues(alpha: DSStyles.alphaOpaque)),
+        DSSpacing.wMd,
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1176,13 +1077,13 @@ class _HelpItem extends StatelessWidget {
                       : DSColors.labelPrimary,
                 ),
               ),
-              const SizedBox(height: 4),
+              DSSpacing.hXs,
               Text(
                 description,
                 style: DSTypography.body().copyWith(
                   fontSize: DSTypography.sizeMd,
-                  color: isDark ? DSColors.labelSecondaryDark : DSColors.black.withValues(alpha: 0.54),
-                  height: 1.4,
+                  color: isDark ? DSColors.labelSecondaryDark : DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
+                  height: DSStyles.heightNormal,
                 ),
               ),
             ],

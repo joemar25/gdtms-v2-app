@@ -296,7 +296,7 @@ class _DispatchEligibilityScreenState
             title: Row(
               children: [
                 const Icon(Icons.warning_amber_rounded, color: DSColors.error),
-                const SizedBox(width: 8),
+                DSSpacing.wSm,
                 Expanded(
                   child: Text(
                     'Confirm Rejection',
@@ -317,10 +317,10 @@ class _DispatchEligibilityScreenState
                     fontSize: DSTypography.sizeMd,
                   ),
                 ),
-                const SizedBox(height: 10),
+                DSSpacing.hSm,
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(DSSpacing.md),
+                  padding: EdgeInsets.all(DSSpacing.md),
                   decoration: BoxDecoration(
                     color: DSColors.labelSecondary.withValues(alpha: DSStyles.alphaSoft),
                     borderRadius: DSStyles.cardRadius,
@@ -402,11 +402,11 @@ class _DispatchEligibilityScreenState
           child: Stack(
             children: [
               ListView(
-                padding: const EdgeInsets.all(DSSpacing.base),
+                padding: EdgeInsets.all(DSSpacing.md),
                 children: [
                   // Show error state if API call failed
                   if (_error != null) ...[
-                    const SizedBox(height: 40),
+                    DSSpacing.hXl,
                     Icon(
                       Icons.error_rounded,
                       color: DSColors.warning,
@@ -422,21 +422,21 @@ class _DispatchEligibilityScreenState
                         letterSpacing: 1,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    DSSpacing.hSm,
                     Text(
                       _error!,
                       textAlign: TextAlign.center,
                       style: DSTypography.body(),
                     ),
-                    const SizedBox(height: 20),
+                    DSSpacing.hLg,
                     FilledButton(
                       onPressed: _handleBack,
                       child: const Text('BACK'),
                     ),
                   ] else if (!eligible) ...[
-                    const SizedBox(height: 40),
-                    Icon(Icons.cancel_rounded, color: DSColors.error, size: DSIconSize.heroLarge),
-                    const SizedBox(height: 12),
+                    DSSpacing.hXl,
+                    Icon(Icons.cancel_rounded, color: DSColors.error, size: DSIconSize.xl),
+                    DSSpacing.hMd,
                     Text(
                       'NOT ELIGIBLE',
                       textAlign: TextAlign.center,
@@ -446,13 +446,13 @@ class _DispatchEligibilityScreenState
                         letterSpacing: 1,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    DSSpacing.hSm,
                     Text(
                       reason,
                       textAlign: TextAlign.center,
                       style: DSTypography.body(),
                     ),
-                    const SizedBox(height: 20),
+                    DSSpacing.hLg,
                     FilledButton(
                       onPressed: _handleBack,
                       child: const Text('BACK'),
@@ -460,14 +460,14 @@ class _DispatchEligibilityScreenState
                   ] else if (_showRejectForm) ...[
                     // ── Reject Form ─────────────────────────────────────────
                     _SectionHeader(label: 'REJECT DISPATCH'),
-                    const SizedBox(height: 10),
+                    DSSpacing.hSm,
                     Container(
-                      padding: const EdgeInsets.all(DSSpacing.base),
+                      padding: EdgeInsets.all(DSSpacing.md),
                       decoration: BoxDecoration(
                         color: isDark ? DSColors.cardDark : DSColors.cardLight,
                         borderRadius: DSStyles.cardRadius,
                         border: Border.all(
-                          color: isDark ? DSColors.white.withValues(alpha: 0.12) : DSColors.error.withValues(alpha: 0.1),
+                          color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
                         ),
                         boxShadow: isDark
                             ? null
@@ -487,7 +487,7 @@ class _DispatchEligibilityScreenState
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(DSSpacing.sm),
+                                padding: EdgeInsets.all(DSSpacing.sm),
                                 decoration: BoxDecoration(
                                   color: DSColors.error.withValues(
                                     alpha: DSStyles.alphaSoft,
@@ -497,10 +497,10 @@ class _DispatchEligibilityScreenState
                                 child: const Icon(
                                   Icons.gpp_maybe_outlined,
                                   color: DSColors.error,
-                                  size: 18,
+                                  size: DSIconSize.md,
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              DSSpacing.wSm,
                               Expanded(
                                 child: Text(
                                   maskedCode,
@@ -512,7 +512,7 @@ class _DispatchEligibilityScreenState
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
+                          DSSpacing.hSm,
                           Text(
                             'Select a rejection reason.',
                             style: DSTypography.caption().copyWith(
@@ -520,7 +520,7 @@ class _DispatchEligibilityScreenState
                               color: DSColors.labelSecondary,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          DSSpacing.hMd,
                           DropdownButtonFormField<String>(
                             initialValue: _selectedRejectReason,
                             isExpanded: true,
@@ -576,7 +576,7 @@ class _DispatchEligibilityScreenState
                       ),
                     ),
                     if (_selectedRejectReason == _otherRejectReason) ...[
-                      const SizedBox(height: 16),
+                      DSSpacing.hMd,
                       TextField(
                         controller: _rejectReasonController,
                         maxLength: 100,
@@ -586,7 +586,7 @@ class _DispatchEligibilityScreenState
                           labelText: 'SPECIFY REASON *',
                           hintText: 'STATE YOUR REASON HERE...',
                           prefixIcon: const Padding(
-                            padding: EdgeInsets.only(bottom: 40),
+                            padding: EdgeInsets.only(bottom: DSSpacing.xl),
                             child: Icon(Icons.edit_note_rounded),
                           ),
                           filled: true,
@@ -599,7 +599,7 @@ class _DispatchEligibilityScreenState
                             borderRadius: DSStyles.cardRadius,
                             borderSide: BorderSide(
                               color: isDark
-                                  ? DSColors.white.withValues(alpha: 0.24)
+                                  ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
                                   : DSColors.separatorLight,
                             ),
                           ),
@@ -607,7 +607,7 @@ class _DispatchEligibilityScreenState
                             borderRadius: DSStyles.cardRadius,
                             borderSide: BorderSide(
                               color: isDark
-                                  ? DSColors.white.withValues(alpha: 0.24)
+                                  ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
                                   : DSColors.separatorLight,
                             ),
                           ),
@@ -620,9 +620,9 @@ class _DispatchEligibilityScreenState
                         },
                       ),
                     ],
-                    const SizedBox(height: 16),
+                    DSSpacing.hMd,
                     Container(
-                      padding: const EdgeInsets.all(DSSpacing.md),
+                      padding: EdgeInsets.all(DSSpacing.md),
                       decoration: BoxDecoration(
                         color: DSColors.warning.withValues(
                           alpha: DSStyles.alphaSoft,
@@ -630,7 +630,7 @@ class _DispatchEligibilityScreenState
                         borderRadius: DSStyles.cardRadius,
                         border: Border.all(
                           color: DSColors.warning.withValues(
-                            alpha: DSStyles.alphaDarkShadow,
+                            alpha: DSStyles.alphaMuted,
                           ),
                         ),
                       ),
@@ -639,9 +639,9 @@ class _DispatchEligibilityScreenState
                           const Icon(
                             Icons.shield_outlined,
                             color: DSColors.warning,
-                            size: 16,
+                            size: DSIconSize.sm,
                           ),
-                          const SizedBox(width: 8),
+                          DSSpacing.wSm,
                           Expanded(
                             child: Text(
                               'You will be asked to confirm once more before submitting rejection.',
@@ -656,7 +656,7 @@ class _DispatchEligibilityScreenState
                         ],
                       ),
                     ),
-                    DSSpacing.hBase,
+                    DSSpacing.hMd,
                     Row(
                       children: [
                         Expanded(
@@ -686,7 +686,7 @@ class _DispatchEligibilityScreenState
                                     width: 16,
                                     height: 16,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                      strokeWidth: DSStyles.strokeWidth,
                                       color: DSColors.white,
                                     ),
                                   )
@@ -702,7 +702,7 @@ class _DispatchEligibilityScreenState
                     if (_error != null) ...[
                       DSSpacing.hMd,
                       Container(
-                        padding: const EdgeInsets.all(DSSpacing.md),
+                        padding: EdgeInsets.all(DSSpacing.md),
                         decoration: BoxDecoration(
                           color: DSColors.error.withValues(
                             alpha: DSStyles.alphaSoft,
@@ -710,7 +710,7 @@ class _DispatchEligibilityScreenState
                           borderRadius: DSStyles.cardRadius,
                           border: Border.all(
                             color: DSColors.error.withValues(
-                              alpha: DSStyles.alphaDarkShadow,
+                              alpha: DSStyles.alphaMuted,
                             ),
                           ),
                         ),
@@ -719,9 +719,9 @@ class _DispatchEligibilityScreenState
                             const Icon(
                               Icons.error_outline,
                               color: DSColors.error,
-                              size: 16,
+                              size: DSIconSize.sm,
                             ),
-                            const SizedBox(width: 8),
+                            DSSpacing.wSm,
                             Expanded(
                               child: Text(
                                 _error!,
@@ -739,7 +739,7 @@ class _DispatchEligibilityScreenState
                     if (!widget.skipPinDialog) ...[
                       DSSpacing.hLg,
                       Container(
-                        padding: const EdgeInsets.all(DSSpacing.md),
+                        padding: EdgeInsets.all(DSSpacing.md),
                         decoration: BoxDecoration(
                           color: DSColors.warning.withValues(
                             alpha: DSStyles.alphaSoft,
@@ -747,7 +747,7 @@ class _DispatchEligibilityScreenState
                           borderRadius: DSStyles.cardRadius,
                           border: Border.all(
                             color: DSColors.warning.withValues(
-                              alpha: DSStyles.alphaBorder,
+                              alpha: DSStyles.alphaMuted,
                             ),
                           ),
                         ),
@@ -757,7 +757,7 @@ class _DispatchEligibilityScreenState
                             const Icon(
                               Icons.lock_outline,
                               color: DSColors.warning,
-                              size: 16,
+                              size: DSIconSize.sm,
                             ),
                             DSSpacing.wXs,
                             Expanded(
@@ -789,7 +789,7 @@ class _DispatchEligibilityScreenState
                       ),
                       onPressed: _loading ? null : _acceptDispatch,
                     ),
-                    const SizedBox(height: 10),
+                    DSSpacing.hSm,
                     OutlinedButton.icon(
                       icon: const Icon(Icons.cancel_outlined),
                       label: const Text('REJECT DISPATCH'),
@@ -816,7 +816,7 @@ class _DispatchEligibilityScreenState
                               fontSize: DSTypography.sizeSm,
                               fontWeight: FontWeight.w700,
                               color: DSColors.labelTertiary,
-                              letterSpacing: DSTypography.lsGiantLoose,
+                              letterSpacing: DSTypography.lsExtraLoose,
                             ),
                           ),
                         ],
@@ -867,7 +867,7 @@ class _DispatchEligibilityScreenState
                                   ),
                                 ),
                                 if (totalPages > 1) ...[
-                                  const SizedBox(height: 12),
+                                  DSSpacing.hMd,
                                   PaginationBar(
                                     currentPage: _currentPage,
                                     totalPages: totalPages,
@@ -998,16 +998,16 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
       child: Padding(
-        padding: const EdgeInsets.all(DSSpacing.xl),
+        padding: EdgeInsets.all(DSSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.lock_outline_rounded,
-              size: 36,
+              size: DSIconSize.xl,
               color: DSColors.primary,
             ),
-            const SizedBox(height: 12),
+            DSSpacing.hMd,
             const Text(
               'CONFIRM ACCEPTANCE',
               style: TextStyle(
@@ -1016,17 +1016,17 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                 letterSpacing: DSTypography.lsLoose,
               ),
             ),
-            const SizedBox(height: 6),
+            DSSpacing.hSm,
             Text(
               'ENTER LAST 4 DIGITS OF DISPATCH CODE TO CONFIRM',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: DSTypography.sizeSm,
                 color: DSColors.labelSecondary,
-                letterSpacing: 0.3,
+                letterSpacing: DSTypography.lsLoose,
               ),
             ),
-            const SizedBox(height: 24),
+            DSSpacing.hLg,
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
@@ -1034,7 +1034,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                 (i) => Expanded(
                   child: Container(
                     height: 58,
-                    margin: const EdgeInsets.symmetric(
+                    margin: EdgeInsets.symmetric(
                       horizontal: DSSpacing.xs,
                     ),
                     child: TextFormField(
@@ -1053,7 +1053,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                           borderRadius: DSStyles.cardRadius,
                           borderSide: const BorderSide(
                             color: DSColors.primary,
-                            width: 2,
+                            width: DSStyles.strokeWidth,
                           ),
                         ),
                       ),
@@ -1068,7 +1068,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
               ),
             ),
             if (_error != null) ...[
-              const SizedBox(height: 10),
+              DSSpacing.hSm,
               Text(
                 _error!,
                 style: const TextStyle(
@@ -1078,7 +1078,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                 textAlign: TextAlign.center,
               ),
             ],
-            const SizedBox(height: 20),
+            DSSpacing.hLg,
             Row(
               children: [
                 Expanded(
@@ -1087,7 +1087,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                     child: const Text('CANCEL'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                DSSpacing.wMd,
                 Expanded(
                   child: FilledButton(
                     style: FilledButton.styleFrom(
@@ -1131,12 +1131,12 @@ class _DispatchInfoCard extends StatelessWidget {
       children: [
         // ── Header card ──────────────────────────────────────────────
         Container(
-          padding: const EdgeInsets.all(DSSpacing.base),
+          padding: EdgeInsets.all(DSSpacing.md),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: DSStyles.cardRadius,
             border: Border.all(
-              color: isDark ? DSColors.white.withValues(alpha: 0.1) : DSColors.secondarySurfaceLight,
+              color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.secondarySurfaceLight,
             ),
           ),
           clipBehavior: Clip.antiAlias,
@@ -1209,7 +1209,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DSSpacing.xs),
+      padding: EdgeInsets.symmetric(vertical: DSSpacing.xs),
       child: Row(
         children: [
           Icon(icon, size: DSTypography.sizeSm, color: DSColors.labelTertiary),
@@ -1247,7 +1247,7 @@ class _SectionHeader extends StatelessWidget {
         fontSize: DSTypography.sizeSm,
         fontWeight: FontWeight.w700,
         color: DSColors.labelTertiary,
-        letterSpacing: DSTypography.lsGiantLoose,
+        letterSpacing: DSTypography.lsExtraLoose,
       ),
     );
   }

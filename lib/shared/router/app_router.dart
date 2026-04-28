@@ -12,7 +12,6 @@ import 'package:fsi_courier_app/features/auth/login_screen.dart';
 import 'package:fsi_courier_app/features/auth/reset_password_screen.dart';
 import 'package:fsi_courier_app/splash_screen.dart';
 import 'package:fsi_courier_app/features/dashboard/dashboard_screen.dart';
-import 'package:fsi_courier_app/features/delivery/delivery_detail_screen.dart';
 import 'package:fsi_courier_app/features/delivery/delivery_status_list_screen.dart';
 import 'package:fsi_courier_app/features/delivery/delivery_update_screen.dart';
 import 'package:fsi_courier_app/features/dispatch/dispatch_eligibility_screen.dart';
@@ -368,16 +367,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             extra: state.extra,
           );
         },
-      ),
-      GoRoute(
-        path: '/deliveries/:barcode',
-        pageBuilder: (_, state) => _page(
-          key: state.pageKey,
-          child: DeliveryDetailScreen(
-            barcode: state.pathParameters['barcode']!,
-          ),
-          extra: state.extra,
-        ),
       ),
       GoRoute(
         path: '/deliveries/:barcode/update',

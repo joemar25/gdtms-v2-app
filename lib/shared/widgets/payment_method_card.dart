@@ -49,14 +49,14 @@ class PaymentMethodCard extends StatelessWidget {
         context: context,
         borderColor: isTransparent
             ? DSColors.transparent
-            : DSColors.primary.withValues(alpha: DSStyles.alphaDarkShadow),
+            : DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
         bgColor: isTransparent
             ? DSColors.transparent
             : DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
         icon: Icons.account_balance_rounded,
-        iconColor: isTransparent ? DSColors.white.withValues(alpha: 0.7) : DSColors.primary,
+        iconColor: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.primary,
         label: 'Payout Account',
-        labelColor: isTransparent ? DSColors.white.withValues(alpha: 0.7) : DSColors.primary,
+        labelColor: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.primary,
         badge: _Badge(
           text: 'ACTIVE',
           color: isTransparent ? DSColors.white : DSColors.primary,
@@ -74,14 +74,14 @@ class PaymentMethodCard extends StatelessWidget {
         context: context,
         borderColor: isTransparent
             ? DSColors.transparent
-            : DSColors.warning.withValues(alpha: DSStyles.alphaBorder),
+            : DSColors.warning.withValues(alpha: DSStyles.alphaMuted),
         bgColor: isTransparent
             ? DSColors.transparent
             : DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
         icon: Icons.account_balance_rounded,
-        iconColor: isTransparent ? DSColors.white.withValues(alpha: 0.7) : DSColors.warning,
+        iconColor: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.warning,
         label: 'Payout Account',
-        labelColor: isTransparent ? DSColors.white.withValues(alpha: 0.7) : DSColors.warning,
+        labelColor: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.warning,
         badge: _Badge(
           text: 'INACTIVE',
           color: isTransparent ? DSColors.white : DSColors.warning,
@@ -125,7 +125,7 @@ class PaymentMethodCard extends StatelessWidget {
         Row(
           children: [
             Icon(icon, size: DSIconSize.sm, color: iconColor),
-            const SizedBox(width: 6),
+            DSSpacing.wSm,
             Text(
               label,
               style: DSTypography.label(color: labelColor).copyWith(
@@ -138,7 +138,7 @@ class PaymentMethodCard extends StatelessWidget {
             badge,
           ],
         ),
-        const SizedBox(height: 10),
+        DSSpacing.hSm,
         // Bank name
         Text(
           bankName,
@@ -150,7 +150,7 @@ class PaymentMethodCard extends StatelessWidget {
         ),
         // Account details
         if (accountName != null || accountNumber != null) ...[
-          const SizedBox(height: 4),
+          DSSpacing.hXs,
           Row(
             children: [
               if (accountName != null)
@@ -159,7 +159,7 @@ class PaymentMethodCard extends StatelessWidget {
                     accountName,
                     style: DSTypography.caption(
                       color: isTransparent
-                          ? DSColors.white.withValues(alpha: DSStyles.alphaGlass)
+                          ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
                           : (Theme.of(context).brightness == Brightness.dark
                                 ? DSColors.labelSecondaryDark
                                 : DSColors.labelSecondary),
@@ -168,13 +168,13 @@ class PaymentMethodCard extends StatelessWidget {
                   ),
                 ),
               if (accountNumber != null) ...[
-                if (accountName != null) const SizedBox(width: 8),
+                if (accountName != null) DSSpacing.wSm,
                 Text(
                   _maskAccount(accountNumber),
                   style:
                       DSTypography.caption(
                         color: isTransparent
-                            ? DSColors.white.withValues(alpha: 0.6)
+                            ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
                             : (Theme.of(context).brightness == Brightness.dark
                                   ? DSColors.labelSecondaryDark
                                   : DSColors.labelSecondary),
@@ -189,7 +189,7 @@ class PaymentMethodCard extends StatelessWidget {
         ],
         // Footer message
         if (footerMessage != null) ...[
-          const SizedBox(height: 10),
+          DSSpacing.hSm,
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -197,16 +197,16 @@ class PaymentMethodCard extends StatelessWidget {
                 footerIcon ?? Icons.info_outline_rounded,
                 size: DSIconSize.xs,
                 color: isTransparent
-                    ? DSColors.white.withValues(alpha: DSStyles.alphaGlass)
+                    ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
                     : DSColors.warningText,
               ),
-              const SizedBox(width: 6),
+              DSSpacing.wSm,
               Expanded(
                 child: Text(
                   footerMessage,
                   style: DSTypography.caption(
                     color: isTransparent
-                        ? DSColors.white.withValues(alpha: DSStyles.alphaGlass)
+                        ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
                         : DSColors.warning,
                   ).copyWith(fontSize: DSTypography.sizeSm),
                 ),
@@ -225,8 +225,8 @@ class PaymentMethodCard extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         border: Border.all(color: borderColor),
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
         vertical: 14,
       ),
       child: content,
@@ -244,9 +244,9 @@ class PaymentMethodCard extends StatelessWidget {
         Icon(
           Icons.account_balance_outlined,
           size: DSIconSize.md,
-          color: isTransparent ? DSColors.white.withValues(alpha: 0.7) : DSColors.warning,
+          color: isTransparent ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.warning,
         ),
-        const SizedBox(width: 10),
+        DSSpacing.wSm,
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,13 +261,13 @@ class PaymentMethodCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
               ),
-              const SizedBox(height: 4),
+              DSSpacing.hXs,
               Text(
                 message ??
                     'A default GCash account will be automatically set up when you submit a payout request.',
                 style: DSTypography.caption(
                   color: isTransparent
-                      ? DSColors.white.withValues(alpha: DSStyles.alphaGlass)
+                      ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
                       : DSColors.warning,
                 ).copyWith(fontSize: DSTypography.sizeSm),
               ),
@@ -284,11 +284,11 @@ class PaymentMethodCard extends StatelessWidget {
         color: DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: DSColors.warning.withValues(alpha: DSStyles.alphaBorder),
+          color: DSColors.warning.withValues(alpha: DSStyles.alphaMuted),
         ),
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
         vertical: 14,
       ),
       child: content,
@@ -297,9 +297,9 @@ class PaymentMethodCard extends StatelessWidget {
 
   Widget _buildSkeleton(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final base = isDark ? DSColors.white.withValues(alpha: 0.12) : DSColors.black.withValues(alpha: 0.12);
+    final base = isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.black.withValues(alpha: DSStyles.alphaSubtle);
     return Container(
-      height: 78,
+      height: DSIconSize.xs,
       decoration: BoxDecoration(color: base, borderRadius: DSStyles.cardRadius),
     );
   }
@@ -325,18 +325,18 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.sm,
         vertical: 3,
       ),
       decoration: BoxDecoration(
         color: isTransparent
-            ? DSColors.white.withValues(alpha: DSStyles.alphaActiveAccent)
-            : color.withValues(alpha: DSStyles.alphaActiveAccent),
+            ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+            : color.withValues(alpha: DSStyles.alphaSubtle),
         borderRadius: DSStyles.cardRadius,
         border: isTransparent
             ? Border.all(
-                color: DSColors.white.withValues(alpha: DSStyles.alphaDarkShadow),
+                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
               )
             : null,
       ),

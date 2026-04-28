@@ -1,6 +1,12 @@
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─── Theme-aware field decoration ───────────────────────────────────────────
@@ -22,9 +28,9 @@ InputDecoration deliveryFieldDecoration(
     errorText: errorText,
     filled: true,
     fillColor: fill,
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: DSSpacing.base,
-      vertical: DSSpacing.base,
+    contentPadding: EdgeInsets.symmetric(
+      horizontal: DSSpacing.md,
+      vertical: DSSpacing.md,
     ),
     labelStyle: DSTypography.body().copyWith(
       color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
@@ -50,11 +56,11 @@ InputDecoration deliveryFieldDecoration(
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: DSStyles.cardRadius,
-      borderSide: const BorderSide(color: DSColors.primary, width: 1.5),
+      borderSide: const BorderSide(color: DSColors.primary, width: DSStyles.borderWidth * 1.5),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: DSStyles.cardRadius,
-      borderSide: const BorderSide(color: DSColors.error, width: 1.0),
+      borderSide: const BorderSide(color: DSColors.error, width: DSStyles.borderWidth),
     ),
   );
 }
@@ -70,14 +76,14 @@ class DeliverySectionHeader extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 3,
-          height: 14,
+          width: DSSpacing.xs,
+          height: DSIconSize.sm,
           decoration: BoxDecoration(
             color: DSColors.primary,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(DSStyles.radiusSM),
           ),
         ),
-        const SizedBox(width: 8),
+        DSSpacing.wSm,
         Expanded(
           child: Text(
             label.toUpperCase(),
@@ -86,7 +92,7 @@ class DeliverySectionHeader extends StatelessWidget {
             style: DSTypography.label().copyWith(
               fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w900,
-              letterSpacing: DSTypography.lsGiantLoose,
+              letterSpacing: DSTypography.lsExtraLoose,
               color: isDark
                   ? DSColors.labelTertiaryDark
                   : DSColors.labelSecondary,
@@ -121,20 +127,20 @@ class DeliveryPhotoSourceButton extends StatelessWidget {
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           vertical: 14,
           horizontal: DSSpacing.md,
         ),
         decoration: BoxDecoration(
           color: enabled
-              ? color.withValues(alpha: 0.1)
+              ? color.withValues(alpha: DSStyles.alphaSubtle)
               : (isDark
-                    ? DSColors.white.withValues(alpha: 0.05)
+                    ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
                     : DSColors.secondarySurfaceLight),
           borderRadius: DSStyles.cardRadius,
           border: Border.all(
             color: enabled
-                ? color.withValues(alpha: 0.2)
+                ? color.withValues(alpha: DSStyles.alphaMuted)
                 : (isDark ? DSColors.separatorDark : DSColors.separatorLight),
           ),
         ),
@@ -146,9 +152,9 @@ class DeliveryPhotoSourceButton extends StatelessWidget {
               color: enabled
                   ? color
                   : (isDark ? DSColors.white : DSColors.labelTertiary),
-              size: 24,
+              size: DSIconSize.lg,
             ),
-            const SizedBox(height: 6),
+            DSSpacing.hSm,
             Text(
               label,
               style: DSTypography.label().copyWith(
@@ -167,4 +173,214 @@ class DeliveryPhotoSourceButton extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── Shared account details sheet ───────────────────────────────────────────
+/// Shows the "Account Details" bottom sheet for [delivery].
+/// Used by DeliveryUpdateScreen (info button) and DeliveryCard (hold action).
+void showDeliveryAccountDetails(
+  BuildContext context,
+  Map<String, dynamic> delivery,
+  String barcode,
+) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+
+  final name = delivery['name']?.toString() ?? '';
+  final address =
+      delivery['address']?.toString() ??
+      delivery['delivery_address']?.toString() ??
+      '';
+  final contact = delivery['contact']?.toString() ?? '';
+  final accountNumber = delivery['account_number']?.toString() ?? '';
+  final authRepNumber = delivery['auth_rep_number']?.toString() ?? '';
+  final product = (delivery['product']?.toString() ?? '').toDisplayStatus();
+  final specialInstruction = delivery['special_instruction']?.toString() ?? '';
+  final transmittalDate = delivery['transmittal_date']?.toString() ?? '';
+  final tat = delivery['tat']?.toString() ?? '';
+
+  final slashIdx = barcode.lastIndexOf('/');
+  final pieceCount = (slashIdx >= 0 && slashIdx < barcode.length - 1)
+      ? int.tryParse(barcode.substring(slashIdx + 1).trim()) ?? 0
+      : 0;
+
+  void copyToClipboard(String text, String label) {
+    if (text.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.mediumImpact();
+    if (context.mounted) {
+      showSuccessNotification(context, 'Copied $label to clipboard');
+    }
+  }
+
+  Future<void> launchMaps(String addr) async {
+    if (addr.trim().isEmpty) return;
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(addr.trim())}';
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> onPhoneTap(String phone, String targetName) async {
+    final template =
+        'Hi $targetName! '
+        "I'm your FSI courier "
+        '${barcode.isNotEmpty ? 'with tracking number $barcode' : 'with your delivery'}. '
+        'Please be ready or contact me for re-scheduling. Thank you!';
+    await showContactAppSheet(context, phone, messageTemplate: template);
+  }
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: DSColors.transparent,
+    builder: (ctx) {
+      return Container(
+        decoration: BoxDecoration(
+          color: isDark ? DSColors.cardDark : DSColors.cardLight,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+              blurRadius: DSStyles.radiusXL,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.sm, DSSpacing.lg, DSSpacing.xl),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: DSIconSize.heroSm,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? DSColors.separatorDark
+                        : DSColors.separatorLight,
+                    borderRadius: DSStyles.cardRadius,
+                  ),
+                ),
+              ),
+              DSSpacing.hMd,
+              const DSSectionHeader(
+                title: 'Account Details',
+                padding: EdgeInsets.zero,
+              ),
+
+              DSCard(
+                margin: EdgeInsets.only(top: DSSpacing.sm),
+                child: Column(
+                  children: [
+                    if (name.isNotEmpty)
+                      DSInfoTile(
+                        label: 'Recipient Name',
+                        value: name,
+                        onLongPress: () => copyToClipboard(name, 'Name'),
+                      ),
+                    if (address.isNotEmpty)
+                      DSInfoTile(
+                        label: 'Delivery Address',
+                        value: address,
+                        onTap: () => launchMaps(address),
+                        onLongPress: () => copyToClipboard(address, 'Address'),
+                      ),
+                    if (contact.isNotEmpty)
+                      ...contact.split('/').asMap().entries.map((entry) {
+                        final idx = entry.key;
+                        final cleanContact = entry.value.trim();
+                        if (cleanContact.isEmpty) return const SizedBox.shrink();
+                        final isLast = idx == contact.split('/').length - 1;
+                        return DSInfoTile(
+                          label: 'Contact Number',
+                          value: cleanContact,
+                          onTap: () => onPhoneTap(cleanContact, name),
+                          onLongPress: () =>
+                              copyToClipboard(cleanContact, 'Contact number'),
+                          showDivider: !isLast,
+                        );
+                      }),
+                  ],
+                ),
+              ),
+              DSSpacing.hMd,
+
+              if (accountNumber.isNotEmpty ||
+                  authRepNumber.isNotEmpty ||
+                  pieceCount > 0)
+                DSCard(
+                  child: Column(
+                    children: [
+                      if (accountNumber.isNotEmpty)
+                        DSInfoTile(
+                          label: 'Account Number',
+                          value: accountNumber,
+                          onLongPress: () =>
+                              copyToClipboard(accountNumber, 'Account number'),
+                        ),
+                      if (authRepNumber.isNotEmpty)
+                        DSInfoTile(
+                          label: 'Auth Rep Number',
+                          value: authRepNumber,
+                          onLongPress: () =>
+                              copyToClipboard(authRepNumber, 'Auth rep number'),
+                        ),
+                      if (pieceCount > 0)
+                        DSInfoTile(
+                          label: 'Bundle Size',
+                          value: '$pieceCount piece${pieceCount > 1 ? 's' : ''}',
+                          showDivider: false,
+                        ),
+                    ],
+                  ),
+                ),
+
+              if (product.isNotEmpty ||
+                  specialInstruction.isNotEmpty ||
+                  transmittalDate.isNotEmpty ||
+                  tat.isNotEmpty) ...[
+                DSSpacing.hMd,
+                const DSSectionHeader(
+                  title: 'Shipment Details',
+                  padding: EdgeInsets.zero,
+                ),
+                DSCard(
+                  margin: EdgeInsets.only(top: DSSpacing.sm),
+                  child: Column(
+                    children: [
+                      if (product.isNotEmpty)
+                        DSInfoTile(label: 'Product', value: product),
+                      if (specialInstruction.isNotEmpty)
+                        DSInfoTile(
+                          label: 'Instructions',
+                          value: specialInstruction,
+                          onLongPress: () => copyToClipboard(
+                            specialInstruction,
+                            'Instructions',
+                          ),
+                        ),
+                      if (transmittalDate.isNotEmpty)
+                        DSInfoTile(
+                          label: 'Transmittal Date',
+                          value: formatDate(transmittalDate),
+                        ),
+                      if (tat.isNotEmpty)
+                        DSInfoTile(
+                          label: 'TAT',
+                          value: formatDate(tat),
+                          showDivider: false,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+              DSSpacing.hLg,
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }

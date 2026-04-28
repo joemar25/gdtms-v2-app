@@ -29,7 +29,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
     final hasFix = latitude != null && longitude != null;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.md,
         vertical: DSSpacing.md,
       ),
@@ -38,9 +38,9 @@ class DeliveryGeoLocationField extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: hasFix
-              ? DSColors.success.withValues(alpha: DSStyles.alphaBorder)
+              ? DSColors.success.withValues(alpha: DSStyles.alphaMuted)
               : isLoading
-              ? DSColors.warning.withValues(alpha: DSStyles.alphaBorder)
+              ? DSColors.warning.withValues(alpha: DSStyles.alphaMuted)
               : borderColor,
         ),
       ),
@@ -52,10 +52,10 @@ class DeliveryGeoLocationField extends StatelessWidget {
               // Icon area: spinner while loading, status icon otherwise
               if (isLoading)
                 const SizedBox(
-                  width: 18,
-                  height: 18,
+                  width: DSIconSize.lg,
+                  height: DSIconSize.lg,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2,
+                    strokeWidth: DSStyles.strokeWidth,
                     valueColor: const AlwaysStoppedAnimation(DSColors.pending),
                   ),
                 )
@@ -64,7 +64,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
                   hasFix
                       ? Icons.my_location_rounded
                       : Icons.location_off_rounded,
-                  size: 18,
+                  size: DSIconSize.md,
                   color: hasFix ? DSColors.success : DSColors.labelSecondary,
                 ),
               DSSpacing.wMd,
@@ -92,7 +92,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
                               color: DSColors.success,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          DSSpacing.hXs,
                           Text(
                             'Lat: ${latitude!.toStringAsFixed(6)}  |  Lng: ${longitude!.toStringAsFixed(6)}',
                             style: DSTypography.body().copyWith(
@@ -130,10 +130,10 @@ class DeliveryGeoLocationField extends StatelessWidget {
                 GestureDetector(
                   onTap: onCapture,
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                    padding: EdgeInsets.only(left: DSSpacing.sm),
                     child: Icon(
                       Icons.refresh_rounded,
-                      size: 18,
+                      size: DSIconSize.md,
                       color: DSColors.labelSecondary,
                     ),
                   ),
@@ -146,7 +146,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                icon: const Icon(Icons.gps_fixed_rounded, size: 15),
+                icon: const Icon(Icons.gps_fixed_rounded, size: DSIconSize.sm),
                 label: Text(
                   'GET MY LOCATION',
                   style: DSTypography.button().copyWith(
@@ -159,7 +159,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
                   foregroundColor: DSColors.error,
                   side: BorderSide(
                     color: DSColors.error.withValues(
-                      alpha: DSStyles.alphaBorder,
+                      alpha: DSStyles.alphaMuted,
                     ),
                   ),
                   minimumSize: const Size.fromHeight(40),

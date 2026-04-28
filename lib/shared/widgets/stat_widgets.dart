@@ -80,26 +80,26 @@ class _StatCardState extends State<StatCard>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
     final effectiveColor = widget.subdued
-        ? widget.color.withValues(alpha: 0.6)
+        ? widget.color.withValues(alpha: DSStyles.alphaDisabled)
         : widget.color;
     final isDisabled = widget.onTap == null;
 
     final content = Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: 14,
-        vertical: DSSpacing.base,
+        vertical: DSSpacing.md,
       ),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: widget.color.withValues(alpha: isDark ? 0.3 : 0.15),
-          width: 1.5,
+          width: DSStyles.borderWidth * 1.5,
         ),
         boxShadow: [
           BoxShadow(
             color: widget.color.withValues(alpha: isDark ? 0.2 : 0.08),
-            blurRadius: 16,
+            blurRadius: DSStyles.radiusLG,
             offset: const Offset(0, 8),
           ),
         ],
@@ -110,7 +110,7 @@ class _StatCardState extends State<StatCard>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(DSSpacing.sm),
+                padding: EdgeInsets.all(DSSpacing.sm),
                 decoration: BoxDecoration(
                   color: widget.color.withValues(alpha: DSStyles.alphaSoft),
                   shape: BoxShape.circle,
@@ -123,14 +123,14 @@ class _StatCardState extends State<StatCard>
               const Spacer(),
             ],
           ),
-          const SizedBox(height: 10),
+          DSSpacing.hSm,
           Text(
             widget.count,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: DSTypography.display(color: effectiveColor),
           ),
-          const SizedBox(height: 2),
+          DSSpacing.hXs,
           Text(
             widget.label,
             maxLines: 1,
@@ -142,7 +142,7 @@ class _StatCardState extends State<StatCard>
             ).copyWith(letterSpacing: 1.1),
           ),
           if (widget.details != null) ...[
-            const SizedBox(height: 8),
+            DSSpacing.hSm,
             Text(
               widget.details!,
               maxLines: 2,
@@ -151,7 +151,7 @@ class _StatCardState extends State<StatCard>
                 color: isDark
                     ? DSColors.labelSecondaryDark
                     : DSColors.labelSecondary,
-              ).copyWith(height: 1.3),
+              ).copyWith(height: DSStyles.heightNormal),
             ),
           ],
         ],
@@ -159,15 +159,15 @@ class _StatCardState extends State<StatCard>
     );
 
     if (isDisabled) {
-      return Opacity(opacity: 0.5, child: content);
+      return Opacity(opacity: DSAnimations.opacityMuted, child: content);
     }
 
     final animatedContent = content
         .animate(onPlay: (c) => c.repeat(reverse: true))
         .shimmer(
-          duration: 3.seconds,
+          duration: DSAnimations.dHeroX4,
           color: widget.color.withValues(alpha: DSStyles.alphaSoft),
-          delay: 2.seconds,
+          delay: DSAnimations.dHeroX3,
         );
 
     final card = GestureDetector(
@@ -209,7 +209,7 @@ class ScanButton extends StatelessWidget {
       onTap: onTap,
       child:
           Container(
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   vertical: DSSpacing.lg,
                   horizontal: DSSpacing.md,
                 ),
@@ -218,19 +218,19 @@ class ScanButton extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      color.withValues(alpha: DSStyles.alphaActiveAccent),
+                      color.withValues(alpha: DSStyles.alphaSubtle),
                       color.withValues(alpha: DSStyles.alphaSoft),
                     ],
                   ),
                   borderRadius: DSStyles.cardRadius,
                   border: Border.all(
                     color: color.withValues(alpha: isDark ? 0.4 : 0.25),
-                    width: 2,
+                    width: DSStyles.strokeWidth,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: color.withValues(alpha: DSStyles.alphaSoft),
-                      blurRadius: 10,
+                      blurRadius: DSStyles.radiusMD,
                       offset: const Offset(0, 4),
                     ),
                   ],
@@ -238,16 +238,16 @@ class ScanButton extends StatelessWidget {
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(DSSpacing.md),
+                      padding: EdgeInsets.all(DSSpacing.md),
                       decoration: BoxDecoration(
                         color: color.withValues(
-                          alpha: DSStyles.alphaActiveAccent,
+                          alpha: DSStyles.alphaSubtle,
                         ),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon, color: color, size: DSIconSize.xxl),
+                      child: Icon(icon, color: color, size: DSIconSize.xl),
                     ),
-                    const SizedBox(height: 10),
+                    DSSpacing.hSm,
                     Text(
                       label,
                       maxLines: 1,
@@ -258,7 +258,7 @@ class ScanButton extends StatelessWidget {
                       ),
                     ),
                     if (details != null) ...[
-                      const SizedBox(height: 8),
+                      DSSpacing.hSm,
                       Text(
                         details!,
                         maxLines: 2,
@@ -267,7 +267,7 @@ class ScanButton extends StatelessWidget {
                           color: isDark
                               ? DSColors.labelSecondaryDark
                               : DSColors.labelSecondary,
-                        ).copyWith(height: 1.2),
+                        ).copyWith(height: DSStyles.heightTight),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -276,7 +276,7 @@ class ScanButton extends StatelessWidget {
               )
               .animate(onPlay: (c) => c.repeat())
               .shimmer(
-                duration: 4.seconds,
+                duration: DSAnimations.dHeroX4,
                 color: color.withValues(alpha: DSStyles.alphaSoft),
               ),
     );

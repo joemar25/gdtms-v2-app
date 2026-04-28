@@ -90,7 +90,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       return;
     }
     if (n.deliveryReferences.length == 1) {
-      context.push('/deliveries/${n.deliveryReferences.first}');
+      context.push('/deliveries/${n.deliveryReferences.first}/update');
     }
   }
 
@@ -111,7 +111,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               'Notifications',
               style: DSTypography.heading().copyWith(
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.4,
+                letterSpacing: DSTypography.lsSlightlyTight,
               ),
             ),
             if (state.unreadCount > 0) ...[
@@ -129,7 +129,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               },
               style: TextButton.styleFrom(
                 foregroundColor: DSColors.primary,
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   horizontal: DSSpacing.md,
                   vertical: DSSpacing.sm,
                 ),
@@ -160,7 +160,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       content = Center(
         child: CircularProgressIndicator(
           color: DSColors.primary,
-          strokeWidth: 2.5,
+          strokeWidth: DSStyles.strokeWidth,
         ),
       );
     } else if (state.entries.isEmpty) {
@@ -177,7 +177,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         color: DSColors.primary,
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(DSSpacing.base, 4, DSSpacing.base, 32),
+          padding: EdgeInsets.fromLTRB(DSSpacing.md, 4, DSSpacing.md, 32),
           itemCount: entries.length,
           itemBuilder: (context, i) {
             final entry = entries[i];
@@ -215,7 +215,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       return Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(DSSpacing.base, DSSpacing.md, DSSpacing.base, 0),
+            padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, 0),
             child: const OfflineBanner(isMinimal: true, margin: EdgeInsets.zero),
           ),
           Expanded(child: content),
@@ -279,14 +279,18 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 8, left: 4),
+      padding: EdgeInsets.only(
+        top: DSSpacing.md,
+        bottom: DSSpacing.sm,
+        left: DSSpacing.xs,
+      ),
       child: Text(
         label.toUpperCase(),
         style: DSTypography.label().copyWith(
           fontSize: DSTypography.sizeSm,
           fontWeight: FontWeight.w700,
           color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
-          letterSpacing: DSTypography.lsMegaLoose,
+          letterSpacing: DSTypography.lsExtraLoose,
         ),
       ),
     );
@@ -317,16 +321,16 @@ class _NotificationCard extends StatelessWidget {
     final (iconData, accentColor) = _resolve(notification.type);
 
     final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final unreadBg = accentColor.withValues(alpha: 0.06);
+    final unreadBg = accentColor.withValues(alpha: DSStyles.alphaSoft);
     final bg = isUnread ? unreadBg : cardColor;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: DSSpacing.sm),
       child: Material(
         color: bg,
         borderRadius: DSStyles.cardRadius,
         elevation: isDark ? 0 : 1,
-        shadowColor: DSColors.black.withValues(alpha: 0.06),
+        shadowColor: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
         child: InkWell(
           borderRadius: DSStyles.cardRadius,
           onTap: () {
@@ -341,30 +345,30 @@ class _NotificationCard extends StatelessWidget {
                 children: [
                   // Left accent bar — rendered as a plain Container, no Border.
                   Container(
-                    width: 3,
+                    width: DSSpacing.xs,
                     color: isUnread ? accentColor : DSColors.transparent,
                   ),
 
                   // Card body
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+                      padding: EdgeInsets.all(DSSpacing.sm),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Icon container
                           Container(
-                            width: 42,
-                            height: 42,
+                            width: DSIconSize.heroSm,
+                            height: DSIconSize.heroSm,
                             decoration: BoxDecoration(
                               color: accentColor.withValues(
-                                alpha: DSStyles.alphaActiveAccent,
+                                alpha: DSStyles.alphaSubtle,
                               ),
                               borderRadius: DSStyles.pillRadius,
                             ),
                             child: Icon(iconData, size: DSIconSize.lg, color: accentColor),
                           ),
-                          const SizedBox(width: 12),
+                          DSSpacing.wMd,
 
                           // Text content
                           Expanded(
@@ -386,17 +390,17 @@ class _NotificationCard extends StatelessWidget {
                                           color: isDark
                                               ? DSColors.labelPrimaryDark
                                               : DSColors.labelPrimary,
-                                          height: 1.4,
+                                          height: DSStyles.heightNormal,
                                         ),
                                       ),
                                     ),
                                     if (isUnread) ...[
-                                      const SizedBox(width: 8),
+                                      DSSpacing.wSm,
                                       Padding(
-                                        padding: const EdgeInsets.only(top: 5),
+                                        padding: EdgeInsets.only(top: DSSpacing.xs),
                                         child: Container(
-                                          width: 7,
-                                          height: 7,
+                                          width: DSIconSize.xs,
+                                          height: DSIconSize.xs,
                                           decoration: BoxDecoration(
                                             color: accentColor,
                                             shape: BoxShape.circle,
@@ -409,9 +413,9 @@ class _NotificationCard extends StatelessWidget {
 
                                 // Rejection reason pill
                                 if (notification.rejectionReason != null) ...[
-                                  const SizedBox(height: 5),
+                                  DSSpacing.hSm,
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
+                                    padding: EdgeInsets.symmetric(
                                       horizontal: DSSpacing.sm,
                                       vertical: DSSpacing.xs,
                                     ),
@@ -422,7 +426,7 @@ class _NotificationCard extends StatelessWidget {
                                       borderRadius: DSStyles.pillRadius,
                                       border: Border.all(
                                         color: DSColors.error.withValues(
-                                          alpha: 0.15,
+                                          alpha: DSStyles.alphaSubtle,
                                         ),
                                       ),
                                     ),
@@ -434,13 +438,13 @@ class _NotificationCard extends StatelessWidget {
                                         fontSize: DSTypography.sizeSm,
                                         color: DSColors.error,
                                         fontWeight: FontWeight.w500,
-                                        height: 1.3,
+                                        height: DSStyles.heightNormal,
                                       ),
                                     ),
                                   ),
                                 ],
 
-                                const SizedBox(height: 6),
+                                DSSpacing.hSm,
 
                                 // Meta row
                                 Row(
@@ -449,13 +453,13 @@ class _NotificationCard extends StatelessWidget {
                                             null &&
                                         notification.dispatchCode == null) ...[
                                       Container(
-                                        padding: const EdgeInsets.symmetric(
+                                        padding: EdgeInsets.symmetric(
                                           horizontal: DSSpacing.sm,
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
                                           color: accentColor.withValues(
-                                            alpha: DSStyles.alphaActiveAccent,
+                                            alpha: DSStyles.alphaSubtle,
                                           ),
                                           borderRadius: BorderRadius.circular(
                                             4,
@@ -470,11 +474,11 @@ class _NotificationCard extends StatelessWidget {
                                             fontWeight: FontWeight.w700,
                                             color: accentColor,
                                             letterSpacing:
-                                                DSTypography.lsSlightlyLoose,
+                                                DSTypography.lsLoose,
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
+                                      DSSpacing.wSm,
                                     ],
                                     Expanded(
                                       child: Text(
@@ -492,7 +496,7 @@ class _NotificationCard extends StatelessWidget {
                                       ),
                                     ),
                                     if (_isNavigable) ...[
-                                      const SizedBox(width: 4),
+                                      DSSpacing.wXs,
                                       Icon(
                                         Icons.chevron_right_rounded,
                                         size: DSIconSize.sm,
@@ -540,7 +544,7 @@ class _UnreadPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
       decoration: BoxDecoration(
         color: DSColors.primary,
         borderRadius: DSStyles.circularRadius,
@@ -551,7 +555,7 @@ class _UnreadPill extends StatelessWidget {
           fontSize: DSTypography.sizeSm,
           fontWeight: FontWeight.w700,
           color: DSColors.white,
-          height: 1.3,
+          height: DSStyles.heightNormal,
         ),
       ),
     );
@@ -581,8 +585,8 @@ class _EmptyState extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                          width: 76,
-                          height: 76,
+                          width: DSIconSize.xs,
+                          height: DSIconSize.xs,
                           decoration: BoxDecoration(
                             color: isDark
                                 ? DSColors.secondarySurfaceDark
@@ -591,14 +595,14 @@ class _EmptyState extends StatelessWidget {
                           ),
                             child: Icon(
                               Icons.notifications_none_rounded,
-                              size: DSIconSize.xxl,
+                              size: DSIconSize.xl,
                               color: isDark
                                   ? DSColors.labelTertiaryDark
                                   : DSColors.labelTertiary,
                             ),
                         )
                         .dsHeroEntry(),
-                    const SizedBox(height: 16),
+                    DSSpacing.hMd,
                     Text(
                       'All caught up',
                       style: DSTypography.heading().copyWith(
@@ -610,7 +614,7 @@ class _EmptyState extends StatelessWidget {
                         letterSpacing: -0.3,
                       ),
                     ).dsFadeEntry(delay: const Duration(milliseconds: 150), duration: const Duration(milliseconds: 350)),
-                    const SizedBox(height: 6),
+                    DSSpacing.hSm,
                     Text(
                       'No notifications yet. Pull to refresh.',
                       style: DSTypography.body().copyWith(
@@ -641,14 +645,14 @@ class _LoadMoreButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DSSpacing.lg),
+      padding: EdgeInsets.symmetric(vertical: DSSpacing.lg),
       child: Center(
         child: loading
             ? const SizedBox(
-                width: 22,
+                width: DSStyles.strokeWidth,
                 height: 22,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2,
+                  strokeWidth: DSStyles.strokeWidth,
                   color: DSColors.primary,
                 ),
               )
@@ -657,7 +661,7 @@ class _LoadMoreButton extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: DSColors.primary,
                   side: const BorderSide(color: DSColors.primary),
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: DSSpacing.lg,
                     vertical: DSSpacing.md,
                   ),

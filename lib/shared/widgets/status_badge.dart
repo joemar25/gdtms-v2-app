@@ -34,7 +34,7 @@ class StatusBadge extends StatelessWidget {
         color: color,
       ).copyWith(fontWeight: FontWeight.w600),
       side: BorderSide(
-        color: color.withValues(alpha: DSStyles.alphaDarkShadow),
+        color: color.withValues(alpha: DSStyles.alphaMuted),
       ),
     );
   }

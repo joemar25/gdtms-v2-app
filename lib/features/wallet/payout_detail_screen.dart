@@ -134,12 +134,12 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                 children: [
                   Icon(
                     Icons.search_off_rounded,
-                    size: DSIconSize.heroLarge,
+                    size: DSIconSize.xl,
                     color: Theme.of(context).brightness == Brightness.dark
                         ? DSColors.labelTertiaryDark
                         : DSColors.labelTertiary,
                   ),
-                  const SizedBox(height: 12),
+                  DSSpacing.hMd,
                   Text(
                     _notFound!,
                     style: DSTypography.body(
@@ -154,7 +154,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, DSSpacing.xl),
                 children: [
                   // ── Amount hero ──────────────────────────────────────────
                   _PayoutHeroFlipCard(
@@ -166,7 +166,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                     breakdown: breakdown,
                   ).dsHeroEntry(),
 
-                  const SizedBox(height: 12),
+                  DSSpacing.hMd,
 
                   // ── Status History ───────────────────────────────────────
                   _SectionCard(
@@ -190,7 +190,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                     children: const [],
                   ).dsCardEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
 
-                  const SizedBox(height: 12),
+                  DSSpacing.hMd,
 
                   // ── Daily breakdown ──────────────────────────────────────
                   ..._buildDateStripSection(),
@@ -324,7 +324,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
           ),
         ],
       ),
-      const SizedBox(height: 12),
+      DSSpacing.hMd,
     ];
   }
 
@@ -352,13 +352,13 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
               // Drag handle
               Center(
                 child: Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 4),
-                  width: 40,
+                  margin: EdgeInsets.only(top: DSSpacing.md, bottom: DSSpacing.xs),
+                  width: DSIconSize.heroSm,
                   height: 4,
                   decoration: BoxDecoration(
                     color: isDark
                         ? DSColors.white.withValues(
-                            alpha: DSStyles.alphaDarkShadow,
+                            alpha: DSStyles.alphaMuted,
                           )
                         : DSColors.labelTertiary,
                     borderRadius: DSStyles.pillRadius,
@@ -366,7 +366,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.md, DSSpacing.lg, 0),
                 child: Text(
                   'Transaction History',
                   style: DSTypography.heading().copyWith(
@@ -374,11 +374,11 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              DSSpacing.hMd,
               Expanded(
                 child: ListView.builder(
                   controller: scrollCtrl,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  padding: EdgeInsets.fromLTRB(DSSpacing.lg, 0, DSSpacing.lg, DSSpacing.xl),
                   itemCount: history.length,
                   itemBuilder: (_, i) {
                     final item = history[i];
@@ -397,13 +397,13 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                         children: [
                           // Timeline spine
                           SizedBox(
-                            width: 28,
+                            width: DSStyles.strokeWidth,
                             child: Column(
                               children: [
                                 Container(
-                                  width: 12,
-                                  height: 12,
-                                  margin: const EdgeInsets.only(top: 3),
+                                  width: DSIconSize.xs,
+                                  height: DSIconSize.xs,
+                                  margin: EdgeInsets.only(top: DSSpacing.xs),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: DSColors.primary,
@@ -412,19 +412,19 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                 if (!isLast)
                                   Expanded(
                                     child: Container(
-                                      width: 2,
-                                      margin: const EdgeInsets.symmetric(
+                                      width: DSStyles.strokeWidth,
+                                      margin: EdgeInsets.symmetric(
                                         vertical: DSSpacing.xs,
                                       ),
                                       color: DSColors.primary.withValues(
-                                        alpha: 0.25,
+                                        alpha: DSStyles.alphaMuted,
                                       ),
                                     ),
                                   ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          DSSpacing.wSm,
                           // Content
                           Expanded(
                             child: Padding(
@@ -444,7 +444,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                           fontWeight: FontWeight.w600,
                                         ),
                                   ),
-                                  const SizedBox(height: 2),
+                                  DSSpacing.hXs,
                                   Text(
                                     timestamp,
                                     style: TextStyle(
@@ -455,7 +455,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                     ),
                                   ),
                                   if (by != null && by.isNotEmpty) ...[
-                                    const SizedBox(height: 2),
+                                    DSSpacing.hXs,
                                     Text(
                                       'By: $by',
                                       style: TextStyle(
@@ -466,7 +466,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                   ],
                                   if (remarks != null &&
                                       remarks.isNotEmpty) ...[
-                                    const SizedBox(height: 2),
+                                    DSSpacing.hXs,
                                     Text(
                                       remarks,
                                       style: TextStyle(
@@ -512,18 +512,18 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final trailingWidget = trailing;
     return Card(
-      elevation: 0,
+      elevation: DSStyles.elevationNone,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: DSStyles.cardRadius,
         side: BorderSide(
           color: Theme.of(
             context,
-          ).dividerColor.withValues(alpha: DSStyles.alphaBorder),
+          ).dividerColor.withValues(alpha: DSStyles.alphaMuted),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+        padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, DSSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -541,10 +541,10 @@ class _SectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                ?trailingWidget,
+                if (trailingWidget != null) trailingWidget,
               ],
             ),
-            const SizedBox(height: 10),
+            DSSpacing.hMd,
             ...children,
           ],
         ),
@@ -561,24 +561,24 @@ class _StatusBadgeLight extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, fg) = switch (status.toUpperCase()) {
       'PAID' => (
-        DSColors.white.withValues(alpha: DSStyles.alphaDarkShadow),
+        DSColors.white.withValues(alpha: DSStyles.alphaMuted),
         DSColors.white,
       ),
       'REJECTED' => (
-        DSColors.error.withValues(alpha: DSStyles.alphaDarkShadow),
+        DSColors.error.withValues(alpha: DSStyles.alphaMuted),
         DSColors.white,
       ),
       'PROCESSING' => (
-        DSColors.warning.withValues(alpha: DSStyles.alphaDarkShadow),
+        DSColors.warning.withValues(alpha: DSStyles.alphaMuted),
         DSColors.white,
       ),
       _ => (
-        DSColors.white.withValues(alpha: DSStyles.alphaActiveAccent),
-        DSColors.white.withValues(alpha: 0.7),
+        DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
+        DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
       ),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.md,
         vertical: 5,
       ),
@@ -624,7 +624,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: DSAnimations.dSlow,
     );
   }
 
@@ -658,10 +658,10 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
         Text(
           label,
           style: DSTypography.caption(
-            color: DSColors.white.withValues(alpha: 0.7),
+            color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
           ).copyWith(fontSize: DSTypography.sizeSm),
         ),
-        const SizedBox(height: 4),
+        DSSpacing.hXs,
         Text(
           value,
           style: DSTypography.body(color: DSColors.white).copyWith(
@@ -684,41 +684,44 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
         borderRadius: DSStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: DSColors.primary.withValues(alpha: DSStyles.alphaDarkShadow),
-            blurRadius: 10,
+            color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+            blurRadius: DSStyles.radiusMD,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(DSSpacing.lg),
+      padding: EdgeInsets.all(DSSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Payout Amount',
-                style: DSTypography.caption(
-                  color: DSColors.white.withValues(alpha: 0.7),
-                ).copyWith(fontSize: DSTypography.sizeMd),
+              Expanded(
+                child: Text(
+                  'Payout Amount',
+                  style: DSTypography.caption(
+                    color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
+                  ).copyWith(fontSize: DSTypography.sizeMd),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               _StatusBadgeLight(widget.status),
             ],
           ),
-          const SizedBox(height: 6),
+          DSSpacing.hXs,
           Text(
             '₱ ${widget.amount.toStringAsFixed(2)}',
             style: DSTypography.display(
               color: DSColors.white,
-            ).copyWith(fontSize: 32, fontWeight: FontWeight.w800),
+            ).copyWith(fontSize: DSIconSize.xl, fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: 16),
+          DSSpacing.hMd,
           Divider(
-            color: DSColors.white.withValues(alpha: 0.24),
-            height: 1,
+            color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
+            height: DSStyles.borderWidth,
           ),
-          const SizedBox(height: 16),
+          DSSpacing.hMd,
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -738,12 +741,12 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
             ],
           ),
           if (widget.breakdown.isNotEmpty) ...[
-            const SizedBox(height: 14),
+            DSSpacing.hMd,
             Center(
               child: Text(
                 'Tap to reveal breakdown',
                 style: DSTypography.caption(
-                  color: DSColors.white.withValues(alpha: DSStyles.alphaBorder),
+                  color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
                 ).copyWith(fontSize: DSTypography.sizeSm),
               ),
             ),
@@ -766,7 +769,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           ).dividerColor.withValues(alpha: DSStyles.alphaSoft),
         ),
       ),
-      padding: const EdgeInsets.all(DSSpacing.lg),
+      padding: EdgeInsets.all(DSSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -774,20 +777,23 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Breakdown Details',
-                style: TextStyle(
-                  fontSize: DSTypography.sizeMd,
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? DSColors.white
-                      : DSColors.labelPrimary,
+              Expanded(
+                child: Text(
+                  'Breakdown Details',
+                  style: TextStyle(
+                    fontSize: DSTypography.sizeMd,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? DSColors.white
+                        : DSColors.labelPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               _StatusBadgeLight(widget.status),
             ],
           ),
-          const SizedBox(height: 16),
+          DSSpacing.hMd,
           ...widget.breakdown.entries
               .where((e) {
                 if (e.key == 'coordinator_incentive') return kAppDebugMode;
@@ -800,40 +806,44 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                 final isCoordinator = e.key == 'coordinator_incentive';
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
+                  padding: EdgeInsets.only(bottom: DSSpacing.sm),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            isCoordinator
-                                ? '⚠ ${_formatKey(e.key)}'
-                                : _formatKey(e.key),
-                            style: TextStyle(
-                              fontSize: DSTypography.sizeMd,
-                              color: isCoordinator
-                                  ? DSColors.error
-                                  : (isDark
-                                        ? DSColors.labelTertiary
-                                        : DSColors.labelSecondary),
-                              fontWeight: isCoordinator
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                          if (isCoordinator)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             Text(
-                              'DEBUG ONLY',
+                              isCoordinator
+                                  ? '⚠ ${_formatKey(e.key)}'
+                                  : _formatKey(e.key),
                               style: TextStyle(
-                                fontSize: 9,
-                                color: DSColors.error,
-                                letterSpacing: 0.4,
+                                fontSize: DSTypography.sizeMd,
+                                color: isCoordinator
+                                    ? DSColors.error
+                                    : (isDark
+                                          ? DSColors.labelTertiary
+                                          : DSColors.labelSecondary),
+                                fontWeight: isCoordinator
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                        ],
+                            if (isCoordinator)
+                              Text(
+                                'DEBUG ONLY',
+                                style: TextStyle(
+                                  fontSize: DSTypography.sizeXs,
+                                  color: DSColors.error,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                       Text(
                         '${isDeduction ? '-' : ''}₱ ${val.abs().toStringAsFixed(2)}',
@@ -851,12 +861,12 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                   ),
                 );
               }),
-          const SizedBox(height: 14),
+          DSSpacing.hMd,
           Center(
             child: Text(
               'Tap to flip back',
               style: DSTypography.caption(
-                color: DSColors.labelSecondary.withValues(alpha: DSStyles.alphaGlass),
+                color: DSColors.labelSecondary.withValues(alpha: DSStyles.alphaDisabled),
               ).copyWith(fontSize: DSTypography.sizeSm),
             ),
           ),

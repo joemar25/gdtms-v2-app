@@ -5,20 +5,21 @@ class DSSectionHeader extends StatelessWidget {
   const DSSectionHeader({
     super.key,
     required this.title,
-    this.padding = const EdgeInsets.fromLTRB(16, 20, 16, 12),
+    this.padding,
     this.trailing,
   });
 
   final String title;
-  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? padding;
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final effectivePadding = padding ?? EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.lg, DSSpacing.md, DSSpacing.sm);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: padding,
+      padding: effectivePadding,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -27,7 +28,7 @@ class DSSectionHeader extends StatelessWidget {
             style: DSTypography.caption(color: DSColors.primary).copyWith(
               fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
-              fontSize: 12,
+              fontSize: DSTypography.sizeXs,
             ),
           ),
           if (trailing != null) trailing!,

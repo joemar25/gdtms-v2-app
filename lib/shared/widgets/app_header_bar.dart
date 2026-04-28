@@ -50,23 +50,23 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     final appBar = AppBar(
-      scrolledUnderElevation: 0,
-      elevation: 0,
+      scrolledUnderElevation: DSStyles.elevationNone,
+      elevation: DSStyles.elevationNone,
       backgroundColor: backgroundColor ?? DSColors.transparent,
       surfaceTintColor: DSColors.transparent,
       titleSpacing: 0,
       centerTitle: centerTitle,
       leading: leading,
-      leadingWidth: 56,
+      leadingWidth: DSIconSize.heroSm,
       title: Padding(
-        padding: const EdgeInsets.only(left: 8),
+        padding: EdgeInsets.only(left: DSSpacing.sm),
         child:
             titleWidget ??
             Row(
               children: [
                 if (pageIcon != null) ...[
                   Icon(pageIcon, size: DSIconSize.lg, color: colorScheme.onSurface),
-                  const SizedBox(width: 10),
+                  DSSpacing.wSm,
                 ],
                 Expanded(
                   child: Text(
@@ -74,7 +74,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
                     overflow: TextOverflow.ellipsis,
                     style: DSTypography.heading().copyWith(
                       fontWeight: FontWeight.w600,
-                      letterSpacing: -0.4,
+                      letterSpacing: DSTypography.lsSlightlyTight,
                     ),
                   ),
                 ),
@@ -90,7 +90,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
             onTap: () => context.push('/notifications'),
           ),
         ...(trailingActions ?? []),
-        const SizedBox(width: 12),
+        DSSpacing.wMd,
       ],
     );
 
@@ -128,8 +128,8 @@ class NotificationBell extends StatelessWidget {
           : 'No unread notifications',
       button: true,
       child: IconButton(
-        padding: const EdgeInsets.all(DSSpacing.sm),
-        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+        padding: EdgeInsets.all(DSSpacing.sm),
+        constraints: const BoxConstraints(minWidth: DSSpacing.xs, minHeight: DSSpacing.xs),
         tooltip: 'Notifications',
         onPressed: () {
           HapticFeedback.lightImpact();
@@ -187,11 +187,11 @@ class _Badge extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: Theme.of(context).scaffoldBackgroundColor,
-          width: 2.0,
+          width: DSStyles.strokeWidth,
         ),
         boxShadow: [
           BoxShadow(
-            color: DSColors.black.withValues(alpha: DSStyles.alphaActiveAccent),
+            color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
             blurRadius: 3,
             offset: const Offset(0, 1),
           ),
@@ -290,7 +290,7 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
     if (matches.length == 1 &&
         matches.first.barcode.toUpperCase() == query.toUpperCase()) {
       // Exact barcode match → go directly to delivery detail.
-      context.push('/deliveries/${matches.first.barcode}');
+      context.push('/deliveries/${matches.first.barcode}/update');
     } else {
       // Generic (account name / partial) → open delivery list with search.
       context.push('/deliveries', extra: {'initialSearch': query});
@@ -316,9 +316,8 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
 
     return AppBar(
-      scrolledUnderElevation: 0,
-      elevation: 0,
-      toolbarHeight: 72,
+      scrolledUnderElevation: DSStyles.elevationNone,
+      elevation: DSStyles.elevationNone,
       backgroundColor: DSColors.transparent,
       surfaceTintColor: DSColors.transparent,
       automaticallyImplyLeading: false,
@@ -373,14 +372,14 @@ class _SearchRow extends StatelessWidget {
         GestureDetector(
           onTap: onCollapse,
           child: Container(
-            width: 36,
-            height: 36,
+            width: DSIconSize.heroSm,
+            height: DSIconSize.heroSm,
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(DSStyles.radiusMD),
               boxShadow: [
                 BoxShadow(
-                  color: DSColors.black.withValues(alpha: 0.06),
+                  color: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
                   blurRadius: 4,
                   offset: const Offset(0, 1),
                 ),
@@ -393,12 +392,12 @@ class _SearchRow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        DSSpacing.wSm,
 
         // ── Text field ─────────────────────────────────────────────
         Expanded(
           child: SizedBox(
-            height: 40,
+            height: DSIconSize.heroSm,
             child: TextField(
               controller: controller,
               focusNode: focusNode,
@@ -415,22 +414,22 @@ class _SearchRow extends StatelessWidget {
                       : DSColors.labelSecondary,
                 ).copyWith(fontSize: DSTypography.sizeMd),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
+                contentPadding: EdgeInsets.symmetric(
                   horizontal: DSSpacing.md,
                   vertical: DSSpacing.md,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(DSStyles.radiusMD),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(DSStyles.radiusMD),
                   borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(DSStyles.radiusMD),
                   borderSide: BorderSide(
-                    color: DSColors.primary.withValues(alpha: 0.6),
+                    color: DSColors.primary.withValues(alpha: DSStyles.alphaDisabled),
                   ),
                 ),
                 filled: true,
@@ -441,7 +440,7 @@ class _SearchRow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        DSSpacing.wSm,
 
         // ── Camera (scan) button ───────────────────────────────────
         _HeaderIconButton(
@@ -482,22 +481,22 @@ class _ProfileRow extends StatelessWidget {
         GestureDetector(
           onTap: () => context.go('/profile'),
           child: Container(
-            width: 46,
-            height: 46,
+            width: DSIconSize.heroSm,
+            height: DSIconSize.heroSm,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Theme.of(context).brightness == Brightness.dark
                   ? DSColors.secondarySurfaceDark
                   : DSColors.secondarySurfaceLight,
               border: Border.all(
-                color: DSColors.primary.withValues(alpha: 0.2),
-                width: 2,
+                color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+                width: DSStyles.strokeWidth,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: DSColors.black.withValues(alpha: 0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
+                  blurRadius: DSStyles.radiusSM,
+                  offset: const Offset(0, DSSpacing.xs),
                 ),
               ],
             ),
@@ -505,8 +504,8 @@ class _ProfileRow extends StatelessWidget {
               child: profileUrl != null && profileUrl!.isNotEmpty
                   ? Image.network(
                       profileUrl!,
-                      width: 46,
-                      height: 46,
+                      width: DSIconSize.heroSm,
+                      height: DSIconSize.heroSm,
                       fit: BoxFit.cover,
                       // Graceful offline / broken-URL fallback.
                       errorBuilder: (_, __, ___) => const Icon(
@@ -523,7 +522,7 @@ class _ProfileRow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        DSSpacing.wMd,
 
         // ── Name + role ─────────────────────────────────────────────
         Expanded(
@@ -537,12 +536,12 @@ class _ProfileRow extends StatelessWidget {
                   fontSize: DSTypography.sizeMd,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,
-                  height: 1.2,
+                  height: DSStyles.heightTight,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
+              DSSpacing.hXs,
               Text(
                 role,
                 style:
@@ -553,7 +552,7 @@ class _ProfileRow extends StatelessWidget {
                     ).copyWith(
                       fontSize: DSTypography.sizeSm,
                       fontWeight: FontWeight.w500,
-                      height: 1.2,
+                      height: DSStyles.heightTight,
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -570,14 +569,14 @@ class _ProfileRow extends StatelessWidget {
             onSearchTap();
           },
         ),
-        const SizedBox(width: 6),
+        DSSpacing.wSm,
 
         // ── Notification bell ────────────────────────────────────────
         NotificationBell(
           unreadCount: unreadCount,
           onTap: () => context.push('/notifications'),
         ),
-        const SizedBox(width: 4),
+        DSSpacing.wXs,
       ],
     );
   }
@@ -594,16 +593,16 @@ class _HeaderIconButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: DSIconSize.heroSm,
+        height: DSIconSize.heroSm,
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DSStyles.radiusMD),
           boxShadow: [
             BoxShadow(
-              color: DSColors.black.withValues(alpha: 0.06),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              color: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
+              blurRadius: DSStyles.radiusSM * 0.75,
+              offset: const Offset(0, DSSpacing.xs),
             ),
           ],
         ),

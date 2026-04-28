@@ -51,7 +51,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
       backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: isDark ? DSColors.cardDark : DSColors.white,
-        elevation: 0,
+        elevation: DSStyles.elevationNone,
         title: Text(
           'Privacy Policy',
           style: TextStyle(
@@ -65,13 +65,13 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
       body: _content.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : Container(
-              margin: const EdgeInsets.all(DSSpacing.base),
+              margin: EdgeInsets.all(DSSpacing.md),
               decoration: BoxDecoration(
                 color: cardColor,
                 borderRadius: DSStyles.cardRadius,
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(DSSpacing.lg),
+                padding: EdgeInsets.all(DSSpacing.lg),
                 child: LegalMarkdownText(content: _content, isDark: isDark),
               ),
             ),

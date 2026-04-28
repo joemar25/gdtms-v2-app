@@ -47,7 +47,7 @@ class ConfirmationDialog extends StatelessWidget {
 
     return Dialog(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           horizontal: DSSpacing.xl,
           vertical: DSSpacing.xl,
         ),
@@ -69,7 +69,7 @@ class ConfirmationDialog extends StatelessWidget {
                 color: isDark
                     ? DSColors.labelSecondaryDark
                     : DSColors.labelSecondary,
-                height: 1.5,
+                height: DSStyles.heightRelaxed,
               ),
             ),
             DSSpacing.hXl,

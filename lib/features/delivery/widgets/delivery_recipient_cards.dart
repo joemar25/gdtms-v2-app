@@ -35,7 +35,7 @@ class DeliveryRecipientCards extends StatelessWidget {
           GestureDetector(
             onTap: () => onSelectRecipient(recipientName, 'OWNER'),
             child: Container(
-              padding: const EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 horizontal: DSSpacing.md,
                 vertical: DSSpacing.md,
               ),
@@ -44,7 +44,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                 borderRadius: DSStyles.cardRadius,
                 border: Border.all(
                   color: DSColors.success.withValues(
-                    alpha: DSStyles.alphaDarkShadow,
+                    alpha: DSStyles.alphaMuted,
                   ),
                 ),
               ),
@@ -52,10 +52,10 @@ class DeliveryRecipientCards extends StatelessWidget {
                 children: [
                   const Icon(
                     Icons.person_rounded,
-                    size: 16,
+                    size: DSIconSize.sm,
                     color: DSColors.success,
                   ),
-                  const SizedBox(width: 8),
+                  DSSpacing.wSm,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,7 +82,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                   ),
                   Icon(
                     Icons.chevron_right_rounded,
-                    size: 18,
+                    size: DSIconSize.md,
                     color: DSColors.labelTertiary,
                   ),
                 ],
@@ -90,12 +90,12 @@ class DeliveryRecipientCards extends StatelessWidget {
             ),
           ),
         if (recipientName.isNotEmpty && authorizedRep.isNotEmpty)
-          const SizedBox(height: 6),
+          DSSpacing.hSm,
         if (authorizedRep.isNotEmpty)
           GestureDetector(
             onTap: () => onSelectRecipient(authorizedRep, null),
             child: Container(
-              padding: const EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 horizontal: DSSpacing.md,
                 vertical: DSSpacing.md,
               ),
@@ -104,7 +104,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                 borderRadius: DSStyles.cardRadius,
                 border: Border.all(
                   color: DSColors.primary.withValues(
-                    alpha: DSStyles.alphaDarkShadow,
+                    alpha: DSStyles.alphaMuted,
                   ),
                 ),
               ),
@@ -112,10 +112,10 @@ class DeliveryRecipientCards extends StatelessWidget {
                 children: [
                   const Icon(
                     Icons.person_add_rounded,
-                    size: 16,
+                    size: DSIconSize.sm,
                     color: DSColors.primary,
                   ),
-                  const SizedBox(width: 8),
+                  DSSpacing.wSm,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +142,7 @@ class DeliveryRecipientCards extends StatelessWidget {
                   ),
                   Icon(
                     Icons.chevron_right_rounded,
-                    size: 18,
+                    size: DSIconSize.md,
                     color: DSColors.labelTertiary,
                   ),
                 ],

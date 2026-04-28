@@ -66,18 +66,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget _buildContent(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 28),
+        padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // ── Brand Card (Text-only, no logo) ──────────────────────────
             Container(
-              width: 240,
-              padding: const EdgeInsets.all(DSSpacing.xl),
+              width: DSIconSize.heroLg,
+              padding: EdgeInsets.all(DSSpacing.xl),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    DSColors.primary.withValues(alpha: 0.9),
+                    DSColors.primary.withValues(alpha: DSStyles.alphaOpaque),
                     DSColors.primary,
                   ],
                   begin: Alignment.topLeft,
@@ -87,10 +87,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 boxShadow: [
                   BoxShadow(
                     color: DSColors.primary.withValues(
-                      alpha: DSStyles.alphaBorder,
+                      alpha: DSStyles.alphaMuted,
                     ),
-                    blurRadius: 40,
-                    offset: const Offset(0, 12),
+                    blurRadius: DSStyles.shadowBlurHero,
+                    offset: const Offset(0, DSSpacing.md),
                   ),
                 ],
               ),
@@ -103,13 +103,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         textAlign: TextAlign.center,
                         style: DSTypography.heading(
                           color: DSColors.white,
-                        ).copyWith(fontSize: 28, fontWeight: FontWeight.w800),
+                        ).copyWith(fontSize: DSTypography.sizeHero, fontWeight: FontWeight.w800),
                       )
                       .animate()
-                      .fadeIn(duration: 600.ms)
-                      .slideY(begin: 0.1, end: 0),
+                      .fadeIn(duration: DSAnimations.dSlow)
+                      .slideY(begin: DSAnimations.slideXOffset.dx, end: 0),
 
-                  const SizedBox(height: 6),
+                  DSSpacing.hSm,
 
                   // Subtitle
                   Text(
@@ -119,9 +119,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       fontSize: DSTypography.sizeMd,
                       fontWeight: FontWeight.w600,
                     ),
-                  ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+                  ).animate().fadeIn(delay: DSAnimations.staggerWide).slideY(begin: DSAnimations.slideXOffset.dx, end: 0),
 
-                  const SizedBox(height: 20),
+                  DSSpacing.hLg,
 
                   // Feature chips
                   IntrinsicHeight(
@@ -135,10 +135,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                     label: 'Dispatch',
                                   )
                                   .animate()
-                                  .fadeIn(delay: 400.ms)
-                                  .scaleXY(begin: 0.8, end: 1),
+                                  .fadeIn(delay: DSAnimations.dNormal)
+                                  .scaleXY(begin: DSAnimations.scaleActive, end: DSAnimations.scaleNormal),
                         ),
-                        const SizedBox(width: 6),
+                        DSSpacing.wSm,
                         Expanded(
                           child:
                               _SplashChip(
@@ -146,10 +146,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                     label: 'Delivery',
                                   )
                                   .animate()
-                                  .fadeIn(delay: 500.ms)
-                                  .scaleXY(begin: 0.8, end: 1),
+                                  .fadeIn(delay: DSAnimations.stagger(5))
+                                  .scaleXY(begin: DSAnimations.scaleActive, end: DSAnimations.scaleNormal),
                         ),
-                        const SizedBox(width: 6),
+                        DSSpacing.wSm,
                         Expanded(
                           child:
                               _SplashChip(
@@ -157,33 +157,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                     label: 'Wallet',
                                   )
                                   .animate()
-                                  .fadeIn(delay: 600.ms)
-                                  .scaleXY(begin: 0.8, end: 1),
+                                  .fadeIn(delay: DSAnimations.dSlow)
+                                  .scaleXY(begin: DSAnimations.scaleActive, end: DSAnimations.scaleNormal),
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
-            ).animate().fadeIn(duration: 800.ms).slideY(begin: 0.05, end: 0),
+            ).animate().fadeIn(duration: DSAnimations.dHero).slideY(begin: DSAnimations.slideYOffset.dy, end: 0),
 
-            const SizedBox(height: 52),
+            DSSpacing.hXl,
+            DSSpacing.hXl,
 
             // ── Loading indicator ────────────────────────────────────────
             SizedBox(
-              width: 56,
-              height: 56,
-              child: const SpinKitFadingCircle(color: DSColors.white, size: 56),
-            ).animate().fadeIn(delay: 800.ms),
+              width: DSIconSize.heroSm,
+              height: DSIconSize.heroSm,
+              child: const SpinKitFadingCircle(color: DSColors.white, size: DSIconSize.heroSm),
+            ).animate().fadeIn(delay: DSAnimations.dHero),
 
-            const SizedBox(height: 20),
+            DSSpacing.hLg,
 
             Text(
               'Fastrak Services Inc.',
               style: DSTypography.caption(
-                color: DSColors.white.withValues(alpha: DSStyles.alphaDarkShadow),
+                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
               ).copyWith(fontSize: DSTypography.sizeSm),
-            ).animate().fadeIn(delay: 1000.ms),
+            ).animate().fadeIn(delay: DSAnimations.staggerLong),
           ],
         ),
       ),
@@ -202,20 +203,20 @@ class _SplashChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         vertical: DSSpacing.md,
         horizontal: DSSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: DSColors.white.withValues(alpha: DSStyles.alphaActiveAccent),
+        color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
         borderRadius: DSStyles.cardRadius,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: DSColors.white, size: 18),
-          const SizedBox(height: 4),
+          Icon(icon, color: DSColors.white, size: DSIconSize.sm),
+          DSSpacing.hXs,
           Text(
             label,
             textAlign: TextAlign.center,

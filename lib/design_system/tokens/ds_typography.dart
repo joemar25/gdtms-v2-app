@@ -3,11 +3,8 @@ import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
 
 /// Design-system typography tokens.
 ///
-/// Primary API: use the semantic methods — label(), caption(), body(),
-/// subTitle(), title(), heading(), display(), button().
-///
-/// 5-point size scale — override only when genuinely needed:
-///   DSTypography.body(fontSize: DSTypography.sizeLg)
+/// STABILITY RULE: Only 3 to 5 standard tiers allowed per category.
+/// REJECT any new tier requests that exceed this scale.
 class DSTypography {
   // ── Size scale (5 tiers) ───────────────────────────────────────────────────
   static const double sizeXs = 12.0; // labels, nav, micro badges
@@ -16,19 +13,15 @@ class DSTypography {
   static const double sizeLg = 18.0; // section titles
   static const double sizeXl = 20.0; // headings, display
 
-  // ── Letter spacing ─────────────────────────────────────────────────────────
+  // ── Specialty Sizes (Calculations in Config) ──────────────────────────────
+  static const double sizeHero = 32.0; // Large hero text
+
+  // ── Letter spacing (5 tiers) ────────────────────────────────────────────────
   static const double lsTight = -1.0;
   static const double lsSlightlyTight = -0.5;
-  static const double lsMicroTight = -0.2;
-  static const double lsTadTight = -0.1;
   static const double lsNone = 0.0;
-  static const double lsSlightlyLoose = 0.2;
-  static const double lsSmallLoose = 0.3;
-  static const double lsLoose = 0.5;
-  static const double lsMediumLoose = 0.7;
+  static const double lsLoose = 0.3;
   static const double lsExtraLoose = 0.8;
-  static const double lsMegaLoose = 1.2;
-  static const double lsGiantLoose = 1.5;
 
   // ── Semantic methods ───────────────────────────────────────────────────────
 
@@ -73,7 +66,7 @@ class DSTypography {
     fontSize: fontSize ?? sizeMd,
     color: color,
     fontWeight: fontWeight ?? FontWeight.w600,
-    letterSpacing: lsMicroTight,
+    letterSpacing: lsSlightlyTight,
   );
 
   static TextStyle body({
@@ -97,7 +90,7 @@ class DSTypography {
     fontSize: fontSize ?? sizeMd,
     color: color ?? DSColors.white,
     fontWeight: fontWeight ?? FontWeight.w700,
-    letterSpacing: lsSlightlyLoose,
+    letterSpacing: lsLoose,
   );
 
   static TextStyle caption({

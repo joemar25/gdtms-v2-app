@@ -21,6 +21,7 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/services/report_service.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/ds_segmented_selector.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class ReportIssueScreen extends ConsumerStatefulWidget {
@@ -120,22 +121,22 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            DSSpacing.base,
-            DSSpacing.base,
-            DSSpacing.base,
-            DSSpacing.xxl,
+          padding: EdgeInsets.fromLTRB(
+            DSSpacing.md,
+            DSSpacing.md,
+            DSSpacing.md,
+            DSSpacing.xl,
           ),
           children: [
             // ── Info banner ────────────────────────────────────────────────
             Container(
-              padding: const EdgeInsets.all(DSSpacing.md),
+              padding: EdgeInsets.all(DSSpacing.md),
               decoration: BoxDecoration(
                 color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
                 borderRadius: DSStyles.cardRadius,
                 border: Border.all(
                   color: DSColors.primary.withValues(
-                    alpha: DSStyles.alphaDarkShadow,
+                    alpha: DSStyles.alphaMuted,
                   ),
                 ),
               ),
@@ -147,7 +148,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                     color: DSColors.primary,
                     size: DSIconSize.md,
                   ),
-                  const SizedBox(width: 10),
+                  DSSpacing.wSm,
                   Expanded(
                     child: Text(
                       'Reports are sent directly to the FSI admin team. '
@@ -157,7 +158,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                         color: isDark
                             ? DSColors.labelSecondaryDark
                             : DSColors.labelPrimary,
-                      ).copyWith(height: 1.4),
+                      ).copyWith(height: DSStyles.heightNormal),
                     ),
                   ),
                 ],
@@ -192,7 +193,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                     fontSize: DSTypography.sizeMd,
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
+                  contentPadding: EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: DSSpacing.md,
                   ),
@@ -201,7 +202,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                     v == null || v.trim().isEmpty ? 'Required' : null,
               ),
             ).dsFieldEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
-            const SizedBox(height: 20),
+            DSSpacing.hLg,
 
             // ── Category ───────────────────────────────────────────────────
             _SectionLabel('Type', isDark: isDark),
@@ -221,14 +222,14 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                       InkWell(
                         onTap: () => setState(() => _selectedType = value),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             horizontal: DSSpacing.md,
                             vertical: DSSpacing.md,
                           ),
                           child: Row(
                             children: [
                               SizedBox(
-                                width: 24,
+                                width: DSStyles.strokeWidth,
                                 height: 24,
                                 child: Checkbox(
                                   value: _selectedType == value,
@@ -247,9 +248,9 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              DSSpacing.wSm,
                               Icon(icon, size: DSIconSize.md, color: DSColors.primary),
-                              const SizedBox(width: 8),
+                              DSSpacing.wSm,
                               Text(
                                 label,
                                 style: DSTypography.body(
@@ -265,67 +266,26 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                         ),
                       ),
                       if (idx < _types.length - 1)
-                        Divider(height: 1, color: borderColor),
+                        Divider(height: DSStyles.borderWidth, color: borderColor),
                     ],
                   );
                 }).toList(),
               ),
             ).dsCardEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
-            const SizedBox(height: 20),
+            DSSpacing.hLg,
 
             // ── Severity ───────────────────────────────────────────────────
             _SectionLabel('Severity', isDark: isDark),
             DSSpacing.hSm,
-            Row(
-              children: _severities.map((s) {
-                final (value, label, color) = s;
-                final isSelected = _selectedSeverity == value;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedSeverity = value),
-                    child: Container(
-                      margin: EdgeInsets.only(
-                        right: value != _severities.last.$1 ? DSSpacing.sm : 0,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: DSSpacing.md,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected ? color : cardColor,
-                        borderRadius: DSStyles.cardRadius,
-                        border: Border.all(
-                          color: isSelected ? color : borderColor,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: color.withValues(
-                                    alpha: DSStyles.alphaDarkShadow,
-                                  ),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          label,
-                          style: DSTypography.label(
-                            color: isSelected
-                                ? DSColors.white
-                                : (isDark
-                                      ? DSColors.labelSecondaryDark
-                                      : DSColors.labelSecondary),
-                          ).copyWith(fontSize: DSTypography.sizeSm),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+            DSSegmentedSelector<String>(
+              selected: _selectedSeverity,
+              height: DSIconSize.heroSm,
+              onChanged: (v) => setState(() => _selectedSeverity = v),
+              options: _severities
+                  .map((s) => DSSegmentOption(value: s.$1, label: s.$2, color: s.$3))
+                  .toList(),
             ),
-            const SizedBox(height: 20),
+            DSSpacing.hLg,
 
             // ── Description ────────────────────────────────────────────────
             _SectionLabel('Description (optional)', isDark: isDark),
@@ -356,7 +316,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                     fontSize: DSTypography.sizeMd,
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(DSSpacing.md),
+                  contentPadding: EdgeInsets.all(DSSpacing.md),
                   counterStyle: DSTypography.caption(
                     color: isDark
                         ? DSColors.labelTertiaryDark
@@ -366,7 +326,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            DSSpacing.hLg,
 
             // ── Include logs ───────────────────────────────────────────────
             Container(
@@ -395,10 +355,10 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                     color: isDark
                         ? DSColors.labelSecondaryDark
                         : DSColors.labelSecondary,
-                  ).copyWith(height: 1.4),
+                  ).copyWith(height: DSStyles.heightNormal),
                 ),
                 activeColor: DSColors.primary,
-                contentPadding: const EdgeInsets.symmetric(
+                contentPadding: EdgeInsets.symmetric(
                   horizontal: DSSpacing.md,
                   vertical: DSSpacing.xs,
                 ),
@@ -407,7 +367,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                 ),
               ),
             ).dsFadeEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
-            const SizedBox(height: 28),
+            DSSpacing.hXl,
 
             // ── Submit ─────────────────────────────────────────────────────
             SizedBox(
@@ -424,14 +384,14 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: DSStyles.cardRadius,
                   ),
-                  elevation: 0,
+                  elevation: DSStyles.elevationNone,
                 ),
                 child: _submitting
                     ? const SizedBox(
-                        width: 20,
-                        height: 20,
+                        width: DSIconSize.xl,
+                        height: DSIconSize.xl,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                          strokeWidth: DSStyles.strokeWidth,
                           color: DSColors.white,
                         ),
                       )

@@ -141,6 +141,15 @@ const String firebaseApiKeyWindows = String.fromEnvironment(
 /// - Add to dart_defines.json for prod/demo builds.
 const String sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
+/// API connection timeout.
+const Duration kApiConnectTimeout = Duration(seconds: 30);
+
+/// API receive timeout.
+const Duration kApiReceiveTimeout = Duration(seconds: 60);
+
+/// API send timeout.
+const Duration kApiSendTimeout = Duration(seconds: 60);
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Debug Mode
 // ─────────────────────────────────────────────────────────────────────────────

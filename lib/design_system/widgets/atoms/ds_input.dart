@@ -64,7 +64,7 @@ class _DSInputState extends State<DSInput> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: EdgeInsets.symmetric(vertical: DSSpacing.sm),
       child: TextField(
         controller: _controller,
         focusNode: _focusNode,
@@ -90,7 +90,7 @@ class _DSInputState extends State<DSInput> {
           prefixIcon: widget.prefixIcon != null
               ? Icon(
                   widget.prefixIcon,
-                  size: 20,
+                  size: DSIconSize.md,
                   color: _focusNode.hasFocus ? DSColors.primary : null,
                 )
               : null,
@@ -115,9 +115,9 @@ class _DSInputState extends State<DSInput> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: DSStyles.cardRadius,
-            borderSide: const BorderSide(color: DSColors.primary, width: 1.5),
+            borderSide: const BorderSide(color: DSColors.primary, width: DSStyles.borderWidth * 1.5),
           ),
-          contentPadding: const EdgeInsets.symmetric(
+          contentPadding: EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 16,
           ),

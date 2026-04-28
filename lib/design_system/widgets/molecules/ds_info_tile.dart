@@ -43,7 +43,7 @@ class DSInfoTile extends StatelessWidget {
             child: Padding(
               padding:
                   padding ??
-                  const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  EdgeInsets.symmetric(vertical: DSSpacing.md, horizontal: DSSpacing.md),
               child: Row(
                 children: [
                   Expanded(
@@ -58,25 +58,25 @@ class DSInfoTile extends StatelessWidget {
                                 : DSColors.labelTertiary,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        DSSpacing.hXs,
                         Text(
                           value,
                           style: DSTypography.body(color: valueColor).copyWith(
-                            fontSize: 15,
+                            fontSize: DSIconSize.sm,
                             fontWeight: FontWeight.w600,
-                            height: 1.3,
+                            height: DSStyles.heightNormal,
                           ),
                         ),
                       ],
                     ),
                   ),
                   if (onTap != null || icon != null) ...[
-                    const SizedBox(width: 12),
+                    DSSpacing.wMd,
                     Container(
-                      width: 32,
-                      height: 32,
+                      width: DSIconSize.heroSm,
+                      height: DSIconSize.heroSm,
                       decoration: BoxDecoration(
-                        color: DSColors.primary.withValues(alpha: 0.12),
+                        color: DSColors.primary.withValues(alpha: DSStyles.alphaSubtle),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -84,7 +84,7 @@ class DSInfoTile extends StatelessWidget {
                             (label.toLowerCase().contains('address')
                                 ? Icons.map_rounded
                                 : Icons.phone_rounded),
-                        size: 14,
+                        size: DSIconSize.xs,
                         color: DSColors.primary,
                       ),
                     ),
@@ -96,9 +96,9 @@ class DSInfoTile extends StatelessWidget {
         ),
         if (showDivider)
           Padding(
-            padding: const EdgeInsets.only(left: 16),
+            padding: EdgeInsets.only(left: DSSpacing.md),
             child: Divider(
-              height: 1,
+              height: DSStyles.borderWidth,
               thickness: 1,
               color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
             ),

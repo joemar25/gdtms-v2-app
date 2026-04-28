@@ -28,7 +28,7 @@ void showAppSnackbar(
       backgroundColor: color,
       behavior: SnackBarBehavior.floating,
       // Lift the snackbar above the floating bottom nav bar (~80 px).
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 88),
+      margin: EdgeInsets.fromLTRB(DSSpacing.sm, 0, DSSpacing.sm, DSSpacing.xl * 2.5),
     ),
   );
 }
@@ -93,12 +93,12 @@ class AppNotificationManager {
                         key: ValueKey(entry.id),
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutCubic,
-                        margin: EdgeInsets.only(top: i * 12.0),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: DSSpacing.base,
+                        margin: EdgeInsets.only(top: i * DSSpacing.sm),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DSSpacing.md,
                         ),
                         child: AnimatedScale(
-                          scale: 1.0 - (i * 0.05),
+                          scale: DSAnimations.scaleNormal - (i * 0.05),
                           alignment: Alignment.topCenter,
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOutCubic,
@@ -218,21 +218,21 @@ class _InfoBanner extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: DSColors.black.withValues(alpha: DSStyles.alphaActiveAccent),
+            color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
             blurRadius: 24,
-            offset: const Offset(0, 6),
+            offset: const Offset(0, DSSpacing.sm),
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+      padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.sm, DSSpacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: DSIconSize.heroSm,
+            height: DSIconSize.heroSm,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: DSStyles.alphaActiveAccent),
+              color: color.withValues(alpha: DSStyles.alphaSubtle),
               borderRadius: DSStyles.cardRadius,
             ),
             child: Icon(icon, color: color, size: DSIconSize.md),
@@ -249,7 +249,7 @@ class _InfoBanner extends StatelessWidget {
                   ).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: DSTypography.sizeMd,
-                    height: 1.4,
+                    height: DSStyles.heightNormal,
                   ),
             ),
           ),
@@ -257,7 +257,7 @@ class _InfoBanner extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               SizedBox(
-                width: 24,
+                width: DSStyles.strokeWidth,
                 height: 24,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 1.0, end: 0.0),
@@ -265,7 +265,7 @@ class _InfoBanner extends StatelessWidget {
                   builder: (context, value, child) {
                     return CircularProgressIndicator(
                       value: value,
-                      strokeWidth: 2,
+                      strokeWidth: DSStyles.strokeWidth,
                       color: DSColors.separatorLight,
                       backgroundColor: DSColors.transparent,
                     );
@@ -276,7 +276,7 @@ class _InfoBanner extends StatelessWidget {
                 icon: const Icon(Icons.close, size: DSIconSize.sm),
                 onPressed: onClose,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                constraints: const BoxConstraints(minWidth: DSIconSize.heroSm, minHeight: DSIconSize.heroSm),
                 style: IconButton.styleFrom(
                   foregroundColor: DSColors.labelSecondary,
                 ),
@@ -303,22 +303,22 @@ class _SuccessBanner extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: DSColors.black.withValues(alpha: DSStyles.alphaActiveAccent),
+            color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
             blurRadius: 24,
-            offset: const Offset(0, 6),
+            offset: const Offset(0, DSSpacing.sm),
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+      padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.sm, DSSpacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: DSIconSize.heroSm,
+            height: DSIconSize.heroSm,
             decoration: BoxDecoration(
               color: DSColors.primary.withValues(
-                alpha: DSStyles.alphaActiveAccent,
+                alpha: DSStyles.alphaSubtle,
               ),
               borderRadius: DSStyles.cardRadius,
             ),
@@ -340,7 +340,7 @@ class _SuccessBanner extends StatelessWidget {
                   ).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: DSTypography.sizeMd,
-                    height: 1.4,
+                    height: DSStyles.heightNormal,
                   ),
             ),
           ),
@@ -348,7 +348,7 @@ class _SuccessBanner extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               SizedBox(
-                width: 24,
+                width: DSStyles.strokeWidth,
                 height: 24,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 1.0, end: 0.0),
@@ -356,7 +356,7 @@ class _SuccessBanner extends StatelessWidget {
                   builder: (context, value, child) {
                     return CircularProgressIndicator(
                       value: value,
-                      strokeWidth: 2,
+                      strokeWidth: DSStyles.strokeWidth,
                       color: DSColors.separatorLight,
                       backgroundColor: DSColors.transparent,
                     );
@@ -367,7 +367,7 @@ class _SuccessBanner extends StatelessWidget {
                 icon: const Icon(Icons.close, size: DSIconSize.sm),
                 onPressed: onClose,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                constraints: const BoxConstraints(minWidth: DSIconSize.heroSm, minHeight: DSIconSize.heroSm),
                 style: IconButton.styleFrom(
                   foregroundColor: DSColors.labelSecondary,
                 ),

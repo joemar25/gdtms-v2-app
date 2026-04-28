@@ -20,21 +20,55 @@ class DSAnimations {
   DSAnimations._();
 
   // ── Standard durations ─────────────────────────────────────────────────────
+  static const Duration dMicro  = Duration(milliseconds: 150);
   static const Duration dFast   = Duration(milliseconds: 250);
   static const Duration dNormal = Duration(milliseconds: 400);
   static const Duration dSlow   = Duration(milliseconds: 600);
   static const Duration dHero   = Duration(milliseconds: 800);
 
   // ── Stagger step sizes ─────────────────────────────────────────────────────
+  /// 10 ms — micro transitions (e.g. checkbox check).
+  static const Duration staggerMicro  = Duration(milliseconds: 10);
   /// 15 ms — tight lists (e.g. notification rows).
   static const Duration staggerFine   = Duration(milliseconds: 15);
   /// 50 ms — section labels and sub-headings.
   static const Duration staggerNormal = Duration(milliseconds: 50);
   /// 100 ms — cards, form fields, primary content.
   static const Duration staggerCoarse = Duration(milliseconds: 100);
+  /// 200 ms — wide sections or major page blocks.
+  static const Duration staggerWide   = Duration(milliseconds: 200);
+
+  // ── Standard Offsets ───────────────────────────────────────────────────────
+  static const Offset slideXOffset = Offset(0.1, 0);
+  static const Offset slideYOffset = Offset(0, 0.05);
+  static const Offset scaleOffsetSmall = Offset(0.95, 0.95);
+  static const Offset shadowOffsetHero = Offset(0, 16);
+
+  // ── Standard Scale & Opacity ──────────────────────────────────────────────
+  static const double scalePressed = 0.95;
+  static const double scaleNormal = 1.0;
+  static const double scaleActive = 1.15;
+
+  static const double opacityHidden = 0.0;
+  static const double opacityMuted = 0.55;
+  static const double opacityVisible = 1.0;
+
+  static const Duration staggerLong = Duration(milliseconds: 1000);
+
+  // ── Duration Multipliers (Calculations in Config) ─────────────────────────
+  static const Duration dHeroX2 = Duration(milliseconds: 1600);
+  static const Duration dHeroX3 = Duration(milliseconds: 2400);
+  static const Duration dHeroX4 = Duration(milliseconds: 3200);
 
   /// Returns `n × step` so that `stagger(1)` is one full step.
   static Duration stagger(int n, {Duration step = staggerCoarse}) => step * n;
+
+  // ── Named curves ──────────────────────────────────────────────────────────
+  /// Elastic snap for a sliding selection pill (DSSegmentedSelector).
+  static const Curve curveElasticPill = Curves.elasticOut;
+
+  /// Icon pop on activation inside a selector.
+  static const Curve curveIconPop = Curves.easeOutBack;
 
   // ── Effect-list presets ────────────────────────────────────────────────────
 

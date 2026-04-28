@@ -347,14 +347,14 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               backgroundColor: _hasPendingSync
                   ? DSColors.labelSecondary
                   : DSColors.primary,
-              elevation: _hasPendingSync ? 0 : 6,
+              elevation: _hasPendingSync ? 0 : DSStyles.elevationMD,
               icon: _hasPendingSync
                   ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: DSColors.white.withValues(alpha: 0.7),
+                        strokeWidth: DSStyles.strokeWidth,
+                        color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
                       ),
                     )
                   : const Icon(Icons.edit_rounded, size: DSIconSize.md, color: DSColors.white),
@@ -362,14 +362,14 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 _hasPendingSync ? 'SYNC PENDING…' : 'UPDATE STATUS',
                 style: DSTypography.button(
                   color: DSColors.white,
-                ).copyWith(letterSpacing: DSTypography.lsSlightlyLoose),
+                ).copyWith(letterSpacing: DSTypography.lsLoose),
               ),
             )
           : null,
       body: _loading
           ? const Center(
               child: CircularProgressIndicator(
-                strokeWidth: 2,
+                strokeWidth: DSStyles.strokeWidth,
                 color: DSColors.primary,
               ),
             )
@@ -382,21 +382,21 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     onRefresh: _load,
                     child: ListView(
                       padding: EdgeInsets.fromLTRB(
-                        DSSpacing.base,
+                        DSSpacing.md,
                         DSSpacing.sm,
-                        DSSpacing.base,
+                        DSSpacing.md,
                         showFab
-                            ? DSSpacing.xxl +
-                                  88.0 +
+                            ? DSSpacing.xl +
+                                  DSSpacing.xl +
                                   MediaQuery.of(context).padding.bottom
-                            : DSSpacing.xxl,
+                            : DSSpacing.xl,
                       ),
                       children: [
                         // ── Account details card ──────────────────────────
                         if (!checkIsLockedFromMap(_delivery))
                           DSCard(
-                            margin: const EdgeInsets.only(
-                              bottom: DSSpacing.base,
+                            margin: EdgeInsets.only(
+                              bottom: DSSpacing.md,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,7 +477,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                             : DSColors.labelPrimary,
                       ).copyWith(
                         fontSize: DSTypography.sizeMd,
-                        letterSpacing: DSTypography.lsSlightlyLoose,
+                        letterSpacing: DSTypography.lsLoose,
                       ),
                 ),
               ),
@@ -493,7 +493,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                       : DSColors.labelPrimary,
                 ).copyWith(
                   fontSize: DSTypography.sizeMd,
-                  letterSpacing: DSTypography.lsSlightlyLoose,
+                  letterSpacing: DSTypography.lsLoose,
                 ),
           );
   }
@@ -558,7 +558,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     if (!hasAny) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: DSSpacing.base),
+      padding: EdgeInsets.only(top: DSSpacing.md),
       child: DSCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,7 +633,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
         isWithPay || failedDeliveryVerifStatus == 'verified_no_pay';
 
     return Padding(
-      padding: const EdgeInsets.only(top: DSSpacing.base),
+      padding: EdgeInsets.only(top: DSSpacing.md),
       child: DSCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -645,8 +645,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: DSSpacing.xs,
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
@@ -688,8 +688,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               return DSInfoTile(
                 label: label,
                 value: reason.isNotEmpty ? reason : 'No reason provided',
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DSSpacing.base,
+                padding: EdgeInsets.symmetric(
+                  horizontal: DSSpacing.md,
                   vertical: DSSpacing.md,
                 ),
                 icon: Icons.access_time_rounded,
@@ -765,7 +765,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     if (rows.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: DSSpacing.base),
+      padding: EdgeInsets.only(top: DSSpacing.md),
       child: DSCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -791,7 +791,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     ).reversed.toList();
 
     return Padding(
-      padding: const EdgeInsets.only(top: DSSpacing.base),
+      padding: EdgeInsets.only(top: DSSpacing.md),
       child: DSCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -833,12 +833,12 @@ class _PayBadge extends StatelessWidget {
       alpha: DSStyles.alphaSoft,
     );
     final borderColor = (isWithPay ? DSColors.success : DSColors.error)
-        .withValues(alpha: DSStyles.alphaBorder);
+        .withValues(alpha: DSStyles.alphaMuted);
     final dotColor = isWithPay ? DSColors.success : DSColors.error;
     final textColor = isWithPay ? DSColors.success : DSColors.error;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.sm,
         vertical: DSSpacing.xs,
       ),
@@ -851,16 +851,16 @@ class _PayBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: DSIconSize.xs,
+            height: DSIconSize.xs,
             decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 4),
+          DSSpacing.wXs,
           Text(
             isWithPay ? 'WITH PAY' : 'NO PAY',
             style: DSTypography.labelCaps.copyWith(
               color: textColor,
-              fontSize: 9,
+              fontSize: DSTypography.sizeXs,
               letterSpacing: 0.6,
             ),
           ),
@@ -918,11 +918,11 @@ class _TimelineItem extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
-                  margin: const EdgeInsets.only(
+                  width: DSIconSize.heroSm,
+                  height: DSIconSize.heroSm,
+                  margin: EdgeInsets.only(
                     top: DSSpacing.md,
-                    left: DSSpacing.base,
+                    left: DSSpacing.md,
                   ),
                   decoration: BoxDecoration(
                     color: isFirst
@@ -937,10 +937,10 @@ class _TimelineItem extends StatelessWidget {
                         ? [
                             BoxShadow(
                               color: DSColors.primary.withValues(
-                                alpha: DSStyles.alphaDarkShadow,
+                                alpha: DSStyles.alphaMuted,
                               ),
                               blurRadius: 8,
-                              offset: const Offset(0, 2),
+                              offset: const Offset(0, DSSpacing.xs),
                             ),
                           ]
                         : null,
@@ -958,8 +958,8 @@ class _TimelineItem extends StatelessWidget {
                 if (!isLast)
                   Expanded(
                     child: Container(
-                      width: 1.5,
-                      margin: const EdgeInsets.only(left: DSSpacing.base),
+                      width: DSStyles.borderWidth * 1.5,
+                      margin: EdgeInsets.only(left: DSSpacing.md),
                       color: isDark
                           ? DSColors.separatorDark
                           : DSColors.separatorLight,
@@ -972,11 +972,11 @@ class _TimelineItem extends StatelessWidget {
           // Content
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 DSSpacing.sm,
                 DSSpacing.md,
-                DSSpacing.base,
-                DSSpacing.base,
+                DSSpacing.md,
+                DSSpacing.md,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -998,7 +998,7 @@ class _TimelineItem extends StatelessWidget {
                       ),
                       if (status.isNotEmpty)
                         Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             horizontal: DSSpacing.sm,
                             vertical: 2,
                           ),
@@ -1024,7 +1024,7 @@ class _TimelineItem extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  DSSpacing.hXs,
                   Text(
                     formatDate(timestamp, includeTime: true),
                     style:
@@ -1038,16 +1038,16 @@ class _TimelineItem extends StatelessWidget {
                         ),
                   ),
                   if (note.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    DSSpacing.hXs,
                     Text(
                       note,
                       style: DSTypography.body(
                         color: isDark
                             ? DSColors.labelPrimaryDark.withValues(
-                                alpha: DSStyles.alphaGlass,
+                                alpha: DSStyles.alphaDisabled,
                               )
                             : DSColors.labelPrimary.withValues(
-                                alpha: DSStyles.alphaGlass,
+                                alpha: DSStyles.alphaDisabled,
                               ),
                       ).copyWith(fontSize: DSTypography.sizeMd),
                     ),
@@ -1073,8 +1073,8 @@ class _OfflineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
         vertical: 9,
       ),
       color: DSColors.pending,

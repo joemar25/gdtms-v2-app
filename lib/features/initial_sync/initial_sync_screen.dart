@@ -68,21 +68,21 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xxl),
+            padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                  width: 200,
-                  height: 200,
+                  width: DSIconSize.xl,
+                  height: DSIconSize.xl,
                   child: _done
                       ? Lottie.asset(AppAssets.animSuccess, repeat: false)
                       : const SpinKitDoubleBounce(
                           color: DSColors.primary,
-                          size: 80,
+                          size: DSIconSize.heroLg,
                         ),
                 ),
-                const SizedBox(height: 24),
+                DSSpacing.hLg,
                 Text(
                   'Setting Up Your App',
                   style: DSTypography.title(
@@ -92,7 +92,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                   ).copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                DSSpacing.hMd,
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: Text(
@@ -106,13 +106,13 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(height: 32),
+                DSSpacing.hXl,
                 if (!_done)
                   LinearProgressIndicator(
                     borderRadius: DSStyles.pillRadius,
                     color: colorScheme.primary,
                     backgroundColor: colorScheme.primary.withValues(
-                      alpha: 0.15,
+                      alpha: DSStyles.alphaSubtle,
                     ),
                   ),
               ],

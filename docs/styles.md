@@ -14,6 +14,20 @@ The Design System is located in `lib/design_system/` and follows a token-based a
 
 ---
 
+## The 5-Tier Gold Standard
+
+To maintain extreme consistency and prevent "token bloat," every configuration category (Typography, Spacing, Elevation, Animations) must adhere to a **3-to-5 tier scale**.
+
+- **XS / SM**: Secondary, compact, or micro-level details.
+- **MD**: The standard "Source of Truth" for most UI elements.
+- **LG / XL**: Primary headers, prominent CTAs, and high-impact containers.
+
+Developers should **never** add "one-off" tokens (e.g., `spacing23`). If a value doesn't fit the 5-tier scale, the layout should be adjusted to fit the system, rather than the system expanding to fit a specific layout.
+
+---
+
+---
+
 ## Typography (`DSTypography`)
 
 We use the **Montserrat** font family for all text. The system automatically maps all 18 font weights registered in `pubspec.yaml`.

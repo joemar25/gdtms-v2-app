@@ -173,9 +173,9 @@ class _LoadingScreen extends StatelessWidget {
           children: [
             const CircularProgressIndicator(
               color: DSColors.primary,
-              strokeWidth: 2.5,
+              strokeWidth: DSStyles.strokeWidth,
             ),
-            const SizedBox(height: 16),
+            DSSpacing.hMd,
             Text(
               'Verifying device time…',
               style: DSTypography.caption(
@@ -209,24 +209,24 @@ class _BlockingOverlay extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
-      color: DSColors.black.withValues(alpha: 0.72),
+      color: DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
+          constraints: const BoxConstraints(maxWidth: DSIconSize.heroSm),
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: DSSpacing.lg),
+            margin: EdgeInsets.symmetric(horizontal: DSSpacing.lg),
             decoration: BoxDecoration(
               color: isDark ? DSColors.cardDark : DSColors.cardLight,
               borderRadius: DSStyles.cardRadius,
               boxShadow: [
                 BoxShadow(
                   color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.12),
-                  blurRadius: 28,
-                  offset: const Offset(0, 6),
+                  blurRadius: DSStyles.radiusXL,
+                  offset: const Offset(0, DSSpacing.sm),
                 ),
               ],
             ),
-            padding: const EdgeInsets.symmetric(
+            padding: EdgeInsets.symmetric(
               horizontal: DSSpacing.xl,
               vertical: 28,
             ),
@@ -235,19 +235,19 @@ class _BlockingOverlay extends StatelessWidget {
               children: [
                 // Icon badge
                 Container(
-                  width: 64,
-                  height: 64,
+                  width: DSIconSize.heroLg,
+                  height: DSIconSize.heroLg,
                   decoration: BoxDecoration(
-                    color: DSColors.error.withValues(alpha: 0.12),
+                    color: DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.access_time_filled_rounded,
                     color: DSColors.error,
-                    size: DSIconSize.xxl,
+                    size: DSIconSize.xl,
                   ),
                 ),
-                const SizedBox(height: 16),
+                DSSpacing.hMd,
                 Text(
                   'Incorrect Device Time',
                   style: DSTypography.heading().copyWith(
@@ -255,7 +255,7 @@ class _BlockingOverlay extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                DSSpacing.hSm,
                 Text(
                   'This app requires Philippine Standard Time (UTC+8).',
                   style: DSTypography.body(
@@ -265,17 +265,17 @@ class _BlockingOverlay extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                DSSpacing.hMd,
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(DSSpacing.md),
+                  padding: EdgeInsets.all(DSSpacing.md),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? DSColors.error.withValues(alpha: 0.08)
-                        : DSColors.error.withValues(alpha: 0.06),
+                        ? DSColors.error.withValues(alpha: DSStyles.alphaSubtle)
+                        : DSColors.error.withValues(alpha: DSStyles.alphaSoft),
                     borderRadius: DSStyles.pillRadius,
                     border: Border.all(
-                      color: DSColors.error.withValues(alpha: 0.25),
+                      color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
                     ),
                   ),
                   child: Text(
@@ -286,7 +286,7 @@ class _BlockingOverlay extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(height: 20),
+                DSSpacing.hLg,
                 // Buttons
                 Row(
                   children: [
@@ -295,35 +295,35 @@ class _BlockingOverlay extends StatelessWidget {
                         onPressed: _openSettings,
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
-                            color: DSColors.primary.withValues(alpha: 0.6),
+                            color: DSColors.primary.withValues(alpha: DSStyles.alphaDisabled),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: DSStyles.cardRadius,
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
                         ),
                         child: const Text('Open Settings'),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    DSSpacing.wMd,
                     Expanded(
                       child: ElevatedButton(
                         onPressed: checking ? null : onRetry,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: DSColors.primary,
                           foregroundColor: DSColors.white,
-                          elevation: 0,
+                          elevation: DSStyles.elevationNone,
                           shape: RoundedRectangleBorder(
                             borderRadius: DSStyles.cardRadius,
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
                         ),
                         child: checking
                             ? const SizedBox(
-                                width: 18,
-                                height: 18,
+                                width: DSIconSize.lg,
+                                height: DSIconSize.lg,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                  strokeWidth: DSStyles.strokeWidth,
                                   color: DSColors.white,
                                 ),
                               )
@@ -332,7 +332,7 @@ class _BlockingOverlay extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                DSSpacing.hSm,
                 Text(
                   'Enable "Automatic date & time" and set timezone to Asia/Manila.',
                   style: DSTypography.caption(

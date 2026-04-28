@@ -48,8 +48,8 @@ class SyncProgressBar extends ConsumerWidget {
 
     final effectivePadding =
         padding ??
-        const EdgeInsets.symmetric(
-          horizontal: DSSpacing.base,
+        EdgeInsets.symmetric(
+          horizontal: DSSpacing.md,
           vertical: DSSpacing.sm,
         );
 
@@ -67,11 +67,11 @@ class SyncProgressBar extends ConsumerWidget {
             Row(
               children: [
                 const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  width: DSIconSize.sm,
+                  height: DSIconSize.sm,
+                  child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
                 ),
-                const SizedBox(width: 8),
+                DSSpacing.wSm,
                 Expanded(
                   child: Text(
                     syncState.lastMessage ?? 'Syncing…',
@@ -85,7 +85,7 @@ class SyncProgressBar extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            DSSpacing.hXs,
             LinearProgressIndicator(
               value: syncState.total > 0
                   ? syncState.processed / syncState.total
@@ -105,7 +105,7 @@ class SyncProgressBar extends ConsumerWidget {
                       ? DSColors.labelSecondaryDark
                       : DSColors.labelSecondary,
                 ),
-                const SizedBox(width: 6),
+                DSSpacing.wSm,
                 Text(
                   [
                     if (pending > 0) '$pending pending',

@@ -24,7 +24,7 @@
 // Navigation:
 //   Route: /scan
 //   Accessed via: FloatingBottomNavBar (Scan tab) and DashboardScreen SCAN card
-//   Pushes to: DeliveryDetailScreen on successful barcode match
+//   Pushes to: DeliveryUpdateScreen on successful barcode match
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -402,7 +402,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // ── SCAN GATE (pre-filter) ────────────────────────────────────────────────
     // Only PENDING and unverified FAILED_DELIVERY are valid delivery targets.
     // DELIVERED and OSA are excluded — they are not actionable here.
-    // DeliveryDetailScreen._load() runs isVisibleToRider again as the canonical
+    // DeliveryUpdateScreen._load() runs isVisibleToRider again as the canonical
     // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
     // message before ever navigating, and avoids N+1 per-row checks.
     var matches = await LocalDeliveryDao.instance.searchVisibleByQuery(code);
@@ -522,7 +522,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
       // Item exists on server but is not in the courier's active local list.
-      // The hard gate in DeliveryDetailScreen would catch it anyway, but we
+      // The hard gate in DeliveryUpdateScreen would catch it anyway, but we
       // block here to avoid a confusing navigation + immediate pop experience.
       setState(() => _inlineError = 'No active delivery found for "$code".');
       if (_hasPermission) await _scannerController.start();
@@ -612,20 +612,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                           .scaleXY(
                             begin: 1.2,
                             end: 1.0,
-                            duration: 150.ms,
+                            duration: DSAnimations.dMicro,
                             curve: Curves.easeOutBack,
                           )
                           .rotate(
                             begin: isTorchOn ? 0.1 : -0.1,
                             end: 0,
-                            duration: 150.ms,
+                            duration: DSAnimations.dMicro,
                             curve: Curves.easeOutBack,
                           ),
                   onPressed: () => _scannerController.toggleTorch(),
                 );
               },
             ),
-            const SizedBox(width: 8),
+            DSSpacing.wSm,
           ],
           showNotificationBell: false,
         ),
@@ -664,13 +664,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                       height: 2,
                       decoration: BoxDecoration(
                         color: DSColors.primary.withValues(
-                          alpha: DSStyles.alphaGlass,
+                          alpha: DSStyles.alphaDisabled,
                         ),
                         borderRadius: DSStyles.pillRadius,
                         boxShadow: [
                           BoxShadow(
                             color: DSColors.primary.withValues(
-                              alpha: DSStyles.alphaBorder,
+                              alpha: DSStyles.alphaMuted,
                             ),
                             blurRadius: 8,
                           ),
@@ -696,7 +696,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 GestureDetector(
                   onTap: _requestPermission,
                   child: Container(
-                    color: DSColors.black.withValues(alpha: 0.87),
+                    color: DSColors.black.withValues(alpha: DSStyles.alphaOpaque),
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -704,19 +704,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                           const Icon(
                             Icons.camera_alt_outlined,
                             color: DSColors.white,
-                            size: DSIconSize.heroLarge,
+                            size: DSIconSize.xl,
                           ),
-                          DSSpacing.hBase,
+                          DSSpacing.hMd,
                           Text(
                             'Camera permission required',
                             style: DSTypography.title(
                               color: DSColors.white,
                             ).copyWith(fontWeight: FontWeight.w600),
                           ),
-                          const SizedBox(height: 8),
+                          DSSpacing.hSm,
                           Text(
                             'Tap to grant camera access',
-                            style: DSTypography.caption(color: DSColors.white.withValues(alpha: 0.6)),
+                            style: DSTypography.caption(color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled)),
                           ),
                         ],
                       ),
@@ -731,13 +731,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 bottom: 0,
                 child: SafeArea(
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                    padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.md, DSSpacing.lg, DSSpacing.md),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          DSColors.black.withValues(alpha: DSStyles.alphaGlass),
+                          DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
                           DSColors.transparent,
                         ],
                       ),
@@ -749,7 +749,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                         // connectivity is required before they even attempt a scan.
                         if (_isDispatch)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
+                            padding: EdgeInsets.only(bottom: DSSpacing.sm),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -767,17 +767,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                               : Icons.wifi_off_rounded,
                                           size: DSIconSize.xs,
                                           color: isOnline
-                                              ? DSColors.white.withValues(alpha: 0.54)
+                                              ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
                                               : DSColors.warning,
                                         ),
-                                        const SizedBox(width: 4),
+                                        DSSpacing.wXs,
                                         Text(
                                           isOnline
                                               ? 'Dispatch scanning requires an internet connection.'
                                               : 'You are offline — dispatch scanning unavailable.',
                                           style: TextStyle(
                                             color: isOnline
-                                                ? DSColors.white.withValues(alpha: 0.54)
+                                                ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
                                                 : DSColors.warning,
                                             fontSize: DSTypography.sizeSm,
                                           ),
@@ -791,20 +791,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                           ),
                         if (_inlineError != null)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
+                            padding: EdgeInsets.only(bottom: DSSpacing.sm),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
+                              padding: EdgeInsets.symmetric(
                                 horizontal: 14,
                                 vertical: DSSpacing.sm,
                               ),
                               decoration: BoxDecoration(
                                 color: DSColors.error.withValues(
-                                  alpha: DSStyles.alphaActiveAccent,
+                                  alpha: DSStyles.alphaSubtle,
                                 ),
                                 borderRadius: DSStyles.cardRadius,
                                 border: Border.all(
                                   color: DSColors.error.withValues(
-                                    alpha: DSStyles.alphaBorder,
+                                    alpha: DSStyles.alphaMuted,
                                   ),
                                 ),
                               ),
@@ -816,7 +816,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                     color: DSColors.error,
                                     size: DSIconSize.sm,
                                   ),
-                                  const SizedBox(width: 8),
+                                  DSSpacing.wSm,
                                   Flexible(
                                     child: Text(
                                       _inlineError!,
@@ -848,7 +848,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                             foregroundColor: DSColors.white,
                             side: BorderSide(
                               color: DSColors.white.withValues(
-                                alpha: DSStyles.alphaBorder,
+                                alpha: DSStyles.alphaMuted,
                               ),
                             ),
                             minimumSize: const Size(double.infinity, 48),
@@ -900,7 +900,7 @@ class _ScanScrimPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = DSColors.black.withValues(alpha: 0.65);
+    final paint = Paint()..color = DSColors.black.withValues(alpha: DSStyles.alphaDisabled);
     final vfTop = (size.height - viewfinderH) * 0.42;
     final vfBottom = vfTop + viewfinderH;
     final vfLeft = viewfinderMargin;
@@ -1002,7 +1002,7 @@ class _ManualInputArea extends StatelessWidget {
             : DSColors.cardLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
       ),
-      padding: const EdgeInsets.fromLTRB(DSSpacing.xl, DSSpacing.base, DSSpacing.xl, DSSpacing.xxl),
+      padding: EdgeInsets.fromLTRB(DSSpacing.xl, DSSpacing.md, DSSpacing.xl, DSSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1010,38 +1010,38 @@ class _ManualInputArea extends StatelessWidget {
           // Handle
           Center(
             child: Container(
-              width: 36,
+              width: DSIconSize.heroSm,
               height: 4,
               decoration: BoxDecoration(
-                color: DSColors.white.withValues(alpha: 0.24),
+                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
                 borderRadius: DSStyles.pillRadius,
               ),
             ),
           ),
-          DSSpacing.hBase,
+          DSSpacing.hMd,
           Text(
             'MANUAL BARCODE/ACCOUNT NAME ENTRY',
-            style: DSTypography.label(color: DSColors.white.withValues(alpha: 0.7)).copyWith(
+            style: DSTypography.label(color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled)).copyWith(
               fontWeight: FontWeight.w800,
-              letterSpacing: DSTypography.lsMegaLoose,
+              letterSpacing: DSTypography.lsExtraLoose,
             ),
           ),
           DSSpacing.hMd,
           if (error != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: EdgeInsets.only(bottom: DSSpacing.sm),
               child: Container(
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   horizontal: DSSpacing.md,
                   vertical: DSSpacing.sm,
                 ),
                 decoration: BoxDecoration(
                   color: DSColors.error.withValues(
-                    alpha: DSStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaSubtle,
                   ),
                   borderRadius: DSStyles.cardRadius,
                   border: Border.all(
-                    color: DSColors.error.withValues(alpha: DSStyles.alphaBorder),
+                    color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
                   ),
                 ),
                 child: Text(
@@ -1061,7 +1061,7 @@ class _ManualInputArea extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: DSTypography.body(
-                color: DSColors.white.withValues(alpha: DSStyles.alphaDarkShadow),
+                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
               ),
               filled: true,
               fillColor: DSColors.white.withValues(alpha: DSStyles.alphaSoft),
@@ -1069,7 +1069,7 @@ class _ManualInputArea extends StatelessWidget {
                 borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
                   color: DSColors.white.withValues(
-                    alpha: DSStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaSubtle,
                   ),
                 ),
               ),
@@ -1077,7 +1077,7 @@ class _ManualInputArea extends StatelessWidget {
                 borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
                   color: DSColors.white.withValues(
-                    alpha: DSStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaSubtle,
                   ),
                 ),
               ),
@@ -1085,17 +1085,17 @@ class _ManualInputArea extends StatelessWidget {
                 borderRadius: DSStyles.cardRadius,
                 borderSide: const BorderSide(
                   color: DSColors.primary,
-                  width: 1.5,
+                  width: DSStyles.borderWidth * 1.5,
                 ),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: DSSpacing.base,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: DSSpacing.md,
                 vertical: 14,
               ),
             ),
             onSubmitted: (_) => onSubmit(),
           ),
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           FilledButton.icon(
             icon: const Icon(Icons.search_rounded, size: DSIconSize.md),
             label: Text(
@@ -1151,7 +1151,7 @@ class _SearchResultsSheet extends StatelessWidget {
             DSSpacing.hMd,
             Center(
               child: Container(
-                width: 40,
+                width: DSIconSize.heroSm,
                 height: 4,
                 decoration: BoxDecoration(
                   color: DSColors.separatorLight,
@@ -1160,7 +1160,7 @@ class _SearchResultsSheet extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.base, DSSpacing.lg, DSSpacing.sm),
+              padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.md, DSSpacing.lg, DSSpacing.sm),
               child: Row(
                 children: [
                   Expanded(
@@ -1173,15 +1173,15 @@ class _SearchResultsSheet extends StatelessWidget {
                             fontSize: DSTypography.sizeSm,
                             fontWeight: FontWeight.w800,
                             color: DSColors.labelTertiary,
-                            letterSpacing: DSTypography.lsMegaLoose,
+                            letterSpacing: DSTypography.lsExtraLoose,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        DSSpacing.hXs,
                         Text(
                           'Tap one to open delivery details',
                           style: TextStyle(
                             fontSize: DSTypography.sizeMd,
-                            color: isDark ? DSColors.white.withValues(alpha: 0.7) : DSColors.labelSecondary,
+                            color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled) : DSColors.labelSecondary,
                           ),
                         ),
                       ],
@@ -1198,10 +1198,10 @@ class _SearchResultsSheet extends StatelessWidget {
             Expanded(
               child: ListView.separated(
                 controller: scrollController,
-                padding: const EdgeInsets.symmetric(vertical: DSSpacing.sm),
+                padding: EdgeInsets.symmetric(vertical: DSSpacing.sm),
                 itemCount: results.length,
                 separatorBuilder: (_, _) =>
-                    const Divider(height: 1, indent: 16, endIndent: 16),
+                    const Divider(height: DSStyles.borderWidth, indent: 16, endIndent: 16),
                 itemBuilder: (_, i) {
                   final d = results[i];
                   final barcode =
@@ -1218,8 +1218,8 @@ class _SearchResultsSheet extends StatelessWidget {
 
                   return ListTile(
                     leading: Container(
-                      width: 40,
-                      height: 40,
+                      width: DSIconSize.heroSm,
+                      height: DSIconSize.heroSm,
                       decoration: BoxDecoration(
                         color: DSColors.primary.withValues(
                           alpha: DSStyles.alphaSoft,
@@ -1264,7 +1264,7 @@ class _SearchResultsSheet extends StatelessWidget {
                       ],
                     ),
                     trailing: Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         horizontal: DSSpacing.sm,
                         vertical: 3,
                       ),

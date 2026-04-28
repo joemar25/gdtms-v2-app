@@ -27,14 +27,14 @@ class LocationRequiredScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xl),
+          padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.security_rounded, size: DSIconSize.heroLarge, color: DSColors.error)
+              Icon(Icons.security_rounded, size: DSIconSize.xl, color: DSColors.error)
                   .dsHeroEntry(),
-              const SizedBox(height: 20),
+              DSSpacing.hLg,
               Text(
                 'Permissions Required',
                 textAlign: TextAlign.center,
@@ -42,16 +42,16 @@ class LocationRequiredScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
-              const SizedBox(height: 8),
+              DSSpacing.hSm,
               Text(
                 'FSI Courier needs the following permissions to function properly. Please enable all of them to continue.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
-                  height: 1.5,
+                  height: DSStyles.heightRelaxed,
                 ),
               ).dsFadeEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
-              const SizedBox(height: 32),
+              DSSpacing.hXl,
 
               // ── Location ────────────────────────────────────────────────────
               _PermissionCard(
@@ -73,7 +73,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                         locationNotifier,
                       ),
               ).dsCardEntry(delay: DSAnimations.stagger(3, step: DSAnimations.staggerNormal)),
-              const SizedBox(height: 12),
+              DSSpacing.hMd,
 
               // ── Camera ──────────────────────────────────────────────────────
               _PermissionCard(
@@ -98,7 +98,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                     ? () => permsNotifier.openSettings()
                     : () => permsNotifier.requestCamera(),
               ).dsCardEntry(delay: DSAnimations.stagger(4, step: DSAnimations.staggerNormal)),
-              const SizedBox(height: 12),
+              DSSpacing.hMd,
 
               // ── Notifications ───────────────────────────────────────────────
               _PermissionCard(
@@ -124,7 +124,7 @@ class LocationRequiredScreen extends ConsumerWidget {
                     : () => permsNotifier.requestNotification(),
               ).dsCardEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
 
-              const SizedBox(height: 28),
+              DSSpacing.hXl,
               TextButton(
                 onPressed: () {
                   locationNotifier.refresh();
@@ -212,27 +212,27 @@ class _PermissionCard extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: granted
-              ? DSColors.primary.withValues(alpha: 0.35)
-              : theme.dividerColor.withValues(alpha: 0.4),
-          width: 1,
+              ? DSColors.primary.withValues(alpha: DSStyles.alphaMuted)
+              : theme.dividerColor.withValues(alpha: DSStyles.alphaMuted),
+          width: DSStyles.borderWidth,
         ),
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
-        vertical: 14,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.sm,
       ),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: DSIconSize.heroSm,
+            height: DSIconSize.heroSm,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
+              color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
               borderRadius: DSStyles.cardRadius,
             ),
             child: Icon(icon, color: iconColor, size: DSIconSize.lg),
           ),
-          const SizedBox(width: 14),
+          DSSpacing.wMd,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,18 +243,18 @@ class _PermissionCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 2),
+                DSSpacing.hXs,
                 Text(
                   description,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: statusColor,
-                    height: 1.4,
+                    height: DSStyles.heightNormal,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          DSSpacing.wSm,
           if (granted)
             Icon(Icons.check_circle_rounded, color: DSColors.primary, size: DSIconSize.xl)
           else
@@ -262,7 +262,7 @@ class _PermissionCard extends StatelessWidget {
               onPressed: onTap,
               style: TextButton.styleFrom(
                 foregroundColor: DSColors.error,
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   horizontal: DSSpacing.md,
                   vertical: DSSpacing.sm,
                 ),

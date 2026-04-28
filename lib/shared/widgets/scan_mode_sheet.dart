@@ -48,11 +48,11 @@ class _ScanModeSheet extends StatelessWidget {
           top: Radius.circular(DSStyles.radiusSheet),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         DSSpacing.xl,
-        DSSpacing.base,
+        DSSpacing.md,
         DSSpacing.xl,
-        DSSpacing.xxl,
+        DSSpacing.xl,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -60,12 +60,12 @@ class _ScanModeSheet extends StatelessWidget {
         children: [
           Center(
             child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
+              width: DSIconSize.heroSm,
+              height: DSSpacing.xs,
+              margin: EdgeInsets.only(bottom: DSSpacing.lg),
               decoration: BoxDecoration(
                 color: isDark
-                    ? DSColors.labelSecondaryDark.withValues(alpha: 0.2)
+                    ? DSColors.labelSecondaryDark.withValues(alpha: DSStyles.alphaMuted)
                     : DSColors.separatorLight,
                 borderRadius: DSStyles.pillRadius,
               ),
@@ -81,10 +81,10 @@ class _ScanModeSheet extends StatelessWidget {
                 ).copyWith(
                   fontSize: DSTypography.sizeSm,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: DSTypography.lsMegaLoose,
+                  letterSpacing: DSTypography.lsExtraLoose,
                 ),
           ),
-          const SizedBox(height: 14),
+          DSSpacing.hMd,
           _ActionTile(
             icon: Icons.qr_code_scanner_rounded,
             iconColor: DSColors.primary,
@@ -92,7 +92,7 @@ class _ScanModeSheet extends StatelessWidget {
             subtitle: 'Scan or enter a dispatch code',
             onTap: onDispatch,
           ),
-          const SizedBox(height: 8),
+          DSSpacing.hSm,
           _ActionTile(
             icon: Icons.inventory_2_outlined,
             iconColor: DSColors.error,
@@ -131,8 +131,8 @@ class _ActionTile extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DSSpacing.base,
+          padding: EdgeInsets.symmetric(
+            horizontal: DSSpacing.md,
             vertical: DSSpacing.md,
           ),
           decoration: BoxDecoration(
@@ -142,11 +142,11 @@ class _ActionTile extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: DSSpacing.xs,
+                height: DSSpacing.xs,
                 decoration: BoxDecoration(
                   color: iconColor.withValues(
-                    alpha: DSStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaSubtle,
                   ),
                   borderRadius: DSStyles.cardRadius,
                 ),
@@ -164,7 +164,7 @@ class _ActionTile extends StatelessWidget {
                         fontSize: DSTypography.sizeMd,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    DSSpacing.hXs,
                     Text(
                       subtitle,
                       style: DSTypography.caption(

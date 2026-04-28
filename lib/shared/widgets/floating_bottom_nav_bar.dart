@@ -24,16 +24,16 @@ class FloatingBottomNavBar extends StatelessWidget {
 
     // iOS-style glass: semi-transparent bg layered over blur
     final glassBg = isDark
-        ? DSColors.cardDark.withValues(alpha: DSStyles.alphaGlass)
-        : DSColors.white.withValues(alpha: DSStyles.alphaGlass);
+        ? DSColors.cardDark.withValues(alpha: DSStyles.alphaDisabled)
+        : DSColors.white.withValues(alpha: DSStyles.alphaDisabled);
 
     final borderColor = isDark
         ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
-        : DSColors.white.withValues(alpha: DSStyles.alphaBorder);
+        : DSColors.white.withValues(alpha: DSStyles.alphaMuted);
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: EdgeInsets.fromLTRB(DSSpacing.md, 0, DSSpacing.md, DSSpacing.sm),
         child: ClipRRect(
           borderRadius: DSStyles.circularRadius,
           child: BackdropFilter(
@@ -42,20 +42,20 @@ class FloatingBottomNavBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: glassBg,
                 borderRadius: DSStyles.circularRadius,
-                border: Border.all(color: borderColor, width: 0.8),
+                border: Border.all(color: borderColor, width: DSStyles.borderWidth),
                 boxShadow: [
                   BoxShadow(
                     color: DSColors.black.withValues(
                       alpha: isDark ? 0.35 : 0.10,
                     ),
-                    blurRadius: 32,
+                    blurRadius: DSStyles.radiusXL * 1.33,
                     spreadRadius: -4,
                     offset: const Offset(0, 8),
                   ),
                 ],
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   vertical: DSSpacing.sm,
                   horizontal: DSSpacing.sm,
                 ),
@@ -161,13 +161,13 @@ class _NavItemState extends State<_NavItem>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(
+          padding: EdgeInsets.symmetric(
             horizontal: DSSpacing.lg,
             vertical: DSSpacing.sm,
           ),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? DSColors.primary.withValues(alpha: DSStyles.alphaActiveAccent)
+                ? DSColors.primary.withValues(alpha: DSStyles.alphaSubtle)
                 : DSColors.transparent,
             borderRadius: DSStyles.cardRadius,
           ),
@@ -185,7 +185,7 @@ class _NavItemState extends State<_NavItem>
                   size: DSIconSize.xl,
                 ),
               ),
-              const SizedBox(height: 2),
+              DSSpacing.hXs,
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 220),
                 style: DSTypography.label().copyWith(

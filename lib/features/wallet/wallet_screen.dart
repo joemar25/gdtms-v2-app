@@ -329,7 +329,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                    padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, DSSpacing.xl),
                     children: [
                       // ── Offline banner ─────────────────────────────────────
                       if (!isOnline)
@@ -337,7 +337,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           isMinimal: true,
                           customMessage:
                               'You\'re offline — only total earnings are shown.',
-                          margin: EdgeInsets.only(bottom: 14),
+                          margin: EdgeInsets.only(bottom: DSSpacing.md),
                         ),
 
                       // ── Earnings / Payout Flip Card ────────────────────────
@@ -350,140 +350,131 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           )
                           .dsCardEntry(duration: DSAnimations.dNormal),
 
-                      const SizedBox(height: 20),
+                      DSSpacing.hLg,
 
                       // ── Online-only section ──────────────────────────────
-                      if (isOnline) ...[
-                        // ── Time-window guard ─────────────────────────────────
-                        if (!isInRequestWindow) ...[
-                          _PayoutWindowBanner(),
-                          const SizedBox(height: 12),
-                        ],
+                      if (isOnline && !isInRequestWindow) ...[
+                        _PayoutWindowBanner(),
+                        DSSpacing.hMd,
+                      ],
 
-                        // Request payout / consolidate / pending notice
-                        if (canRequestPayout && isInRequestWindow)
-                          FilledButton.icon(
-                                onPressed: () =>
-                                    context.push('/wallet/request'),
-                                icon: const Icon(Icons.payments_rounded),
-                                label: Text(
-                                  kAppDebugMode
-                                      ? 'Request Payout (DEBUG)'
-                                      : 'Request Payout',
-                                ),
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(50),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: DSStyles.cardRadius,
-                                  ),
-                                ),
-                              )
-                              .dsCtaEntry(delay: DSAnimations.stagger(2))
-                        else if (canRequestPayout && !isInRequestWindow)
-                          // Show disabled button with a lock icon so the courier
-                          // sees the action but understands it's time-locked.
-                          Opacity(
-                            opacity: 0.45,
-                            child: FilledButton.icon(
-                              onPressed: null,
-                              icon: const Icon(Icons.lock_clock_rounded),
-                              label: const Text('Request Payout'),
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size.fromHeight(50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: DSStyles.cardRadius,
-                                ),
-                              ),
+                      if (isOnline && canRequestPayout && isInRequestWindow)
+                        FilledButton.icon(
+                          onPressed: () => context.push('/wallet/request'),
+                          icon: const Icon(Icons.payments_rounded),
+                          label: Text(
+                            kAppDebugMode
+                                ? 'Request Payout (DEBUG)'
+                                : 'Request Payout',
+                          ),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: DSStyles.cardRadius,
                             ),
-                          )
-                        else if (isLatestPending &&
-                            _eligible > 0 &&
-                            !hasExistingRequestToday &&
-                            isInRequestWindow)
-                          FilledButton.icon(
-                            onPressed: () => context.push(
-                              '/wallet/request',
-                              extra: {'consolidate': true},
-                            ),
-                            icon: const Icon(Icons.payments_rounded),
-                            label: Text(
-                              kAppDebugMode
-                                  ? 'Consolidate Payout Request (DEBUG)'
-                                  : 'Consolidate Payout Request',
-                            ),
+                          ),
+                        ).dsCtaEntry(delay: DSAnimations.stagger(2))
+                      else if (isOnline && canRequestPayout && !isInRequestWindow)
+                        Opacity(
+                          opacity: 0.45,
+                          child: FilledButton.icon(
+                            onPressed: null,
+                            icon: const Icon(Icons.lock_clock_rounded),
+                            label: const Text('Request Payout'),
                             style: FilledButton.styleFrom(
-                              backgroundColor: DSColors.warning,
                               minimumSize: const Size.fromHeight(50),
                               shape: RoundedRectangleBorder(
                                 borderRadius: DSStyles.cardRadius,
                               ),
                             ),
-                          )
-                        else
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: DSSpacing.base,
-                              vertical: DSSpacing.md,
-                            ),
-                            decoration: BoxDecoration(
-                              color: DSColors.warning.withValues(
-                                alpha: DSStyles.alphaSoft,
-                              ),
+                          ),
+                        )
+                      else if (isOnline && isLatestPending &&
+                          _eligible > 0 &&
+                          !hasExistingRequestToday &&
+                          isInRequestWindow)
+                        FilledButton.icon(
+                          onPressed: () => context.push(
+                            '/wallet/request',
+                            extra: {'consolidate': true},
+                          ),
+                          icon: const Icon(Icons.payments_rounded),
+                          label: Text(
+                            kAppDebugMode
+                                ? 'Consolidate Payout Request (DEBUG)'
+                                : 'Consolidate Payout Request',
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: DSColors.warning,
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
                               borderRadius: DSStyles.cardRadius,
-                              border: Border.all(
-                                color: DSColors.warning.withValues(
-                                  alpha: DSStyles.alphaDarkShadow,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline_rounded,
-                                  color: DSColors.warning,
-                                  size: DSIconSize.md,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    hasExistingRequestToday
-                                        ? 'You have already submitted a request today. You can consolidate your deliveries tomorrow.'
-                                        : 'You have a pending payout request',
-                                    style: DSTypography.caption(
-                                      color: DSColors.warning,
-                                    ).copyWith(fontSize: DSTypography.sizeSm),
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
-
-                        const SizedBox(height: 20),
-
-                        // ── Payout history strip ─────────────────────────────
-                        if (_historyBreakdown.isNotEmpty) ...[
-                          _SectionLabel(
-                            'Payout History',
-                          ).dsFadeEntry(delay: DSAnimations.stagger(3)),
-                          const SizedBox(height: 8),
-                          DateStripWithDeliveries(
-                            key: ValueKey('history_$_stripKey'),
-                            dailyBreakdown: _historyBreakdown,
-                            initialSelectedDate: _initialHistoryDate,
-                            showDayTotal: false,
-                            itemCountLabelBuilder: (n) =>
-                                n == 1 ? '1 request' : '$n requests',
-                            itemBuilder: (ctx, req) => _PayoutRequestHistoryRow(
-                              data: req,
-                              onTap: () {
-                                final ref =
-                                    '${req['reference'] ?? req['payment_reference'] ?? ''}';
-                                if (ref.isNotEmpty) ctx.push('/wallet/$ref');
-                              },
+                        )
+                      else if (isOnline)
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: DSSpacing.md,
+                            vertical: DSSpacing.md,
+                          ),
+                          decoration: BoxDecoration(
+                            color: DSColors.warning.withValues(
+                              alpha: DSStyles.alphaSoft,
                             ),
-                          ).dsCardEntry(delay: DSAnimations.stagger(4)),
-                          const SizedBox(height: 20),
-                        ],
+                            borderRadius: DSStyles.cardRadius,
+                            border: Border.all(
+                              color: DSColors.warning.withValues(
+                                alpha: DSStyles.alphaMuted,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline_rounded,
+                                color: DSColors.warning,
+                                size: DSIconSize.md,
+                              ),
+                              DSSpacing.wSm,
+                              Expanded(
+                                child: Text(
+                                  hasExistingRequestToday
+                                      ? 'You have already submitted a request today. You can consolidate your deliveries tomorrow.'
+                                      : 'You have a pending payout request',
+                                  style: DSTypography.caption(
+                                    color: DSColors.warning,
+                                  ).copyWith(fontSize: DSTypography.sizeSm),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      if (isOnline) DSSpacing.hLg,
+
+                      if (isOnline && _historyBreakdown.isNotEmpty) ...[
+                        _SectionLabel(
+                          'Payout History',
+                        ).dsFadeEntry(delay: DSAnimations.stagger(3)),
+                        DSSpacing.hSm,
+                        DateStripWithDeliveries(
+                          key: ValueKey('history_$_stripKey'),
+                          dailyBreakdown: _historyBreakdown,
+                          initialSelectedDate: _initialHistoryDate,
+                          showDayTotal: false,
+                          itemCountLabelBuilder: (n) =>
+                              n == 1 ? '1 request' : '$n requests',
+                          itemBuilder: (ctx, req) => _PayoutRequestHistoryRow(
+                            data: req,
+                            onTap: () {
+                              final ref =
+                                  '${req['reference'] ?? req['payment_reference'] ?? ''}';
+                              if (ref.isNotEmpty) ctx.push('/wallet/$ref');
+                            },
+                          ),
+                        ).dsCardEntry(delay: DSAnimations.stagger(4)),
+                        DSSpacing.hLg,
                       ],
                     ],
                   ),
@@ -510,7 +501,7 @@ class _PayoutWindowBanner extends StatelessWidget {
     // returns true), but guard here defensively just in case.
     if (kAppDebugMode) {
       return Container(
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           horizontal: 14,
           vertical: DSSpacing.md,
         ),
@@ -518,13 +509,13 @@ class _PayoutWindowBanner extends StatelessWidget {
           color: DSColors.accent.withValues(alpha: DSStyles.alphaSoft),
           borderRadius: DSStyles.cardRadius,
           border: Border.all(
-            color: DSColors.accent.withValues(alpha: DSStyles.alphaDarkShadow),
+            color: DSColors.accent.withValues(alpha: DSStyles.alphaMuted),
           ),
         ),
         child: Row(
           children: [
             Icon(Icons.bug_report_rounded, color: DSColors.primary, size: DSIconSize.md),
-            const SizedBox(width: 10),
+            DSSpacing.wMd,
             Expanded(
               child: Text(
                 '(DEBUG) Time restriction bypassed — requests allowed at any hour.',
@@ -540,7 +531,7 @@ class _PayoutWindowBanner extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: 14,
         vertical: DSSpacing.md,
       ),
@@ -548,14 +539,14 @@ class _PayoutWindowBanner extends StatelessWidget {
         color: DSColors.error.withValues(alpha: DSStyles.alphaSoft),
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: DSColors.error.withValues(alpha: DSStyles.alphaDarkShadow),
+          color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.lock_clock_rounded, color: DSColors.error, size: DSIconSize.md),
-          const SizedBox(width: 10),
+          DSSpacing.wMd,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -567,7 +558,7 @@ class _PayoutWindowBanner extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 3),
+                DSSpacing.hXs,
                 Text(
                   'You can request a payout between '
                   '${kPayoutWindowStartHour.toString().padLeft(2, '0')}:00 AM '
@@ -576,9 +567,9 @@ class _PayoutWindowBanner extends StatelessWidget {
                   'Please come back during that window.',
                   style: DSTypography.caption(
                     color: DSColors.error.withValues(
-                      alpha: DSStyles.alphaGlass,
+                      alpha: DSStyles.alphaDisabled,
                     ),
-                  ).copyWith(height: 1.4),
+                  ).copyWith(height: DSStyles.heightNormal),
                 ),
               ],
             ),
@@ -620,7 +611,7 @@ class _WalletFlipCardState extends State<_WalletFlipCard>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: DSAnimations.dSlow,
     );
   }
 
@@ -703,12 +694,12 @@ class _WalletFlipCardState extends State<_WalletFlipCard>
         mainAxisSize: MainAxisSize.min,
         children: [
           PaymentMethodCard(data: widget.paymentMethod, isTransparent: true),
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           Text(
             'Tap to flip back',
             style:
                 DSTypography.caption(
-                  color: DSColors.white.withValues(alpha: DSStyles.alphaGlass),
+                  color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
                 ).copyWith(
                   fontSize: DSTypography.sizeXs,
                   fontStyle: FontStyle.italic,
@@ -753,17 +744,17 @@ class _EarningsCard extends StatelessWidget {
     return Container(
       margin: EdgeInsets.zero,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [DSColors.primary.withValues(alpha: 0.9), DSColors.primary],
+        gradient: const LinearGradient(
+          colors: [DSColors.primary, DSColors.primaryPressed],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: DSStyles.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: DSColors.primary.withValues(alpha: DSStyles.alphaDarkShadow),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+            blurRadius: DSSpacing.xl,
+            offset: const Offset(0, DSSpacing.md),
           ),
         ],
       ),
@@ -775,9 +766,9 @@ class _EarningsCard extends StatelessWidget {
           highlightColor: DSColors.white.withValues(alpha: DSStyles.alphaSoft),
           splashColor: DSColors.white.withValues(alpha: DSStyles.alphaSoft),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
+            padding: EdgeInsets.symmetric(
               horizontal: DSSpacing.xl,
-              vertical: 28,
+              vertical: DSSpacing.xl,
             ),
             child:
                 child ??
@@ -789,22 +780,22 @@ class _EarningsCard extends StatelessWidget {
                         Icon(
                           Icons.account_balance_wallet_rounded,
                           color: DSColors.white.withValues(
-                            alpha: DSStyles.alphaGlass,
+                            alpha: DSStyles.alphaDisabled,
                           ),
                           size: DSIconSize.md,
                         ),
-                        const SizedBox(width: 6),
+                        DSSpacing.wXs,
                         Text(
                           displayLabel,
                           style: DSTypography.caption(
-                            color: DSColors.white.withValues(alpha: 0.7),
+                            color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
                           ).copyWith(fontSize: DSTypography.sizeMd),
                         ),
                         const Spacer(),
                         if (isLatestPending)
                           Icon(
                             Icons.unfold_more_rounded,
-                            color: DSColors.white.withValues(alpha: 0.6),
+                            color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
                             size: DSIconSize.sm,
                           ),
                       ],
@@ -814,8 +805,8 @@ class _EarningsCard extends StatelessWidget {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         // Currency symbol offset to align numbers with label text above
-                        SizedBox(
-                          width: 24,
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4, right: 2),
                           child: Text(
                             '₱',
                             style:
@@ -824,7 +815,7 @@ class _EarningsCard extends StatelessWidget {
                                     alpha: DSStyles.alphaSoft,
                                   ),
                                 ).copyWith(
-                                  fontSize: DSTypography.sizeMd,
+                                  fontSize: DSTypography.sizeLg,
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),
@@ -833,14 +824,14 @@ class _EarningsCard extends StatelessWidget {
                           _fmt(displayAmt),
                           style: DSTypography.display(
                             color: DSColors.white,
-                          ).copyWith(fontSize: 34, fontWeight: FontWeight.w800),
+                          ).copyWith(fontSize: DSTypography.sizeHero, fontWeight: FontWeight.w800),
                         ),
                       ],
                     ),
 
                     // ── If flipping enabled: hint for tapping ──
                     if (isFlipping) ...[
-                      const SizedBox(height: 8),
+                      DSSpacing.hSm,
                       Text(
                         'Tap to view payout account',
                         style:
@@ -857,7 +848,7 @@ class _EarningsCard extends StatelessWidget {
 
                     // ── If pending: show pending request as secondary info ──
                     if (showPending && isLatestPending && pendingAmt > 0) ...[
-                      const SizedBox(height: 14),
+                      DSSpacing.hMd,
                       _payoutRow(
                         icon: Icons.schedule_rounded,
                         label: 'Pending Payment Request',
@@ -883,7 +874,7 @@ class _EarningsCard extends StatelessWidget {
     required String amount,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: 14,
         vertical: DSSpacing.md,
       ),
@@ -891,19 +882,23 @@ class _EarningsCard extends StatelessWidget {
         color: DSColors.transparent,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: DSColors.white.withValues(alpha: DSStyles.alphaBorder),
-          width: 1,
+          color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
+          width: DSStyles.borderWidth,
         ),
       ),
       child: Row(
         children: [
-          Icon(icon, color: DSColors.white.withValues(alpha: 0.7), size: DSIconSize.sm),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: DSTypography.caption(
-              color: DSColors.white.withValues(alpha: 0.7),
-            ).copyWith(fontSize: DSTypography.sizeMd),
+          Icon(icon, color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled), size: DSIconSize.sm),
+          DSSpacing.wSm,
+          Expanded(
+            child: Text(
+              label,
+              style: DSTypography.caption(
+                color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
+              ).copyWith(fontSize: DSTypography.sizeMd),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const Spacer(),
           Text(
@@ -943,22 +938,22 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
     final totalItems = data['total_items'] ?? data['delivery_count'];
 
     return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(top: DSSpacing.sm),
+      elevation: DSStyles.elevationNone,
+      margin: EdgeInsets.only(top: DSSpacing.sm),
       shape: RoundedRectangleBorder(
         borderRadius: DSStyles.cardRadius,
         side: BorderSide(
           color: Theme.of(
             context,
-          ).dividerColor.withValues(alpha: DSStyles.alphaBorder),
+          ).dividerColor.withValues(alpha: DSStyles.alphaMuted),
         ),
       ),
       child: InkWell(
         onTap: onTap,
         borderRadius: DSStyles.cardRadius,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DSSpacing.base,
+          padding: EdgeInsets.symmetric(
+            horizontal: DSSpacing.md,
             vertical: DSSpacing.md,
           ),
           child: Column(
@@ -979,26 +974,32 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                   _StatusBadge(status),
                 ],
               ),
-              const SizedBox(height: 14),
+              DSSpacing.hMd,
 
               // ── Values Row (Date/Items + Amount) ──────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (dateLabel != '—') ...[
-                    _InfoChip(
-                      icon: Icons.calendar_today_outlined,
-                      label: dateLabel,
+                    Flexible(
+                      child: _InfoChip(
+                        icon: Icons.calendar_today_outlined,
+                        label: dateLabel,
+                      ),
                     ),
                     DSSpacing.wSm,
                   ],
                   if (totalItems != null) ...[
-                    _InfoChip(
-                      icon: Icons.inventory_2_outlined,
-                      label: '$totalItems items',
+                    Flexible(
+                      child: _InfoChip(
+                        icon: Icons.inventory_2_outlined,
+                        label: '$totalItems items',
+                      ),
                     ),
                   ] else if (paidAt != '—') ...[
-                    _InfoChip(icon: Icons.payments_outlined, label: paidAt),
+                    Flexible(
+                      child: _InfoChip(icon: Icons.payments_outlined, label: paidAt),
+                    ),
                   ],
                   const Spacer(),
                   Text.rich(
@@ -1010,7 +1011,7 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                             fontSize: DSTypography.sizeMd,
                             fontWeight: FontWeight.w600,
                             color: DSColors.primary.withValues(
-                              alpha: DSStyles.alphaGlass,
+                              alpha: DSStyles.alphaDisabled,
                             ),
                           ),
                         ),
@@ -1043,14 +1044,14 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final (bg, fg) = switch (status.toUpperCase()) {
-      'PAID' => (DSColors.success.withValues(alpha: 0.1), DSColors.success),
+      'PAID' => (DSColors.success.withValues(alpha: DSStyles.alphaSubtle), DSColors.success),
       'APPROVED' || 'OPS_APPROVED' || 'HR_APPROVED' => (
-        DSColors.primary.withValues(alpha: 0.1),
+        DSColors.primary.withValues(alpha: DSStyles.alphaSubtle),
         DSColors.primary,
       ),
-      'REJECTED' => (DSColors.error.withValues(alpha: 0.1), DSColors.error),
+      'REJECTED' => (DSColors.error.withValues(alpha: DSStyles.alphaSubtle), DSColors.error),
       'PENDING' || 'PROCESSING' => (
-        DSColors.warning.withValues(alpha: 0.1),
+        DSColors.warning.withValues(alpha: DSStyles.alphaSubtle),
         DSColors.warning,
       ),
       _ => (
@@ -1059,7 +1060,7 @@ class _StatusBadge extends StatelessWidget {
       ),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.md,
         vertical: DSSpacing.xs,
       ),
@@ -1123,5 +1124,3 @@ class _SectionLabel extends StatelessWidget {
     );
   }
 }
-
-// Earnings detail row removed — it was unused and triggered analyzer warnings.

@@ -14,7 +14,7 @@ class OfflineBanner extends StatelessWidget {
     super.key,
     this.isMinimal = false,
     this.customMessage,
-    this.margin = const EdgeInsets.only(bottom: 16),
+    this.margin,
   });
 
   /// If true, shows a compact minimal version. If false, shows the full detailed version.
@@ -24,18 +24,19 @@ class OfflineBanner extends StatelessWidget {
   final String? customMessage;
 
   /// Margin around the banner. Default is bottom 16 for standard, adjust as needed.
-  final EdgeInsets margin;
+  final EdgeInsets? margin;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveMargin = margin ?? const EdgeInsets.only(bottom: 16.0);
     if (isMinimal) {
       return _MinimalOfflineBanner(
         message: customMessage ?? 'Showing locally saved data',
-        margin: margin,
+        margin: effectiveMargin,
       );
     }
 
-    return _StandardOfflineBanner(margin: margin);
+    return _StandardOfflineBanner(margin: effectiveMargin);
   }
 }
 
@@ -50,22 +51,22 @@ class _MinimalOfflineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: margin,
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: 14,
         vertical: DSSpacing.md,
       ),
       decoration: BoxDecoration(
-        color: DSColors.warning.withValues(alpha: 0.1),
+        color: DSColors.warning.withValues(alpha: DSStyles.alphaSubtle),
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: DSColors.warning.withValues(alpha: 0.3),
+          color: DSColors.warning.withValues(alpha: DSStyles.alphaMuted),
           width: 1.2,
         ),
       ),
       child: Row(
         children: [
           Icon(Icons.wifi_off_rounded, size: DSIconSize.sm, color: DSColors.warning),
-          const SizedBox(width: 10),
+          DSSpacing.wSm,
           Expanded(
             child: Text(
               message,
@@ -91,22 +92,22 @@ class _StandardOfflineBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: margin,
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
         vertical: DSSpacing.md,
       ),
       decoration: BoxDecoration(
         color: DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: DSColors.warning.withValues(alpha: DSStyles.alphaBorder),
+          color: DSColors.warning.withValues(alpha: DSStyles.alphaMuted),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.wifi_off_rounded, color: DSColors.warning, size: DSIconSize.lg),
-          const SizedBox(width: 12),
+          DSSpacing.wMd,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,13 +119,13 @@ class _StandardOfflineBanner extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 2),
+                DSSpacing.hXs,
                 Text(
                   'Local preferences (theme, compact mode, auto-accept) still work. '
                   'Dispatch scanning and data sync require an internet connection.',
                   style: DSTypography.body(
                     color: DSColors.warning,
-                  ).copyWith(fontSize: DSTypography.sizeSm, height: 1.4),
+                  ).copyWith(fontSize: DSTypography.sizeSm, height: DSStyles.heightNormal),
                 ),
               ],
             ),

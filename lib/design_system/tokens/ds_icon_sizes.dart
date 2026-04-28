@@ -2,42 +2,25 @@ import 'package:fsi_courier_app/design_system/tokens/ds_typography.dart';
 
 /// Design-system icon size tokens.
 /// 
-/// Linked to [DSTypography] scale to ensure visual rhythm
-/// when icons are paired with text.
+/// STABILITY RULE: Only 3 to 5 standard tiers allowed per category.
+/// REJECT any new tier requests that exceed this scale.
 class DSIconSize {
-  /// Extra-extra-small (micro badges, inline indicators)
-  /// ~10.2px
-  static const double xxs = DSTypography.sizeXs * 0.85;
-
-  /// Extra-small (secondary metadata indicators)
-  /// 12.0px
-  static const double xs = DSTypography.sizeXs;
+  /// Extra-small (micro badges, inline indicators)
+  static const double xs = DSTypography.sizeXs; // 12.0
 
   /// Small (subtitles, list item secondary actions)
-  /// 16.0px
-  static const double sm = DSTypography.sizeSm + 2;
+  static const double sm = DSTypography.sizeSm; // 14.0
 
   /// Medium (body icons, standard action icons)
-  /// 18.0px
-  static const double md = DSTypography.sizeMd * 1.125;
+  static const double md = DSTypography.sizeMd; // 16.0
 
   /// Large (header icons, primary action buttons)
-  /// 22.0px
-  static const double lg = DSTypography.sizeXl + 2;
+  static const double lg = DSTypography.sizeLg; // 18.0
 
-  /// Extra-large (prominent header icons, avatars)
-  /// 24.0px
-  static const double xl = DSTypography.sizeXl * 1.2;
+  /// Extra-large (hero icons, success/error states, avatars)
+  static const double xl = DSTypography.sizeXl; // 20.0
 
-  /// Double-extra-large (hero avatars, success/error states)
-  /// 32.0px
-  static const double xxl = DSTypography.sizeXl * 1.6;
-
-  /// Hero (empty state icons, large banners)
-  /// 48.0px
-  static const double hero = DSTypography.sizeXl * 2.4;
-
-  /// Massive Hero (security gates, critical failure screens)
-  /// 64.0px
-  static const double heroLarge = DSTypography.sizeXl * 3.2;
+  // ── Hero Variants (Calculations in Config) ──────────────────────────────
+  static const double heroSm = 48.0;
+  static const double heroLg = 240.0; // Splash only
 }

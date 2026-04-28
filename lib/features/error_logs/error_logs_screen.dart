@@ -127,10 +127,10 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                   // ── Level filter ───────────────────────────────────────────
                   if (_all.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        DSSpacing.base,
+                      padding: EdgeInsets.fromLTRB(
+                        DSSpacing.md,
                         0,
-                        DSSpacing.base,
+                        DSSpacing.md,
                         DSSpacing.sm,
                       ),
                       child: Container(
@@ -186,10 +186,10 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                     child: _filtered.isEmpty
                         ? _EmptyState(isDark: isDark)
                         : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(
-                              DSSpacing.base,
+                            padding: EdgeInsets.fromLTRB(
+                              DSSpacing.md,
                               0,
-                              DSSpacing.base,
+                              DSSpacing.md,
                               DSSpacing.xl,
                             ),
                             itemCount: _filtered.length,
@@ -223,15 +223,15 @@ class _SummaryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (errorCount == 0 && warningCount == 0) {
       return Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DSSpacing.base,
+        padding: EdgeInsets.symmetric(
+          horizontal: DSSpacing.md,
           vertical: DSSpacing.md,
         ),
         child: Row(
           children: [
             const Icon(
               Icons.check_circle_outline_rounded,
-              size: 16,
+              size: DSIconSize.sm,
               color: DSColors.success,
             ),
             DSSpacing.wSm,
@@ -248,8 +248,8 @@ class _SummaryBar extends StatelessWidget {
       );
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
         vertical: DSSpacing.md,
       ),
       child: Row(
@@ -296,7 +296,7 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.md,
         vertical: DSSpacing.xs,
       ),
@@ -304,7 +304,7 @@ class _Chip extends StatelessWidget {
         color: surfaceColor,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: color.withValues(alpha: DSStyles.alphaDarkShadow),
+          color: color.withValues(alpha: DSStyles.alphaMuted),
         ),
       ),
       child: Row(
@@ -353,13 +353,13 @@ class _LogCardState extends State<_LogCard> {
         color: widget.isDark ? DSColors.cardDark : DSColors.cardLight,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: color.withValues(alpha: DSStyles.alphaDarkShadow),
+          color: color.withValues(alpha: DSStyles.alphaMuted),
         ),
         boxShadow: [
           BoxShadow(
             color: DSColors.black.withValues(alpha: widget.isDark ? 0.2 : 0.04),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, DSSpacing.xs),
           ),
         ],
       ),
@@ -373,7 +373,7 @@ class _LogCardState extends State<_LogCard> {
                 ? () => setState(() => _expanded = !_expanded)
                 : null,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              padding: EdgeInsets.all(DSSpacing.sm),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -381,10 +381,10 @@ class _LogCardState extends State<_LogCard> {
                     isError
                         ? Icons.error_outline_rounded
                         : Icons.warning_amber_rounded,
-                    size: 16,
+                    size: DSIconSize.sm,
                     color: color,
                   ),
-                  const SizedBox(width: 8),
+                  DSSpacing.wSm,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,7 +411,7 @@ class _LogCardState extends State<_LogCard> {
                             ],
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        DSSpacing.hXs,
                         // Message
                         Text(
                           e.message,
@@ -420,7 +420,7 @@ class _LogCardState extends State<_LogCard> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        DSSpacing.hXs,
                         // Timestamp
                         Text(
                           fmt.format(e.createdAt),
@@ -439,7 +439,7 @@ class _LogCardState extends State<_LogCard> {
                       _expanded
                           ? Icons.expand_less_rounded
                           : Icons.expand_more_rounded,
-                      size: 18,
+                      size: DSIconSize.md,
                       color: widget.isDark
                           ? DSColors.labelTertiaryDark
                           : DSColors.labelTertiary,
@@ -459,7 +459,7 @@ class _LogCardState extends State<_LogCard> {
               },
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                padding: EdgeInsets.fromLTRB(DSSpacing.sm, 0, DSSpacing.sm, DSSpacing.sm),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: DSStyles.alphaSoft),
                   borderRadius: const BorderRadius.vertical(
@@ -472,7 +472,7 @@ class _LogCardState extends State<_LogCard> {
                     Divider(
                       height: 16,
                       color: color.withValues(
-                        alpha: DSStyles.alphaActiveAccent,
+                        alpha: DSStyles.alphaSubtle,
                       ),
                     ),
                     Text(
@@ -483,7 +483,7 @@ class _LogCardState extends State<_LogCard> {
                         color: widget.isDark
                             ? DSColors.labelSecondaryDark
                             : DSColors.labelSecondary,
-                        height: 1.5,
+                        height: DSStyles.heightRelaxed,
                       ),
                     ),
                     DSSpacing.hXs,
@@ -525,18 +525,18 @@ class _ContextBadge extends StatelessWidget {
   Widget build(BuildContext ctx) {
     final color = _colors[context] ?? DSColors.labelSecondary;
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.sm,
         vertical: 2,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: DSStyles.alphaActiveAccent),
+        color: color.withValues(alpha: DSStyles.alphaSubtle),
         borderRadius: DSStyles.pillRadius,
       ),
       child: Text(
         context.replaceAll('_', ' ').toUpperCase(),
         style: TextStyle(
-          fontSize: 9,
+          fontSize: DSTypography.sizeXs,
           fontWeight: FontWeight.w700,
           color: color,
           letterSpacing: DSTypography.lsLoose,
@@ -561,10 +561,10 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(
             Icons.check_circle_outline_rounded,
-            size: 56,
+            size: DSIconSize.heroSm,
             color: DSColors.success,
           ),
-          const SizedBox(height: 16),
+          DSSpacing.hMd,
           const Text(
             'No logs to show',
             style: TextStyle(
@@ -572,7 +572,7 @@ class _EmptyState extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 6),
+          DSSpacing.hSm,
           Text(
             'Errors and warnings will appear here\nwhen they occur.',
             textAlign: TextAlign.center,
@@ -581,7 +581,7 @@ class _EmptyState extends StatelessWidget {
               color: isDark
                   ? DSColors.labelSecondaryDark
                   : DSColors.labelSecondary,
-              height: 1.5,
+              height: DSStyles.heightRelaxed,
             ),
           ),
         ],

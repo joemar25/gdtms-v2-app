@@ -8,6 +8,9 @@ export 'tokens/ds_typography.dart';
 export 'tokens/ds_icon_sizes.dart';
 export 'tokens/ds_animations.dart';
 
+// Theme
+export 'ds_theme.dart';
+
 // Atoms
 export 'widgets/atoms/ds_input.dart';
 

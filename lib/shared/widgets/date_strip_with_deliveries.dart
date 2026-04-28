@@ -320,8 +320,8 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                 // Loading spinner prepended at the leading (left) end
                 if (_loadingMoreDates && i == 0) {
                   return Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    width: 60,
+                    margin: EdgeInsets.only(right: DSSpacing.sm),
+                    width: DSIconSize.heroLg,
                     decoration: BoxDecoration(
                       color: cardBg,
                       borderRadius: DSStyles.cardRadius,
@@ -329,9 +329,9 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                     ),
                     child: const Center(
                       child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        width: DSIconSize.xl,
+                        height: DSIconSize.xl,
+                        child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
                       ),
                     ),
                   );
@@ -350,8 +350,8 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                   onTap: () => setState(() => _selectedDate = dateStr),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
+                    margin: EdgeInsets.only(right: DSSpacing.sm),
+                    padding: EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: DSSpacing.sm,
                     ),
@@ -367,11 +367,11 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                             ? DSColors.primary
                             : isAnchor
                             ? DSColors.primary.withValues(
-                                alpha: DSStyles.alphaBorder,
+                                alpha: DSStyles.alphaMuted,
                               )
                             : hasDeliveries
                             ? DSColors.labelSecondary.withValues(
-                                alpha: DSStyles.alphaBorder,
+                                alpha: DSStyles.alphaMuted,
                               )
                             : cardBorder,
                       ),
@@ -386,14 +386,14 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                             fontWeight: FontWeight.w600,
                             color: selected
                                 ? DSColors.white.withValues(
-                                    alpha: DSStyles.alphaGlass,
+                                    alpha: DSStyles.alphaDisabled,
                                   )
                                 : DSColors.labelSecondary.withValues(
-                                    alpha: 0.7,
+                                    alpha: DSStyles.alphaDisabled,
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        DSSpacing.hXs,
                         Text(
                           _dayLabel(dateStr),
                           style: DSTypography.body().copyWith(
@@ -402,10 +402,10 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                             color: selected ? DSColors.white : primaryText,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        DSSpacing.hSm,
                         Container(
-                          width: 6,
-                          height: 6,
+                          width: DSIconSize.xs,
+                          height: DSIconSize.xs,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: hasDeliveries
@@ -421,7 +421,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        DSSpacing.hMd,
 
         // ── Day header ───────────────────────────────────────────────────────
         if (_selectedDate != null) ...[
@@ -434,9 +434,9 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: 8),
+              DSSpacing.wSm,
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
                 decoration: BoxDecoration(
                   color: subtleBg,
                   borderRadius: DSStyles.pillRadius,
@@ -467,7 +467,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
               ],
             ],
           ),
-          const SizedBox(height: 8),
+          DSSpacing.hSm,
         ],
 
         // ── Delivery list ────────────────────────────────────────────────────
@@ -489,7 +489,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
               showChevron: barcode.isNotEmpty && !isPayoutLocked,
               enableHoldToReveal: widget.enableHoldToReveal,
               onTap: (barcode.isNotEmpty && !isPayoutLocked)
-                  ? () => context.push('/deliveries/$barcode')
+                  ? () => context.push('/deliveries/$barcode/update')
                   : () {
                       final s = status.toUpperCase();
                       final v =

@@ -38,15 +38,15 @@ class DSCard extends StatelessWidget {
                 color: isDark
                     ? DSColors.separatorDark
                     : DSColors.separatorLight,
-                width: 1,
+                width: DSStyles.borderWidth,
               )
             : null,
         boxShadow: showShadow
             ? [
                 BoxShadow(
                   color: DSColors.black.withValues(alpha: isDark ? 0.25 : 0.05),
-                  blurRadius: 16,
-                  offset: const Offset(0, 2),
+                  blurRadius: DSStyles.radiusLG,
+                  offset: const Offset(0, DSSpacing.xs),
                 ),
               ]
             : null,

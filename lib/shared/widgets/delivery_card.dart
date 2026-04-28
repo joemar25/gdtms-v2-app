@@ -1,7 +1,6 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
@@ -10,6 +9,7 @@ import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card_components.dart';
+import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 
 class DeliveryCard extends StatelessWidget {
   const DeliveryCard({
@@ -195,9 +195,9 @@ class DeliveryCard extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: isDark
-                    ? DSColors.black.withValues(alpha: DSStyles.alphaDarkShadow)
+                    ? DSColors.black.withValues(alpha: DSStyles.alphaMuted)
                     : DSColors.black.withValues(alpha: DSStyles.alphaSoft),
-                blurRadius: 0,
+                blurRadius: DSStyles.elevationNone,
                 offset: const Offset(0, 3),
               ),
             ],
@@ -236,7 +236,10 @@ class DeliveryCard extends StatelessWidget {
                     ),
 
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: DSSpacing.md,
+                        vertical: DSSpacing.md,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +261,7 @@ class DeliveryCard extends StatelessWidget {
                                 ),
                               if (!isPrivacyMode &&
                                   (status.isNotEmpty || isDirty))
-                                const SizedBox(width: 8),
+                                DSSpacing.wSm,
                               Expanded(
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
@@ -272,7 +275,7 @@ class DeliveryCard extends StatelessWidget {
                                         mailType.isNotEmpty)
                                       Flexible(
                                         child: Container(
-                                          padding: const EdgeInsets.symmetric(
+                                          padding: EdgeInsets.symmetric(
                                             horizontal: DSSpacing.sm,
                                             vertical: 3,
                                           ),
@@ -291,7 +294,7 @@ class DeliveryCard extends StatelessWidget {
                                                   color: DSColors.primary,
                                                 ).copyWith(
                                                   fontSize: DSTypography.sizeSm,
-                                                  letterSpacing: 0.3,
+                                                  letterSpacing: DSTypography.lsLoose,
                                                 ),
                                           ),
                                         ),
@@ -314,7 +317,7 @@ class DeliveryCard extends StatelessWidget {
                                       ),
                                     if (attemptsCount > 0)
                                       Padding(
-                                        padding: const EdgeInsets.only(left: 6),
+                                        padding: EdgeInsets.only(left: DSSpacing.xs),
                                         child: DeliveryMiniPill(
                                           label: ds == DeliveryStatus.delivered
                                               ? 'FAILED ATTEMPTS: $attemptsCount'
@@ -324,12 +327,12 @@ class DeliveryCard extends StatelessWidget {
                                               (attemptsCount >= 3
                                                       ? DSColors.error
                                                       : DSColors.warning)
-                                                  .withValues(alpha: 0.08),
+                                                  .withValues(alpha: DSStyles.alphaSubtle),
                                           border:
                                               (attemptsCount >= 3
                                                       ? DSColors.error
                                                       : DSColors.warning)
-                                                  .withValues(alpha: 0.25),
+                                                  .withValues(alpha: DSStyles.alphaMuted),
                                           fg: attemptsCount >= 3
                                               ? DSColors.error
                                               : DSColors.warning,
@@ -338,7 +341,7 @@ class DeliveryCard extends StatelessWidget {
                                     if (showLockIcon &&
                                         (isLocked || !isVisible))
                                       Padding(
-                                        padding: const EdgeInsets.only(left: 6),
+                                        padding: EdgeInsets.only(left: DSSpacing.xs),
                                         child: Icon(
                                           Icons.lock_outline_rounded,
                                           color: isLocked
@@ -353,7 +356,7 @@ class DeliveryCard extends StatelessWidget {
                             ],
                           ),
 
-                          const SizedBox(height: 10),
+                          DSSpacing.hMd,
 
                           // ── Row 2: Barcode (large) ────────────────────────────
                           Text(
@@ -369,7 +372,7 @@ class DeliveryCard extends StatelessWidget {
                                   fontFamily: 'monospace',
                                   fontWeight: FontWeight.w800,
                                   fontSize: DSTypography.sizeMd,
-                                  letterSpacing: DSTypography.lsMegaLoose,
+                                  letterSpacing: DSTypography.lsExtraLoose,
                                 ),
                           ),
 
@@ -377,7 +380,7 @@ class DeliveryCard extends StatelessWidget {
                           if (!isPrivacyMode &&
                               name.isNotEmpty &&
                               !isLocked) ...[
-                            const SizedBox(height: 5),
+                            DSSpacing.hXs,
                             Row(
                               children: [
                                 Icon(
@@ -385,7 +388,7 @@ class DeliveryCard extends StatelessWidget {
                                   size: DSIconSize.xs,
                                   color: subtextColor,
                                 ),
-                                const SizedBox(width: 4),
+                                DSSpacing.wXs,
                                 Flexible(
                                   child: Text(
                                     name,
@@ -410,19 +413,19 @@ class DeliveryCard extends StatelessWidget {
                           if (!isPrivacyMode &&
                               address.isNotEmpty &&
                               !isLocked) ...[
-                            const SizedBox(height: 4),
+                            DSSpacing.hXs,
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 1),
+                                  padding: EdgeInsets.only(top: DSSpacing.xs),
                                   child: Icon(
                                     Icons.location_on_outlined,
                                     size: DSIconSize.xs,
                                     color: subtextColor,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
+                                DSSpacing.wXs,
                                 Expanded(
                                   child: Text(
                                     address,
@@ -432,7 +435,7 @@ class DeliveryCard extends StatelessWidget {
                                         : TextOverflow.ellipsis,
                                     style: DSTypography.caption(
                                       color: subtextColor,
-                                    ).copyWith(height: 1.4),
+                                    ).copyWith(height: DSStyles.heightNormal),
                                   ),
                                 ),
                               ],
@@ -441,7 +444,7 @@ class DeliveryCard extends StatelessWidget {
 
                           // ── Row 5: Privacy Mode Product Label ──────────────────
                           if (isPrivacyMode && product.isNotEmpty) ...[
-                            const SizedBox(height: 5),
+                            DSSpacing.hXs,
                             Row(
                               children: [
                                 Icon(
@@ -449,7 +452,7 @@ class DeliveryCard extends StatelessWidget {
                                   size: DSIconSize.xs,
                                   color: subtextColor,
                                 ),
-                                const SizedBox(width: 4),
+                                DSSpacing.wXs,
                                 Flexible(
                                   child: Text(
                                     product.toUpperCase(),
@@ -471,10 +474,10 @@ class DeliveryCard extends StatelessWidget {
                           // ── Metadata chips ───────────────────────────────────
                           if (!isPrivacyMode &&
                               delivery['metadata'] is List) ...[
-                            const SizedBox(height: 10),
+                            DSSpacing.hMd,
                             Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
+                              spacing: DSSpacing.sm,
+                              runSpacing: DSSpacing.sm,
                               children: (delivery['metadata'] as List).map((m) {
                                 final map = m as Map<String, dynamic>;
                                 return InfoChip(
@@ -489,20 +492,20 @@ class DeliveryCard extends StatelessWidget {
                           // ── Sync / Paid pills row ────────────────────────────
                           if (!isPrivacyMode &&
                               (isDirty || isPaid || inSyncQueue)) ...[
-                            const SizedBox(height: 10),
+                            DSSpacing.hMd,
                             Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
+                              spacing: DSSpacing.sm,
+                              runSpacing: DSSpacing.sm,
                               children: [
                                 if (isDirty)
                                   DeliveryMiniPill(
                                     label: 'UNSYNCED',
                                     icon: Icons.sync_problem_rounded,
                                     bg: DSColors.warning.withValues(
-                                      alpha: 0.08,
+                                      alpha: DSStyles.alphaSubtle,
                                     ),
                                     border: DSColors.warning.withValues(
-                                      alpha: 0.25,
+                                      alpha: DSStyles.alphaMuted,
                                     ),
                                     fg: DSColors.warning,
                                   ),
@@ -511,10 +514,10 @@ class DeliveryCard extends StatelessWidget {
                                     label: 'PAID',
                                     icon: Icons.check_circle_outline_rounded,
                                     bg: DSColors.success.withValues(
-                                      alpha: 0.08,
+                                      alpha: DSStyles.alphaSubtle,
                                     ),
                                     border: DSColors.success.withValues(
-                                      alpha: 0.25,
+                                      alpha: DSStyles.alphaMuted,
                                     ),
                                     fg: DSColors.success,
                                   ),
@@ -523,10 +526,10 @@ class DeliveryCard extends StatelessWidget {
                                     label: 'PENDING SYNC',
                                     icon: Icons.sync_lock_rounded,
                                     bg: DSColors.primary.withValues(
-                                      alpha: 0.08,
+                                      alpha: DSStyles.alphaSubtle,
                                     ),
                                     border: DSColors.primary.withValues(
-                                      alpha: 0.25,
+                                      alpha: DSStyles.alphaMuted,
                                     ),
                                     fg: DSColors.primary,
                                   ),
@@ -536,7 +539,7 @@ class DeliveryCard extends StatelessWidget {
 
                           // ── Footer ───────────────────────────────────────────
                           if (footerText != null || isChecking) ...[
-                            const SizedBox(height: 10),
+                            DSSpacing.hMd,
                             Row(
                               children: [
                                 if (isChecking) ...[
@@ -544,13 +547,13 @@ class DeliveryCard extends StatelessWidget {
                                     width: 11,
                                     height: 11,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                      strokeWidth: DSStyles.strokeWidth,
                                       valueColor: AlwaysStoppedAnimation(
                                         DSColors.error,
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 6),
+                                  DSSpacing.wXs,
                                   Text(
                                     'Checking eligibility…',
                                     style: DSTypography.caption(
@@ -563,7 +566,7 @@ class DeliveryCard extends StatelessWidget {
                                     size: DSIconSize.xs,
                                     color: subtextColor,
                                   ),
-                                  const SizedBox(width: 4),
+                                  DSSpacing.wXs,
                                   Text(
                                     footerText!,
                                     style: DSTypography.caption(
@@ -591,7 +594,7 @@ class DeliveryCard extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.only(bottom: DSSpacing.md),
       child: buildCard(),
     );
   }
@@ -620,21 +623,21 @@ class DeliveryCard extends StatelessWidget {
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(DSSpacing.base),
+            padding: EdgeInsets.all(DSSpacing.md),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Center(
                   child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 24.0),
+                    width: DSIconSize.heroSm,
+                    height: DSSpacing.xs,
+                    margin: EdgeInsets.only(bottom: DSSpacing.xl),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? DSColors.white.withValues(alpha: 0.24)
-                          : DSColors.black.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(2),
+                          ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
+                          : DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
+                      borderRadius: BorderRadius.circular(DSStyles.radiusSM),
                     ),
                   ),
                 ),
@@ -676,8 +679,8 @@ class DeliveryCard extends StatelessWidget {
                     leading: Icon(
                       Icons.account_balance_wallet_rounded,
                       color: isDark
-                          ? DSColors.white.withValues(alpha: 0.7)
-                          : DSColors.black.withValues(alpha: 0.54),
+                          ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+                          : DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
                     ),
                     title: const Text('Account Number'),
                     subtitle: Text(accountNumber),
@@ -687,8 +690,8 @@ class DeliveryCard extends StatelessWidget {
                     leading: Icon(
                       Icons.badge_rounded,
                       color: isDark
-                          ? DSColors.white.withValues(alpha: 0.7)
-                          : DSColors.black.withValues(alpha: 0.54),
+                          ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+                          : DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
                     ),
                     title: const Text('Auth Rep Number'),
                     subtitle: Text(authRepNumber),
@@ -699,9 +702,7 @@ class DeliveryCard extends StatelessWidget {
                   title: const Text('View Delivery Details'),
                   onTap: () {
                     Navigator.pop(ctx);
-                    if (identifier.isNotEmpty) {
-                      context.push('/deliveries/$identifier');
-                    }
+                    showDeliveryAccountDetails(context, delivery, identifier);
                   },
                 ),
               ],
@@ -736,7 +737,7 @@ class DeliveryCard extends StatelessWidget {
 
     final hasDetails =
         seqNum.isNotEmpty ||
-        transactionAt.isNotEmpty ||
+        (transactionAt.isNotEmpty && ds != DeliveryStatus.pending) ||
         (showProductMailType && (product.isNotEmpty || mailType.isNotEmpty)) ||
         specialInstr.isNotEmpty;
 
@@ -749,9 +750,9 @@ class DeliveryCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 12),
-        Divider(height: 1, color: dividerColor),
-        const SizedBox(height: 14),
+        DSSpacing.hMd,
+        Divider(height: DSStyles.borderWidth, color: dividerColor),
+        DSSpacing.hMd,
 
         Row(
           children: [
@@ -764,7 +765,9 @@ class DeliveryCard extends StatelessWidget {
                   subtextColor: subtextColor,
                 ),
               ),
-            if (transactionAt.isNotEmpty && product.toLowerCase() != 'delivery')
+            if (transactionAt.isNotEmpty &&
+                product.toLowerCase() != 'delivery' &&
+                ds != DeliveryStatus.pending)
               Expanded(
                 child: DeliveryDetailCell(
                   label: 'TRANSACTION',
@@ -778,7 +781,7 @@ class DeliveryCard extends StatelessWidget {
 
         if (showProductMailType &&
             (product.isNotEmpty || mailType.isNotEmpty)) ...[
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           DeliveryDetailCell(
             label: 'PRODUCT / MAIL TYPE',
             value: [product, mailType].where((e) => e.isNotEmpty).join(' · '),
@@ -788,7 +791,7 @@ class DeliveryCard extends StatelessWidget {
         ],
 
         if (specialInstr.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           DeliveryDetailCell(
             label: 'SPECIAL INSTRUCTIONS',
             value: specialInstr,
@@ -798,7 +801,7 @@ class DeliveryCard extends StatelessWidget {
             isItalic: true,
           ),
         ],
-        const SizedBox(height: 4),
+        DSSpacing.hXs,
       ],
     );
   }
@@ -833,7 +836,7 @@ class DeliveryCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 7),
+      margin: EdgeInsets.only(bottom: DSSpacing.sm),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: DSStyles.cardRadius,
@@ -841,10 +844,10 @@ class DeliveryCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? DSColors.black.withValues(alpha: DSStyles.alphaDarkShadow)
+                ? DSColors.black.withValues(alpha: DSStyles.alphaMuted)
                 : DSColors.black.withValues(alpha: DSStyles.alphaSoft),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            blurRadius: DSStyles.radiusSM * 0.75,
+            offset: const Offset(0, DSSpacing.xs),
           ),
         ],
       ),
@@ -855,14 +858,14 @@ class DeliveryCard extends StatelessWidget {
           children: [
             // Left accent bar
             Container(
-              width: 4,
+              width: DSSpacing.xs,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
                     statusColor,
-                    statusColor.withValues(alpha: DSStyles.alphaBorder),
+                    statusColor.withValues(alpha: DSStyles.alphaMuted),
                   ],
                 ),
               ),
@@ -872,7 +875,7 @@ class DeliveryCard extends StatelessWidget {
               child: InkWell(
                 onTap: onTap,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: DSSpacing.md,
                     vertical: 9,
                   ),
@@ -899,7 +902,7 @@ class DeliveryCard extends StatelessWidget {
                                     letterSpacing: DSTypography.lsExtraLoose,
                                   ),
                             ),
-                            const SizedBox(height: 2),
+                            DSSpacing.hXs,
                             Text(
                               isPrivacyMode
                                   ? product
@@ -913,13 +916,13 @@ class DeliveryCard extends StatelessWidget {
                                   .copyWith(
                                     fontSize: DSTypography.sizeXs,
                                     fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.3,
+                                    letterSpacing: DSTypography.lsLoose,
                                   ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      DSSpacing.wSm,
                       if (!isPrivacyMode)
                         Row(
                           mainAxisSize: MainAxisSize.min,
@@ -952,7 +955,7 @@ class DeliveryCard extends StatelessWidget {
                         ),
                       if (!isPrivacyMode && isLocked)
                         Padding(
-                          padding: const EdgeInsets.only(left: 6),
+                          padding: EdgeInsets.only(left: DSSpacing.sm),
                           child: Icon(
                             Icons.lock_outline_rounded,
                             color: subtextColor,
@@ -961,7 +964,7 @@ class DeliveryCard extends StatelessWidget {
                         )
                       else if (!isPrivacyMode && !isVisible)
                         Padding(
-                          padding: const EdgeInsets.only(left: 6),
+                          padding: EdgeInsets.only(left: DSSpacing.sm),
                           child: Icon(
                             Icons.lock_outline_rounded,
                             color: DSColors.error,
@@ -970,7 +973,7 @@ class DeliveryCard extends StatelessWidget {
                         )
                       else if (showChevron)
                         Padding(
-                          padding: const EdgeInsets.only(left: 6),
+                          padding: EdgeInsets.only(left: DSSpacing.sm),
                           child: Icon(
                             Icons.chevron_right_rounded,
                             size: DSIconSize.sm,

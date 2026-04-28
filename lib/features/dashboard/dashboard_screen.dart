@@ -192,12 +192,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // ),
           body: _loading
               ? const Center(
-                  child: SpinKitFadingCircle(color: DSColors.primary, size: 52),
+                  child: SpinKitFadingCircle(color: DSColors.primary, size: DSIconSize.heroSm),
                 )
               : RefreshIndicator(
                   onRefresh: _onRefresh,
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, DSSpacing.massive),
                     children: [
                       // ── 4 Summary Boxes ───────────────────────────────────────
                       Row(
@@ -211,10 +211,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               onTap: pendingDispatchCount == 0
                                   ? null
                                   : () => context.push('/dispatches'),
-                              details: 'Waiting for acceptance.',
+                              details: 'For acceptance.',
                             ).dsCardEntry(delay: DSAnimations.stagger(0)),
                           ),
-                          const SizedBox(width: 8),
+                          DSSpacing.wSm,
                           Expanded(
                             child: StatCard(
                               label: 'DELIVERIES',
@@ -229,7 +229,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      DSSpacing.hSm,
                       Row(
                         children: [
                           Expanded(
@@ -244,7 +244,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               details: "Today's delivered.",
                             ).dsCardEntry(delay: DSAnimations.stagger(2)),
                           ),
-                          const SizedBox(width: 8),
+                          DSSpacing.wSm,
                           Expanded(
                             child: StatCard(
                               label: 'Attempted',
@@ -260,7 +260,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      DSSpacing.hSm,
                       Row(
                         children: [
                           Expanded(
@@ -278,7 +278,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               details: "Today's misrouted deliveries.",
                             ).dsCardEntry(delay: DSAnimations.stagger(4)),
                           ),
-                          const SizedBox(width: 8),
+                          DSSpacing.wSm,
                           Expanded(
                             child: StatCard(
                               label: 'SYNC',
@@ -303,7 +303,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      DSSpacing.hLg,
 
                       // ── Scan Action Buttons ────────────────────────────────────
                       Row(
@@ -321,7 +321,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   'Scan a dispatch barcode\nto check eligibility.',
                             ).dsCtaEntry(delay: DSAnimations.stagger(6)),
                           ),
-                          const SizedBox(width: 10),
+                          DSSpacing.wSm,
                           Expanded(
                             child: ScanButton(
                               label: 'SCAN POD',
@@ -337,7 +337,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      DSSpacing.hLg,
                     ],
                   ),
                 ),

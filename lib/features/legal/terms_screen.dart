@@ -97,7 +97,7 @@ class _TermsScreenState extends State<TermsScreen> {
       backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: isDark ? DSColors.cardDark : DSColors.white,
-        elevation: 0,
+        elevation: DSStyles.elevationNone,
         title: Text(
           widget.viewOnly ? 'Terms & Conditions' : 'Terms & Conditions',
           style:
@@ -117,14 +117,14 @@ class _TermsScreenState extends State<TermsScreen> {
             child: _content.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : Container(
-                    margin: const EdgeInsets.all(DSSpacing.base),
+                    margin: EdgeInsets.all(DSSpacing.md),
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: DSStyles.cardRadius,
                     ),
                     child: SingleChildScrollView(
                       controller: _scrollCtrl,
-                      padding: const EdgeInsets.all(DSSpacing.lg),
+                      padding: EdgeInsets.all(DSSpacing.lg),
                       child: LegalMarkdownText(
                         content: _content,
                         isDark: isDark,
@@ -134,17 +134,17 @@ class _TermsScreenState extends State<TermsScreen> {
           ),
           if (!widget.viewOnly) ...[
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+              padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, DSSpacing.xl),
               color: isDark ? DSColors.cardDark : DSColors.white,
               child: Column(
                 children: [
                   if (!_scrolledToEnd)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: EdgeInsets.only(bottom: DSSpacing.sm),
                       child: Text(
                         'Scroll to the bottom to accept',
                         style: DSTypography.caption(
-                          color: isDark ? DSColors.white.withValues(alpha: 0.38) : DSColors.labelTertiary,
+                          color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaMuted) : DSColors.labelTertiary,
                         ).copyWith(fontSize: DSTypography.sizeSm),
                       ),
                     ),
@@ -162,19 +162,19 @@ class _TermsScreenState extends State<TermsScreen> {
                             ? DSColors.separatorDark
                             : DSColors.separatorLight,
                         disabledForegroundColor: isDark
-                            ? DSColors.white.withValues(alpha: 0.24)
-                            : DSColors.labelTertiary.withValues(alpha: 0.26),
+                            ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
+                            : DSColors.labelTertiary.withValues(alpha: DSStyles.alphaMuted),
                         shape: RoundedRectangleBorder(
                           borderRadius: DSStyles.cardRadius,
                         ),
-                        elevation: 0,
+                        elevation: DSStyles.elevationNone,
                       ),
                       child: _accepting
                           ? const SizedBox(
-                              width: 20,
-                              height: 20,
+                              width: DSIconSize.xl,
+                              height: DSIconSize.xl,
                               child: CircularProgressIndicator(
-                                strokeWidth: 2,
+                                strokeWidth: DSStyles.strokeWidth,
                                 color: DSColors.white,
                               ),
                             )
@@ -227,9 +227,9 @@ class LegalMarkdownText extends StatelessWidget {
             ),
           ),
         );
-        widgets.add(const SizedBox(height: 6));
+        widgets.add(DSSpacing.hSm);
       } else if (line.startsWith('## ')) {
-        widgets.add(const SizedBox(height: 12));
+        widgets.add(DSSpacing.hMd);
         widgets.add(
           Text(
             line.substring(3),
@@ -239,9 +239,9 @@ class LegalMarkdownText extends StatelessWidget {
             ),
           ),
         );
-        widgets.add(const SizedBox(height: 6));
+        widgets.add(DSSpacing.hSm);
       } else if (line.startsWith('### ')) {
-        widgets.add(const SizedBox(height: 8));
+        widgets.add(DSSpacing.hSm);
         widgets.add(
           Text(
             line.substring(4),
@@ -251,15 +251,15 @@ class LegalMarkdownText extends StatelessWidget {
             ),
           ),
         );
-        widgets.add(const SizedBox(height: 4));
+        widgets.add(DSSpacing.hXs);
       } else if (line.startsWith('---')) {
-        widgets.add(const SizedBox(height: 8));
-        widgets.add(Divider(color: isDark ? DSColors.white.withValues(alpha: 0.12) : DSColors.separatorLight));
-        widgets.add(const SizedBox(height: 8));
+        widgets.add(DSSpacing.hSm);
+        widgets.add(Divider(color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.separatorLight));
+        widgets.add(DSSpacing.hSm);
       } else if (line.startsWith('- ')) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(left: 12, bottom: 3),
+            padding: EdgeInsets.only(left: DSSpacing.sm, bottom: DSSpacing.xs),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -270,11 +270,11 @@ class LegalMarkdownText extends StatelessWidget {
           ),
         );
       } else if (line.trim().isEmpty) {
-        widgets.add(const SizedBox(height: 6));
+        widgets.add(DSSpacing.hSm);
       } else if (line.startsWith('*')) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 3),
+            padding: EdgeInsets.only(bottom: DSSpacing.xs),
             child: Text(
               line.replaceAll('*', '').trim(),
               style: DSTypography.caption(color: mutedColor).copyWith(
@@ -287,7 +287,7 @@ class LegalMarkdownText extends StatelessWidget {
       } else {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: EdgeInsets.only(bottom: DSSpacing.xs),
             child: _buildInlineText(line, baseColor),
           ),
         );
@@ -308,7 +308,7 @@ class LegalMarkdownText extends StatelessWidget {
         line,
         style: DSTypography.body(
           color: baseColor,
-        ).copyWith(fontSize: DSTypography.sizeMd, height: 1.5),
+        ).copyWith(fontSize: DSTypography.sizeMd, height: DSStyles.heightRelaxed),
       );
     }
 
@@ -334,7 +334,7 @@ class LegalMarkdownText extends StatelessWidget {
       text: TextSpan(
         style: DSTypography.body(
           color: baseColor,
-        ).copyWith(fontSize: 13.5, height: 1.5),
+        ).copyWith(fontSize: 13.5, height: DSStyles.heightRelaxed),
         children: spans,
       ),
     );

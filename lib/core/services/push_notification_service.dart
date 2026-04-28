@@ -164,7 +164,7 @@ class PushNotificationService {
       final barcode = data['barcode'] as String?;
       if (barcode == null || barcode.isEmpty) return;
       debugPrint('[PUSH] Navigating to delivery: $barcode');
-      GoRouter.of(context).push('/deliveries/$barcode');
+      GoRouter.of(context).push('/deliveries/$barcode/update');
     } else if (action == 'new_dispatch') {
       debugPrint('[PUSH] Navigating to dispatch list');
       GoRouter.of(context).push('/dispatches');

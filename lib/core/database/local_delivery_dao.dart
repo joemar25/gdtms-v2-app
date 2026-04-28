@@ -593,7 +593,7 @@ class LocalDeliveryDao {
   /// OSA, DELIVERED, and RTS with 3+ attempts are intentionally excluded —
   /// those are terminal states the courier cannot act on via POD scan.
   ///
-  /// [DeliveryDetailScreen._load] still calls [isVisibleToRider] as the
+  /// [DeliveryUpdateScreen._load] still calls [isVisibleToRider] as the
   /// canonical hard gate — this method is purely a performance and UX
   /// optimisation that avoids an N+1 per-match check in the scan screen.
   Future<List<LocalDelivery>> searchVisibleByQuery(

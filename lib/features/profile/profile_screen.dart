@@ -266,11 +266,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onRefresh: _refresh,
             color: DSColors.primary,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                DSSpacing.base,
-                DSSpacing.sm,
-                DSSpacing.base,
-                100,
+              padding: EdgeInsets.fromLTRB(
+                DSSpacing.md,
+                DSSpacing.md,
+                DSSpacing.md,
+                120, // Extra bottom padding for floating nav
               ),
               children: [
                 // ── Status banners ─────────────────────────────────────────
@@ -286,10 +286,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   isDark: isDark,
                   isOnline: isOnline,
                 ).dsCardEntry(duration: DSAnimations.dNormal),
-                DSSpacing.hXl,
+                DSSpacing.hSm,
 
-                // ── Account actions ────────────────────────────────────────
-                _SectionLabel('Account').dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
+                // ── Account Section ────────────────────────────────────────
+                const DSSectionHeader(title: 'Account Settings'),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -346,10 +346,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     // ),
                   ],
                 ).dsCardEntry(delay: DSAnimations.stagger(1)),
-                DSSpacing.hXl,
+                DSSpacing.hSm,
 
-                // ── Preferences ────────────────────────────────────────────
-                _SectionLabel('Preferences').dsFadeEntry(delay: DSAnimations.stagger(3, step: DSAnimations.staggerNormal)),
+                // ── Preferences Section ────────────────────────────────────
+                const DSSectionHeader(title: 'Preferences'),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -410,10 +410,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ],
                   ],
                 ).dsCardEntry(delay: DSAnimations.stagger(2)),
-                DSSpacing.hXl,
+                DSSpacing.hSm,
 
-                // ── Appearance ─────────────────────────────────────────────
-                _SectionLabel('Appearance').dsFadeEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
+                // ── Appearance Section ─────────────────────────────────────
+                const DSSectionHeader(title: 'Appearance'),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -446,15 +446,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ],
                   ],
                 ).dsCardEntry(delay: DSAnimations.stagger(3)),
-                DSSpacing.hXl,
+                DSSpacing.hSm,
 
-                // ── Device Specifications ──────────────────────────────────
-                _SectionLabel('Device').dsFadeEntry(delay: DSAnimations.stagger(7, step: DSAnimations.staggerNormal)),
+                // ── Device Section ─────────────────────────────────────────
+                const DSSectionHeader(title: 'Device Info'),
                 if (_specsLoaded &&
                     _freeStorageGb >= 0 &&
                     _freeStorageGb < 2.0) ...[
                   _StorageBanner(freeStorageGb: _freeStorageGb),
-                  const SizedBox(height: 10),
+                  DSSpacing.hMd,
                 ],
                 _ModernCard(
                   isDark: isDark,
@@ -533,10 +533,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ],
                 ).dsCardEntry(delay: DSAnimations.stagger(4)),
-                DSSpacing.hXl,
+                DSSpacing.hSm,
 
-                // ── Legal ──────────────────────────────────────────────────
-                _SectionLabel('Legal').dsFadeEntry(delay: DSAnimations.stagger(9, step: DSAnimations.staggerNormal)),
+                // ── Legal Section ──────────────────────────────────────────
+                const DSSectionHeader(title: 'Legal & Info'),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -559,10 +559,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ],
                 ).dsCardEntry(delay: DSAnimations.stagger(5)),
-                DSSpacing.hXl,
+                DSSpacing.hSm,
 
-                // ── Diagnostics ────────────────────────────────────────────
-                _SectionLabel('Diagnostics').dsFadeEntry(delay: DSAnimations.stagger(11, step: DSAnimations.staggerNormal)),
+                // ── Diagnostics Section ────────────────────────────────────
+                const DSSectionHeader(title: 'Diagnostics'),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -587,7 +587,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ],
                 ).dsCardEntry(delay: DSAnimations.stagger(6)),
-                const SizedBox(height: 36),
+                DSSpacing.hXl,
+                // ── App Info Footer ────────────────────────────────────────
+                Center(
+                  child: Column(
+                    children: [
+                      Text(
+                        'v${AppVersionService.version}',
+                        style: DSTypography.caption().copyWith(
+                          color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      DSSpacing.hXs,
+                      Text(
+                        'FSI Courier App © ${DateTime.now().year}',
+                        style: DSTypography.caption().copyWith(
+                          color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -630,33 +652,45 @@ class _ProfileHeroCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [DSColors.secondarySurfaceDark, DSColors.cardDark]
-              : [DSColors.primary, DSColors.accent],
+              ? [DSColors.cardElevatedDark, DSColors.cardDark]
+              : [DSColors.primary, DSColors.primaryPressed],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: DSStyles.cardRadius,
-        boxShadow: DSStyles.shadowHeavy(context),
+        border: Border.all(
+          color: DSColors.white.withValues(alpha: 0.1),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isDark ? DSColors.black : DSColors.primary).withValues(
+              alpha: isDark ? DSStyles.alphaMuted : DSStyles.alphaSubtle,
+            ),
+            blurRadius: DSSpacing.lg,
+            offset: const Offset(0, DSSpacing.md),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.all(DSSpacing.lg),
+      padding: EdgeInsets.all(DSSpacing.lg),
       child: Column(
         children: [
           Row(
             children: [
               // Avatar
               Container(
-                width: 64,
-                height: 64,
+                width: DSSpacing.huge + DSSpacing.md, // 80.0
+                height: DSSpacing.huge + DSSpacing.md, // 80.0
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: DSColors.white.withValues(
-                      alpha: DSStyles.alphaBorder,
+                      alpha: DSStyles.alphaMuted,
                     ),
-                    width: 2,
+                    width: DSStyles.strokeWidth,
                   ),
                   color: DSColors.white.withValues(
-                    alpha: DSStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaSubtle,
                   ),
                 ),
                 child: Hero(
@@ -665,13 +699,13 @@ class _ProfileHeroCard extends StatelessWidget {
                     child: courier['profile_picture_url'] != null
                         ? Image.network(
                             courier['profile_picture_url'].toString(),
-                            width: 64,
-                            height: 64,
+                            width: DSSpacing.huge + DSSpacing.md,
+                            height: DSSpacing.huge + DSSpacing.md,
                             fit: BoxFit.cover,
                             errorBuilder: (_, e, s) => const Center(
                               child: Icon(
                                 Icons.person_rounded,
-                                size: DSIconSize.hero,
+                                size: DSIconSize.xl,
                                 color: DSColors.white,
                               ),
                             ),
@@ -679,14 +713,14 @@ class _ProfileHeroCard extends StatelessWidget {
                         : const Center(
                             child: Icon(
                               Icons.person_rounded,
-                              size: DSIconSize.hero,
+                              size: DSIconSize.xl,
                               color: DSColors.white,
                             ),
                           ),
                   ),
                 ),
               ),
-              DSSpacing.wBase,
+              DSSpacing.wMd,
 
               // Info
               Expanded(
@@ -709,22 +743,22 @@ class _ProfileHeroCard extends StatelessWidget {
                       style: DSTypography.caption().copyWith(
                         fontSize: DSTypography.sizeSm,
                         color: DSColors.white.withValues(
-                          alpha: DSStyles.alphaGlass,
+                          alpha: DSStyles.alphaDisabled,
                         ),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
+                    DSSpacing.hXs,
                     if (kDebugMode)
                       Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: DSSpacing.sm,
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
                           color: DSColors.white.withValues(
-                            alpha: DSStyles.alphaActiveAccent,
+                            alpha: DSStyles.alphaSubtle,
                           ),
                           borderRadius: DSStyles.pillRadius,
                         ),
@@ -733,7 +767,7 @@ class _ProfileHeroCard extends StatelessWidget {
                           children: [
                             const Icon(
                               Icons.badge_outlined,
-                              size: DSIconSize.xxs,
+                              size: DSIconSize.xs,
                               color: DSColors.primary,
                             ),
                             DSSpacing.wXs,
@@ -760,11 +794,11 @@ class _ProfileHeroCard extends StatelessWidget {
                   icon: const Icon(
                     Icons.edit_note_rounded,
                     color: DSColors.white,
-                    size: DSIconSize.xxl,
+                    size: DSIconSize.xl,
                   ),
                   style: IconButton.styleFrom(
                     backgroundColor: DSColors.white.withValues(
-                      alpha: DSStyles.alphaActiveAccent,
+                      alpha: DSStyles.alphaSubtle,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: DSStyles.cardRadius,
@@ -773,12 +807,12 @@ class _ProfileHeroCard extends StatelessWidget {
                 ),
             ],
           ),
-          DSSpacing.hBase,
+          DSSpacing.hMd,
           Divider(
-            color: DSColors.white.withValues(alpha: DSStyles.alphaActiveAccent),
-            height: 1,
+            color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
+            height: DSStyles.borderWidth,
           ),
-          DSSpacing.hBase,
+          DSSpacing.hMd,
           // Compact Info Row
           Row(
             children: [
@@ -787,7 +821,7 @@ class _ProfileHeroCard extends StatelessWidget {
                 label: 'Phone',
                 value: courier['phone_number']?.toString() ?? '-',
               ),
-              const SizedBox(width: 20),
+                DSSpacing.wXl,
               _CompactInfoItem(
                 icon: Icons.store_rounded,
                 label: 'Branch',
@@ -823,18 +857,18 @@ class _CompactInfoItem extends StatelessWidget {
               Icon(
                 icon,
                 size: DSIconSize.xs,
-                color: DSColors.white.withValues(alpha: 0.6),
+                color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
               ),
               DSSpacing.wXs,
               Text(
                 label.toUpperCase(),
                 style: DSTypography.label(
-                  color: DSColors.white.withValues(alpha: 0.6),
-                ).copyWith(fontSize: 9, fontWeight: FontWeight.w800),
+                  color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
+                ).copyWith(fontSize: DSTypography.sizeXs, fontWeight: FontWeight.w800),
               ),
             ],
           ),
-          const SizedBox(height: 2),
+          DSSpacing.hXs,
           Text(
             value,
             style: DSTypography.body(color: DSColors.white).copyWith(
@@ -856,22 +890,22 @@ class _AccountInactiveBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(DSSpacing.md),
+      padding: EdgeInsets.all(DSSpacing.md),
       decoration: BoxDecoration(
         color: DSColors.error.withValues(alpha: DSStyles.alphaSoft),
         border: Border.all(
-          color: DSColors.error.withValues(alpha: DSStyles.alphaDarkShadow),
+          color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
         ),
         borderRadius: DSStyles.cardRadius,
       ),
       child: Row(
         children: [
           Container(
-            width: 34,
+            width: DSSpacing.xs,
             height: 34,
             decoration: BoxDecoration(
               color: DSColors.error.withValues(
-                alpha: DSStyles.alphaActiveAccent,
+                alpha: DSStyles.alphaSubtle,
               ),
               borderRadius: DSStyles.pillRadius,
             ),
@@ -881,7 +915,7 @@ class _AccountInactiveBanner extends StatelessWidget {
               size: DSIconSize.md,
             ),
           ),
-          const SizedBox(width: 12),
+          DSSpacing.wMd,
           Expanded(
             child: Text(
               'Your account is currently inactive. Please contact support.',
@@ -889,7 +923,7 @@ class _AccountInactiveBanner extends StatelessWidget {
                 color: DSColors.error,
                 fontSize: DSTypography.sizeMd,
                 fontWeight: FontWeight.w500,
-                height: 1.4,
+                height: DSStyles.heightNormal,
               ),
             ),
           ),
@@ -909,7 +943,7 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, left: 4),
+      padding: EdgeInsets.only(bottom: DSSpacing.md, left: DSSpacing.xs),
       child: Text(
         title.toUpperCase(),
         style: DSTypography.label().copyWith(
@@ -918,7 +952,7 @@ class _SectionLabel extends StatelessWidget {
           color: Theme.of(context).brightness == Brightness.dark
               ? DSColors.labelSecondaryDark
               : DSColors.labelSecondary,
-          letterSpacing: DSTypography.lsMegaLoose,
+          letterSpacing: DSTypography.lsExtraLoose,
         ),
       ),
     );
@@ -939,9 +973,9 @@ class _ModernCard extends StatelessWidget {
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
-          width: 1,
+          width: DSStyles.borderWidth,
         ),
-        boxShadow: DSStyles.shadowSoft(context),
+        boxShadow: DSStyles.shadowXS(context),
       ),
       child: ClipRRect(
         borderRadius: DSStyles.cardRadius,
@@ -964,7 +998,7 @@ class _CardDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Divider(
-      height: 1,
+      height: DSStyles.borderWidth,
       thickness: 1,
       indent: 58,
       color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
@@ -1002,22 +1036,22 @@ class _ActionTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DSSpacing.base,
+        padding: EdgeInsets.symmetric(
+          horizontal: DSSpacing.md,
           vertical: 14,
         ),
         child: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: DSIconSize.heroSm,
+              height: DSIconSize.heroSm,
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: DSStyles.alphaActiveAccent),
+                color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
                 borderRadius: DSStyles.pillRadius,
               ),
               child: Icon(icon, size: DSIconSize.md, color: iconColor),
             ),
-            const SizedBox(width: 14),
+            DSSpacing.wMd,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1030,7 +1064,7 @@ class _ActionTile extends StatelessWidget {
                       color: textColor,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  DSSpacing.hXs,
                   Text(
                     subtitle,
                     style: DSTypography.caption().copyWith(
@@ -1038,7 +1072,7 @@ class _ActionTile extends StatelessWidget {
                       color: isDark
                           ? DSColors.labelSecondaryDark
                           : DSColors.labelSecondary,
-                      height: 1.3,
+                      height: DSStyles.heightNormal,
                     ),
                   ),
                 ],
@@ -1082,23 +1116,23 @@ class _ModernSwitchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
-        vertical: 14,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.md,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: DSIconSize.heroSm,
+            height: DSIconSize.heroSm,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: DSStyles.alphaActiveAccent),
+              color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
               borderRadius: DSStyles.pillRadius,
             ),
             child: Icon(icon, size: DSIconSize.md, color: iconColor),
           ),
-          const SizedBox(width: 14),
+          DSSpacing.wMd,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1111,7 +1145,7 @@ class _ModernSwitchTile extends StatelessWidget {
                     color: isDark ? DSColors.white : DSColors.labelPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
+                DSSpacing.hXs,
                 Text(
                   subtitle,
                   style: DSTypography.caption().copyWith(
@@ -1119,13 +1153,13 @@ class _ModernSwitchTile extends StatelessWidget {
                     color: isDark
                         ? DSColors.labelSecondaryDark
                         : DSColors.labelSecondary,
-                    height: 1.35,
+                    height: DSStyles.heightNormal,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          DSSpacing.wMd,
           Switch(
             value: value,
             onChanged: onChanged,
@@ -1164,18 +1198,18 @@ class _SyncRetentionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: DSSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: DSIconSize.heroSm,
+                height: DSIconSize.heroSm,
                 decoration: BoxDecoration(
                   color: DSColors.success.withValues(
-                    alpha: DSStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaSubtle,
                   ),
                   borderRadius: DSStyles.pillRadius,
                 ),
@@ -1185,7 +1219,7 @@ class _SyncRetentionTile extends StatelessWidget {
                   size: DSIconSize.md,
                 ),
               ),
-              const SizedBox(width: 14),
+              DSSpacing.wMd,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1198,7 +1232,7 @@ class _SyncRetentionTile extends StatelessWidget {
                         color: isDark ? DSColors.white : DSColors.labelPrimary,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    DSSpacing.hXs,
                     Text(
                       'How long synced updates are kept before auto-removal.',
                       style: DSTypography.caption().copyWith(
@@ -1206,7 +1240,7 @@ class _SyncRetentionTile extends StatelessWidget {
                         color: isDark
                             ? DSColors.labelSecondaryDark
                             : DSColors.labelSecondary,
-                        height: 1.35,
+                        height: DSStyles.heightNormal,
                       ),
                     ),
                   ],
@@ -1214,7 +1248,7 @@ class _SyncRetentionTile extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          DSSpacing.hMd,
           SizedBox(
             width: double.infinity,
             child: SegmentedButton<int>(
@@ -1259,18 +1293,18 @@ class _ThemeSegmentedTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: DSSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: DSIconSize.heroSm,
+                height: DSIconSize.heroSm,
                 decoration: BoxDecoration(
                   color: DSColors.pending.withValues(
-                    alpha: DSStyles.alphaActiveAccent,
+                    alpha: DSStyles.alphaSubtle,
                   ),
                   borderRadius: DSStyles.pillRadius,
                 ),
@@ -1280,7 +1314,7 @@ class _ThemeSegmentedTile extends StatelessWidget {
                   size: DSIconSize.md,
                 ),
               ),
-              const SizedBox(width: 14),
+              DSSpacing.wMd,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1293,7 +1327,7 @@ class _ThemeSegmentedTile extends StatelessWidget {
                         color: isDark ? DSColors.white : DSColors.labelPrimary,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    DSSpacing.hXs,
                     Text(
                       'Choose light, dark, or system default.',
                       style: DSTypography.caption().copyWith(
@@ -1301,7 +1335,7 @@ class _ThemeSegmentedTile extends StatelessWidget {
                         color: isDark
                             ? DSColors.labelSecondaryDark
                             : DSColors.labelSecondary,
-                        height: 1.35,
+                        height: DSStyles.heightNormal,
                       ),
                     ),
                   ],
@@ -1309,7 +1343,7 @@ class _ThemeSegmentedTile extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          DSSpacing.hMd,
           SizedBox(
             width: double.infinity,
             child: SegmentedButton<ThemeMode>(
@@ -1359,22 +1393,22 @@ class _DetailTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
         vertical: 13,
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: DSIconSize.heroSm,
+            height: DSIconSize.heroSm,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: DSStyles.alphaActiveAccent),
+              color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
               borderRadius: DSStyles.pillRadius,
             ),
             child: Icon(icon, size: DSIconSize.md, color: iconColor),
           ),
-          const SizedBox(width: 14),
+          DSSpacing.wMd,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1389,10 +1423,10 @@ class _DetailTile extends StatelessWidget {
                       ).copyWith(
                         fontSize: DSTypography.sizeSm,
                         fontWeight: FontWeight.w500,
-                        letterSpacing: DSTypography.lsSlightlyLoose,
+                        letterSpacing: DSTypography.lsLoose,
                       ),
                 ),
-                const SizedBox(height: 2),
+                DSSpacing.hXs,
                 Text(
                   value,
                   style:
@@ -1434,15 +1468,15 @@ class _ErrorLogsTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DSSpacing.base,
+        padding: EdgeInsets.symmetric(
+          horizontal: DSSpacing.md,
           vertical: 14,
         ),
         child: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: DSIconSize.heroSm,
+              height: DSIconSize.heroSm,
               decoration: BoxDecoration(
                 color: DSColors.error.withValues(alpha: DSStyles.alphaSoft),
                 borderRadius: DSStyles.pillRadius,
@@ -1453,7 +1487,7 @@ class _ErrorLogsTile extends StatelessWidget {
                 size: DSIconSize.md,
               ),
             ),
-            const SizedBox(width: 14),
+            DSSpacing.wMd,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1466,7 +1500,7 @@ class _ErrorLogsTile extends StatelessWidget {
                       color: isDark ? DSColors.white : DSColors.labelPrimary,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  DSSpacing.hXs,
                   Text(
                     'View errors and warnings recorded on this device.',
                     style: DSTypography.caption().copyWith(
@@ -1474,7 +1508,7 @@ class _ErrorLogsTile extends StatelessWidget {
                       color: isDark
                           ? DSColors.labelSecondaryDark
                           : DSColors.labelSecondary,
-                      height: 1.35,
+                      height: DSStyles.heightNormal,
                     ),
                   ),
                 ],
@@ -1482,7 +1516,7 @@ class _ErrorLogsTile extends StatelessWidget {
             ),
             if (errorLogCount > 0) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
                 decoration: BoxDecoration(
                   color: DSColors.error,
                   borderRadius: DSStyles.cardRadius,
@@ -1495,7 +1529,7 @@ class _ErrorLogsTile extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
+              DSSpacing.wXs,
             ],
             Icon(
               Icons.chevron_right_rounded,
@@ -1532,30 +1566,30 @@ class _StorageBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
         vertical: 13,
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: DSStyles.alphaSoft),
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: color.withValues(alpha: DSStyles.alphaDarkShadow),
+          color: color.withValues(alpha: DSStyles.alphaMuted),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: DSIconSize.heroSm,
+            height: DSIconSize.heroSm,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: DSStyles.alphaActiveAccent),
+              color: color.withValues(alpha: DSStyles.alphaSubtle),
               borderRadius: DSStyles.pillRadius,
             ),
             child: Icon(Icons.warning_amber_rounded, color: color, size: DSIconSize.md),
           ),
-          const SizedBox(width: 12),
+          DSSpacing.wMd,
           Expanded(
             child: Text(
               message,
@@ -1563,7 +1597,7 @@ class _StorageBanner extends StatelessWidget {
                 fontSize: DSTypography.sizeSm,
                 color: color,
                 fontWeight: FontWeight.w500,
-                height: 1.45,
+                height: DSStyles.heightNormal,
               ),
             ),
           ),

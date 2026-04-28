@@ -34,7 +34,7 @@ class _SuccessOverlayState extends State<SuccessOverlay> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: DSColors.black.withValues(alpha: 0.45),
+      color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
       child: Center(child: Lottie.asset(AppAssets.animSuccess, repeat: false)),
     );
   }

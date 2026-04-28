@@ -23,7 +23,7 @@ class DeliverySignatureField extends StatelessWidget {
     final borderColor = errorText != null
         ? DSColors.error
         : isDark
-        ? DSColors.white.withValues(alpha: 0.1)
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
         : DSColors.separatorLight;
 
     return Column(
@@ -33,7 +33,7 @@ class DeliverySignatureField extends StatelessWidget {
           decoration: BoxDecoration(
             color: DSColors.white,
             borderRadius: DSStyles.cardRadius,
-            border: Border.all(color: borderColor, width: 1.5),
+            border: Border.all(color: borderColor, width: DSStyles.borderWidth * 1.5),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -63,7 +63,7 @@ class DeliverySignatureField extends StatelessWidget {
         ),
         if (errorText != null)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: EdgeInsets.only(top: DSSpacing.sm),
             child: Text(
               errorText!,
               style: const TextStyle(
@@ -87,7 +87,7 @@ class DeliverySignatureField extends StatelessWidget {
             ),
             style: TextButton.styleFrom(
               foregroundColor: DSColors.labelTertiary,
-              padding: const EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 horizontal: DSSpacing.sm,
                 vertical: DSSpacing.xs,
               ),

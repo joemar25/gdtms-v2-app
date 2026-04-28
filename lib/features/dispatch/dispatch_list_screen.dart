@@ -178,14 +178,14 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                   ? ListView(
                       children: const [
                         SizedBox(
-                          height: 400,
+                          height: DSIconSize.heroSm,
                           child: EmptyState(message: 'No pending dispatches.'),
                         ),
                       ],
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.all(DSSpacing.base),
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      padding: EdgeInsets.all(DSSpacing.md),
+                      separatorBuilder: (_, _) => DSSpacing.hSm,
                       itemCount: _dispatches.length,
                       itemBuilder: (_, i) {
                         final item = _dispatches[i];

@@ -206,9 +206,9 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                   : () => ref.read(syncManagerProvider.notifier).processQueue(),
               icon: syncState.isSyncing
                   ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      width: DSIconSize.sm,
+                      height: DSIconSize.sm,
+                      child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
                     )
                   : const Icon(Icons.sync_rounded, size: DSIconSize.md),
               label: Text(
@@ -222,11 +222,11 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
               onPressed: canReload ? _reloadFromServer : null,
               icon: _reloading
                   ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      width: DSIconSize.sm,
+                      height: DSIconSize.sm,
+                      child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
                     )
-                  : const Icon(Icons.cloud_download_outlined, size: 18),
+                  : const Icon(Icons.cloud_download_outlined, size: DSIconSize.sm),
               label: Text('Reload', style: DSTypography.caption()),
             ),
         ],
@@ -325,7 +325,7 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
           color: Theme.of(context).brightness == Brightness.dark
               ? DSColors.scaffoldDark
               : DSColors.scaffoldLight,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -340,7 +340,7 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                         ? DSColors.success
                         : DSColors.warning,
                   ),
-                  const SizedBox(width: 6),
+                  DSSpacing.wXs,
                   Text(
                     widget.isOnline ? 'Online' : 'Offline',
                     style: DSTypography.label(
@@ -394,7 +394,7 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
 
                       if (earliestSynced == null) {
                         return Padding(
-                          padding: const EdgeInsets.only(top: 6),
+                          padding: EdgeInsets.only(top: DSSpacing.sm),
                           child: Text(
                             'Sync history retention: $retentionLabel',
                             style: DSTypography.caption(
@@ -486,7 +486,7 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                           }
 
                           return Padding(
-                            padding: const EdgeInsets.only(top: 6),
+                            padding: EdgeInsets.only(top: DSSpacing.sm),
                             child: Row(
                               children: [
                                 Icon(
@@ -498,7 +498,7 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                                       ? DSColors.labelSecondaryDark
                                       : DSColors.labelSecondary,
                                 ),
-                                const SizedBox(width: 8),
+                                DSSpacing.wSm,
                                 Text(
                                   label,
                                   style: DSTypography.caption(
@@ -518,14 +518,14 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
                   );
                 },
               ),
-              const SizedBox(height: 12),
+              DSSpacing.hMd,
             ],
           ),
         ),
         // Shared sync progress bar (spinner + progress or pending/failed count)
         const SyncProgressBar(
           padding: EdgeInsets.symmetric(
-            horizontal: DSSpacing.base,
+            horizontal: DSSpacing.md,
             vertical: DSSpacing.sm,
           ),
         ),
@@ -576,7 +576,7 @@ class _EntryList extends ConsumerWidget {
 
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 8, bottom: 100),
+      padding: EdgeInsets.only(top: DSSpacing.sm, bottom: 100),
       itemCount: entries.length,
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
@@ -812,11 +812,11 @@ class _EntryTile extends StatelessWidget {
               context,
               'This entry is a profile update and has no delivery details.',
             )
-          : () => context.push('/deliveries/${entry.barcode}'),
+          : () => context.push('/deliveries/${entry.barcode}/update'),
       onLongPress: onDelete,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DSSpacing.base,
+        padding: EdgeInsets.symmetric(
+          horizontal: DSSpacing.md,
           vertical: DSSpacing.md,
         ),
         child: Row(
@@ -824,7 +824,7 @@ class _EntryTile extends StatelessWidget {
           children: [
             // ── Status icon ──────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: EdgeInsets.only(top: DSSpacing.xs),
               child: _StatusChip(status: entry.status, isSyncing: isSyncing),
             ),
             DSSpacing.wMd,
@@ -860,7 +860,7 @@ class _EntryTile extends StatelessWidget {
                   if (recipientName != null &&
                       recipientName.isNotEmpty &&
                       !isLocked) ...[
-                    const SizedBox(height: 2),
+                    DSSpacing.hXs,
                     Text(
                       recipientName,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -869,11 +869,11 @@ class _EntryTile extends StatelessWidget {
                     ),
                   ],
 
-                  const SizedBox(height: 6),
+                  DSSpacing.hSm,
 
                   // Status badge + mail type + dispatch code
                   Wrap(
-                    spacing: 6,
+                    spacing: DSSpacing.sm,
                     runSpacing: 4,
                     children: [
                       if (payloadStatus.isNotEmpty)
@@ -931,7 +931,7 @@ class _EntryTile extends StatelessWidget {
 
                   // Error message
                   if (entry.lastError != null) ...[
-                    const SizedBox(height: 4),
+                    DSSpacing.hXs,
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -940,7 +940,7 @@ class _EntryTile extends StatelessWidget {
                           size: DSIconSize.xs,
                           color: theme.colorScheme.error,
                         ),
-                        const SizedBox(width: 4),
+                        DSSpacing.wXs,
                         Expanded(
                           child: Text(
                             entry.lastError!,
@@ -959,7 +959,7 @@ class _EntryTile extends StatelessWidget {
                   if (onRetry != null ||
                       onDismiss != null ||
                       onDelete != null) ...[
-                    const SizedBox(height: 4),
+                    DSSpacing.hXs,
                     Row(
                       children: [
                         if (onRetry != null)
@@ -976,7 +976,7 @@ class _EntryTile extends StatelessWidget {
                           ),
                         if (onRetry != null &&
                             (onDismiss != null || onDelete != null))
-                          const SizedBox(width: 16),
+                          DSSpacing.wMd,
                         if (onDismiss != null)
                           SizedBox(
                             height: 28,
@@ -990,7 +990,7 @@ class _EntryTile extends StatelessWidget {
                             ),
                           ),
                         if (onDismiss != null && onDelete != null)
-                          const SizedBox(width: 16),
+                          DSSpacing.wMd,
                       ],
                     ),
                   ],
@@ -1016,9 +1016,9 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isSyncing || status == 'processing') {
       return const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2),
+        width: DSIconSize.xl,
+        height: DSIconSize.xl,
+        child: CircularProgressIndicator(strokeWidth: DSStyles.strokeWidth),
       );
     }
 
@@ -1048,17 +1048,17 @@ class _StatusBadge extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final (bg, fg, label) = switch (ds) {
       DeliveryStatus.delivered => (
-        DSColors.success.withValues(alpha: 0.1),
+        DSColors.success.withValues(alpha: DSStyles.alphaSubtle),
         DSColors.success,
         DeliveryStatus.delivered.displayName,
       ),
       DeliveryStatus.pending => (
-        DSColors.warning.withValues(alpha: 0.1),
+        DSColors.warning.withValues(alpha: DSStyles.alphaSubtle),
         DSColors.warning,
         DeliveryStatus.pending.displayName,
       ),
       DeliveryStatus.failedDelivery => (
-        DSColors.error.withValues(alpha: 0.1),
+        DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
         DSColors.error,
         DeliveryStatus.failedDelivery.displayName,
       ),
@@ -1075,7 +1075,7 @@ class _StatusBadge extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.sm,
         vertical: 2,
       ),
@@ -1084,7 +1084,7 @@ class _StatusBadge extends StatelessWidget {
         label,
         style: DSTypography.label(
           color: fg,
-        ).copyWith(fontSize: DSTypography.sizeSm, letterSpacing: 0.3),
+        ).copyWith(fontSize: DSTypography.sizeSm, letterSpacing: DSTypography.lsLoose),
       ),
     );
   }
@@ -1100,7 +1100,7 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
             ? DSColors.cardDark
@@ -1129,17 +1129,17 @@ class _ArchivedChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm, vertical: DSSpacing.xs),
       decoration: BoxDecoration(
         color: DSColors.accentSurface,
         borderRadius: DSStyles.pillRadius,
-        border: Border.all(color: DSColors.accent.withValues(alpha: 0.2)),
+        border: Border.all(color: DSColors.accent.withValues(alpha: DSStyles.alphaMuted)),
       ),
       child: Text(
         'ARCHIVED',
         style: DSTypography.label(
           color: DSColors.accent,
-        ).copyWith(fontSize: DSTypography.sizeSm, letterSpacing: 0.3),
+        ).copyWith(fontSize: DSTypography.sizeSm, letterSpacing: DSTypography.lsLoose),
       ),
     );
   }
@@ -1166,11 +1166,11 @@ class _MetaRow extends StatelessWidget {
     final dimColor = theme.colorScheme.onSurfaceVariant;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 3),
+      padding: EdgeInsets.only(top: DSSpacing.xs),
       child: Row(
         children: [
           Icon(icon, size: DSIconSize.xs, color: dimColor),
-          const SizedBox(width: 5),
+          DSSpacing.wSm,
           Text(
             '$label: ',
             style: theme.textTheme.bodySmall?.copyWith(
@@ -1244,30 +1244,30 @@ class _EmptyStateState extends State<_EmptyState>
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.7,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: DSSpacing.xxl),
+            padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (widget.isSyncing) ...[
-                  const SpinKitDoubleBounce(color: DSColors.primary, size: 80),
-                  const SizedBox(height: 16),
+                  const SpinKitDoubleBounce(color: DSColors.primary, size: DSIconSize.heroLg),
+                  DSSpacing.hMd,
                   Text('Syncing…', style: theme.textTheme.titleMedium),
                 ] else ...[
                   Lottie.asset(
                     AppAssets.animSuccess,
-                    width: 180,
-                    height: 180,
+                    width: DSIconSize.lg,
+                    height: DSIconSize.heroLg * 2.8,
                     controller: _controller,
                     onLoaded: _onLoaded,
                   ),
-                  const SizedBox(height: 16),
+                  DSSpacing.hMd,
                   Text(
                     'All caught up!',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  DSSpacing.hSm,
                   Text(
                     'No pending deliveries to sync.',
                     style: theme.textTheme.bodyMedium?.copyWith(

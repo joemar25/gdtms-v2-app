@@ -21,7 +21,7 @@ Future<void> showContactAppSheet(
     _CommApp(
       label: 'SMS',
       icon: Icons.message_rounded,
-      color: const Color(0xFF34C759),
+      color: DSColors.socialSms,
       uri: encodedMsg != null
           ? Uri.parse('sms:$cleaned?body=$encodedMsg')
           : Uri(scheme: 'sms', path: cleaned),
@@ -29,13 +29,13 @@ Future<void> showContactAppSheet(
     _CommApp(
       label: 'Call',
       icon: Icons.phone_rounded,
-      color: const Color(0xFF007AFF),
+      color: DSColors.socialCall,
       uri: Uri(scheme: 'tel', path: cleaned),
     ),
     _CommApp(
       label: 'Viber',
       icon: Icons.chat_bubble_rounded,
-      color: const Color(0xFF7360F2),
+      color: DSColors.socialViber,
       uri: Uri.parse(
         encodedMsg != null
             ? 'viber://chat?number=$noPlus&text=$encodedMsg'
@@ -48,7 +48,7 @@ Future<void> showContactAppSheet(
     _CommApp(
       label: 'WhatsApp',
       icon: Icons.chat_bubble_rounded,
-      color: const Color(0xFF25D366),
+      color: DSColors.socialWhatsApp,
       uri: Uri.parse(
         encodedMsg != null
             ? 'whatsapp://send?phone=$noPlus&text=$encodedMsg'
@@ -58,7 +58,7 @@ Future<void> showContactAppSheet(
     _CommApp(
       label: 'Telegram',
       icon: Icons.near_me_rounded,
-      color: const Color(0xFF229ED9),
+      color: DSColors.socialTelegram,
       uri: Uri.parse('tg://resolve?phone=$cleaned'),
     ),
   ];
@@ -105,11 +105,11 @@ class _ContactAppSheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xxl)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
       ),
       padding: EdgeInsets.fromLTRB(
         DSSpacing.xl,
-        12,
+        DSSpacing.md,
         DSSpacing.xl,
         DSSpacing.xl + MediaQuery.of(context).padding.bottom,
       ),
@@ -119,14 +119,14 @@ class _ContactAppSheet extends StatelessWidget {
         children: [
           Center(
             child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
+              width: DSSpacing.xl,
+              height: DSSpacing.xs,
+              margin: EdgeInsets.only(bottom: DSSpacing.md),
               decoration: BoxDecoration(
                 color: isDark
                     ? DSColors.separatorDark
                     : DSColors.separatorLight,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(DSStyles.radiusXS),
               ),
             ),
           ),
@@ -137,7 +137,7 @@ class _ContactAppSheet extends StatelessWidget {
               fontSize: DSTypography.sizeSm,
             ),
           ),
-          const SizedBox(height: 4),
+          DSSpacing.hXs,
           Text(
             phone,
             style: DSTypography.title(
@@ -147,8 +147,8 @@ class _ContactAppSheet extends StatelessWidget {
           ),
           DSSpacing.hXl,
           Wrap(
-            spacing: 16,
-            runSpacing: 16,
+            spacing: DSSpacing.md,
+            runSpacing: DSSpacing.md,
             children: apps.map((app) => _AppButton(app: app)).toList(),
           ),
         ],
@@ -168,22 +168,22 @@ class _AppButton extends StatelessWidget {
         Navigator.pop(context);
         launchUrl(app.uri, mode: LaunchMode.externalApplication);
       },
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: DSStyles.cardRadius,
       child: Container(
-        width: 80,
-        padding: const EdgeInsets.symmetric(vertical: DSSpacing.md),
+        width: DSIconSize.heroLg, // Keeping fixed width for layout grid symmetry
+        padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(DSSpacing.md),
+              padding: EdgeInsets.all(DSSpacing.md),
               decoration: BoxDecoration(
-                color: app.color.withValues(alpha: 0.1),
+                color: app.color.withValues(alpha: DSStyles.alphaSubtle),
                 shape: BoxShape.circle,
               ),
-              child: Icon(app.icon, color: app.color, size: DSIconSize.xxl),
+              child: Icon(app.icon, color: app.color, size: DSIconSize.xl),
             ),
-            const SizedBox(height: 8),
+            DSSpacing.hSm,
             Text(
               app.label,
               style: DSTypography.button(

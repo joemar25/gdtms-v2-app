@@ -37,8 +37,8 @@ class PaginationBar extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: DSSpacing.base,
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
         vertical: DSSpacing.md,
       ),
       child: SafeArea(
@@ -60,11 +60,11 @@ class PaginationBar extends StatelessWidget {
                             : DSColors.labelSecondary,
                       ).copyWith(
                         fontSize: DSTypography.sizeXs,
-                        letterSpacing: DSTypography.lsGiantLoose,
+                        letterSpacing: DSTypography.lsExtraLoose,
                         fontWeight: FontWeight.w800,
                       ),
                 ),
-                const SizedBox(height: 2),
+                DSSpacing.hXs,
                 Text(
                   'OF $totalCount ENTRIES',
                   style:
@@ -82,7 +82,7 @@ class PaginationBar extends StatelessWidget {
 
             // Right: Page Indicator + Swipe Prompt
             Container(
-              padding: const EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 horizontal: DSSpacing.md,
                 vertical: DSSpacing.sm,
               ),
@@ -100,19 +100,19 @@ class PaginationBar extends StatelessWidget {
                       borderRadius: DSStyles.cardRadius,
                       onTap: () => onPageChanged(currentPage - 1),
                       child: Padding(
-                        padding: const EdgeInsets.all(DSSpacing.xs),
+                        padding: EdgeInsets.all(DSSpacing.xs),
                         child: Icon(
                           Icons.keyboard_arrow_left_rounded,
                           size: DSIconSize.sm,
                           color: cs.onSurface.withValues(
-                            alpha: DSStyles.alphaBorder,
+                            alpha: DSStyles.alphaMuted,
                           ),
                         ),
                       ),
                     ),
 
                   Padding(
-                    padding: const EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                       horizontal: DSSpacing.sm,
                     ),
                     child: Text(
@@ -131,12 +131,12 @@ class PaginationBar extends StatelessWidget {
                       borderRadius: DSStyles.cardRadius,
                       onTap: () => onPageChanged(currentPage + 1),
                       child: Padding(
-                        padding: const EdgeInsets.all(DSSpacing.xs),
+                        padding: EdgeInsets.all(DSSpacing.xs),
                         child: Icon(
                           Icons.keyboard_arrow_right_rounded,
                           size: DSIconSize.sm,
                           color: cs.onSurface.withValues(
-                            alpha: DSStyles.alphaBorder,
+                            alpha: DSStyles.alphaMuted,
                           ),
                         ),
                       ),

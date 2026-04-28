@@ -191,29 +191,29 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         fit: StackFit.expand,
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+            padding: EdgeInsets.fromLTRB(DSSpacing.lg, DSSpacing.xl, DSSpacing.lg, DSSpacing.xl),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: const BoxConstraints(maxWidth: DSIconSize.heroSm),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // ── Icon + heading ─────────────────────────────────
                   Center(
                     child: Container(
-                      width: 64,
-                      height: 64,
+                      width: DSIconSize.heroLg,
+                      height: DSIconSize.heroLg,
                       decoration: BoxDecoration(
-                        color: DSColors.error.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(18),
+                        color: DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
+                        borderRadius: DSStyles.cardRadius,
                       ),
                       child: const Icon(
                         Icons.lock_reset_rounded,
-                        size: 32,
+                        size: DSIconSize.xl,
                         color: DSColors.error,
                       ),
                     ),
                   ).dsHeroEntry(),
-                  const SizedBox(height: 20),
+                  DSSpacing.hLg,
                   Text(
                     title,
                     textAlign: TextAlign.center,
@@ -226,7 +226,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       letterSpacing: -0.3,
                     ),
                   ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
-                  const SizedBox(height: 6),
+                  DSSpacing.hSm,
                   Text(
                     widget.authenticatedMode
                         ? 'Update your current password securely.'
@@ -239,7 +239,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           : DSColors.labelSecondary,
                     ),
                   ).dsFadeEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
-                  const SizedBox(height: 32),
+                  DSSpacing.hXl,
 
                   // ── Courier Code ───────────────────────────────────
                   // Only visible in Debug mode (completely removed in Production)
@@ -252,7 +252,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           ? 'Courier Code (Debug)'
                           : 'Courier Code',
                     ),
-                    const SizedBox(height: 6),
+                    DSSpacing.hSm,
 
                     widget.authenticatedMode
                         ? TextField(
@@ -262,7 +262,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                               hintText: 'Your courier code',
                               prefixIcon: const Icon(
                                 Icons.badge_outlined,
-                                size: 20,
+                                size: DSIconSize.md,
                               ),
                               errorText: _errors['courier_code'],
                               filled: true,
@@ -271,7 +271,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                   : DSColors.secondarySurfaceLight,
                               suffixIcon: Icon(
                                 Icons.lock_outline,
-                                size: 16,
+                                size: DSIconSize.sm,
                                 color: isDark
                                     ? DSColors.labelTertiaryDark
                                     : DSColors.labelTertiary,
@@ -286,7 +286,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                               hintText: 'Your courier code',
                               prefixIcon: const Icon(
                                 Icons.badge_outlined,
-                                size: 20,
+                                size: DSIconSize.md,
                               ),
                               errorText: _errors['courier_code'],
                               filled: false,
@@ -294,26 +294,26 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             ),
                           ),
 
-                    const SizedBox(height: 16),
+                    DSSpacing.hMd,
                   ],
 
                   // ── Current Password (auth mode only) ──────────────
                   if (widget.authenticatedMode) ...[
                     _fieldLabel(context, isDark, 'Current Password'),
-                    const SizedBox(height: 6),
+                    DSSpacing.hSm,
                     TextField(
                       controller: _currentPassword,
                       obscureText: _obscureCurrent,
                       decoration: InputDecoration(
                         hintText: 'Your current password',
-                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                        prefixIcon: const Icon(Icons.lock_outline, size: DSIconSize.md),
                         errorText: _errors['current_password'],
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscureCurrent
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
-                            size: 20,
+                            size: DSIconSize.md,
                           ),
                           onPressed: () => setState(
                             () => _obscureCurrent = !_obscureCurrent,
@@ -321,56 +321,56 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         ),
                       ),
                     ).dsFieldEntry(delay: DSAnimations.stagger(widget.authenticatedMode && kDebugMode ? 6 : 4, step: DSAnimations.staggerNormal)),
-                    const SizedBox(height: 16),
+                    DSSpacing.hMd,
                   ],
 
                   // ── New Password ───────────────────────────────────
                   _fieldLabel(context, isDark, 'New Password').dsFadeEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 7 : 5) : 3, step: DSAnimations.staggerNormal)),
-                  const SizedBox(height: 6),
+                  DSSpacing.hSm,
                   TextField(
                     controller: _newPassword,
                     obscureText: _obscureNew,
                     decoration: InputDecoration(
                       hintText: 'At least 8 characters',
-                      prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                      prefixIcon: const Icon(Icons.lock_outline, size: DSIconSize.md),
                       errorText: _errors['new_password'],
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureNew
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          size: 20,
+                          size: DSIconSize.md,
                         ),
                         onPressed: () =>
                             setState(() => _obscureNew = !_obscureNew),
                       ),
                     ),
                   ).dsFieldEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 8 : 6) : 4, step: DSAnimations.staggerNormal)),
-                  const SizedBox(height: 16),
+                  DSSpacing.hMd,
 
                   // ── Confirm New Password ───────────────────────────
                   _fieldLabel(context, isDark, 'Confirm New Password').dsFadeEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 9 : 7) : 5, step: DSAnimations.staggerNormal)),
-                  const SizedBox(height: 6),
+                  DSSpacing.hSm,
                   TextField(
                     controller: _confirmPassword,
                     obscureText: _obscureConfirm,
                     decoration: InputDecoration(
                       hintText: 'Re-enter your new password',
-                      prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                      prefixIcon: const Icon(Icons.lock_outline, size: DSIconSize.md),
                       errorText: _errors['new_password_confirmation'],
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirm
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          size: 20,
+                          size: DSIconSize.md,
                         ),
                         onPressed: () =>
                             setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
                     ),
                   ).dsFieldEntry(delay: DSAnimations.stagger(widget.authenticatedMode ? (kDebugMode ? 10 : 8) : 6, step: DSAnimations.staggerNormal)),
-                  const SizedBox(height: 28),
+                  DSSpacing.hXl,
 
                   // ── Submit Button ──────────────────────────────────
                   FilledButton(
@@ -378,7 +378,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(double.infinity, 52),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: DSStyles.cardRadius, // 16.0
                       ),
                     ),
                     child: Text(
@@ -395,7 +395,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           ),
           if (_loading)
             ColoredBox(
-              color: DSColors.black.withValues(alpha: 0.26),
+              color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
               child: Center(child: CircularProgressIndicator()),
             ),
         ],

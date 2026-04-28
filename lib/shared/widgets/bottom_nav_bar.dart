@@ -33,12 +33,12 @@ class AppBottomNavBar extends StatelessWidget {
           DSSpacing.lg,
           0,
           DSSpacing.lg,
-          bottomPadding > 0 ? bottomPadding : DSSpacing.base,
+          bottomPadding > 0 ? bottomPadding : DSSpacing.md,
         ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
           child: Container(
-            height: 64,
+            height: DSSpacing.huge + DSSpacing.sm, // 72.0 (64 + 8)
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
@@ -55,14 +55,14 @@ class AppBottomNavBar extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: backgroundColor.withValues(
-                      alpha: isDark ? 0.85 : 0.92,
+                      alpha: isDark ? DSStyles.alphaDisabled : DSStyles.alphaOpaque,
                     ),
                     borderRadius: DSStyles.circularRadius,
                     border: Border.all(
                       color: borderColor.withValues(
-                        alpha: DSStyles.alphaBorder,
+                        alpha: DSStyles.alphaMuted,
                       ),
-                      width: 0.5,
+                      width: DSStyles.borderWidth * 0.5,
                     ),
                   ),
                   child: LayoutBuilder(
@@ -80,7 +80,7 @@ class AppBottomNavBar extends StatelessWidget {
                             top: 8,
                             child: Container(
                               width: tabWidth * 0.8,
-                              height: 48,
+                              height: DSIconSize.heroSm,
                               decoration: BoxDecoration(
                                 color: activeColor.withValues(
                                   alpha: DSStyles.alphaSoft,
@@ -91,41 +91,44 @@ class AppBottomNavBar extends StatelessWidget {
                           ),
 
                           // ── Nav Items ──────────────────────────────────────
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _NavBarItem(
-                                index: 0,
-                                selectedIndex: currentIdx,
-                                icon: Icons.home_outlined,
-                                selectedIcon: Icons.home_rounded,
-                                label: 'Home',
-                                activeColor: activeColor,
-                                inactiveColor: inactiveColor,
-                                onTap: () => _onTap(0),
-                              ),
-                              _NavBarItem(
-                                index: 1,
-                                selectedIndex: currentIdx,
-                                icon: Icons.account_balance_wallet_outlined,
-                                selectedIcon:
-                                    Icons.account_balance_wallet_rounded,
-                                label: 'Wallet',
-                                activeColor: activeColor,
-                                inactiveColor: inactiveColor,
-                                onTap: () => _onTap(1),
-                              ),
-                              _NavBarItem(
-                                index: 2,
-                                selectedIndex: currentIdx,
-                                icon: Icons.person_outline_rounded,
-                                selectedIcon: Icons.person_rounded,
-                                label: 'Profile',
-                                activeColor: activeColor,
-                                inactiveColor: inactiveColor,
-                                onTap: () => _onTap(2),
-                              ),
-                            ],
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _NavBarItem(
+                                  index: 0,
+                                  selectedIndex: currentIdx,
+                                  icon: Icons.home_outlined,
+                                  selectedIcon: Icons.home_rounded,
+                                  label: 'Home',
+                                  activeColor: activeColor,
+                                  inactiveColor: inactiveColor,
+                                  onTap: () => _onTap(0),
+                                ),
+                                _NavBarItem(
+                                  index: 1,
+                                  selectedIndex: currentIdx,
+                                  icon: Icons.account_balance_wallet_outlined,
+                                  selectedIcon:
+                                      Icons.account_balance_wallet_rounded,
+                                  label: 'Wallet',
+                                  activeColor: activeColor,
+                                  inactiveColor: inactiveColor,
+                                  onTap: () => _onTap(1),
+                                ),
+                                _NavBarItem(
+                                  index: 2,
+                                  selectedIndex: currentIdx,
+                                  icon: Icons.person_outline_rounded,
+                                  selectedIcon: Icons.person_rounded,
+                                  label: 'Profile',
+                                  activeColor: activeColor,
+                                  inactiveColor: inactiveColor,
+                                  onTap: () => _onTap(2),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       );
@@ -179,19 +182,32 @@ class _NavBarItem extends StatelessWidget {
         onTap: isSelected ? null : onTap,
         splashColor: DSColors.transparent,
         highlightColor: DSColors.transparent,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(isSelected ? selectedIcon : icon, color: color, size: DSIconSize.xxl),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: DSTypography.caption(color: color).copyWith(
-                fontSize: DSTypography.sizeSm,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        child: AnimatedScale(
+          scale: isSelected ? 1.05 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                transform: Matrix4.translationValues(0, isSelected ? -2 : 0, 0),
+                child: Icon(
+                  isSelected ? selectedIcon : icon,
+                  color: color,
+                  size: isSelected ? DSIconSize.xl : DSIconSize.lg,
+                ),
               ),
-            ),
-          ],
+              DSSpacing.hXs,
+              Text(
+                label,
+                style: DSTypography.caption(color: color).copyWith(
+                  fontSize: DSTypography.sizeXs,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  letterSpacing: isSelected ? 0.2 : 0,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

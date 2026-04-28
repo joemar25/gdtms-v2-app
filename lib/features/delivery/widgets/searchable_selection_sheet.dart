@@ -96,7 +96,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final bgColor = widget.isDark ? DSColors.cardDark : DSColors.white;
-    final surfaceColor = widget.isDark ? DSColors.white.withValues(alpha: 0.12) : DSColors.scaffoldLight;
+    final surfaceColor = widget.isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.scaffoldLight;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -105,8 +105,8 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(DSSpacing.xl)),
         boxShadow: [
           BoxShadow(
-            color: DSColors.black.withValues(alpha: DSStyles.alphaDarkShadow),
-            blurRadius: 20,
+            color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
+            blurRadius: DSStyles.radiusXL,
             offset: const Offset(0, -5),
           ),
         ],
@@ -114,20 +114,20 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
       child: Column(
         children: [
           // ── Handle ──────────────────────────────────────────────────────────
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           Container(
-            width: 40,
+            width: DSIconSize.heroSm,
             height: 4,
             decoration: BoxDecoration(
-              color: widget.isDark ? DSColors.white.withValues(alpha: 0.24) : DSColors.separatorLight,
+              color: widget.isDark ? DSColors.white.withValues(alpha: DSStyles.alphaMuted) : DSColors.separatorLight,
               borderRadius: DSStyles.pillRadius,
             ),
           ),
-          const SizedBox(height: 16),
+          DSSpacing.hMd,
 
           // ── Header ──────────────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: DSSpacing.lg),
+            padding: EdgeInsets.symmetric(horizontal: DSSpacing.lg),
             child: Row(
               children: [
                 Expanded(
@@ -136,7 +136,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                     style: const TextStyle(
                       fontSize: DSTypography.sizeMd,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
+                      letterSpacing: DSTypography.lsExtraLoose,
                     ),
                   ),
                 ),
@@ -148,17 +148,17 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
 
           // ── Search Bar ──────────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: DSSpacing.lg),
+            padding: EdgeInsets.symmetric(horizontal: DSSpacing.lg),
             child: Container(
               decoration: BoxDecoration(
                 color: surfaceColor,
                 borderRadius: DSStyles.cardRadius,
                 border: Border.all(
-                  color: widget.isDark ? DSColors.white.withValues(alpha: 0.1) : DSColors.secondarySurfaceLight,
+                  color: widget.isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.secondarySurfaceLight,
                 ),
               ),
               child: TextField(
@@ -168,7 +168,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                 onChanged: _filter,
                 decoration: InputDecoration(
                   hintText: 'SEARCH OPTIONS...',
-                  labelStyle: const TextStyle(fontSize: DSTypography.sizeMd),
+                  labelStyle: DSTypography.body().copyWith(fontSize: DSTypography.sizeMd),
                   hintStyle: TextStyle(
                     color: DSColors.labelTertiary,
                     fontSize: DSTypography.sizeMd,
@@ -185,12 +185,12 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                         )
                       : null,
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  contentPadding: EdgeInsets.symmetric(vertical: DSSpacing.md),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          DSSpacing.hMd,
 
           // ── Options List ────────────────────────────────────────────────────
           Expanded(
@@ -201,17 +201,17 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                       children: [
                         Icon(
                           Icons.search_off_rounded,
-                          size: 48,
+                          size: DSIconSize.heroSm,
                           color: DSColors.labelTertiary,
                         ),
-                        const SizedBox(height: 16),
+                        DSSpacing.hMd,
                         Text(
                           'NO MATCHES FOUND',
                           style: TextStyle(
                             fontSize: DSTypography.sizeSm,
                             fontWeight: FontWeight.w700,
                             color: DSColors.labelTertiary,
-                            letterSpacing: 1.0,
+                            letterSpacing: DSTypography.lsExtraLoose,
                           ),
                         ),
                       ],
@@ -227,15 +227,15 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                       final isSelected = value == widget.initialValue;
 
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: EdgeInsets.only(bottom: DSSpacing.sm),
                         child: InkWell(
                           onTap: () => Navigator.pop(context, value),
                           borderRadius: DSStyles.cardRadius,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: DSSpacing.base,
-                              vertical: DSSpacing.base,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: DSSpacing.md,
+                              vertical: DSSpacing.md,
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
@@ -248,7 +248,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                                 color: isSelected
                                     ? DSColors.primary.withValues(alpha: 0.5)
                                     : DSColors.transparent,
-                                width: 1.5,
+                                width: DSStyles.borderWidth * 1.5,
                               ),
                             ),
                             child: Row(
@@ -273,7 +273,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                                   const Icon(
                                     Icons.check_circle_rounded,
                                     color: DSColors.primary,
-                                    size: 20,
+                                    size: DSIconSize.md,
                                   ),
                               ],
                             ),

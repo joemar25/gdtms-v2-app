@@ -55,7 +55,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
   void initState() {
     super.initState();
     _controller = SignatureController(
-      penStrokeWidth: 2.5,
+      penStrokeWidth: DSStyles.strokeWidth,
       penColor: DSColors.black,
       exportBackgroundColor: DSColors.white,
       onDrawEnd: () => setState(() {}),
@@ -100,7 +100,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
           style: DSTypography.heading().copyWith(
             fontSize: DSTypography.sizeMd,
             fontWeight: FontWeight.w800,
-            letterSpacing: DSTypography.lsMegaLoose,
+            letterSpacing: DSTypography.lsExtraLoose,
             color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
           ),
         ),
@@ -109,7 +109,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
             onPressed: hasStrokes ? _clear : null,
             icon: Icon(
               Icons.refresh_rounded,
-              size: 16,
+              size: DSIconSize.sm,
               color: hasStrokes
                   ? DSColors.labelSecondary
                   : DSColors.separatorLight,
@@ -125,9 +125,9 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
           ),
           DSSpacing.wXs,
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: EdgeInsets.only(right: DSSpacing.sm),
             child: FilledButton.icon(
-              icon: const Icon(Icons.check_rounded, size: 16),
+              icon: const Icon(Icons.check_rounded, size: DSIconSize.sm),
               label: Text(
                 'DONE',
                 style: DSTypography.button().copyWith(
@@ -142,7 +142,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
                 foregroundColor: hasStrokes
                     ? DSColors.white
                     : DSColors.labelSecondary,
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: DSSpacing.sm,
                 ),
@@ -178,9 +178,9 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
             child: IgnorePointer(
               child: Center(
                 child: Container(
-                  height: 1,
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: DSSpacing.xxxl,
+                  height: DSStyles.borderWidth,
+                  margin: EdgeInsets.symmetric(
+                    horizontal: DSSpacing.xl,
                   ),
                   color: DSColors.separatorLight,
                 ),

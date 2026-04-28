@@ -209,14 +209,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final subtitleColor = colorScheme.onSurfaceVariant;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark 
+               ? [DSColors.scaffoldDark, DSColors.cardElevatedDark]
+               : [DSColors.primary.withValues(alpha: DSStyles.alphaSoft), DSColors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   horizontal: 28,
                   vertical: DSSpacing.xs,
                 ),
@@ -228,27 +240,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       // ── Logo ──────────────────────────────────────────
                       Center(
                         child: Container(
-                          width: 72,
-                          height: 72,
+                          width: DSIconSize.heroSm,
+                          height: DSIconSize.heroSm,
                           decoration: BoxDecoration(
                             color: DSColors.error,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: DSStyles.sheetRadius, // 28.0 (Legacy radiusSheet)
                             boxShadow: [
                               BoxShadow(
-                                color: DSColors.error.withValues(alpha: 0.30),
-                                blurRadius: 20,
+                                color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
+                                blurRadius: DSStyles.radiusXL,
                                 offset: const Offset(0, 8),
                               ),
                             ],
                           ),
                           child: const Icon(
                             Icons.local_shipping_rounded,
-                            size: 36,
+                            size: DSIconSize.xl,
                             color: DSColors.white,
                           ),
                         ),
                       ).dsHeroEntry(),
-                      const SizedBox(height: 28),
+                      DSSpacing.hXl,
 
                       // ── Title ────────────────────────────────────────
                       Text(
@@ -261,7 +273,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           letterSpacing: DSTypography.lsSlightlyTight,
                         ),
                       ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
-                      const SizedBox(height: 6),
+                      DSSpacing.hSm,
                       Text(
                         'Enter your credentials to continue',
                         textAlign: TextAlign.center,
@@ -270,11 +282,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: subtitleColor,
                         ),
                       ).dsFadeEntry(delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal)),
-                      const SizedBox(height: 36),
+                      DSSpacing.hXl,
 
                       // ── Phone Number ──────────────────────────────────
                       _fieldLabel('Phone Number').dsFadeEntry(delay: DSAnimations.stagger(3, step: DSAnimations.staggerNormal)),
-                      const SizedBox(height: 6),
+                      DSSpacing.hSm,
                       TextField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
@@ -282,29 +294,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           hintText: 'e.g. 09XXXXXXXXX',
                           prefixIcon: const Icon(
                             Icons.phone_outlined,
-                            size: 20,
+                            size: DSIconSize.md,
                           ),
                           errorText: _errors['phone_number'],
                         ),
                       ).dsFieldEntry(delay: DSAnimations.stagger(4, step: DSAnimations.staggerNormal)),
-                      const SizedBox(height: 16),
+                      DSSpacing.hMd,
 
                       // ── Password ──────────────────────────────────────
                       _fieldLabel('Password').dsFadeEntry(delay: DSAnimations.stagger(5, step: DSAnimations.staggerNormal)),
-                      const SizedBox(height: 6),
+                      DSSpacing.hSm,
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
                           hintText: 'Your password',
-                          prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                          prefixIcon: const Icon(Icons.lock_outline, size: DSIconSize.md),
                           errorText: _errors['password'],
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              size: 20,
+                              size: DSIconSize.md,
                             ),
                             onPressed: () => setState(
                               () => _obscurePassword = !_obscurePassword,
@@ -324,7 +336,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: const Text('Forgot password?'),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      DSSpacing.hXs,
 
                       // ── Sign In Button ────────────────────────────────
                       FilledButton(
@@ -334,7 +346,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(double.infinity, 52),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: DSStyles.cardRadius, // 16.0
                           ),
                         ),
                         child: Text(
@@ -347,7 +359,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ).dsCtaEntry(delay: DSAnimations.stagger(7, step: DSAnimations.staggerNormal)),
-                      const SizedBox(height: 32),
+                      DSSpacing.hXl,
 
                       // ── Contact Admin Footer ──────────────────────────
                       Row(
@@ -381,10 +393,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           if (_loading)
             ColoredBox(
-              color: DSColors.black.withValues(alpha: 0.26),
+              color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
               child: Center(child: CircularProgressIndicator()),
             ),
         ],
+      ),
       ),
     );
   }

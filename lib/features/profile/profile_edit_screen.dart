@@ -197,11 +197,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       child: Scaffold(
         appBar: const AppHeaderBar(title: 'Edit Profile'),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
+          padding: EdgeInsets.fromLTRB(
             DSSpacing.xl,
-            DSSpacing.xxl,
             DSSpacing.xl,
-            DSSpacing.xxxl,
+            DSSpacing.xl,
+            DSSpacing.xl,
           ),
           child: Form(
             key: _formKey,
@@ -226,9 +226,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                         : DSColors.secondarySurfaceLight,
                                     border: Border.all(
                                       color: DSColors.primary.withValues(
-                                        alpha: 0.40,
+                                        alpha: DSStyles.alphaMuted,
                                       ),
-                                      width: 2.5,
+                                      width: DSStyles.strokeWidth,
                                     ),
                                     image: _profileImage != null
                                         ? DecorationImage(
@@ -244,7 +244,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                                   fit: BoxFit.cover,
                                                 )
                                               : null),
-                                    boxShadow: DSStyles.shadowSoft(context),
+                                    boxShadow: DSStyles.shadowXS(context),
                                   ),
                                   child:
                                       _profileImage == null &&
@@ -263,7 +263,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                   bottom: 0,
                                   right: 2,
                                   child: Container(
-                                    padding: const EdgeInsets.all(DSSpacing.sm),
+                                    padding: EdgeInsets.all(DSSpacing.sm),
                                     decoration: const BoxDecoration(
                                       color: DSColors.primary,
                                       shape: BoxShape.circle,
@@ -271,7 +271,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                     child: const Icon(
                                       Icons.camera_alt_rounded,
                                       color: DSColors.white,
-                                      size: 16,
+                                      size: DSIconSize.sm,
                                     ),
                                   ),
                                 ),
@@ -280,7 +280,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                           )
                           .dsHeroEntry(),
                 ),
-                const SizedBox(height: 8),
+                DSSpacing.hSm,
                 Center(
                   child: Text(
                     'Tap to change photo',
@@ -292,7 +292,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
+                DSSpacing.hXl,
 
                 // ── Username ─────────────────────────────────────────────
                 _fieldLabel('Username'),
@@ -305,7 +305,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Username is required' : null,
                 ).dsFieldEntry(delay: DSAnimations.stagger(1)),
-                const SizedBox(height: 16),
+                DSSpacing.hMd,
 
                 // ── First Name ───────────────────────────────────────────
                 _fieldLabel('First Name'),
@@ -318,7 +318,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   validator: (v) =>
                       v == null || v.isEmpty ? 'First name is required' : null,
                 ).dsFieldEntry(delay: DSAnimations.stagger(2)),
-                const SizedBox(height: 16),
+                DSSpacing.hMd,
 
                 // ── Middle Name ──────────────────────────────────────────
                 _fieldLabel('Middle Name'),
@@ -329,7 +329,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   inputFormatters: [UpperCaseFormatter()],
                   decoration: const InputDecoration(hintText: 'Optional'),
                 ).dsFieldEntry(delay: DSAnimations.stagger(3)),
-                const SizedBox(height: 16),
+                DSSpacing.hMd,
 
                 // ── Last Name ────────────────────────────────────────────
                 _fieldLabel('Last Name'),
@@ -342,7 +342,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Last name is required' : null,
                 ).dsFieldEntry(delay: DSAnimations.stagger(4)),
-                const SizedBox(height: 16),
+                DSSpacing.hMd,
 
                 // ── Email ────────────────────────────────────────────────
                 _fieldLabel('Email'),
@@ -363,7 +363,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     return null;
                   },
                 ).dsFieldEntry(delay: DSAnimations.stagger(5)),
-                const SizedBox(height: 32),
+                DSSpacing.hXl,
 
                 // ── Save Button ──────────────────────────────────────────
                 FilledButton(
@@ -382,7 +382,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ),
                   ),
                 ).dsCtaEntry(delay: DSAnimations.stagger(6)),
-                const SizedBox(height: 20),
+                DSSpacing.hXl,
               ],
             ),
           ),

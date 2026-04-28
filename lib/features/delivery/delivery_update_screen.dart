@@ -31,7 +31,7 @@
 //
 // Navigation:
 //   Route: /deliveries/:barcode/update
-//   Pushed from: DeliveryDetailScreen (UPDATE FAB)
+//   Pushed from: DeliveryCard (hold → View/Update option) or scan result
 // =============================================================================
 
 import 'dart:convert';
@@ -71,21 +71,17 @@ import 'package:fsi_courier_app/features/delivery/widgets/delivery_geo_location_
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_recipient_cards.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/searchable_selection_sheet.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
-import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─── Consistent spacing constants ───────────────────────────────────────────
-const _kSectionGap = SizedBox(height: 24); // between major sections
-const _kFieldGap = SizedBox(height: 12); // between fields within a section
-const _kInnerGap = SizedBox(height: 8); // header → first field
+const _kSectionGap = DSSpacing.hLg; // between major sections
+const _kFieldGap = DSSpacing.hMd; // between fields within a section
+const _kInnerGap = DSSpacing.hSm; // header → first field
 const _kPhotoHeight = 160.0; // photo slot height
 const _kSignatureHeight = 144.0; // signature slot height
 
@@ -408,7 +404,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       final rawBytes = await response.file!.readAsBytes();
       await FlutterImageCompress.compressWithList(
         rawBytes,
-        minWidth: 600,
+        minWidth: DSIconSize.heroLg.toInt(),
         quality: 70,
         format: CompressFormat.jpeg,
       );
@@ -475,7 +471,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       try {
         bytes = await FlutterImageCompress.compressWithList(
           rawBytes,
-          minWidth: 600,
+          minWidth: DSIconSize.heroLg.toInt(),
           quality: 70,
           format: CompressFormat.jpeg,
         );
@@ -793,221 +789,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   }
 
   void _showAccountDetailsDialog(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final name = _delivery['name']?.toString() ?? '';
-    final address =
-        _delivery['address']?.toString() ??
-        _delivery['delivery_address']?.toString() ??
-        '';
-    final contact = _delivery['contact']?.toString() ?? '';
-    final accountNumber = _delivery['account_number']?.toString() ?? '';
-    final authRepNumber = _delivery['auth_rep_number']?.toString() ?? '';
-
-    // Delivery details
-    final product = (_delivery['product']?.toString() ?? '').toDisplayStatus();
-    final specialInstruction =
-        _delivery['special_instruction']?.toString() ?? '';
-    final transmittalDate = _delivery['transmittal_date']?.toString() ?? '';
-    final tat = _delivery['tat']?.toString() ?? '';
-
-    // Piece count from barcode (e.g. "FSI123/2" -> 2 pieces)
-    final b = widget.barcode;
-    final slashIdx = b.lastIndexOf('/');
-    final pieceCount = (slashIdx >= 0 && slashIdx < b.length - 1)
-        ? int.tryParse(b.substring(slashIdx + 1).trim()) ?? 0
-        : 0;
-
-    void copyToClipboard(String text, String label) {
-      if (text.isEmpty) return;
-      Clipboard.setData(ClipboardData(text: text));
-      HapticFeedback.mediumImpact();
-      if (context.mounted) {
-        showSuccessNotification(context, 'Copied $label to clipboard');
-      }
-    }
-
-    Future<void> launchMaps(String address) async {
-      final destination = address.trim();
-      if (destination.isEmpty) return;
-      final url =
-          'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(destination)}';
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    }
-
-    Future<void> onPhoneTap(String phone, String targetName) async {
-      final barcode = widget.barcode;
-      final template =
-          'Hi $targetName! '
-          "I'm your FSI courier "
-          '${barcode.isNotEmpty ? 'with tracking number $barcode' : 'with your delivery'}. '
-          'Please be ready or contact me for re-scheduling. Thank you!';
-      await showContactAppSheet(context, phone, messageTemplate: template);
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: DSColors.transparent,
-      builder: (ctx) {
-        return Container(
-          decoration: BoxDecoration(
-            color: isDark ? DSColors.cardDark : DSColors.cardLight,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: [
-              BoxShadow(
-                color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? DSColors.separatorDark
-                          : DSColors.separatorLight,
-                      borderRadius: DSStyles.cardRadius,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const DSSectionHeader(
-                  title: 'Account Details',
-                  padding: EdgeInsets.zero,
-                ),
-
-                // ─── Contact Info Card ───────────────────────────────────────
-                DSCard(
-                  margin: const EdgeInsets.only(top: 10),
-                  child: Column(
-                    children: [
-                      if (name.isNotEmpty)
-                        DSInfoTile(
-                          label: 'Recipient Name',
-                          value: name,
-                          onLongPress: () => copyToClipboard(name, 'Name'),
-                        ),
-                      if (address.isNotEmpty)
-                        DSInfoTile(
-                          label: 'Delivery Address',
-                          value: address,
-                          onTap: () => launchMaps(address),
-                          onLongPress: () =>
-                              copyToClipboard(address, 'Address'),
-                        ),
-                      if (contact.isNotEmpty)
-                        ...contact.split('/').asMap().entries.map((entry) {
-                          final idx = entry.key;
-                          final cleanContact = entry.value.trim();
-                          if (cleanContact.isEmpty)
-                            return const SizedBox.shrink();
-                          final isLast = idx == contact.split('/').length - 1;
-                          return DSInfoTile(
-                            label: 'Contact Number',
-                            value: cleanContact,
-                            onTap: () => onPhoneTap(cleanContact, name),
-                            onLongPress: () =>
-                                copyToClipboard(cleanContact, 'Contact number'),
-                            showDivider: !isLast,
-                          );
-                        }),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // ─── Account Identifiers Card ────────────────────────────────
-                if (accountNumber.isNotEmpty ||
-                    authRepNumber.isNotEmpty ||
-                    pieceCount > 0)
-                  DSCard(
-                    child: Column(
-                      children: [
-                        if (accountNumber.isNotEmpty)
-                          DSInfoTile(
-                            label: 'Account Number',
-                            value: accountNumber,
-                            onLongPress: () => copyToClipboard(
-                              accountNumber,
-                              'Account number',
-                            ),
-                          ),
-                        if (authRepNumber.isNotEmpty)
-                          DSInfoTile(
-                            label: 'Auth Rep Number',
-                            value: authRepNumber,
-                            onLongPress: () => copyToClipboard(
-                              authRepNumber,
-                              'Auth rep number',
-                            ),
-                          ),
-                        if (pieceCount > 0)
-                          DSInfoTile(
-                            label: 'Bundle Size',
-                            value:
-                                '$pieceCount piece${pieceCount > 1 ? 's' : ''}',
-                            showDivider: false,
-                          ),
-                      ],
-                    ),
-                  ),
-
-                if (product.isNotEmpty ||
-                    specialInstruction.isNotEmpty ||
-                    transmittalDate.isNotEmpty ||
-                    tat.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const DSSectionHeader(
-                    title: 'Shipment Details',
-                    padding: EdgeInsets.zero,
-                  ),
-                  DSCard(
-                    margin: const EdgeInsets.only(top: 10),
-                    child: Column(
-                      children: [
-                        if (product.isNotEmpty)
-                          DSInfoTile(label: 'Product', value: product),
-                        if (specialInstruction.isNotEmpty)
-                          DSInfoTile(
-                            label: 'Instructions',
-                            value: specialInstruction,
-                            onLongPress: () => copyToClipboard(
-                              specialInstruction,
-                              'Instructions',
-                            ),
-                          ),
-                        if (transmittalDate.isNotEmpty)
-                          DSInfoTile(
-                            label: 'Transmittal Date',
-                            value: formatDate(transmittalDate),
-                          ),
-                        if (tat.isNotEmpty)
-                          DSInfoTile(
-                            label: 'TAT',
-                            value: formatDate(tat),
-                            showDivider: false,
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    showDeliveryAccountDetails(context, _delivery, widget.barcode);
   }
 
   Future<void> _onStatusTap(String newStatus) async {
@@ -1133,7 +915,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   Widget _buildNotePresets(bool isDark) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: EdgeInsets.only(bottom: DSSpacing.xs),
       child: Row(
         children: [
           Builder(
@@ -1177,7 +959,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         });
                       },
                     ),
-                    const SizedBox(width: 8),
+                    DSSpacing.wSm,
                   ],
                 ],
               );
@@ -1223,7 +1005,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   ? (isDark
                         ? DSColors.separatorDark
                         : DSColors.secondarySurfaceLight)
-                  : color.withValues(alpha: DSStyles.alphaBorder),
+                  : color.withValues(alpha: DSStyles.alphaMuted),
               width: hasError ? 1.5 : 1.2,
             ),
           ),
@@ -1246,7 +1028,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               : DSColors.secondarySurfaceLight,
                           child: const Icon(
                             Icons.broken_image_rounded,
-                            size: DSIconSize.xxl,
+                            size: DSIconSize.xl,
                             color: DSColors.labelTertiary,
                           ),
                         ),
@@ -1256,8 +1038,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                         left: 0,
                         right: 0,
                         child: Container(
-                          color: DSColors.black.withValues(alpha: 0.54),
-                          padding: const EdgeInsets.symmetric(
+                          color: DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
+                          padding: EdgeInsets.symmetric(
                             horizontal: DSSpacing.md,
                             vertical: DSSpacing.sm,
                           ),
@@ -1303,8 +1085,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     key: const ValueKey('no_photo'),
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, size: DSIconSize.hero, color: color),
-                      const SizedBox(height: 10),
+                      Icon(icon, size: DSIconSize.xl, color: color),
+                      DSSpacing.hSm,
                       Text(
                         label,
                         style: DSTypography.label(color: color).copyWith(
@@ -1313,7 +1095,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                           letterSpacing: DSTypography.lsLoose,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      DSSpacing.hXs,
                       Text(
                         'TAP TO CAPTURE',
                         style:
@@ -1323,7 +1105,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   : DSColors.labelTertiary,
                             ).copyWith(
                               fontSize: DSTypography.sizeXs,
-                              letterSpacing: 0.3,
+                              letterSpacing: DSTypography.lsLoose,
                             ),
                       ),
                     ],
@@ -1350,7 +1132,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 ? DSColors.error
                 : hasSignature
                 ? (isDark ? DSColors.separatorDark : DSColors.separatorLight)
-                : DSColors.primary.withValues(alpha: DSStyles.alphaBorder),
+                : DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
             width: hasError ? 1.5 : 1.2,
           ),
         ),
@@ -1365,7 +1147,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   fit: StackFit.expand,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(DSSpacing.md),
+                      padding: EdgeInsets.all(DSSpacing.md),
                       child: Image.file(
                         File(_signaturePath!),
                         fit: BoxFit.contain,
@@ -1376,8 +1158,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                       left: 0,
                       right: 0,
                       child: Container(
-                        color: DSColors.black.withValues(alpha: 0.54),
-                        padding: const EdgeInsets.symmetric(
+                        color: DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
+                        padding: EdgeInsets.symmetric(
                           horizontal: DSSpacing.md,
                           vertical: DSSpacing.sm,
                         ),
@@ -1399,7 +1181,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   behavior: HitTestBehavior.opaque,
                                   onTap: _openSignatureCapture,
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(
+                                    padding: EdgeInsets.symmetric(
                                       horizontal: DSSpacing.sm,
                                       vertical: DSSpacing.xs,
                                     ),
@@ -1407,7 +1189,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       'RE-SIGN',
                                       style: DSTypography.label(
                                         color: DSColors.white.withValues(
-                                          alpha: 0.7,
+                                          alpha: DSStyles.alphaDisabled,
                                         ),
                                       ).copyWith(fontSize: DSTypography.sizeSm),
                                     ),
@@ -1446,25 +1228,25 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                   children: [
                     Icon(
                       Icons.draw_rounded,
-                      size: DSIconSize.hero,
+                      size: DSIconSize.xl,
                       color: DSColors.primary.withValues(
-                        alpha: DSStyles.alphaGlass,
+                        alpha: DSStyles.alphaDisabled,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    DSSpacing.hSm,
                     Text(
                       'SIGNATURE',
                       style:
                           DSTypography.label(
                             color: DSColors.primary.withValues(
-                              alpha: DSStyles.alphaGlass,
+                              alpha: DSStyles.alphaDisabled,
                             ),
                           ).copyWith(
                             fontSize: DSTypography.sizeSm,
                             letterSpacing: DSTypography.lsLoose,
                           ),
                     ),
-                    const SizedBox(height: 4),
+                    DSSpacing.hXs,
                     Text(
                       'TAP TO SIGN (OPTIONAL)',
                       style:
@@ -1474,7 +1256,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 : DSColors.labelTertiary,
                           ).copyWith(
                             fontSize: DSTypography.sizeXs,
-                            letterSpacing: 0.3,
+                            letterSpacing: DSTypography.lsLoose,
                           ),
                     ),
                   ],
@@ -1548,21 +1330,21 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         // We only override if it needs to be different from the page default.
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: DSSpacing.base),
+          padding: EdgeInsets.symmetric(horizontal: DSSpacing.md),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: DSStyles.cardRadius,
               boxShadow: [
                 BoxShadow(
-                  color: DSColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+                  blurRadius: DSStyles.radiusMD,
+                  offset: const Offset(0, DSSpacing.sm),
                 ),
               ],
               gradient: LinearGradient(
                 colors: [
                   DSColors.primary,
-                  DSColors.primary.withValues(alpha: 0.8),
+                  DSColors.primary.withValues(alpha: DSStyles.alphaOpaque),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -1571,10 +1353,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             child: FilledButton.icon(
               icon: _loading
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
+                      width: DSIconSize.lg,
+                      height: DSIconSize.lg,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2,
+                        strokeWidth: DSStyles.strokeWidth,
                         color: DSColors.white,
                       ),
                     )
@@ -1582,14 +1364,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               label: Text(
                 'SUBMIT UPDATE',
                 style: DSTypography.button().copyWith(
-                  letterSpacing: DSTypography.lsMegaLoose,
+                  letterSpacing: DSTypography.lsExtraLoose,
                   fontSize: DSTypography.sizeMd,
                 ),
               ),
               style: FilledButton.styleFrom(
                 backgroundColor: DSColors.transparent,
                 shadowColor: DSColors.transparent,
-                minimumSize: const Size(double.infinity, 60),
+                minimumSize: const Size(double.infinity, DSIconSize.heroSm),
                 shape: RoundedRectangleBorder(
                   borderRadius: DSStyles.cardRadius,
                 ),
@@ -1610,7 +1392,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 style: DSTypography.heading().copyWith(
                   fontSize: DSTypography.sizeMd,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
+                  letterSpacing: DSTypography.lsExtraLoose,
                   color: isDark
                       ? DSColors.labelPrimaryDark
                       : DSColors.labelPrimary,
@@ -1667,10 +1449,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               ],
                             )
                           : ListView(
-                              padding: const EdgeInsets.fromLTRB(
-                                DSSpacing.base,
-                                DSSpacing.base,
-                                DSSpacing.base,
+                              padding: EdgeInsets.fromLTRB(
+                                DSSpacing.md,
+                                DSSpacing.md,
+                                DSSpacing.md,
                                 100,
                               ),
                               children: [
@@ -1695,7 +1477,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 ),
                                 if (_errors['delivery_status'] != null)
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 6),
+                                    padding: EdgeInsets.only(top: DSSpacing.sm),
                                     child: Text(
                                       _errors['delivery_status']!,
                                       style: const TextStyle(
@@ -2120,7 +1902,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         color: DSColors.primary,
                                         isDark: isDark,
                                       ),
-                                      const SizedBox(width: 12),
+                                      DSSpacing.wMd,
                                       _buildPhotoSlot(
                                         slotType: 'selfie',
                                         label: 'SELFIE',
@@ -2270,7 +2052,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                                 // Hint text below chips
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
+                                  padding: EdgeInsets.only(bottom: DSSpacing.sm),
                                   child: Text(
                                     'TAP A PRESET TO FILL — YOU CAN STILL ADD MORE DETAILS BELOW',
                                     style: DSTypography.label().copyWith(
@@ -2278,7 +2060,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       color: isDark
                                           ? DSColors.labelTertiaryDark
                                           : DSColors.labelTertiary,
-                                      letterSpacing: 0.3,
+                                      letterSpacing: DSTypography.lsLoose,
                                     ),
                                   ),
                                 ),
@@ -2306,8 +2088,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         ).copyWith(
                                           suffixIconConstraints:
                                               const BoxConstraints(
-                                                minWidth: 40,
-                                                minHeight: 40,
+                                                minWidth: DSIconSize.heroSm,
+                                                minHeight: DSIconSize.heroSm,
                                               ),
                                           suffixIcon: value.text.isNotEmpty
                                               ? IconButton(
@@ -2378,7 +2160,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   onCapture: _captureLocation,
                                 ),
 
-                                const SizedBox(height: 80),
+                                DSSpacing.hLg,
                               ],
                             ),
                     ],
@@ -2415,25 +2197,25 @@ class _NotePresetChip extends StatelessWidget {
         ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
         : DSColors.secondarySurfaceLight;
     final unselectedBorder = isDark
-        ? DSColors.white.withValues(alpha: DSStyles.alphaActiveAccent)
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
         : DSColors.separatorLight;
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           horizontal: DSSpacing.md,
           vertical: 7,
         ),
         decoration: BoxDecoration(
           color: selected
-              ? selectedColor.withValues(alpha: DSStyles.alphaActiveAccent)
+              ? selectedColor.withValues(alpha: DSStyles.alphaSubtle)
               : unselectedBg,
           borderRadius: DSStyles.cardRadius,
           border: Border.all(
             color: selected
-                ? selectedColor.withValues(alpha: DSStyles.alphaGlass)
+                ? selectedColor.withValues(alpha: DSStyles.alphaDisabled)
                 : unselectedBorder,
             width: selected ? 1.4 : 1.0,
           ),
@@ -2443,7 +2225,7 @@ class _NotePresetChip extends StatelessWidget {
           children: [
             if (selected) ...[
               Icon(Icons.check_rounded, size: DSIconSize.xs, color: selectedColor),
-              const SizedBox(width: 4),
+              DSSpacing.wXs,
             ],
             Text(
               label,
@@ -2455,7 +2237,7 @@ class _NotePresetChip extends StatelessWidget {
                     : (isDark
                           ? DSColors.labelSecondaryDark
                           : DSColors.labelSecondary),
-                letterSpacing: DSTypography.lsSlightlyLoose,
+                letterSpacing: DSTypography.lsLoose,
               ),
             ),
           ],
@@ -2504,11 +2286,11 @@ class _StatusSelectorState extends State<_StatusSelector> {
         Container(
           height: 80,
           decoration: BoxDecoration(
-            color: isDark ? DSColors.white.withValues(alpha: 0.1) : DSColors.secondarySurfaceLight,
+            color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.secondarySurfaceLight,
             borderRadius: DSStyles.cardRadius,
             border: Border.all(
-              color: isDark ? DSColors.white.withValues(alpha: 0.12) : DSColors.separatorLight,
-              width: 1,
+              color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle) : DSColors.separatorLight,
+              width: DSStyles.borderWidth,
             ),
           ),
           child: Stack(
@@ -2525,14 +2307,14 @@ class _StatusSelectorState extends State<_StatusSelector> {
                   widthFactor: 1 / 3,
                   heightFactor: 1.0,
                   child: Padding(
-                    padding: const EdgeInsets.all(DSSpacing.sm),
+                    padding: EdgeInsets.all(DSSpacing.sm),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
                             activeMeta.color,
-                            activeMeta.color.withValues(alpha: 0.8),
+                            activeMeta.color.withValues(alpha: DSStyles.alphaOpaque),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -2540,8 +2322,8 @@ class _StatusSelectorState extends State<_StatusSelector> {
                         borderRadius: DSStyles.cardRadius,
                         boxShadow: [
                           BoxShadow(
-                            color: activeMeta.color.withValues(alpha: 0.4),
-                            blurRadius: 10,
+                            color: activeMeta.color.withValues(alpha: DSStyles.alphaMuted),
+                            blurRadius: DSStyles.radiusMD,
                             offset: const Offset(0, 4),
                           ),
                         ],
@@ -2575,12 +2357,12 @@ class _StatusSelectorState extends State<_StatusSelector> {
                                 color: selected
                                     ? DSColors.white
                                     : (isDark
-                                          ? DSColors.white.withValues(alpha: 0.54)
+                                          ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
                                           : DSColors.labelSecondary),
                                 size: selected ? DSIconSize.xl : DSIconSize.lg,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            DSSpacing.hXs,
                             AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 250),
                               style: DSTypography.label().copyWith(
@@ -2615,16 +2397,16 @@ class _StatusSelectorState extends State<_StatusSelector> {
         ),
         if (!_hasInteracted)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: EdgeInsets.only(top: DSSpacing.sm),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.touch_app_rounded,
                   size: DSIconSize.xs,
-                  color: isDark ? DSColors.white.withValues(alpha: 0.3) : DSColors.labelTertiary,
+                  color: isDark ? DSColors.white.withValues(alpha: DSStyles.alphaMuted) : DSColors.labelTertiary,
                 ),
-                const SizedBox(width: 4),
+                DSSpacing.wXs,
                 Text(
                   'Tap or Swipe below to change status',
                   style: DSTypography.label().copyWith(
@@ -2632,7 +2414,7 @@ class _StatusSelectorState extends State<_StatusSelector> {
                     color: isDark
                         ? DSColors.labelTertiaryDark
                         : DSColors.labelTertiary,
-                    letterSpacing: 0.3,
+                    letterSpacing: DSTypography.lsLoose,
                   ),
                 ),
               ],

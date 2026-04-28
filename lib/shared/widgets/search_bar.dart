@@ -88,13 +88,13 @@ class _AppSearchBarState extends State<AppSearchBar> {
         border: Border(
           bottom: BorderSide(
             color: isDark
-                ? DSColors.white.withValues(alpha: 0.1)
-                : DSColors.black.withValues(alpha: 0.05),
-            width: 1,
+                ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                : DSColors.black.withValues(alpha: DSStyles.alphaSoft),
+            width: DSStyles.borderWidth,
           ),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.sm, DSSpacing.md, DSSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -106,8 +106,8 @@ class _AppSearchBarState extends State<AppSearchBar> {
               boxShadow: [
                 BoxShadow(
                   color: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  blurRadius: DSStyles.radiusSM,
+                  offset: const Offset(0, DSSpacing.xs),
                 ),
               ],
             ),
@@ -140,7 +140,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
                       )
                     : null,
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
+                contentPadding: EdgeInsets.symmetric(
                   vertical: 14,
                   horizontal: DSSpacing.xs,
                 ),
@@ -148,20 +148,20 @@ class _AppSearchBarState extends State<AppSearchBar> {
               onChanged: _onChanged,
             ),
           ),
-          const SizedBox(height: 8),
+          DSSpacing.hSm,
           Row(
             children: [
-              const SizedBox(width: 4),
+              DSSpacing.wXs,
               if (widget.isLoading) ...[
                 SizedBox(
-                  width: 12,
-                  height: 12,
+                  width: DSIconSize.xs,
+                  height: DSIconSize.xs,
                   child: CircularProgressIndicator(
-                    strokeWidth: 1.5,
+                    strokeWidth: DSStyles.borderWidth * 1.5,
                     color: cs.primary,
                   ),
                 ),
-                const SizedBox(width: 8),
+                DSSpacing.wSm,
                 Text(
                   'SEARCHING…',
                   style: DSTypography.label(
@@ -170,13 +170,13 @@ class _AppSearchBarState extends State<AppSearchBar> {
                 ),
               ] else if (widget.resultCount != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: DSSpacing.sm,
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
                     color: cs.primary.withValues(
-                      alpha: DSStyles.alphaActiveAccent,
+                      alpha: DSStyles.alphaSubtle,
                     ),
                     borderRadius: DSStyles.cardRadius,
                   ),

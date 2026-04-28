@@ -21,6 +21,8 @@
 9. [Performance & Optimization](#performance--optimization)
 10. [File Management & Navigation](#file-management--navigation)
 11. [Error Handling & Recovery](#error-handling--recovery)
+12. [Dynamic Design & Overflow Prevention](#dynamic-design--overflow-prevention)
+13. [Separation of Concerns & Logic Mapping](#separation-of-concerns--logic-mapping)
 
 ---
 
@@ -104,6 +106,7 @@ Controllers, Screens, and Providers should stay lean.
 Duplicate UI code and hardcoded values are technical debt.
 
 - **Centralized Tokens**: **NEVER hardcode colors, spacing, or animation durations**. Use `DSColors`, `DSSpacing`, and `DSStyles`.
+- **The 5-Tier Rule**: All layout and style configurations (Typography, Spacing, Elevation, Animations) must strictly follow a **3-to-5 tier scale** (XS, SM, MD, LG, XL). MD is the standard. Avoid creating new "tiers" for specific layout needs; always align to the nearest standard token to ensure app-wide consistency.
 - **Typography for All**: **NEVER** use direct `TextStyle()` constructors. Always use `DSTypography` methods. This ensures the correct Montserrat weight mapping and theme-aware colors are used app-wide.
 - **Search Before Creating**: Check `lib/shared/widgets/` for existing molecules/atoms before building a new UI component.
 - **Icons**: Use `DSColors.labelSecondary` or `Theme.of(context).iconTheme.color` for icons. Do not hardcode `Colors.black54` etc.
@@ -255,6 +258,74 @@ print('Error syncing');
 
 - Use `showErrorNotification()` and `showInfoNotification()` for uniform snackbars.
 - Never show a raw Exception string directly to the user.
+
+---
+
+## 12. Dynamic Design & Overflow Prevention
+
+To ensure a premium feel across all device sizes (including small screens), UI components must be **defensive** against data length and layout constraints.
+
+### Goal: Zero `RenderFlex` Overflows
+
+1. **Flexible Text**: **NEVER** place a `Text` widget inside a `Row` or `Column` without considering its potential length.
+   - **Fix**: Wrap `Text` in `Flexible` or `Expanded` and use `overflow: TextOverflow.ellipsis`.
+2. **Scrollable Containers**: Ensure lists and dense forms are wrapped in `SingleChildScrollView` or `ListView`.
+3. **Adaptive Layouts**: Use `MediaQuery` or `LayoutBuilder` to adjust spacing on smaller devices if the standard 5-tier spacing causes crowding.
+
+**Bad Pattern Example (Causes Overflow):**
+
+```dart
+Row(
+  children: [
+    Icon(Icons.star),
+    Text("Very Long Label that will eventually overflow the screen on small devices") // ❌ WRONG
+  ],
+)
+```
+
+**Good Pattern (Safe):**
+
+```dart
+Row(
+  children: [
+    Icon(Icons.star),
+    Flexible(
+      child: Text(
+        "Very Long Label...",
+        overflow: TextOverflow.ellipsis, // ✅ CORRECT
+      ),
+    ),
+  ],
+)
+```
+
+---
+
+## 13. Separation of Concerns & Logic Mapping
+
+To maintain a scalable codebase, we enforce a strict separation between **Definitions** (What), **Configurations** (How), and **Implementations** (Execution).
+
+### 🏛️ The Three-Layer Rule
+
+1.  **Tokens & Definitions (The "What")**:
+    *   Found in: `lib/design_system/tokens/`, `lib/core/constants.dart`.
+    *   Rules: Pure data constants. **NO** logic, **NO** context-aware building.
+    *   *Example*: `DSColors.primary` is just a `Color` object.
+
+2.  **Configurations & Themes (The "How")**:
+    *   Found in: `lib/design_system/ds_theme.dart`.
+    *   Rules: Maps tokens to the Flutter framework. This is where you configure `ThemeData`, `InputDecorationTheme`, etc.
+    *   *Example*: `DSTheme.build()` takes `DSColors` and builds a `ThemeData`.
+
+3.  **Implementations & UI (The "Execution")**:
+    *   Found in: `lib/features/`, `lib/shared/widgets/`.
+    *   Rules: Uses the configurations and tokens to build user-facing features.
+    *   *Example*: `DeliveryCard` uses `DSSpacing` and inherits colors from `Theme.of(context)`.
+
+### Why we do this:
+- **Maintainability**: Changing a color token in one file updates the entire app.
+- **Predictability**: Developers know exactly where to go to change a specific UI behavior vs. a specific raw value.
+- **Safety**: Logic-heavy files stay lean by offloading static configurations to dedicated files.
 
 ---
 

@@ -18,18 +18,18 @@ class OfflinePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(DSSpacing.xxl),
+        padding: EdgeInsets.all(DSSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.wifi_off_rounded,
-              size: DSIconSize.heroLarge,
+              size: DSIconSize.xl,
               color: Theme.of(context).brightness == Brightness.dark
                   ? DSColors.labelSecondaryDark
                   : DSColors.labelSecondary,
             ),
-            const SizedBox(height: 16),
+            DSSpacing.hMd,
             Text(
               'No Internet Connection',
               style: DSTypography.heading().copyWith(
@@ -40,7 +40,7 @@ class OfflinePlaceholder extends StatelessWidget {
                     : DSColors.labelPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            DSSpacing.hSm,
             Text(
               message,
               textAlign: TextAlign.center,
@@ -50,7 +50,7 @@ class OfflinePlaceholder extends StatelessWidget {
                     : DSColors.labelSecondary,
               ).copyWith(fontSize: DSTypography.sizeMd),
             ),
-            const SizedBox(height: 24),
+            DSSpacing.hLg,
             OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded, size: DSIconSize.sm),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:lottie/lottie.dart';
 
 class EmptyState extends StatelessWidget {
@@ -16,10 +17,10 @@ class EmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: 180,
+            height: DSIconSize.heroLg * 2.8,
             child: Lottie.asset(AppAssets.animEmpty, repeat: false),
           ),
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           Text(
             message,
             textAlign: TextAlign.center,

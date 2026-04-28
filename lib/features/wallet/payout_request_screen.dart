@@ -154,8 +154,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             DSSpacing.hMd,
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                horizontal: DSSpacing.base,
+              padding: EdgeInsets.symmetric(
+                horizontal: DSSpacing.md,
                 vertical: DSSpacing.md,
               ),
               decoration: BoxDecoration(
@@ -163,7 +163,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 borderRadius: DSStyles.cardRadius,
                 border: Border.all(
                   color: DSColors.primary.withValues(
-                    alpha: DSStyles.alphaDarkShadow,
+                    alpha: DSStyles.alphaMuted,
                   ),
                 ),
               ),
@@ -327,8 +327,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.wifi_off_rounded, size: DSIconSize.hero, color: DSColors.error),
-              DSSpacing.hBase,
+              Icon(Icons.wifi_off_rounded, size: DSIconSize.xl, color: DSColors.error),
+              DSSpacing.hMd,
               Text(
                 'You\'re Offline',
                 style: DSTypography.heading().copyWith(
@@ -358,19 +358,19 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            DSSpacing.base,
+          padding: EdgeInsets.fromLTRB(
+            DSSpacing.md,
             DSSpacing.sm,
-            DSSpacing.base,
+            DSSpacing.md,
             DSSpacing.md,
           ),
           child: FilledButton.icon(
             icon: _submitting
                 ? const SizedBox(
-                    width: 18,
-                    height: 18,
+                    width: DSIconSize.lg,
+                    height: DSIconSize.lg,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
+                      strokeWidth: DSStyles.strokeWidth,
                       color: DSColors.white,
                     ),
                   )
@@ -420,8 +420,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline_rounded, size: DSIconSize.hero, color: DSColors.error),
-          const SizedBox(height: 12),
+          Icon(Icons.error_outline_rounded, size: DSIconSize.xl, color: DSColors.error),
+          DSSpacing.hMd,
           Text(
             _error ?? 'Something went wrong.',
             style: DSTypography.caption(
@@ -429,7 +429,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             ).copyWith(fontSize: DSTypography.sizeMd),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          DSSpacing.hMd,
           TextButton.icon(
             onPressed: _fetchPreview,
             icon: const Icon(Icons.refresh_rounded),
@@ -458,12 +458,12 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     );
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return ListView(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
+      padding: EdgeInsets.all(DSSpacing.md) + EdgeInsets.only(bottom: bottomPadding),
       children: [
         // ── Consolidation notice ──────────────────────────────────────
         if (widget.isConsolidation) ...[
           Container(
-            padding: const EdgeInsets.symmetric(
+            padding: EdgeInsets.symmetric(
               horizontal: 14,
               vertical: DSSpacing.md,
             ),
@@ -472,7 +472,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
                 color: DSColors.warning.withValues(
-                  alpha: DSStyles.alphaDarkShadow,
+                  alpha: DSStyles.alphaMuted,
                 ),
               ),
             ),
@@ -480,7 +480,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.merge_rounded, color: DSColors.warning, size: DSIconSize.md),
-                const SizedBox(width: 10),
+                DSSpacing.wMd,
                 Expanded(
                   child: Text(
                     preview['has_existing_request_today'] == true
@@ -496,7 +496,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          DSSpacing.hMd,
         ],
 
         // ── Summary Card ──────────────────────────────────────────────
@@ -511,7 +511,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               ? 'ELIGIBLE FOR CONSOLIDATION'
               : 'ELIGIBLE DELIVERIES',
         ).dsCardEntry(delay: DSAnimations.stagger(0, step: DSAnimations.staggerNormal)),
-        const SizedBox(height: 12),
+        DSSpacing.hMd,
 
         // // ── Coverage Period ───────────────────────────────────────────
         // if (toDate.isNotEmpty) ...[
@@ -520,7 +520,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         //     toDate: toDate,
         //     fmtShort: _fmtShort,
         //   ),
-        //   const SizedBox(height: 20),
+        //   DSSpacing.hLg,
         // ],
 
         // ── Date Strip + Deliveries ───────────────────────────────────
@@ -532,10 +532,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             style: DSTypography.label(color: DSColors.accent).copyWith(
               fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w800,
-              letterSpacing: DSTypography.lsMegaLoose,
+              letterSpacing: DSTypography.lsExtraLoose,
             ),
           ).dsFadeEntry(delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal)),
-          const SizedBox(height: 8),
+          DSSpacing.hSm,
           DateStripWithDeliveries(
             dailyBreakdown: dailyBreakdown,
             initialSelectedDate: _initialSelectedDate,
@@ -546,15 +546,15 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         // ── Submission limits banner (hidden in consolidation — banner above covers it) ──
         if (!widget.isConsolidation &&
             preview['has_existing_request_today'] == true) ...[
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           Container(
-            padding: const EdgeInsets.all(DSSpacing.md),
+            padding: EdgeInsets.all(DSSpacing.md),
             decoration: BoxDecoration(
               color: DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
                 color: DSColors.warning.withValues(
-                  alpha: DSStyles.alphaDarkShadow,
+                  alpha: DSStyles.alphaMuted,
                 ),
               ),
             ),
@@ -565,7 +565,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                   color: DSColors.warning,
                   size: DSIconSize.md,
                 ),
-                const SizedBox(width: 10),
+                DSSpacing.wMd,
                 Expanded(
                   child: Text(
                     'You have already submitted a request today.',
@@ -580,9 +580,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             ),
           ),
         ] else if (eligibleCount == 0) ...[
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           Container(
-            padding: const EdgeInsets.all(DSSpacing.md),
+            padding: EdgeInsets.all(DSSpacing.md),
             decoration: BoxDecoration(
               color:
                   (isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary)
@@ -593,7 +593,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                     (isDark
                             ? DSColors.labelTertiaryDark
                             : DSColors.labelTertiary)
-                        .withValues(alpha: DSStyles.alphaDarkShadow),
+                        .withValues(alpha: DSStyles.alphaMuted),
               ),
             ),
             child: Row(
@@ -603,7 +603,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                   color: DSColors.accent,
                   size: DSIconSize.md,
                 ),
-                SizedBox(width: 10),
+                DSSpacing.wMd,
                 Expanded(
                   child: Text(
                     'No eligible deliveries found for payout.',
@@ -621,15 +621,15 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
         // ── Error banner ──────────────────────────────────────────────
         if (_error != null) ...[
-          const SizedBox(height: 12),
+          DSSpacing.hMd,
           Container(
-            padding: const EdgeInsets.all(DSSpacing.md),
+            padding: EdgeInsets.all(DSSpacing.md),
             decoration: BoxDecoration(
               color: DSColors.error.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
               border: Border.all(
                 color: DSColors.error.withValues(
-                  alpha: DSStyles.alphaDarkShadow,
+                  alpha: DSStyles.alphaMuted,
                 ),
               ),
             ),
@@ -643,7 +643,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           ),
         ],
 
-        const SizedBox(height: 24),
+        DSSpacing.hXl,
       ],
     );
   }
@@ -672,20 +672,20 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //         : '${fmtShort(fromDate)}  –  ${fmtShort(toDate)}';
 
 //     return Container(
-//       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
+//       padding: EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
 //       decoration: BoxDecoration(
 //         color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
 //         borderRadius: DSStyles.cardRadius,
-//         border: Border.all(color: DSColors.primary.withValues(alpha: DSStyles.alphaDarkShadow)),
+//         border: Border.all(color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted)),
 //       ),
 //       child: Row(
 //         children: [
 //           Icon(
 //             Icons.date_range_rounded,
-//             size: 18,
+//             size: DSIconSize.md,
 //             color: DSColors.primary,
 //           ),
-//           const SizedBox(width: 10),
+//           DSSpacing.wSm,
 //           Expanded(
 //             child: Column(
 //               crossAxisAlignment: CrossAxisAlignment.start,
@@ -699,7 +699,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //                     color: DSColors.primary,
 //                   ),
 //                 ),
-//                 const SizedBox(height: 2),
+//                 DSSpacing.hXs,
 //                 Text(
 //                   label,
 //                   style: const TextStyle(
@@ -712,9 +712,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //           ),
 //           if (!isSingleDay)
 //             Container(
-//               padding: const EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: DSSpacing.xs),
+//               padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: DSSpacing.xs),
 //               decoration: BoxDecoration(
-//                 color: DSColors.primary.withValues(alpha: DSStyles.alphaActiveAccent),
+//                 color: DSColors.primary.withValues(alpha: DSStyles.alphaSubtle),
 //                 borderRadius: DSStyles.cardRadius,
 //               ),
 //               child: Text(
@@ -768,14 +768,14 @@ class _SummaryCard extends StatelessWidget {
           BoxShadow(
             color: DSColors.black.withValues(alpha: isDark ? 0.25 : 0.04),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, DSSpacing.xs),
           ),
         ],
       ),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            padding: EdgeInsets.fromLTRB(DSSpacing.md, DSSpacing.md, DSSpacing.md, DSSpacing.md),
             child: Row(
               children: [
                 Icon(
@@ -785,7 +785,7 @@ class _SummaryCard extends StatelessWidget {
                       ? DSColors.labelSecondaryDark
                       : DSColors.labelSecondary,
                 ),
-                const SizedBox(width: 8),
+                DSSpacing.wSm,
                 Expanded(
                   child: Text(
                     deliveriesLabel,
@@ -812,8 +812,8 @@ class _SummaryCard extends StatelessWidget {
           ),
           const Divider(height: 1),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DSSpacing.base,
+            padding: EdgeInsets.symmetric(
+              horizontal: DSSpacing.md,
               vertical: 14,
             ),
             decoration: BoxDecoration(
@@ -841,9 +841,9 @@ class _SummaryCard extends StatelessWidget {
                       isDeduction: true,
                       isDebug: true,
                     ),
-                  const SizedBox(height: 6),
+                  DSSpacing.hSm,
                   const Divider(height: 1),
-                  const SizedBox(height: 6),
+                  DSSpacing.hSm,
                 ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -892,7 +892,7 @@ class _AmountRow extends StatelessWidget {
         ? DSColors.errorText
         : (isDeduction ? DSColors.error : DSColors.accent);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: EdgeInsets.symmetric(vertical: DSSpacing.xs),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -911,8 +911,8 @@ class _AmountRow extends StatelessWidget {
                 Text(
                   'DEBUG ONLY — not visible in production',
                   style: DSTypography.caption(
-                    color: DSColors.error.withValues(alpha: 0.7),
-                  ).copyWith(fontSize: 9, letterSpacing: 0.3),
+                    color: DSColors.error.withValues(alpha: DSStyles.alphaDisabled),
+                  ).copyWith(fontSize: DSTypography.sizeXs, letterSpacing: DSTypography.lsLoose),
                 ),
             ],
           ),
