@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/dashboard.md — update that file when you edit this one.
 
 // =============================================================================
@@ -283,7 +284,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   ? null
                                   : () => context.push('/osa'),
                               subdued: true,
-                              details: "Today's misrouted deliveries.",
+                              details: "Misrouted deliveries.",
                             ).dsCardEntry(delay: DSAnimations.stagger(4)),
                           ),
                           DSSpacing.wSm,

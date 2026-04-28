@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/profile.md — update that file when you edit this one.
 
 // =============================================================================
@@ -940,32 +941,6 @@ class _AccountInactiveBanner extends StatelessWidget {
   }
 }
 
-// ─── Section Label ────────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: DSSpacing.md, left: DSSpacing.xs),
-      child: Text(
-        title.toUpperCase(),
-        style: DSTypography.label().copyWith(
-          fontSize: DSTypography.sizeSm,
-          fontWeight: FontWeight.w700,
-          color: Theme.of(context).brightness == Brightness.dark
-              ? DSColors.labelSecondaryDark
-              : DSColors.labelSecondary,
-          letterSpacing: DSTypography.lsExtraLoose,
-        ),
-      ),
-    );
-  }
-}
-
 class _ModernCard extends StatelessWidget {
   const _ModernCard({required this.children, required this.isDark});
 
@@ -1368,7 +1343,7 @@ class _ThemeSegmentedTile extends StatelessWidget {
               selected: {themeMode},
               style: ButtonStyle(
                 textStyle: WidgetStateProperty.all(
-                  const TextStyle(
+                  DSTypography.button().copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: DSTypography.sizeMd,
                   ),

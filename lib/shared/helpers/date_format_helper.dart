@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/shared/helpers.md — update that file when you edit this one.
 
 import 'package:intl/intl.dart';
@@ -67,7 +68,7 @@ DateTime? parseServerDate(String? iso) {
 /// [includeTime] — when true, appends the time (e.g. "Mar 9, 2025 · 3:59 PM").
 /// Returns "—" for null/empty input; returns [iso] unchanged on parse error.
 String formatDate(String? iso, {bool includeTime = false}) {
-  if (iso == null || iso.isEmpty) return '—';
+  if (iso == null || iso.isEmpty || iso == 'null') return '—';
   final dt = parseServerDate(iso);
   if (dt == null) return iso;
 

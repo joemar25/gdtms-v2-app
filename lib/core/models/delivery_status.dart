@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/core/models.md — update that file when you edit this one.
 
 // =============================================================================
@@ -51,8 +52,9 @@ enum DeliveryStatus {
     if (v == 'FOR_REDELIVERY' ||
         v == 'REDELIVERY' ||
         v == 'FOR_REATTEMPT' ||
-        v == 'REATTEMPT')
+        v == 'REATTEMPT') {
       return pending;
+    }
 
     if (v == 'DELIVERED') return delivered;
 

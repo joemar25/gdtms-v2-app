@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/core/database.md — update that file when you edit this one.
 
 import 'package:fsi_courier_app/core/database/app_database.dart';

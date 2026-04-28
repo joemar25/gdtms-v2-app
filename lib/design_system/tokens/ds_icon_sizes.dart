@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 import 'package:fsi_courier_app/design_system/tokens/ds_typography.dart';
 
 /// Design-system icon size tokens.
@@ -22,5 +23,6 @@ class DSIconSize {
 
   // ── Hero Variants (Calculations in Config) ──────────────────────────────
   static const double heroSm = 48.0;
+  static const double heroMd = 80.0;
   static const double heroLg = 240.0; // Splash only
 }

@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -56,7 +57,7 @@ class DeliveryGeoLocationField extends StatelessWidget {
                   height: DSIconSize.lg,
                   child: CircularProgressIndicator(
                     strokeWidth: DSStyles.strokeWidth,
-                    valueColor: const AlwaysStoppedAnimation(DSColors.pending),
+                    valueColor: AlwaysStoppedAnimation(DSColors.pending),
                   ),
                 )
               else

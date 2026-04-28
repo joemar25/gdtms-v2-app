@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/core/sync.md — update that file when you edit this one.
 
 import 'package:flutter/foundation.dart';
@@ -257,8 +258,9 @@ class DeliveryBootstrapService {
 
       final serverStatus = item['delivery_status']?.toString() ?? '';
       if (serverStatus.isEmpty ||
-          DeliveryStatus.fromString(serverStatus) == DeliveryStatus.pending)
+          DeliveryStatus.fromString(serverStatus) == DeliveryStatus.pending) {
         return;
+      }
 
       // Server has a non-pending status — update the local record.
       await LocalDeliveryDao.instance.insertAllFromApiItems([

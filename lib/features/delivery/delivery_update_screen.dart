@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 // =============================================================================
@@ -1203,17 +1204,18 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () =>
                                       setState(() => _signaturePath = null),
-                                  child: const Padding(
+                                  child: Padding(
                                     padding: EdgeInsets.symmetric(
                                       horizontal: DSSpacing.sm,
                                       vertical: DSSpacing.xs,
                                     ),
                                     child: Text(
                                       'CLEAR',
-                                      style: TextStyle(
+                                      style: DSTypography.label(
+                                        color: DSColors.error,
+                                      ).copyWith(
                                         fontSize: DSTypography.sizeSm,
                                         fontWeight: FontWeight.w700,
-                                        color: DSColors.error,
                                       ),
                                     ),
                                   ),
@@ -1488,10 +1490,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     padding: EdgeInsets.only(top: DSSpacing.sm),
                                     child: Text(
                                       _errors['delivery_status']!,
-                                      style: const TextStyle(
+                                      style: DSTypography.body(
                                         color: DSColors.error,
-                                        fontSize: DSTypography.sizeSm,
-                                      ),
+                                      ).copyWith(fontSize: DSTypography.sizeSm),
                                     ),
                                   ),
 

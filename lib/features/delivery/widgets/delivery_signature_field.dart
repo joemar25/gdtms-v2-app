@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -53,9 +54,10 @@ class DeliverySignatureField extends StatelessWidget {
                 child: IgnorePointer(
                   child: Text(
                     'Sign above',
-                    style: TextStyle(
-                      fontSize: DSTypography.sizeSm,
+                    style: DSTypography.body(
                       color: DSColors.labelTertiary,
+                    ).copyWith(
+                      fontSize: DSTypography.sizeSm,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -69,10 +71,9 @@ class DeliverySignatureField extends StatelessWidget {
             padding: EdgeInsets.only(top: DSSpacing.sm),
             child: Text(
               errorText!,
-              style: const TextStyle(
+              style: DSTypography.body(
                 color: DSColors.error,
-                fontSize: DSTypography.sizeSm,
-              ),
+              ).copyWith(fontSize: DSTypography.sizeSm),
             ),
           ),
         DSSpacing.hXs,
@@ -81,9 +82,9 @@ class DeliverySignatureField extends StatelessWidget {
           child: TextButton.icon(
             onPressed: onClear,
             icon: const Icon(Icons.refresh_rounded, size: DSTypography.sizeSm),
-            label: const Text(
+            label: Text(
               'CLEAR SIGNATURE',
-              style: TextStyle(
+              style: DSTypography.button().copyWith(
                 fontSize: DSTypography.sizeSm,
                 fontWeight: FontWeight.w700,
               ),

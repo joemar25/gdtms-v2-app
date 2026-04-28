@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/error-logs.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -161,7 +162,7 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                           selected: {_selectedLevel},
                           style: ButtonStyle(
                             textStyle: WidgetStateProperty.all(
-                              const TextStyle(
+                              DSTypography.button().copyWith(
                                 fontWeight: FontWeight.w600,
                                 fontSize: DSTypography.sizeSm,
                               ),
@@ -239,9 +240,10 @@ class _SummaryBar extends StatelessWidget {
             DSSpacing.wSm,
             Text(
               'No errors recorded.',
-              style: TextStyle(
-                fontSize: DSTypography.sizeMd,
+              style: DSTypography.body(
                 color: DSColors.successText,
+              ).copyWith(
+                fontSize: DSTypography.sizeMd,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -314,10 +316,11 @@ class _Chip extends StatelessWidget {
           DSSpacing.wXs,
           Text(
             label,
-            style: TextStyle(
+            style: DSTypography.label(
+              color: textColor,
+            ).copyWith(
               fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w600,
-              color: textColor,
             ),
           ),
         ],
@@ -396,11 +399,12 @@ class _LogCardState extends State<_LogCard> {
                               Flexible(
                                 child: Text(
                                   e.barcode!,
-                                  style: TextStyle(
-                                    fontSize: DSTypography.sizeSm,
+                                  style: DSTypography.body(
                                     color: widget.isDark
                                         ? DSColors.labelTertiaryDark
                                         : DSColors.labelTertiary,
+                                  ).copyWith(
+                                    fontSize: DSTypography.sizeSm,
                                     fontFamily: 'monospace',
                                   ),
                                   overflow: TextOverflow.ellipsis,
@@ -413,7 +417,7 @@ class _LogCardState extends State<_LogCard> {
                         // Message
                         Text(
                           e.message,
-                          style: const TextStyle(
+                          style: DSTypography.body().copyWith(
                             fontSize: DSTypography.sizeMd,
                             fontWeight: FontWeight.w500,
                           ),
@@ -422,12 +426,11 @@ class _LogCardState extends State<_LogCard> {
                         // Timestamp
                         Text(
                           fmt.format(e.createdAt),
-                          style: TextStyle(
-                            fontSize: DSTypography.sizeSm,
+                          style: DSTypography.body(
                             color: widget.isDark
                                 ? DSColors.labelSecondaryDark
                                 : DSColors.labelSecondary,
-                          ),
+                          ).copyWith(fontSize: DSTypography.sizeSm),
                         ),
                       ],
                     ),
@@ -478,23 +481,25 @@ class _LogCardState extends State<_LogCard> {
                     ),
                     Text(
                       e.detail!,
-                      style: TextStyle(
-                        fontSize: DSTypography.sizeSm,
-                        fontFamily: 'monospace',
+                      style: DSTypography.body(
                         color: widget.isDark
                             ? DSColors.labelSecondaryDark
                             : DSColors.labelSecondary,
+                      ).copyWith(
+                        fontSize: DSTypography.sizeSm,
+                        fontFamily: 'monospace',
                         height: DSStyles.heightRelaxed,
                       ),
                     ),
                     DSSpacing.hXs,
                     Text(
                       'Long-press to copy',
-                      style: TextStyle(
-                        fontSize: DSTypography.sizeXs,
+                      style: DSTypography.caption(
                         color: widget.isDark
                             ? DSColors.labelTertiaryDark
                             : DSColors.labelTertiary,
+                      ).copyWith(
+                        fontSize: DSTypography.sizeXs,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -533,10 +538,11 @@ class _ContextBadge extends StatelessWidget {
       ),
       child: Text(
         context.replaceAll('_', ' ').toUpperCase(),
-        style: TextStyle(
+        style: DSTypography.caption(
+          color: color,
+        ).copyWith(
           fontSize: DSTypography.sizeXs,
           fontWeight: FontWeight.w700,
-          color: color,
           letterSpacing: DSTypography.lsLoose,
         ),
       ),
@@ -563,9 +569,9 @@ class _EmptyState extends StatelessWidget {
             color: DSColors.success,
           ),
           DSSpacing.hMd,
-          const Text(
+          Text(
             'No logs to show',
-            style: TextStyle(
+            style: DSTypography.heading().copyWith(
               fontSize: DSTypography.sizeMd,
               fontWeight: FontWeight.w600,
             ),
@@ -574,11 +580,12 @@ class _EmptyState extends StatelessWidget {
           Text(
             'Errors and warnings will appear here\nwhen they occur.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: DSTypography.sizeMd,
+            style: DSTypography.body(
               color: isDark
                   ? DSColors.labelSecondaryDark
                   : DSColors.labelSecondary,
+            ).copyWith(
+              fontSize: DSTypography.sizeMd,
               height: DSStyles.heightRelaxed,
             ),
           ),

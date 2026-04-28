@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/dispatch.md — update that file when you edit this one.
 
 // =============================================================================
@@ -1024,9 +1025,9 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
               color: DSColors.primary,
             ),
             DSSpacing.hMd,
-            const Text(
+            Text(
               'CONFIRM ACCEPTANCE',
-              style: TextStyle(
+              style: DSTypography.heading().copyWith(
                 fontWeight: FontWeight.w800,
                 fontSize: DSTypography.sizeMd,
                 letterSpacing: DSTypography.lsLoose,
@@ -1036,9 +1037,10 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
             Text(
               'ENTER LAST 4 DIGITS OF DISPATCH CODE TO CONFIRM',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: DSTypography.sizeSm,
+              style: DSTypography.body(
                 color: DSColors.labelSecondary,
+              ).copyWith(
+                fontSize: DSTypography.sizeSm,
                 letterSpacing: DSTypography.lsLoose,
               ),
             ),
@@ -1071,7 +1073,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
                           ),
                         ),
                       ),
-                      style: const TextStyle(
+                      style: DSTypography.heading().copyWith(
                         fontSize: DSTypography.sizeLg,
                         fontWeight: FontWeight.w800,
                       ),
@@ -1085,10 +1087,9 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
               DSSpacing.hSm,
               Text(
                 _error!,
-                style: const TextStyle(
+                style: DSTypography.body(
                   color: DSColors.error,
-                  fontSize: DSTypography.sizeSm,
-                ),
+                ).copyWith(fontSize: DSTypography.sizeSm),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -1171,7 +1172,7 @@ class _DispatchInfoCard extends StatelessWidget {
                 children: [
                   Text(
                     maskedCode,
-                    style: const TextStyle(
+                    style: DSTypography.heading().copyWith(
                       fontWeight: FontWeight.w800,
                       fontSize: DSTypography.sizeMd,
                       letterSpacing: DSTypography.lsLoose,
@@ -1232,15 +1233,16 @@ class _InfoRow extends StatelessWidget {
           DSSpacing.wXs,
           Text(
             '$label: ',
-            style: TextStyle(
+            style: DSTypography.label(
+              color: DSColors.labelTertiary,
+            ).copyWith(
               fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w600,
-              color: DSColors.labelTertiary,
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: DSTypography.body().copyWith(
               fontSize: DSTypography.sizeMd,
               fontWeight: FontWeight.w700,
             ),
@@ -1259,10 +1261,11 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: TextStyle(
+      style: DSTypography.caption(
+        color: DSColors.labelTertiary,
+      ).copyWith(
         fontSize: DSTypography.sizeSm,
         fontWeight: FontWeight.w700,
-        color: DSColors.labelTertiary,
         letterSpacing: DSTypography.lsExtraLoose,
       ),
     );

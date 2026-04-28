@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -70,7 +71,6 @@ class DeliveryCard extends StatelessWidget {
 
     final address = (delivery['address'] ?? delivery['delivery_address'] ?? '')
         .toString();
-    final contact = (delivery['contact'] ?? '').toString().trim();
     final name =
         (delivery['name'] ??
                 delivery['recipient'] ??
@@ -169,14 +169,6 @@ class DeliveryCard extends StatelessWidget {
     final subtextColor = isDark
         ? DSColors.labelSecondaryDark
         : DSColors.labelSecondary;
-
-    // ── Slide actions (expanded only) ────────────────────────────────────────
-    final cleanedContact = contact.cleanContactNumber();
-    final hasMap = address.isNotEmpty && !isPrivacyMode && !isLocked;
-    final hasCall = cleanedContact.isNotEmpty && !isPrivacyMode && !isLocked;
-    final hasUpdate = onUpdateTap != null && !isPrivacyMode;
-    final slideCount =
-        (hasMap ? 1 : 0) + (hasCall ? 1 : 0) + (hasUpdate ? 1 : 0);
 
     // ── Card widget — radius is controlled externally by _SlidableRadiusMorph ─
     Widget buildCard({BorderRadius? borderRadius}) {

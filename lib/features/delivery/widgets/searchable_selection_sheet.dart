@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -139,7 +140,7 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                 Expanded(
                   child: Text(
                     widget.title.toUpperCase(),
-                    style: const TextStyle(
+                    style: DSTypography.heading().copyWith(
                       fontSize: DSTypography.sizeMd,
                       fontWeight: FontWeight.w900,
                       letterSpacing: DSTypography.lsExtraLoose,
@@ -179,8 +180,9 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                   labelStyle: DSTypography.body().copyWith(
                     fontSize: DSTypography.sizeMd,
                   ),
-                  hintStyle: TextStyle(
+                  hintStyle: DSTypography.body(
                     color: DSColors.labelTertiary,
+                  ).copyWith(
                     fontSize: DSTypography.sizeMd,
                     letterSpacing: DSTypography.lsLoose,
                   ),
@@ -223,10 +225,11 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                         DSSpacing.hMd,
                         Text(
                           'NO MATCHES FOUND',
-                          style: TextStyle(
+                          style: DSTypography.caption(
+                            color: DSColors.labelTertiary,
+                          ).copyWith(
                             fontSize: DSTypography.sizeSm,
                             fontWeight: FontWeight.w700,
-                            color: DSColors.labelTertiary,
                             letterSpacing: DSTypography.lsExtraLoose,
                           ),
                         ),
@@ -272,16 +275,17 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                                 Expanded(
                                   child: Text(
                                     label,
-                                    style: TextStyle(
-                                      fontSize: DSTypography.sizeMd,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w800
-                                          : FontWeight.w500,
+                                    style: DSTypography.body(
                                       color: isSelected
                                           ? DSColors.primary
                                           : (widget.isDark
                                                 ? DSColors.white
                                                 : DSColors.labelPrimary),
+                                    ).copyWith(
+                                      fontSize: DSTypography.sizeMd,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w800
+                                          : FontWeight.w500,
                                     ),
                                   ),
                                 ),

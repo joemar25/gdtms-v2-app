@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -29,7 +30,6 @@ class SyncProgressBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final syncState = ref.watch(syncManagerProvider);
     final isOnline = ref.watch(isOnlineProvider);
-    final theme = Theme.of(context);
 
     final pending = syncState.entries
         .where((e) => e.status == 'pending' || e.status == 'processing')

@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/sync-history.md — update that file when you edit this one.
 
 // =============================================================================
@@ -319,7 +320,6 @@ class _SyncHeaderState extends ConsumerState<_SyncHeader> {
   bool _eligibleCleanupTriggered = false;
 
   Widget _build(BuildContext context) {
-    final theme = Theme.of(context);
     final lastSyncTime = ref.watch(lastSyncTimeProvider);
     final syncState = ref.watch(syncManagerProvider);
 
@@ -1270,7 +1270,7 @@ class _EmptyStateState extends State<_EmptyState>
                 if (widget.isSyncing) ...[
                   const SpinKitDoubleBounce(
                     color: DSColors.primary,
-                    size: DSIconSize.heroLg,
+                    size: DSIconSize.heroMd,
                   ),
                   DSSpacing.hMd,
                   Text('Syncing…', style: theme.textTheme.titleMedium),
@@ -1278,7 +1278,7 @@ class _EmptyStateState extends State<_EmptyState>
                   Lottie.asset(
                     AppAssets.animSuccess,
                     width: DSIconSize.lg,
-                    height: DSIconSize.heroLg * 2.8,
+                    height: DSIconSize.heroMd * 2.0,
                     controller: _controller,
                     onLoaded: _onLoaded,
                   ),

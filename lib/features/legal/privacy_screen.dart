@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/legal.md — update that file when you edit this one.
 
 // =============================================================================
@@ -54,7 +55,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
         elevation: DSStyles.elevationNone,
         title: Text(
           'Privacy Policy',
-          style: TextStyle(
+          style: DSTypography.heading().copyWith(
             fontSize: DSTypography.sizeMd,
             fontWeight: FontWeight.w700,
             color: isDark ? DSColors.white : DSColors.labelPrimary,

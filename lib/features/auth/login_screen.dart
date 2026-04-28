@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/auth.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -246,12 +247,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: DSIconSize.heroSm,
                             height: DSIconSize.heroSm,
                             decoration: BoxDecoration(
-                              color: DSColors.error,
+                              color: DSColors.primary,
                               borderRadius: DSStyles
                                   .sheetRadius, // 28.0 (Legacy radiusSheet)
                               boxShadow: [
                                 BoxShadow(
-                                  color: DSColors.error.withValues(
+                                  color: DSColors.primary.withValues(
                                     alpha: DSStyles.alphaMuted,
                                   ),
                                   blurRadius: DSStyles.radiusXL,
@@ -370,7 +371,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: TextButton(
                             onPressed: () => context.push('/reset-password'),
                             style: TextButton.styleFrom(
-                              foregroundColor: DSColors.error,
+                              foregroundColor: DSColors.primary,
                             ),
                             child: const Text('Forgot password?'),
                           ),
@@ -422,7 +423,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 'Contact your admin',
                                 style: DSTypography.body().copyWith(
                                   fontSize: DSTypography.sizeMd,
-                                  color: DSColors.error,
+                                  color: DSColors.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

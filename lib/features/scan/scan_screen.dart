@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/scan.md — update that file when you edit this one.
 
 // =============================================================================
@@ -435,6 +436,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             .map((d) => LocalDeliveryDao.instance.isVisibleToRider(d.barcode))
             .toList();
         final visibilityResults = await Future.wait(visibilityFutures);
+        if (!mounted) return;
         final actionable = <LocalDelivery>[];
         for (var i = 0; i < fallback.length; i++) {
           if (visibilityResults[i] == true) actionable.add(fallback[i]);
@@ -790,13 +792,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                           isOnline
                                               ? 'Dispatch scanning requires an internet connection.'
                                               : 'You are offline — dispatch scanning unavailable.',
-                                          style: TextStyle(
+                                          style: DSTypography.body(
                                             color: isOnline
                                                 ? DSColors.white.withValues(
                                                     alpha:
                                                         DSStyles.alphaDisabled,
                                                   )
                                                 : DSColors.warning,
+                                          ).copyWith(
                                             fontSize: DSTypography.sizeSm,
                                           ),
                                         ),
@@ -838,10 +841,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                   Flexible(
                                     child: Text(
                                       _inlineError!,
-                                      style: const TextStyle(
+                                      style: DSTypography.body(
                                         color: DSColors.error,
-                                        fontSize: DSTypography.sizeSm,
-                                      ),
+                                      ).copyWith(fontSize: DSTypography.sizeSm),
                                     ),
                                   ),
                                 ],
@@ -1127,7 +1129,7 @@ class _ManualInputArea extends StatelessWidget {
             icon: const Icon(Icons.search_rounded, size: DSIconSize.md),
             label: Text(
               submitLabel.toUpperCase(),
-              style: const TextStyle(
+              style: DSTypography.button().copyWith(
                 fontSize: DSTypography.sizeMd,
                 fontWeight: FontWeight.w700,
                 letterSpacing: DSTypography.lsExtraLoose,
@@ -1203,24 +1205,24 @@ class _SearchResultsSheet extends StatelessWidget {
                       children: [
                         Text(
                           '${results.length} RESULT${results.length == 1 ? '' : 'S'} FOUND',
-                          style: TextStyle(
+                          style: DSTypography.label(
+                            color: DSColors.labelTertiary,
+                          ).copyWith(
                             fontSize: DSTypography.sizeSm,
                             fontWeight: FontWeight.w800,
-                            color: DSColors.labelTertiary,
                             letterSpacing: DSTypography.lsExtraLoose,
                           ),
                         ),
                         DSSpacing.hXs,
                         Text(
                           'Tap one to open delivery details',
-                          style: TextStyle(
-                            fontSize: DSTypography.sizeMd,
+                          style: DSTypography.body(
                             color: isDark
                                 ? DSColors.white.withValues(
                                     alpha: DSStyles.alphaDisabled,
                                   )
                                 : DSColors.labelSecondary,
-                          ),
+                          ).copyWith(fontSize: DSTypography.sizeMd),
                         ),
                       ],
                     ),
@@ -1286,7 +1288,7 @@ class _SearchResultsSheet extends StatelessWidget {
                         if (name.isNotEmpty)
                           Text(
                             name,
-                            style: const TextStyle(
+                            style: DSTypography.body().copyWith(
                               fontSize: DSTypography.sizeSm,
                             ),
                             maxLines: 1,
@@ -1295,10 +1297,9 @@ class _SearchResultsSheet extends StatelessWidget {
                         if (address.isNotEmpty)
                           Text(
                             address,
-                            style: TextStyle(
-                              fontSize: DSTypography.sizeSm,
+                            style: DSTypography.body(
                               color: DSColors.labelTertiary,
-                            ),
+                            ).copyWith(fontSize: DSTypography.sizeSm),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1317,10 +1318,11 @@ class _SearchResultsSheet extends StatelessWidget {
                       ),
                       child: Text(
                         status.toUpperCase(),
-                        style: const TextStyle(
+                        style: DSTypography.label(
+                          color: DSColors.accent,
+                        ).copyWith(
                           fontSize: DSTypography.sizeXs,
                           fontWeight: FontWeight.w700,
-                          color: DSColors.accent,
                         ),
                       ),
                     ),

@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // Design System barrel — import this file to access all DS tokens and widgets.
 //
 // Tokens

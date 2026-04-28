@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
@@ -23,8 +24,6 @@ class DSSectionHeader extends StatelessWidget {
           DSSpacing.md,
           DSSpacing.sm,
         );
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Padding(
       padding: effectivePadding,
       child: Row(
@@ -38,7 +37,7 @@ class DSSectionHeader extends StatelessWidget {
               fontSize: DSTypography.sizeXs,
             ),
           ),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );

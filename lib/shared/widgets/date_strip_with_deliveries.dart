@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -321,7 +322,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                 if (_loadingMoreDates && i == 0) {
                   return Container(
                     margin: EdgeInsets.only(right: DSSpacing.sm),
-                    width: DSIconSize.heroLg,
+                    width: DSIconSize.heroMd,
                     decoration: BoxDecoration(
                       color: cardBg,
                       borderRadius: DSStyles.cardRadius,

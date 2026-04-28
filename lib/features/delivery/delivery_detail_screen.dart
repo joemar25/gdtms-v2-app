@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 // =============================================================================
@@ -684,10 +685,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   (attempt['attempt'] as num?)?.toInt() ?? (idx + 1);
               final label = _ordinal(attemptNum);
               final reason = attempt['reason']?.toString() ?? '';
-              final timestamp =
-                  (attempt['timestamp'] ?? attempt['attempted_at'])
-                      ?.toString() ??
-                  '';
 
               return DSInfoTile(
                 label: label,

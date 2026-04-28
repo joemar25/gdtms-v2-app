@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/wallet.md — update that file when you edit this one.
 
 // =============================================================================

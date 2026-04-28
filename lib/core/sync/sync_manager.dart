@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/core/sync.md — update that file when you edit this one.
 
 // =============================================================================

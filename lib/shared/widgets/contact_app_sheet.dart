@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -173,7 +174,7 @@ class _AppButton extends StatelessWidget {
       borderRadius: DSStyles.cardRadius,
       child: Container(
         width:
-            DSIconSize.heroLg, // Keeping fixed width for layout grid symmetry
+            DSIconSize.heroMd, // Keeping fixed width for layout grid symmetry
         padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
         child: Column(
           mainAxisSize: MainAxisSize.min,

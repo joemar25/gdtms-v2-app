@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/wallet.md — update that file when you edit this one.
 
 // =============================================================================
@@ -1028,12 +1029,13 @@ class _PayoutRequestHistoryRow extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: '₱ ',
-                          style: TextStyle(
-                            fontSize: DSTypography.sizeMd,
-                            fontWeight: FontWeight.w600,
+                          style: DSTypography.body(
                             color: DSColors.primary.withValues(
                               alpha: DSStyles.alphaDisabled,
                             ),
+                          ).copyWith(
+                            fontSize: DSTypography.sizeMd,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         TextSpan(

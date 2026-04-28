@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/time-enforcement.md
 
 import 'dart:async';
@@ -212,7 +213,7 @@ class _BlockingOverlay extends StatelessWidget {
       color: DSColors.black.withValues(alpha: DSStyles.alphaDisabled),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: DSIconSize.heroSm),
+          constraints: const BoxConstraints(maxWidth: 420),
           child: Container(
             margin: EdgeInsets.symmetric(horizontal: DSSpacing.lg),
             decoration: BoxDecoration(
@@ -235,8 +236,8 @@ class _BlockingOverlay extends StatelessWidget {
               children: [
                 // Icon badge
                 Container(
-                  width: DSIconSize.heroLg,
-                  height: DSIconSize.heroLg,
+                  width: DSIconSize.heroMd,
+                  height: DSIconSize.heroMd,
                   decoration: BoxDecoration(
                     color: DSColors.error.withValues(
                       alpha: DSStyles.alphaSubtle,

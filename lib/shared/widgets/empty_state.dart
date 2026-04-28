@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -17,7 +18,7 @@ class EmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: DSIconSize.heroLg * 2.8,
+            height: DSIconSize.heroMd * 2.0,
             child: Lottie.asset(AppAssets.animEmpty, repeat: false),
           ),
           DSSpacing.hMd,

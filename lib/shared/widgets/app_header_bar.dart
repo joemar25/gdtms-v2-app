@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -308,18 +309,26 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final courier = auth.courier ?? {};
-    final firstName = courier['first_name']?.toString() ?? '';
-    final lastName = courier['last_name']?.toString() ?? '';
-    final name = '$firstName $lastName'.trim().isEmpty
-        ? 'Courier'
-        : '$firstName $lastName'.trim();
+    final firstName = courier['first_name']?.toString();
+    final lastName = courier['last_name']?.toString();
+    final nameStr = [
+      if (firstName != null && firstName != 'null') firstName,
+      if (lastName != null && lastName != 'null') lastName,
+    ].join(' ').trim();
+
+    final name = nameStr.isEmpty ? 'Courier' : nameStr;
+
     // mar-note: this is necessary change since not all courier has email and to be considered all as FREELANCE COURIER
     // final email = courier['email']?.toString();
     // final role = email != null && email.isNotEmpty
     //     ? email
     //     : 'Freelance Courier';
     final role = "FREELANCE COURIER";
-    final profileUrl = courier['profile_picture_url']?.toString();
+    final profileUrlStr = courier['profile_picture_url']?.toString();
+    final profileUrl =
+        (profileUrlStr == null || profileUrlStr == 'null')
+            ? null
+            : profileUrlStr;
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
 
     return AppBar(
@@ -517,7 +526,7 @@ class _ProfileRow extends StatelessWidget {
                       height: DSIconSize.heroSm,
                       fit: BoxFit.cover,
                       // Graceful offline / broken-URL fallback.
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorBuilder: (_, _, _) => const Icon(
                         Icons.person_rounded,
                         size: DSIconSize.xl,
                         color: DSColors.labelSecondary,

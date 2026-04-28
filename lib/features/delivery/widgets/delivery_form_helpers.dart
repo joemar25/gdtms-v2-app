@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -299,8 +300,9 @@ void showDeliveryAccountDetails(
                       ...contact.split('/').asMap().entries.map((entry) {
                         final idx = entry.key;
                         final cleanContact = entry.value.trim();
-                        if (cleanContact.isEmpty)
+                        if (cleanContact.isEmpty) {
                           return const SizedBox.shrink();
+                        }
                         final isLast = idx == contact.split('/').length - 1;
                         return DSInfoTile(
                           label: 'Contact Number',

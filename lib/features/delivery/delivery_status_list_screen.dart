@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/delivery.md — update that file when you edit this one.
 
 // =============================================================================
@@ -97,9 +98,13 @@ class _DeliveryStatusListScreenState
       ? kCompactDeliveriesPerPage
       : kDeliveriesPerPage;
 
-  int get _totalPages => (_totalCount / _kPageSize).ceil().clamp(1, 999999);
-  // int get _firstItem => _totalCount == 0 ? 0 : _currentPage * _kPageSize + 1; -- no need
-  // int get _lastItem => (_firstItem + _items.length - 1).clamp(0, _totalCount); -- no need
+  bool get _isFailedDelivery => widget.status.toUpperCase() == 'FAILED_DELIVERY';
+
+  int get _effectiveTotal => _isFailedDelivery
+      ? (_failedSubFilter == 'rts' ? _totalRtsCount : _totalRedeliveryCount)
+      : _totalCount;
+
+  int get _totalPages => (_effectiveTotal / _kPageSize).ceil().clamp(1, 999999);
 
   // ── Search state ───────────────────────────────────────────────────────────
   bool _showSearch = false;
@@ -130,7 +135,7 @@ class _DeliveryStatusListScreenState
   /// Full (unsliced) list for the active FAILED_DELIVERY sub-group.
   List<Map<String, dynamic>> get _failedFiltered {
     final base = _displayed;
-    if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return base;
+    if (!_isFailedDelivery) return base;
     return base.where((d) {
       final attempts = getAttemptsCountFromMap(d);
       final vStr = (d['_rts_verification_status'] ?? 'unvalidated')
@@ -146,7 +151,7 @@ class _DeliveryStatusListScreenState
   /// For non-FAILED_DELIVERY screens this is identical to [_failedFiltered].
   List<Map<String, dynamic>> get _pageSlice {
     final full = _failedFiltered;
-    if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return full;
+    if (!_isFailedDelivery) return full;
     final start = _currentPage * _kPageSize;
     if (start >= full.length) return [];
     final end = (start + _kPageSize).clamp(0, full.length);
@@ -155,7 +160,7 @@ class _DeliveryStatusListScreenState
 
   /// Returns the accurate total count for each sub-group across all pages.
   int _countFailedSubGroup(String group) {
-    if (widget.status.toUpperCase() != 'FAILED_DELIVERY') return 0;
+    if (!_isFailedDelivery) return 0;
     return group == 'rts' ? _totalRtsCount : _totalRedeliveryCount;
   }
 
@@ -182,36 +187,28 @@ class _DeliveryStatusListScreenState
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final offset = _currentPage * _kPageSize;
-    final rows = await _fetchPage(offset: offset);
-    final total = switch (widget.status.toUpperCase()) {
+    final status = widget.status.toUpperCase();
+
+    // 1. Get total count
+    final total = switch (status) {
       'DELIVERED' => await LocalDeliveryDao.instance.countVisibleDelivered(),
       'FAILED_DELIVERY' =>
         await LocalDeliveryDao.instance.countVisibleFailedDelivery(),
       'OSA' => await LocalDeliveryDao.instance.countVisibleOsa(),
       _ => await LocalDeliveryDao.instance.countByStatus(widget.status),
     };
-    if (!mounted) return;
-    final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
-    _queuedBarcodes = await SyncOperationsDao.instance.getSyncQueuedBarcodes(
-      courierId,
-    );
-    if (!mounted) return;
-    final totalPages = (total / _kPageSize).ceil().clamp(1, 999999);
-    if (_currentPage > 0 && _currentPage >= totalPages) {
-      _currentPage = totalPages - 1;
-      return _load();
-    }
 
-    // ── For FAILED_DELIVERY: load ALL rows and classify ──────────────────
-    // Pagination is incompatible with client-side sub-filtering (redelivery vs
-    // RTS) because items from both groups are interleaved in the DB — a single
-    // page may contain zero items of the selected group. Loading all rows
-    // upfront (typical count: low tens) is fine for this screen.
+    // 2. Classify for FAILED_DELIVERY or fetch page for others
     int redeliveryCount = 0;
     int rtsCount = 0;
     List<LocalDelivery>? allFailedRows;
-    if (widget.status.toUpperCase() == 'FAILED_DELIVERY' && total > 0) {
+    List<LocalDelivery> rows = [];
+
+    if (_isFailedDelivery && total > 0) {
+      // Pagination is incompatible with client-side sub-filtering (redelivery vs
+      // RTS) because items from both groups are interleaved in the DB — a single
+      // page may contain zero items of the selected group. Loading all rows
+      // upfront (typical count: low tens) is fine for this screen.
       allFailedRows = await LocalDeliveryDao.instance
           .getVisibleFailedDeliveryPaged(limit: total, offset: 0);
       for (final row in allFailedRows) {
@@ -225,7 +222,34 @@ class _DeliveryStatusListScreenState
           redeliveryCount++;
         }
       }
+    } else if (!_isFailedDelivery) {
+      rows = await _fetchPage(offset: _currentPage * _kPageSize);
     }
+
+    if (!mounted) return;
+
+    // 3. Determine effective total and check bounds
+    final effectiveTotal =
+        _isFailedDelivery
+            ? (_failedSubFilter == 'rts' ? rtsCount : redeliveryCount)
+            : total;
+
+    final totalPages = (effectiveTotal / _kPageSize).ceil().clamp(1, 999999);
+    if (_currentPage > 0 && _currentPage >= totalPages) {
+      _currentPage = totalPages - 1;
+      // If we are NOT in FAILED_DELIVERY mode, we need to re-fetch the correct page.
+      // For FAILED_DELIVERY, allFailedRows already contains everything, so we
+      // just continue.
+      if (!_isFailedDelivery) {
+        return _load();
+      }
+    }
+
+    // 4. Sync-lock check
+    final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
+    _queuedBarcodes = await SyncOperationsDao.instance.getSyncQueuedBarcodes(
+      courierId,
+    );
     if (!mounted) return;
 
     setState(() {
@@ -395,18 +419,9 @@ class _DeliveryStatusListScreenState
     final isCompact = ref.watch(compactModeProvider);
     final isOnline = ref.watch(isOnlineProvider);
     final displayed = _pageSlice;
-    final isFailedDelivery = widget.status.toUpperCase() == 'FAILED_DELIVERY';
-    // For FAILED_DELIVERY, pagination counts are per sub-group, not the raw total.
-    final effectiveTotal = isFailedDelivery
-        ? (_failedSubFilter == 'rts' ? _totalRtsCount : _totalRedeliveryCount)
-        : _totalCount;
-    final effectiveTotalPages = (effectiveTotal / _kPageSize).ceil().clamp(
-      1,
-      999999,
-    );
-    final effectiveFirstItem = effectiveTotal == 0
-        ? 0
-        : _currentPage * _kPageSize + 1;
+    final effectiveTotal = _effectiveTotal;
+    final effectiveFirstItem =
+        effectiveTotal == 0 ? 0 : _currentPage * _kPageSize + 1;
     final effectiveLastItem = (effectiveFirstItem + displayed.length - 1).clamp(
       0,
       effectiveTotal,
@@ -503,7 +518,7 @@ class _DeliveryStatusListScreenState
               ),
 
               // ── Failed-delivery sub-filter chips ──────────────────────────────
-              if (isFailedDelivery)
+              if (_isFailedDelivery)
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     DSSpacing.md,
@@ -651,7 +666,7 @@ class _DeliveryStatusListScreenState
               if (!isSearching && !_loading && effectiveTotal > _kPageSize)
                 PaginationBar(
                   currentPage: _currentPage,
-                  totalPages: effectiveTotalPages,
+                  totalPages: _totalPages,
                   firstItem: effectiveFirstItem,
                   lastItem: effectiveLastItem,
                   totalCount: effectiveTotal,
@@ -708,7 +723,8 @@ class _DeliveryStatusListScreenState
               child: Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(DSSpacing.md),
+                    width: DSIconSize.heroMd,
+                    height: DSIconSize.heroMd,
                     decoration: BoxDecoration(
                       color: failedDeliveryColor.withValues(
                         alpha: DSStyles.alphaSoft,
@@ -940,15 +956,15 @@ class _EmptyState extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         SizedBox(
-          height: DSIconSize.heroSm,
+          height: MediaQuery.of(context).size.height * 0.6,
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Icon circle
                 Container(
-                  width: DSIconSize.heroLg,
-                  height: DSIconSize.heroLg,
+                  width: DSIconSize.heroMd,
+                  height: DSIconSize.heroMd,
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: DSStyles.alphaSoft),
                     shape: BoxShape.circle,

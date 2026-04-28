@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/wallet.md — update that file when you edit this one.
 
 import 'dart:math' as math;
@@ -184,7 +185,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                             ),
                             style: TextButton.styleFrom(
                               foregroundColor: DSColors.primary,
-                              textStyle: const TextStyle(
+                              textStyle: DSTypography.button().copyWith(
                                 fontSize: DSTypography.sizeMd,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -470,21 +471,19 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                   DSSpacing.hXs,
                                   Text(
                                     timestamp,
-                                    style: TextStyle(
-                                      fontSize: DSTypography.sizeSm,
+                                    style: DSTypography.body(
                                       color: isDark
                                           ? DSColors.labelSecondaryDark
                                           : DSColors.labelSecondary,
-                                    ),
+                                    ).copyWith(fontSize: DSTypography.sizeSm),
                                   ),
                                   if (by != null && by.isNotEmpty) ...[
                                     DSSpacing.hXs,
                                     Text(
                                       'By: $by',
-                                      style: TextStyle(
-                                        fontSize: DSTypography.sizeSm,
+                                      style: DSTypography.body(
                                         color: DSColors.accent,
-                                      ),
+                                      ).copyWith(fontSize: DSTypography.sizeSm),
                                     ),
                                   ],
                                   if (remarks != null &&
@@ -492,11 +491,12 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                                     DSSpacing.hXs,
                                     Text(
                                       remarks,
-                                      style: TextStyle(
-                                        fontSize: DSTypography.sizeSm,
+                                      style: DSTypography.body(
                                         color: isDark
                                             ? DSColors.labelSecondaryDark
                                             : DSColors.labelSecondary,
+                                      ).copyWith(
+                                        fontSize: DSTypography.sizeSm,
                                         fontStyle: FontStyle.italic,
                                       ),
                                     ),
@@ -569,7 +569,7 @@ class _SectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (trailingWidget != null) trailingWidget,
+                ?trailingWidget,
               ],
             ),
             DSSpacing.hMd,
@@ -807,7 +807,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
               Expanded(
                 child: Text(
                   'Breakdown Details',
-                  style: TextStyle(
+                  style: DSTypography.heading().copyWith(
                     fontSize: DSTypography.sizeMd,
                     fontWeight: FontWeight.w700,
                     color: Theme.of(context).brightness == Brightness.dark
@@ -846,13 +846,14 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                               isCoordinator
                                   ? '⚠ ${_formatKey(e.key)}'
                                   : _formatKey(e.key),
-                              style: TextStyle(
-                                fontSize: DSTypography.sizeMd,
+                              style: DSTypography.body(
                                 color: isCoordinator
                                     ? DSColors.error
                                     : (isDark
                                           ? DSColors.labelTertiary
                                           : DSColors.labelSecondary),
+                              ).copyWith(
+                                fontSize: DSTypography.sizeMd,
                                 fontWeight: isCoordinator
                                     ? FontWeight.w700
                                     : FontWeight.w500,
@@ -863,9 +864,10 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                             if (isCoordinator)
                               Text(
                                 'DEBUG ONLY',
-                                style: TextStyle(
-                                  fontSize: DSTypography.sizeXs,
+                                style: DSTypography.caption(
                                   color: DSColors.error,
+                                ).copyWith(
+                                  fontSize: DSTypography.sizeXs,
                                   letterSpacing: 0.4,
                                 ),
                               ),
@@ -874,9 +876,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                       ),
                       Text(
                         '${isDeduction ? '-' : ''}₱ ${val.abs().toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: DSTypography.sizeMd,
-                          fontWeight: FontWeight.w600,
+                        style: DSTypography.body(
                           color: isCoordinator
                               ? DSColors.error
                               : (isDeduction
@@ -884,6 +884,9 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
                                     : (isDark
                                           ? DSColors.white
                                           : DSColors.labelPrimary)),
+                        ).copyWith(
+                          fontSize: DSTypography.sizeMd,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

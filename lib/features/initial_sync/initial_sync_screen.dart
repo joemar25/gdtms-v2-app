@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/initial-sync.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
@@ -73,13 +74,13 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                  width: DSIconSize.xl,
-                  height: DSIconSize.xl,
+                  width: DSIconSize.heroMd,
+                  height: DSIconSize.heroMd,
                   child: _done
                       ? Lottie.asset(AppAssets.animSuccess, repeat: false)
                       : const SpinKitDoubleBounce(
                           color: DSColors.primary,
-                          size: DSIconSize.heroLg,
+                          size: DSIconSize.heroMd,
                         ),
                 ),
                 DSSpacing.hLg,

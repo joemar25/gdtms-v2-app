@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/features/auth.md — update that file when you edit this one.
 
 // =============================================================================
@@ -198,17 +199,17 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               DSSpacing.xl,
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: DSIconSize.heroSm),
+              constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // ── Icon + heading ─────────────────────────────────
                   Center(
                     child: Container(
-                      width: DSIconSize.heroLg,
-                      height: DSIconSize.heroLg,
+                      width: DSIconSize.heroMd,
+                      height: DSIconSize.heroMd,
                       decoration: BoxDecoration(
-                        color: DSColors.error.withValues(
+                        color: DSColors.primary.withValues(
                           alpha: DSStyles.alphaSubtle,
                         ),
                         borderRadius: DSStyles.cardRadius,
@@ -216,7 +217,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       child: const Icon(
                         Icons.lock_reset_rounded,
                         size: DSIconSize.xl,
-                        color: DSColors.error,
+                        color: DSColors.primary,
                       ),
                     ),
                   ).dsHeroEntry(),

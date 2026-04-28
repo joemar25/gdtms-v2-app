@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/core/providers.md — update that file when you edit this one.
 
 import 'package:firebase_messaging/firebase_messaging.dart';

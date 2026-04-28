@@ -1,3 +1,4 @@
+// DOCS: docs/development-standards.md
 // DOCS: docs/core/providers.md — update that file when you edit this one.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,28 +53,35 @@ class AppNotification {
   final String? readAt;
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
+    String? getString(String key) {
+      final val = json[key]?.toString();
+      if (val == null || val == 'null') return null;
+      return val;
+    }
+
     final refs = json['delivery_references'];
     return AppNotification(
-      id: json['id']?.toString() ?? '',
-      type: json['type']?.toString() ?? '',
-      message: json['message']?.toString() ?? '',
-      transactionReference: json['transaction_reference']?.toString(),
-      deliveryReferences: refs is List
-          ? refs.map((e) => e.toString()).toList()
-          : const [],
-      amount: json['amount'] != null
+      id: getString('id') ?? '',
+      type: getString('type') ?? '',
+      message: getString('message') ?? '',
+      transactionReference: getString('transaction_reference'),
+      deliveryReferences:
+          refs is List ? refs.map((e) => e.toString()).toList() : const [],
+      amount: json['amount'] != null && json['amount'].toString() != 'null'
           ? double.tryParse('${json['amount']}')
           : null,
-      stage: json['stage']?.toString(),
-      rejectionReason: json['rejection_reason']?.toString(),
-      dispatchCode: json['dispatch_code']?.toString(),
-      deliveryCount: json['delivery_count'] != null
-          ? int.tryParse('${json['delivery_count']}')
-          : null,
-      action: json['action']?.toString(),
-      date: json['date']?.toString() ?? '',
+      stage: getString('stage'),
+      rejectionReason: getString('rejection_reason'),
+      dispatchCode: getString('dispatch_code'),
+      deliveryCount:
+          json['delivery_count'] != null &&
+                  json['delivery_count'].toString() != 'null'
+              ? int.tryParse('${json['delivery_count']}')
+              : null,
+      action: getString('action'),
+      date: getString('date') ?? '',
       read: json['read'] as bool? ?? false,
-      readAt: json['read_at']?.toString(),
+      readAt: getString('read_at'),
     );
   }
 
@@ -188,8 +196,12 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
           : <AppNotification>[];
       final meta = asStringDynamicMap(data['meta']);
       final lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
+
+      // Ensure we use the server's unread count if provided, otherwise default to 0
+      // if the list is empty (as it implies everything is read or non-existent).
       final unreadCount =
-          (data['unread_count'] as num?)?.toInt() ?? state.unreadCount;
+          (data['unread_count'] as num?)?.toInt() ??
+          (entries.isEmpty ? 0 : state.unreadCount);
 
       state = state.copyWith(
         entries: entries,
