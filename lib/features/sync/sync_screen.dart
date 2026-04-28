@@ -1060,28 +1060,28 @@ class _StatusBadge extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final (bg, fg, label) = switch (ds) {
       DeliveryStatus.delivered => (
-        DSColors.success.withValues(alpha: DSStyles.alphaSubtle),
-        DSColors.success,
+        DSColors.successSurface,
+        DSColors.successText,
         DeliveryStatus.delivered.displayName,
       ),
       DeliveryStatus.pending => (
-        DSColors.warning.withValues(alpha: DSStyles.alphaSubtle),
-        DSColors.warning,
+        DSColors.pendingSurface,
+        DSColors.pendingText,
         DeliveryStatus.pending.displayName,
       ),
       DeliveryStatus.failedDelivery => (
-        DSColors.error.withValues(alpha: DSStyles.alphaSubtle),
-        DSColors.error,
+        DSColors.errorSurface,
+        DSColors.errorText,
         DeliveryStatus.failedDelivery.displayName,
       ),
       DeliveryStatus.osa => (
-        DSColors.secondarySurfaceDark,
-        isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
+        DSColors.warningSurface,
+        DSColors.warningText,
         DeliveryStatus.osa.displayName,
       ),
       _ => (
-        DSColors.secondarySurfaceLight,
-        DSColors.labelSecondary,
+        isDark ? DSColors.secondarySurfaceDark : DSColors.secondarySurfaceLight,
+        isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
         status.toUpperCase(),
       ),
     };

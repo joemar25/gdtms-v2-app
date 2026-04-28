@@ -79,27 +79,49 @@ class DeliveryStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Determine the optimal background and foreground colors from our design
+    // system tokens to ensure maximum readability and contrast.
+    Color bg = color.withValues(alpha: DSStyles.alphaSubtle);
+    Color fg = color;
+
+    if (color == DSColors.success) {
+      bg = DSColors.successSurface;
+      fg = DSColors.successText;
+    } else if (color == DSColors.error) {
+      bg = DSColors.errorSurface;
+      fg = DSColors.errorText;
+    } else if (color == DSColors.warning) {
+      bg = DSColors.warningSurface;
+      fg = DSColors.warningText;
+    } else if (color == DSColors.pending) {
+      bg = DSColors.pendingSurface;
+      fg = DSColors.pendingText;
+    } else if (color == DSColors.accent) {
+      bg = DSColors.accentSurface;
+      fg = DSColors.accent;
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.sm,
         vertical: DSSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: DSStyles.alphaSubtle),
+        color: bg,
         borderRadius: DSStyles.pillRadius,
         border: Border.all(
-          color: color.withValues(alpha: DSStyles.alphaMuted),
+          color: fg.withValues(alpha: DSStyles.alphaMuted),
           width: DSStyles.borderWidth,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: DSIconSize.xs, color: color),
+          Icon(icon, size: DSIconSize.xs, color: fg),
           DSSpacing.wXs,
           Text(
             label,
-            style: DSTypography.label(color: color).copyWith(
+            style: DSTypography.label(color: fg).copyWith(
               fontSize: DSTypography.sizeXs,
               letterSpacing: DSTypography.lsExtraLoose,
             ),
