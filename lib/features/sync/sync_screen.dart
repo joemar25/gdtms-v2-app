@@ -107,7 +107,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
     return Scaffold(
       appBar: AppHeaderBar(
         title: 'sync.title'.tr(),
-        pageIcon: Icons.sync_rounded,
+        // pageIcon: Icons.sync_rounded, - we have a rule to have no icon per page header
         actions: [
           const SecureBadge(),
           if (isOnline &&

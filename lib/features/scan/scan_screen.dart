@@ -591,8 +591,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             ).copyWith(fontWeight: FontWeight.w700),
           ),
           backgroundColor: DSColors.transparent,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: DSColors.white),
+          leading: BackButton(
+            color: DSColors.white,
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           actions: [
