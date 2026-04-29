@@ -80,3 +80,14 @@ String formatDate(String? iso, {bool includeTime = false}) {
       ? DateFormat('MMM d, yyyy · h:mm a').format(pst)
       : DateFormat('MMM d, yyyy').format(pst);
 }
+
+/// Formats an epoch millisecond timestamp for display in Philippine Standard Time.
+String formatEpoch(int? ms, {bool includeTime = true}) {
+  if (ms == null) return '';
+  final dt = DateTime.fromMillisecondsSinceEpoch(ms);
+  final pst = dt.toUtc().add(const Duration(hours: 8));
+  return includeTime
+      ? DateFormat('MMM d, yyyy · h:mm a').format(pst)
+      : DateFormat('MMM d, yyyy').format(pst);
+}
+

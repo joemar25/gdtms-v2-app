@@ -58,14 +58,13 @@ class AppDatabase {
   /// Failures are non-fatal: the app continues with SQLite defaults.
   static Future<void> _applyPragmas(Database db) async {
     try {
-      // Use rawQuery for PRAGMAs that return results (like journal_mode)
-      // to avoid "Queries can be performed using SQLiteDatabase query or rawQuery
-      // methods only" DatabaseExceptions on Android.
+      // Use rawQuery for PRAGMAs to avoid "Queries can be performed using
+      // SQLiteDatabase query or rawQuery methods only" DatabaseExceptions.
       await db.rawQuery('PRAGMA journal_mode=WAL');
-      await db.execute('PRAGMA synchronous=NORMAL');
-      await db.execute('PRAGMA temp_store=MEMORY');
-      await db.execute('PRAGMA mmap_size=67108864');
-      await db.execute('PRAGMA busy_timeout=5000');
+      await db.rawQuery('PRAGMA synchronous=NORMAL');
+      await db.rawQuery('PRAGMA temp_store=MEMORY');
+      await db.rawQuery('PRAGMA mmap_size=67108864');
+      await db.rawQuery('PRAGMA busy_timeout=5000');
     } catch (e) {
       // Log but never crash — SQLite defaults are safe fallbacks.
       debugPrint('[DB] PRAGMA setup warning (non-fatal): $e');
@@ -319,5 +318,6 @@ class AppDatabase {
     await db.delete('local_deliveries');
     await db.delete('delivery_update_queue');
     await db.delete('sync_operations');
+    await db.delete('error_logs');
   }
 }

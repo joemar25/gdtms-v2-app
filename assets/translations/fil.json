@@ -1,0 +1,341 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Kanselahin",
+    "save": "I-save",
+    "back": "Bumalik",
+    "loading": "Naglo-load...",
+    "error": "May nangyaring mali.",
+    "retry": "Subukan Muli",
+    "confirm": "Kumpirmahin",
+    "delete": "Burahin",
+    "edit": "I-edit",
+    "search": "Maghanap",
+    "submit": "Isumite",
+    "yes": "Oo",
+    "no": "Hindi",
+    "field_required": "Kinakailangan ang field na ito."
+  },
+  "auth": {
+    "login": "Mag-log In",
+    "logout": "Mag-log Out",
+    "signup": "Mag-sign Up",
+    "email_placeholder": "Ilagay ang iyong email",
+    "password_placeholder": "Ilagay ang iyong password",
+    "forgot_password": "Nakalimutan ang Password?",
+    "no_account": "Wala pang account?",
+    "have_account": "Mayroon nang account?",
+    "login_screen": {
+      "title": "Mag-Sign In",
+      "subtitle": "Ilagay ang iyong impormasyon para magpatuloy",
+      "phone_number": "Numero ng Telepono",
+      "phone_hint": "hal. 09XXXXXXXXX",
+      "password": "Password",
+      "password_hint": "Ang iyong password",
+      "forgot_password": "Nakalimutan ang Password?",
+      "wait_seconds": "Maghintay ng {seconds}s",
+      "sign_in": "Mag-Sign In",
+      "having_trouble": "May problema?",
+      "contact_admin": "Makipag-ugnayan sa admin",
+      "error_invalid_response": "Di-wastong tugon sa pag-login. Pakisubukang muli.",
+      "error_invalid_credentials": "Di-wastong numero ng telepono o password.",
+      "error_no_connection": "Walang koneksyon. Pakisuri ang iyong internet.",
+      "error_try_again_seconds": "Subukang muli sa loob ng {seconds} segundo.",
+      "error_login_failed": "Nabigo ang pag-login."
+    }
+  },
+  "splash": {
+    "title": "FSI COURIER",
+    "tagline": "SMART LOGISTICS • REAL-TIME DELIVERY",
+    "feature": {
+      "accept": "Tanggapin",
+      "deliver": "Maghatid",
+      "payout": "Payout"
+    },
+    "footer_brand": "Fastrak Services Inc."
+  },
+  "nav": {
+    "home": "Home",
+    "search": "Maghanap",
+    "profile": "Profile",
+    "settings": "Mga Setting",
+    "notifications": "Mga Abiso"
+  },
+  "dashboard": {
+    "exit_confirm_title": "Lumabas ng App",
+    "exit_confirm_subtitle": "Sigurado ka bang gusto mong lumabas?",
+    "exit_confirm_confirm": "Lumabas",
+    "exit_confirm_cancel": "Manatili",
+    "stats": {
+      "dispatch_label": "DISPATCH",
+      "dispatch_details": "Para sa pagtanggap.",
+      "deliveries_label": "DELIVERIES",
+      "deliveries_details": "Para sa mga pagpapadala ngayon.",
+      "delivered_label": "DELIVERED",
+      "delivered_details": "Naipadala ngayong araw.",
+      "attempted_label": "Attempted",
+      "attempted_details": "Para sa mga nabigong o na-redel na pagpapadala ngayon.",
+      "misrouted_label": "Misrouted",
+      "misrouted_details": "Mga maling ruta na pagpapadala.",
+      "sync_label": "SYNC",
+      "sync_pending_details": "May nakabinbing pag-update.",
+      "sync_all_synced_details": "Lahat naka-sync.",
+      "sync_no_activity_details": "Walang aktibidad."
+    },
+    "scan": {
+      "dispatch_label": "SCAN DISPATCH",
+      "dispatch_details": "I-scan ang dispatch barcode\nupang suriin ang pagiging karapat-dapat.",
+      "pod_label": "SCAN POD",
+      "pod_details": "I-scan ang delivery barcode upang\nmahanap at mai-update ang POD."
+    },
+    "search": {
+      "placeholder": "Barcode, pangalan ng account…"
+    },
+    "profile": {
+      "default_name": "Courier",
+      "role_freelance": "FREELANCE COURIER"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "preferences": "Mga Kagustuhan",
+    "language": "Wika",
+    "language_english": "Ingles",
+    "language_filipino": "Filipino",
+    "language_subtitle": "Piliin ang iyong gustong wika",
+    "edit_profile": "I-edit ang Profile",
+    "account": "Account",
+    "privacy": "Privacy",
+    "help": "Tulong at Suporta",
+    "about": "Tungkol Sa"
+  },
+  "wallet": {
+    "screen": {
+      "title": "Wallet",
+      "request_payout": "Humiling ng Payout",
+      "request_payout_debug": "Humiling ng Payout (DEBUG)",
+      "offline_message": "Wala kang koneksyon — tanging kabuuang kita ang ipinapakita.",
+      "existing_request_notice": "Nakapag-submit ka na ng request ngayon. Maaari mong pagsamahin ang iyong mga deliveries bukas.",
+      "payout_history": "Kasaysayan ng Payout"
+    },
+    "request": {
+      "appbar_title": "Humiling ng Payout",
+      "appbar_title_consolidate": "Pagsamahing Request",
+      "appbar_title_debug": "Humiling ng Payout (DEBUG)",
+      "offline_title": "Wala kang Koneksyon",
+      "offline_body": "Kinakailangan ang internet na koneksyon para sa payout request. Mangyaring kumonekta muli at subukan muli.",
+      "error_loading_preview": "Nabigong i-load ang preview ng bayad.",
+      "request_window_denied": "Pinapayagan lamang ang payout request mula {from} hanggang {to}. Mangyaring subukan muli sa oras na iyon.",
+      "confirm_title": "Kumpirmahin ang Request ng Payout",
+      "confirm_title_consolidated": "Kumpirmahin ang Pinagsamang Request",
+      "confirm_body": "Malapit kang magsumite ng payout request para sa:",
+      "confirm_warning": "Hindi na ito mababawi. Itutuloy?",
+      "confirm_cancel": "Kanselahin",
+      "confirm_submit": "Isumite",
+      "confirm_button": "KUMPIRMAHIN",
+      "confirm_button_consolidate": "PINDUTIN UPANG KUMPIRMAHIN",
+      "submitted_success": "Matagumpay na naisumite ang payout request.",
+      "already_submitted_today": "Nakapag-submit ka na ng payout request ngayon.",
+      "failed_submit": "Nabigong isumite ang payout request.",
+      "try_again": "Subukan Muli",
+      "existing_request_details": "Nakapag-submit ka na ng payout request ngayon. Pinapayagan ang isang request kada araw lamang. Ang mga karapat-dapat mong delivery ay awtomatikong isasama sa request bukas kung susumite ka muli.",
+      "pending_request_warning": "Mayroon kang naka-pending na payout request. Ang pagsusumite ng isa pa ay pagsasamahin ang lahat ng karapat-dapat na delivery sa isang consolidated na payout.",
+      "existing_request_today_notice": "Nakapag-submit ka na ng request ngayon.",
+      "no_eligible_deliveries": "Walang karapat-dapat na delivery para sa payout."
+    },
+    "detail": {
+      "view_history": "Tingnan ang Kasaysayan",
+      "deliveries_rundown": "Buod ng Mga Delivery",
+      "load_more": "Mag-load pa",
+      "request_lifecycle": "Buhay ng Request",
+      "payment_request_not_found": "Hindi matagpuan ang request ng bayad."
+    },
+    "history_row": {
+      "completed": "Payout Nakumpleto",
+      "request": "Payout Request",
+      "approved": "Payout Naaprubahan",
+      "cancelled": "Payout Kinansela"
+    },
+    "card": {
+      "available_balance": "Magagamit na Balanse",
+      "accumulated_earnings": "Naipong Kita",
+      "tap_to_view_account": "PINDUTIN UPANG TINGNAN ANG ACCOUNT",
+      "pending_payout": "PENDING PAYOUT",
+      "consolidate": "Pagsamahin",
+      "eligible_deliveries": "Mga Karapat-dapat na Delivery",
+      "estimated_net_payout": "TANTYANG NETONG PAYOUT",
+      "gross_amount": "Kabuuang Halaga",
+      "penalties": "Parusa",
+      "coordinator_incentive": "⚠ Insentibo ng Coordinator",
+      "debug_only": "DEBUG LAMANG — hindi nakikita sa production",
+      "items": "{count} item"
+    },
+    "banner": {
+      "debug_window": "(DEBUG) Bypass ang oras na restriksyon — pinapayagan ang mga request anumang oras.",
+      "window_title": "Payout Requests: Umaga Lamang",
+      "window_body": "Maaari kang humiling ng payout mula {from} hanggang {to}. Mangyaring bumalik sa oras na iyon."
+    },
+    "rundown": {
+      "one_delivery_item": "1 Item ng Delivery",
+      "delivery_items": "{count} Mga Item ng Delivery"
+    }
+  },
+  "delivery_update": {
+    "location": {
+      "gps_required": "Paki-enable ang GPS / Location Services at subukang muli.",
+      "permission_permanently_denied": "Permanenteng tinanggihan ang permiso sa lokasyon. I-enable ito sa Settings.",
+      "permission_required": "Kinakailangan ang permiso sa lokasyon upang makuha ang iyong posisyon.",
+      "gps_disabled": "Naka-off ang GPS. Paki-enable ang Location Services.",
+      "could_not_get_location": "Hindi makuha ang lokasyon. Siguraduhing naka-on ang GPS at subukang muli."
+    },
+    "camera": {
+      "permission_settings": "Kinakailangan ang permiso sa camera. Paki-enable ito sa Settings.",
+      "permission_photo": "Kinakailangan ang permiso sa camera upang kumuha ng larawan.",
+      "error": "Camera Error ({code}): {message}",
+      "capture_failed": "Nabigong kumuha ng larawan: {error}"
+    },
+    "photo": {
+      "recovered_success": "Matagumpay na na-recover ang larawan mula sa camera.",
+      "compression_failed": "Nabigong i-compress ang larawan: {error}",
+      "tap_to_capture": "PINDUTIN UPANG KUMUHA"
+    },
+    "validation": {
+      "invalid_status": "Invalid status.",
+      "note_too_long": "Hindi dapat lalampas sa {max} mga karakter ang tala.",
+      "field_required": "Kinakailangan ang field na ito.",
+      "relationship_required": "Kinakailangan ang relasyon.",
+      "relationship_specify": "Paki-specify ang relasyon.",
+      "placement_required": "Kinakailangan ang uri ng pagpapalagay.",
+      "pod_photo_required": "Kinakailangan ang larawan ng POD.",
+      "selfie_photo_required": "Kinakailangan ang selfie na larawan.",
+      "confirmation_code_required": "Kinakailangan ang delivery confirmation code.",
+      "mailpack_photo_required": "Kinakailangan ang larawan ng mailpack.",
+      "reason_required": "Kinakailangan ang dahilan.",
+      "reason_specify": "Paki-specify ang dahilan.",
+      "informant_name_required": "Kinakailangan ang pangalan ng nagbigay ng impormasyon."
+    },
+    "status": {
+      "locked": "Hindi ma-update ang delivery na ito dahil naka-lock.",
+      "updated_success": "Matagumpay na na-update ang delivery status."
+    },
+    "switch_status": {
+      "title": "PALITAN ANG STATUS?",
+      "content": "Napunan mo na ang {detail} para sa {from}. Ang paglipat sa {to} ay maglilinis ng lahat ng data na iyon.\n\nSigurado ka bang itutuloy?",
+      "cancel": "KANSILAHIN",
+      "confirm": "OO, PALITIN"
+    },
+    "detail": {
+      "recipient_info_photos_signature": "impormasyon ng tatanggap, mga larawan, at pirma",
+      "reason_and_selfie_photo": "dahilan at selfie na larawan"
+    },
+    "discard_changes": {
+      "title": "Itapon ang mga pagbabago?",
+      "message": "Mayroon kang hindi nai-save na pagbabago. Umalis ba nang hindi nagsusumite?",
+      "stay": "MANATILI",
+      "discard": "ITAPON"
+    },
+    "signature": {
+      "add_signature": "MAGDAGDAG NG PINIRMA?",
+      "capture_prompt": "Gusto mo bang i-capture ang pirma ng tatanggap?",
+      "yes": "OO",
+      "cancel": "KANSILAHIN",
+      "re_sign": "MULING PIRMADO",
+      "clear": "LINISIN",
+      "signature": "PIRMA",
+      "tap_to_sign_optional": "PINDUTIN UPANG PUMIRMA (OPSYONAL)",
+      "include_recipient_signature": "Isama ang pirma ng tatanggap"
+    },
+    "button": {
+      "submit_update": "ISUMITE ANG PAGBABAGO"
+    },
+    "header": {
+      "update_status": "I-UPDATE ANG STATUS",
+      "account_details": "Detalye ng Account",
+      "select_status": "PUMILI NG STATUS",
+      "recipient_info": "IMPORMASYON NG TATANGGAP",
+      "recipient_name_locked_owner": "PANGALAN NG TATANGGAP (NELGADANG MAY-ARI)",
+      "recipient_name": "PANGALAN NG TATANGGAP",
+      "relationship_locked_owner": "RELASYON (NELGADANG MAY-ARI)",
+      "relationship": "RELASYON",
+      "specify_relationship": "TUKUYIN ANG RELASYON",
+      "delivery_confirmation_code": "DELIVERY CONFIRMATION CODE",
+      "placement_type": "URI NG PAGLALAGAY",
+      "reason_for_non_delivery": "DAHILAN PARA SA HINDI PAGHAHATID",
+      "select_reason": "PUMILI NG DAHILAN",
+      "specify_reason": "TUKUYIN ANG DAHILAN",
+      "according_to_name": "ALINSUNOD SA (PANGALAN NG NAGBIGAY NG IMPORMASYON)",
+      "proof_of_delivery_photos": "MGA LARAWAN NG PROOF OF DELIVERY",
+      "mailpack_photo": "LARAWAN NG MAILPACK",
+      "selfie_photo": "SELFIE NA LARAWAN",
+      "remarks_optional": "MGA PUNA (OPSYONAL)",
+      "preset_hint": "PINDUTIN ANG PRESET UPANG PUNO — MAAARI KA PA RIN MAGDAGDAG NG KARAGDAGANG DETALYE SA IBA SA IBABA",
+      "remarks": "MGA PUNA",
+      "transaction_date_pst": "PETSANG TRANSAKSYON (PHILIPPINE STANDARD TIME)",
+      "geo_location": "GEO LOKASYON",
+      "tap_swipe_change_status": "Pindutin o i-swipe sa ibaba upang baguhin ang status"
+    },
+    "hint": {
+      "confirmation_code_example": "hal. AB1C2D",
+      "specify_reason_example": "hal. NAKASARA ANG GATE, WALANG NUMERO NG KONTAK",
+      "according_to_example": "hal. GUARD, KAPITBAHAY"
+    },
+    "offline_banner": {
+      "queued_online": "Naka-queue ang update—isasumite kapag online"
+    }
+  },
+  "errors": {
+    "network": "Walang koneksyon sa internet.",
+    "timeout": "Nag-timeout ang kahilingan.",
+    "not_found": "Hindi mahanap.",
+    "unauthorized": "Mangyaring mag-log in muli."
+  },
+  "greeting": "Kamusta, {}!",
+  "sync": {
+    "title": "Kasaysayan",
+    "actions": {
+      "sync_now": "I-sync Ngayon",
+      "syncing": "Nag-si-sync…",
+      "reload": "I-reload"
+    },
+    "dialogs": {
+      "reload_confirm_title": "I-reload mula sa Server?",
+      "reload_confirm_subtitle": "Buburahin nito ang iyong lokal na listahan ng pagpapadala at muling i-da-download ito mula sa server. Ang mga nakabinbing sync update ay hindi maaapektuhan.",
+      "reload_success": "Muling na-load ang mga pagpapadala mula sa server.",
+      "reload_failed": "Bigo ang pag-reload. Pakisubukang muli.",
+      "retry_confirm_title": "Subukang muli ang sync?",
+      "retry_confirm_subtitle": "Susubukan nitong i-upload muli ang update na ito sa server.",
+      "resolve_confirm_title": "I-resolve ang conflict?",
+      "resolve_confirm_subtitle": "Markahan nito ang update bilang \"Resolved\" sa lokal nang hindi ito ipinapadala sa server. Gamitin ito kung manu-mano mo nang kinumpirma ang estado sa server.",
+      "delete_confirm_title": "Burahin ang operasyon?",
+      "delete_confirm_subtitle": "Permanenteng tatanggalin nito ang update na ito mula sa iyong sync queue. Ang lokal na katayuan ng pagpapadala ay HINDI mababago."
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "last_sync": "Huling sync: {}",
+      "retention_days": "Pagpapanatili ng kasaysayan ng sync: {}",
+      "retention_eligible": "Ang kasaysayan ay maaari nang burahin",
+      "retention_remaining": "Ang kasaysayan ay awtomatikong buburahin pagkalipas ng {}"
+    },
+    "list": {
+      "delivered_label": "Naipadala",
+      "transaction_label": "Transaksyon",
+      "dispatched_label": "Naipadala (Dispatched)",
+      "queued_label": "Naka-queue",
+      "synced_label": "Naka-sync",
+      "archived_label": "NA-ARCHIVE",
+      "locked_general": "Ang pagpapadalang ito ay {} at hindi maaaring buksan.",
+      "locked_osa": "Ang item na ito ay marked OSA at hindi maaaring buksan.",
+      "locked_delivered": "Ang item na ito ay naipadala na at selyado na.",
+      "locked_failed_max": "Ang nabigong pagpapadalang ito ay umabot na sa maximum na bilang ng mga pagsubok at naka-lock na.",
+      "locked_failed_verified": "Ang nabigong pagpapadalang ito ay na-verify na at hindi na maaaring aksyunan.",
+      "profile_update_info": "Ang entry na ito ay isang profile update at walang mga detalye ng pagpapadala.",
+      "retry_button": "SUBUKANG MULI",
+      "resolve_button": "I-RESOLVE"
+    },
+    "empty": {
+      "all_caught_up": "Lahat ay ayos na!",
+      "no_pending": "Walang mga nakabinbing pagpapadala na dapat i-sync."
+    }
+  }
+}

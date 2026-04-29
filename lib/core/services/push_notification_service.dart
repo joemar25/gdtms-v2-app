@@ -267,6 +267,12 @@ class PushNotificationService {
       // Leave the pending token in storage so it can be retried later.
     } else {
       debugPrint('[PUSH] FCM Token synced successfully');
+      // Clear any previous sync warning since it's now resolved.
+      await ErrorLogService.clearByContext(
+        'PushNotificationService',
+        message: 'Failed to sync FCM token',
+      );
+
       try {
         await _authStorage.setLastSyncedFcmToken(token);
         await _authStorage.clearPendingFcmToken();

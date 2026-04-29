@@ -3,6 +3,7 @@
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -133,7 +134,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
               icon: const Icon(Icons.history_rounded),
               onPressed: () =>
                   _showTransactionHistory(context, transactionHistory),
-              tooltip: 'View History',
+              tooltip: 'wallet.detail.view_history'.tr(),
             ),
         ],
         showNotificationBell: false,
@@ -285,7 +286,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
 
     return [
       _SectionCard(
-        title: 'DELIVERIES RUNDOWN',
+        title: 'wallet.detail.deliveries_rundown'.tr().toUpperCase(),
         children: [
           DeliveriesRundownCard(dailyBreakdown: _accumulatedBreakdown),
           if (_hasMoreBreakdownPages)
@@ -296,7 +297,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                     ? const CircularProgressIndicator()
                     : TextButton(
                         onPressed: _loadMoreBreakdown,
-                        child: const Text('Load More'),
+                        child: Text('wallet.detail.load_more'.tr()),
                       ),
               ),
             ),
@@ -352,7 +353,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Request Lifecycle',
+                      'wallet.detail.request_lifecycle'.tr(),
                       style: DSTypography.heading().copyWith(
                         fontSize: DSTypography.sizeLg,
                         fontWeight: FontWeight.w800,

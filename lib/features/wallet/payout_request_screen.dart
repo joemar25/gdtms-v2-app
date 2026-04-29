@@ -31,6 +31,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -93,7 +94,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       });
     } else {
       setState(() {
-        _error = 'Failed to load payment preview.';
+        _error = 'wallet.request.error_loading_preview'.tr();
         _loading = false;
       });
     }
@@ -109,11 +110,15 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     // The WalletScreen already prevents navigation here outside the window, but
     // guard again in case the screen is reached via a deep-link or future route.
     if (!isWithinPayoutRequestWindow()) {
+      final fromLabel =
+          '${kPayoutWindowStartHour.toString().padLeft(2, '0')}:00 AM';
+      final toLabel = kPayoutWindowEndHour == 12
+          ? '12:00 PM (noon)'
+          : '${kPayoutWindowEndHour.toString().padLeft(2, '0')}:00';
       setState(() {
-        _error =
-            'Payout requests are only allowed between '
-            '${kPayoutWindowStartHour.toString().padLeft(2, '0')}:00 AM '
-            'and 12:00 PM. Please try again during that window.';
+        _error = 'wallet.request.request_window_denied'.tr(
+          namedArgs: {'from': fromLabel, 'to': toLabel},
+        );
       });
       return;
     }
@@ -134,8 +139,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
         title: Text(
           widget.isConsolidation
-              ? 'Confirm Consolidated Request'
-              : 'Confirm Payout Request',
+              ? 'wallet.request.confirm_title_consolidated'.tr()
+              : 'wallet.request.confirm_title'.tr(),
           style: DSTypography.heading().copyWith(
             fontSize: DSTypography.sizeMd,
             fontWeight: FontWeight.w800,
@@ -146,7 +151,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'You are about to submit a payout request for:',
+              'wallet.request.confirm_body'.tr(),
               style: DSTypography.body().copyWith(
                 fontSize: DSTypography.sizeMd,
               ),
@@ -193,7 +198,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             ),
             DSSpacing.hSm,
             Text(
-              'This action cannot be undone. Proceed?',
+              'wallet.request.confirm_warning'.tr(),
               style: DSTypography.caption(
                 color: isDark
                     ? DSColors.labelSecondaryDark
@@ -205,7 +210,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text('wallet.request.confirm_cancel'.tr()),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -213,7 +218,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Submit'),
+            child: Text('wallet.request.confirm_submit'.tr()),
           ),
         ],
       ),
@@ -241,7 +246,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       ref.read(walletRefreshProvider.notifier).increment();
       showAppSnackbar(
         context,
-        'Payout request submitted.',
+        'wallet.request.submitted_success'.tr(),
         type: SnackbarType.success,
       );
       if (context.canPop()) {
@@ -258,18 +263,18 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       setState(
         () => _error = result.message.isNotEmpty
             ? result.message
-            : 'You have already submitted a payout request today.',
+            : 'wallet.request.already_submitted_today'.tr(),
       );
     } else if (result is ApiServerError<Map<String, dynamic>>) {
       setState(
         () => _error = result.message.isNotEmpty
             ? result.message
-            : 'Failed to submit payout request.',
+            : 'wallet.request.failed_submit'.tr(),
       );
     } else {
       showAppSnackbar(
         context,
-        'Failed to submit payout request.',
+        'wallet.request.failed_submit'.tr(),
         type: SnackbarType.error,
       );
     }
@@ -334,8 +339,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         backgroundColor: scaffoldBg,
         appBar: AppHeaderBar(
           title: widget.isConsolidation
-              ? 'Consolidate Request'
-              : 'Request Payout',
+              ? 'wallet.request.appbar_title_consolidate'.tr()
+              : 'wallet.request.appbar_title'.tr(),
           // pageIcon: Icons.payments_rounded,
           backgroundColor: appBarBg,
         ),
@@ -350,7 +355,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               ),
               DSSpacing.hMd,
               Text(
-                'You\'re Offline',
+                'wallet.request.offline_title'.tr(),
                 style: DSTypography.heading().copyWith(
                   fontSize: DSTypography.sizeMd,
                   fontWeight: FontWeight.w800,
@@ -358,7 +363,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
               ),
               DSSpacing.hSm,
               Text(
-                'Payout requests require an internet\nconnection. Please reconnect and try again.',
+                'wallet.request.offline_body'.tr(),
                 textAlign: TextAlign.center,
                 style: DSTypography.caption(
                   color: DSColors.accent,
@@ -373,7 +378,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     return Scaffold(
       backgroundColor: scaffoldBg,
       appBar: AppHeaderBar(
-        title: kAppDebugMode ? 'Request Payout (DEBUG)' : 'Request Payout',
+        title: kAppDebugMode
+            ? 'wallet.request.appbar_title_debug'.tr()
+            : 'wallet.request.appbar_title'.tr(),
         backgroundColor: appBarBg,
       ),
       bottomNavigationBar: SafeArea(
@@ -400,7 +407,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                         : Icons.lock_clock_rounded,
                   ),
             label: Text(
-              widget.isConsolidation ? 'TAP TO CONFIRM' : 'CONFIRM',
+              widget.isConsolidation
+                  ? 'wallet.request.confirm_button_consolidate'.tr()
+                  : 'wallet.request.confirm_button'.tr(),
               style: DSTypography.label().copyWith(fontWeight: FontWeight.w700),
             ),
             style: FilledButton.styleFrom(
@@ -445,7 +454,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           ),
           DSSpacing.hMd,
           Text(
-            _error ?? 'Something went wrong.',
+            _error ?? 'common.error'.tr(),
             style: DSTypography.caption(
               color: DSColors.accent,
             ).copyWith(fontSize: DSTypography.sizeMd),
@@ -455,7 +464,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           TextButton.icon(
             onPressed: _fetchPreview,
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Try Again'),
+            label: Text('wallet.request.try_again'.tr()),
           ),
         ],
       ),
@@ -509,8 +518,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 Expanded(
                   child: Text(
                     preview['has_existing_request_today'] == true
-                        ? "You've already submitted a payout request today. Only one request per day is allowed. Your eligible deliveries will automatically be included in tomorrow's request if you submit again."
-                        : 'You have a pending payout request. Submitting another will combine all eligible deliveries into a single consolidated payout.',
+                        ? 'wallet.request.existing_request_details'.tr()
+                        : 'wallet.request.pending_request_warning'.tr(),
                     style: DSTypography.caption(color: DSColors.warning)
                         .copyWith(
                           fontSize: DSTypography.sizeMd,
@@ -531,9 +540,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           estimatedPenalties: estimatedPenalties,
           estimatedIncentive: estimatedIncentive,
           estimatedNet: estimatedNet,
-          deliveriesLabel: widget.isConsolidation
-              ? 'ELIGIBLE DELIVERIES'
-              : 'ELIGIBLE DELIVERIES',
+          deliveriesLabel: 'wallet.card.eligible_deliveries',
         ).dsCardEntry(
           delay: DSAnimations.stagger(0, step: DSAnimations.staggerNormal),
         ),
@@ -551,8 +558,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
         // ── Date Strip + Deliveries ───────────────────────────────────
         if (dailyBreakdown.isNotEmpty) ...[
-          const DSSectionHeader(
-            title: 'Deliveries Rundown',
+          DSSectionHeader(
+            title: 'wallet.detail.deliveries_rundown'.tr(),
             padding: EdgeInsets.zero,
           ).dsFadeEntry(
             delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal),
@@ -586,7 +593,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 DSSpacing.wMd,
                 Expanded(
                   child: Text(
-                    'You have already submitted a request today.',
+                    'wallet.request.existing_request_today_notice'.tr(),
                     style: DSTypography.caption(color: DSColors.warning)
                         .copyWith(
                           fontSize: DSTypography.sizeMd,
@@ -624,7 +631,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 DSSpacing.wMd,
                 Expanded(
                   child: Text(
-                    'No eligible deliveries found for payout.',
+                    'wallet.request.no_eligible_deliveries'.tr(),
                     style: DSTypography.caption(color: DSColors.accent)
                         .copyWith(
                           fontSize: DSTypography.sizeMd,

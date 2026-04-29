@@ -15,16 +15,17 @@
 3. [Code Quality Standards](#code-quality-standards)
 4. [Tooling & Code Health Checks](#tooling--code-health-checks)
 5. [Commenting Standards — Be a Rockstar Commenter](#commenting-standards--be-a-rockstar-commenter)
-6. [Mobile Development Rules (Flutter & Riverpod)](#mobile-development-rules-flutter--riverpod)
-7. [Logging & Observability Standards](#logging--observability-standards)
-8. [Testing Requirements](#testing-requirements)
-9. [Documentation Standards](#documentation-standards)
-10. [Security & Data Protection](#security--data-protection)
-11. [Performance & Optimization](#performance--optimization)
-12. [File Management & Navigation](#file-management--navigation)
-13. [Error Handling & Recovery](#error-handling--recovery)
-14. [Dynamic Design & Overflow Prevention](#dynamic-design--overflow-prevention)
-15. [Separation of Concerns & Logic Mapping](#separation-of-concerns--logic-mapping)
+6. [Localization & Translation Standards](#-localization--translation-standards)
+7. [Mobile Development Rules (Flutter & Riverpod)](#mobile-development-rules-flutter--riverpod)
+8. [Logging & Observability Standards](#logging--observability-standards)
+9. [Testing Requirements](#testing-requirements)
+10. [Documentation Standards](#documentation-standards)
+11. [Security & Data Protection](#security--data-protection)
+12. [Performance & Optimization](#performance--optimization)
+13. [File Management & Navigation](#file-management--navigation)
+14. [Error Handling & Recovery](#error-handling--recovery)
+15. [Dynamic Design & Overflow Prevention](#dynamic-design--overflow-prevention)
+16. [Separation of Concerns & Logic Mapping](#separation-of-concerns--logic-mapping)
 
 ---
 
@@ -365,6 +366,141 @@ if (delivery.failureCount >= kMaxDailyRetries) {
 | FIXME (tracked) | `// FIXME(owner): [TICKET]` | Known bugs — must have ticket + repro steps  |
 | Business Rule   | `// Business Rule: ...`     | Non-obvious domain logic with policy ref     |
 | Suppression     | `// ignore: lint_rule`      | **LAST RESORT** — must include justification |
+
+---
+
+## 🌐 Localization & Translation Standards
+
+> **Rule**: Every user-visible string in this app must go through `easy_localization`. No exceptions. Hardcoded text is treated the same as a hardcoded color — it is a design system violation.
+
+---
+
+### 13 — No Hardcoded Strings, Ever
+
+This app supports **English (EN)** and **Filipino (FIL)** via the `easy_localization` package. All user-visible text must be stored in the translation JSON files and accessed through `.tr()`.
+
+**This rule applies to:**
+
+- Labels, titles, subtitles, button text
+- Error messages, snackbar notifications
+- Placeholder text, hints, tooltips
+- Dialog content, confirmation messages
+- Empty state messages
+
+```dart
+// ❌ VIOLATION — treated same as hardcoding a color
+Text('Save')
+Text('Something went wrong.')
+Text('Choose your preferred language')
+
+// ✅ CORRECT
+Text('common.save'.tr())
+Text('errors.generic'.tr())
+Text('profile.language_subtitle'.tr())
+```
+
+> 🚫 **CI Gate**: Hardcoded strings are a code review blocker. A PR with raw string literals in the widget tree will not be merged.
+
+---
+
+### 14 — Translation File Structure
+
+Translation files live in:
+
+```
+assets/translations/
+  ├── en.json    ← English (source of truth)
+  └── fil.json   ← Filipino
+```
+
+Keys are **nested by feature/screen** using dot notation:
+
+```json
+{
+  "common": { "save": "Save", "cancel": "Cancel" },
+  "auth": { "login": "Log In" },
+  "profile": { "language": "Language" },
+  "errors": { "network": "No internet connection." }
+}
+```
+
+**Key naming rules:**
+
+- All lowercase, snake_case
+- Prefixed by screen or domain: `profile.edit_title`, `delivery.status_label`
+- English file (`en.json`) is always the **source of truth** — add here first
+- Filipino file (`fil.json`) must mirror every key exactly
+
+---
+
+### 15 — Workflow: Adding a New String
+
+Follow this order **every time** a new string is introduced:
+
+```
+1. Add English string to assets/translations/en.json
+2. Add Filipino translation to assets/translations/fil.json
+3. Use the key in the widget via .tr()
+4. Never skip step 2 — missing keys fall back to English silently,
+   which means untranslated text ships to Filipino users unnoticed.
+```
+
+```dart
+// Step 3 — usage
+Text('delivery.confirm_title'.tr())
+
+// With dynamic values (e.g. courier name)
+Text('greeting'.tr(args: [courier.name]))
+// en.json: "greeting": "Hello, {}!"
+// fil.json: "greeting": "Kamusta, {}!"
+```
+
+---
+
+### 16 — Currency & Date Formatting
+
+**Currency: Philippine Peso (₱) only. This never changes regardless of language.**
+
+All monetary values and dates must go through `AppFormatters` in `lib/shared/helpers/formatters.dart`. Never format currency or dates inline.
+
+```dart
+// ❌ VIOLATION
+Text('₱${amount.toStringAsFixed(2)}')
+Text(DateFormat('MMMM d, y').format(date))
+
+// ✅ CORRECT
+Text(AppFormatters.currency(amount))      // Always ₱1,500.00
+Text(AppFormatters.date(date, context))   // "April 29, 2026" / "Abril 29, 2026"
+```
+
+`AppFormatters.currency()` always uses `₱` and `fil-PH` locale — it does not change between language modes.
+
+---
+
+### 17 — Language Preference: Profile Screen
+
+The language toggle lives in **Profile → Preferences** as a `LanguagePreferenceRow` widget. It opens a `LanguageSelectorBottomSheet` with two options:
+
+| Flag | Label    | Sets Locale     |
+| ---- | -------- | --------------- |
+| 🇺🇸   | English  | `Locale('en')`  |
+| 🇵🇭   | Filipino | `Locale('fil')` |
+
+Switching language calls `context.setLocale(Locale('fil'))`. `easy_localization` handles persistence automatically — no manual SharedPreferences code needed. The entire app re-renders instantly.
+
+---
+
+### Quick Reference
+
+| Concern         | Rule                                               |
+| --------------- | -------------------------------------------------- |
+| Display text    | Always `.tr()` — never inline strings              |
+| New strings     | Add to `en.json` first, then `fil.json`            |
+| Currency        | `AppFormatters.currency(amount)` — always ₱        |
+| Dates           | `AppFormatters.date(date, context)` — locale-aware |
+| Language switch | `context.setLocale()` — persistence is automatic   |
+| Missing key     | Falls back to English — always fill both files     |
+| Package         | `easy_localization ^3.0.7`                         |
 
 ---
 

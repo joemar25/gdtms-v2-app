@@ -55,6 +55,7 @@ import 'package:fsi_courier_app/core/services/push_notification_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -257,7 +258,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ? DSColors.scaffoldDark
               : DSColors.scaffoldLight,
           appBar: AppHeaderBar(
-            title: 'Profile',
+            title: 'profile.title'.tr(),
             pageIcon: Icons.person_rounded,
           ),
           // bottomNavigationBar: const FloatingBottomNavBar(
@@ -350,10 +351,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 DSSpacing.hSm,
 
                 // ── Preferences Section ────────────────────────────────────
-                const DSSectionHeader(title: 'Preferences'),
+                DSSectionHeader(title: 'profile.preferences'.tr()),
                 _ModernCard(
                   isDark: isDark,
                   children: [
+                    _LanguageSegmentedTile(
+                      isDark: isDark,
+                      onChanged: _showSettingsUpdated,
+                    ),
+                    _CardDivider(isDark: isDark),
                     _ModernSwitchTile(
                       icon: Icons.flash_on_rounded,
                       iconColor: DSColors.warning,
@@ -383,6 +389,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               _showSettingsUpdated();
                             }
                           : null,
+                    ),
+
+                    _CardDivider(isDark: isDark),
+                    _ModernSwitchTile(
+                      icon: Icons.density_small_rounded,
+                      iconColor: DSColors.primary,
+                      label: 'Compact Mode',
+                      subtitle:
+                          'Shrinks delivery cards to show more items on screen at once.',
+                      value: isCompact,
+                      isDark: isDark,
+                      onChanged: (v) async {
+                        ref.read(compactModeProvider.notifier).setValue(v);
+                        await ref.read(appSettingsProvider).setCompactMode(v);
+                        _showSettingsUpdated();
+                      },
                     ),
 
                     // Debug-only: Sync Retention
@@ -428,24 +450,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         _showSettingsUpdated();
                       },
                     ),
-                    if (kAppDebugMode) ...[
-                      _CardDivider(isDark: isDark),
-                      _ModernSwitchTile(
-                        icon: Icons.density_small_rounded,
-                        iconColor: DSColors
-                            .error, // Use error (red) for debug features
-                        label: 'Compact Mode',
-                        subtitle:
-                            'Shrinks delivery cards to show more items on screen at once.',
-                        value: isCompact,
-                        isDark: isDark,
-                        onChanged: (v) async {
-                          ref.read(compactModeProvider.notifier).setValue(v);
-                          await ref.read(appSettingsProvider).setCompactMode(v);
-                          _showSettingsUpdated();
-                        },
-                      ),
-                    ],
                   ],
                 ).dsCardEntry(delay: DSAnimations.stagger(3)),
                 DSSpacing.hSm,
@@ -1524,6 +1528,103 @@ class _ErrorLogsTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Language Segmented Tile ──────────────────────────────────────────────────
+
+class _LanguageSegmentedTile extends StatelessWidget {
+  const _LanguageSegmentedTile({required this.isDark, required this.onChanged});
+
+  final bool isDark;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentCode =
+        EasyLocalization.of(context)?.currentLocale?.languageCode ?? 'en';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: DSIconSize.heroSm,
+                height: DSIconSize.heroSm,
+                decoration: BoxDecoration(
+                  color: DSColors.primary.withValues(
+                    alpha: DSStyles.alphaSubtle,
+                  ),
+                  borderRadius: DSStyles.pillRadius,
+                ),
+                child: const Icon(
+                  Icons.language_rounded,
+                  color: DSColors.primary,
+                  size: DSIconSize.md,
+                ),
+              ),
+              DSSpacing.wMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Language',
+                      style: DSTypography.body().copyWith(
+                        fontSize: DSTypography.sizeMd,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? DSColors.white : DSColors.labelPrimary,
+                      ),
+                    ),
+                    DSSpacing.hXs,
+                    Text(
+                      'Choose your preferred language',
+                      style: DSTypography.caption().copyWith(
+                        fontSize: DSTypography.sizeSm,
+                        color: isDark
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelSecondary,
+                        height: DSStyles.heightNormal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          DSSpacing.hMd,
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 'en', label: Text('🇺🇸  English')),
+                ButtonSegment(value: 'fil', label: Text('🇵🇭  Filipino')),
+              ],
+              selected: {currentCode},
+              style: ButtonStyle(
+                textStyle: WidgetStateProperty.all(
+                  DSTypography.body().copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: DSTypography.sizeMd,
+                  ),
+                ),
+              ),
+              onSelectionChanged: (val) {
+                context.setLocale(Locale(val.first));
+                onChanged();
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

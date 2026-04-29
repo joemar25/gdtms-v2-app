@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/core/config.dart'; // for kAppDebugMode
 
@@ -10,7 +11,7 @@ class PayoutSummaryCard extends StatelessWidget {
     required this.estimatedPenalties,
     required this.estimatedIncentive,
     required this.estimatedNet,
-    this.deliveriesLabel = 'Eligible Deliveries',
+    this.deliveriesLabel = 'wallet.card.eligible_deliveries',
   });
 
   final int eligibleCount;
@@ -57,7 +58,7 @@ class PayoutSummaryCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        deliveriesLabel.toUpperCase(),
+                        deliveriesLabel.tr().toUpperCase(),
                         style: DSTypography.caption(color: DSColors.white)
                             .copyWith(
                               fontSize: DSTypography.sizeXs,
@@ -78,7 +79,9 @@ class PayoutSummaryCard extends StatelessWidget {
                           borderRadius: DSStyles.fullRadius,
                         ),
                         child: Text(
-                          '$eligibleCount items',
+                          'wallet.card.items'.tr(
+                            namedArgs: {'count': '$eligibleCount'},
+                          ),
                           style: DSTypography.caption(color: DSColors.white)
                               .copyWith(
                                 fontSize: DSTypography.sizeSm,
@@ -90,7 +93,7 @@ class PayoutSummaryCard extends StatelessWidget {
                   ),
                   DSSpacing.hLg,
                   Text(
-                    'ESTIMATED NET PAYOUT',
+                    'wallet.card.estimated_net_payout'.tr().toUpperCase(),
                     style: DSTypography.caption(color: DSColors.white).copyWith(
                       fontSize: DSTypography.sizeXs,
                       fontWeight: FontWeight.w800,
@@ -135,14 +138,14 @@ class PayoutSummaryCard extends StatelessWidget {
                       child: Column(
                         children: [
                           _PayoutAmountRow(
-                            label: 'Gross Amount',
+                            label: 'wallet.card.gross_amount'.tr(),
                             amount: estimatedGross,
                             color: DSColors.white,
                           ),
                           if (estimatedPenalties != 0) ...[
                             DSSpacing.hXs,
                             _PayoutAmountRow(
-                              label: 'Penalties',
+                              label: 'wallet.card.penalties'.tr(),
                               amount: estimatedPenalties,
                               isDeduction: true,
                               color: DSColors.white,
@@ -151,7 +154,7 @@ class PayoutSummaryCard extends StatelessWidget {
                           if (kAppDebugMode && estimatedIncentive != 0) ...[
                             DSSpacing.hXs,
                             _PayoutAmountRow(
-                              label: '⚠ Coordinator Incentive',
+                              label: 'wallet.card.coordinator_incentive'.tr(),
                               amount: estimatedIncentive,
                               isDeduction: true,
                               isDebug: true,
@@ -214,7 +217,7 @@ class _PayoutAmountRow extends StatelessWidget {
               ),
               if (isDebug)
                 Text(
-                  'DEBUG ONLY — not visible in production',
+                  'wallet.card.debug_only'.tr(),
                   style:
                       DSTypography.caption(
                         color: DSColors.warning.withValues(

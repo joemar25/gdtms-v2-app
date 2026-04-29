@@ -2,8 +2,8 @@
 // DOCS: docs/entry-points.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -35,7 +35,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     await Future.wait([
       _initialize(),
       // Ensure the splash is visible long enough for the "premium" feel.
-      Future.delayed(const Duration(milliseconds: 10000)),
+      Future.delayed(const Duration(milliseconds: 5000)),
     ]);
     if (!mounted) return;
     final auth = ref.read(authProvider);
@@ -63,14 +63,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
 
-    final backgroundColor =
-        isDark ? DSColors.scaffoldDark : const Color(0xFFF1F5F9);
-    final backgroundEndColor = isDark ? const Color(0xFF0F172A) : DSColors.white;
+    final backgroundColor = isDark
+        ? DSColors.scaffoldDark
+        : const Color(0xFFF1F5F9);
+    final backgroundEndColor = isDark
+        ? const Color(0xFF0F172A)
+        : DSColors.white;
     final textColor = isDark ? DSColors.white : DSColors.labelPrimary;
-    final subtitleColor =
-        (isDark ? DSColors.white : DSColors.labelPrimary).withValues(
-          alpha: DSStyles.alphaMuted,
-        );
+    final subtitleColor = (isDark ? DSColors.white : DSColors.labelPrimary)
+        .withValues(alpha: DSStyles.alphaMuted);
 
     return Scaffold(
       body: Stack(
@@ -99,8 +100,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     height: DSIconSize.heroLg,
                     padding: const EdgeInsets.all(DSSpacing.md),
                     decoration: BoxDecoration(
-                      color:
-                          isDark ? DSColors.cardElevatedDark : DSColors.white,
+                      color: isDark
+                          ? DSColors.cardElevatedDark
+                          : DSColors.white,
                       borderRadius: DSStyles.sheetRadius,
                       boxShadow: DSStyles.shadowXL(context),
                     ),
@@ -114,43 +116,47 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
                   // App Name
                   Text(
-                    'FSI COURIER',
-                    style: DSTypography.display(color: textColor).copyWith(
-                      fontSize: 32,
-                      letterSpacing: 4.0,
-                    ),
+                    'splash.title'.tr(),
+                    style: DSTypography.display(
+                      color: textColor,
+                    ).copyWith(fontSize: 32, letterSpacing: 4.0),
                   ).dsFadeEntry(delay: DSAnimations.stagger(2)),
 
                   DSSpacing.hSm,
 
                   // Tagline
                   Text(
-                    'SMART LOGISTICS • REAL-TIME DELIVERY',
+                    'splash.tagline'.tr(),
                     style: DSTypography.label(color: subtitleColor),
                   ).dsFadeEntry(delay: DSAnimations.stagger(4)),
 
                   DSSpacing.hXl,
                   DSSpacing.hLg,
 
-                  // Feature chips (Reused but refined)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _SplashChip(
-                        icon: LucideIcons.truck,
-                        label: 'Accept',
-                      ).dsCardEntry(delay: DSAnimations.stagger(6)),
-                      DSSpacing.wMd,
-                      _SplashChip(
-                        icon: LucideIcons.package,
-                        label: 'Deliver',
-                      ).dsCardEntry(delay: DSAnimations.stagger(8)),
-                      DSSpacing.wMd,
-                      _SplashChip(
-                        icon: LucideIcons.wallet,
-                        label: 'Request Payout',
-                      ).dsCardEntry(delay: DSAnimations.stagger(10)),
-                    ],
+                  // Feature chips (Refined to prevent overflow)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DSSpacing.md,
+                    ),
+                    child: Wrap(
+                      spacing: DSSpacing.md,
+                      runSpacing: DSSpacing.md,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _SplashChip(
+                          icon: LucideIcons.truck,
+                          label: 'splash.feature.accept'.tr(),
+                        ).dsCardEntry(delay: DSAnimations.stagger(6)),
+                        _SplashChip(
+                          icon: LucideIcons.package,
+                          label: 'splash.feature.deliver'.tr(),
+                        ).dsCardEntry(delay: DSAnimations.stagger(8)),
+                        _SplashChip(
+                          icon: LucideIcons.wallet,
+                          label: 'splash.feature.payout'.tr(),
+                        ).dsCardEntry(delay: DSAnimations.stagger(10)),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -170,11 +176,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 ).dsFadeEntry(delay: DSAnimations.stagger(12)),
                 DSSpacing.hLg,
                 Text(
-                  'Fastrak Services Inc.',
-                  style: DSTypography.caption(color: subtitleColor).copyWith(
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                  ),
+                  'splash.footer_brand'.tr(),
+                  style: DSTypography.caption(
+                    color: subtitleColor,
+                  ).copyWith(fontWeight: FontWeight.w600, letterSpacing: 1.2),
                 ).dsFadeEntry(delay: DSAnimations.stagger(15)),
               ],
             ),
@@ -196,9 +201,10 @@ class _SplashChip extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.symmetric(
+      width: 100, // Fixed width for consistent grid look
+      padding: const EdgeInsets.symmetric(
         vertical: DSSpacing.md,
-        horizontal: DSSpacing.lg,
+        horizontal: DSSpacing.sm,
       ),
       decoration: BoxDecoration(
         color: (isDark ? DSColors.white : DSColors.primary).withValues(
@@ -213,11 +219,15 @@ class _SplashChip extends StatelessWidget {
         ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: DSColors.primary, size: DSIconSize.md),
           DSSpacing.hXs,
           Text(
             label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: DSTypography.label(
               color: isDark ? DSColors.white : DSColors.labelPrimary,
             ).copyWith(fontSize: 10, letterSpacing: 0.5),
@@ -227,5 +237,3 @@ class _SplashChip extends StatelessWidget {
     );
   }
 }
-
-

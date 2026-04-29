@@ -199,6 +199,7 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
                                 _LogCard(
                                   entry: _filtered[i],
                                   isDark: isDark,
+                                  onResolve: _load,
                                 ).dsCardEntry(
                                   delay: DSAnimations.stagger(
                                     i,
@@ -224,31 +225,31 @@ class _SummaryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (errorCount == 0 && warningCount == 0) {
-      return Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: DSSpacing.md,
-          vertical: DSSpacing.md,
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.check_circle_outline_rounded,
-              size: DSIconSize.sm,
-              color: DSColors.success,
-            ),
-            DSSpacing.wSm,
-            Text(
-              'No errors recorded.',
-              style: DSTypography.body(color: DSColors.successText).copyWith(
-                fontSize: DSTypography.sizeMd,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    // if (errorCount == 0 && warningCount == 0) {
+    //   return Padding(
+    //     padding: EdgeInsets.symmetric(
+    //       horizontal: DSSpacing.md,
+    //       vertical: DSSpacing.md,
+    //     ),
+    //     child: Row(
+    //       children: [
+    //         const Icon(
+    //           Icons.check_circle_outline_rounded,
+    //           size: DSIconSize.sm,
+    //           color: DSColors.success,
+    //         ),
+    //         DSSpacing.wSm,
+    //         Text(
+    //           'No errors recorded.',
+    //           style: DSTypography.body(color: DSColors.successText).copyWith(
+    //             fontSize: DSTypography.sizeMd,
+    //             fontWeight: FontWeight.w500,
+    //           ),
+    //         ),
+    //       ],
+    //     ),
+    //   );
+    // }
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: DSSpacing.md,
@@ -328,10 +329,15 @@ class _Chip extends StatelessWidget {
 // ─── Log Card ─────────────────────────────────────────────────────────────────
 
 class _LogCard extends StatefulWidget {
-  const _LogCard({required this.entry, required this.isDark});
+  const _LogCard({
+    required this.entry,
+    required this.isDark,
+    required this.onResolve,
+  });
 
   final ErrorLogEntry entry;
   final bool isDark;
+  final VoidCallback onResolve;
 
   @override
   State<_LogCard> createState() => _LogCardState();
@@ -432,16 +438,42 @@ class _LogCardState extends State<_LogCard> {
                       ],
                     ),
                   ),
-                  if (e.detail != null)
-                    Icon(
-                      _expanded
-                          ? Icons.expand_less_rounded
-                          : Icons.expand_more_rounded,
-                      size: DSIconSize.md,
-                      color: widget.isDark
-                          ? DSColors.labelTertiaryDark
-                          : DSColors.labelTertiary,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.check_circle_outline_rounded),
+                        visualDensity: VisualDensity.compact,
+                        iconSize: DSIconSize.sm,
+                        color: DSColors.success,
+                        tooltip: 'Resolve',
+                        onPressed: () async {
+                          final confirmed = await ConfirmationDialog.show(
+                            context,
+                            title: 'Resolve Warning',
+                            subtitle:
+                                'Mark this issue as resolved? It will be removed from the logs.',
+                            confirmLabel: 'Resolve',
+                            cancelLabel: 'Cancel',
+                          );
+                          if (confirmed == true) {
+                            await ErrorLogDao.instance.deleteById(e.id);
+                            widget.onResolve();
+                          }
+                        },
+                      ),
+                      if (e.detail != null)
+                        Icon(
+                          _expanded
+                              ? Icons.expand_less_rounded
+                              : Icons.expand_more_rounded,
+                          size: DSIconSize.md,
+                          color: widget.isDark
+                              ? DSColors.labelTertiaryDark
+                              : DSColors.labelTertiary,
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),

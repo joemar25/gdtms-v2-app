@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
@@ -84,7 +85,11 @@ class _RundownRow extends StatelessWidget {
                 ),
                 const SizedBox(height: DSSpacing.xs / 2),
                 Text(
-                  count == 1 ? '1 Delivery Item' : '$count Delivery Items',
+                  count == 1
+                      ? 'wallet.rundown.one_delivery_item'.tr()
+                      : 'wallet.rundown.delivery_items'.tr(
+                          namedArgs: {'count': '$count'},
+                        ),
                   style: DSTypography.body().copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: DSTypography.sizeMd,

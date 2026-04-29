@@ -1,0 +1,341 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "Something went wrong.",
+    "retry": "Try Again",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "submit": "Submit",
+    "yes": "Yes",
+    "no": "No",
+    "field_required": "This field is required."
+  },
+  "auth": {
+    "login": "Log In",
+    "logout": "Log Out",
+    "signup": "Sign Up",
+    "email_placeholder": "Enter your email",
+    "password_placeholder": "Enter your password",
+    "forgot_password": "Forgot Password?",
+    "no_account": "Don't have an account?",
+    "have_account": "Already have an account?",
+    "login_screen": {
+      "title": "Sign In",
+      "subtitle": "Enter your credentials to continue",
+      "phone_number": "Phone Number",
+      "phone_hint": "e.g. 09XXXXXXXXX",
+      "password": "Password",
+      "password_hint": "Your password",
+      "forgot_password": "Forgot Password?",
+      "wait_seconds": "Wait {seconds}s",
+      "sign_in": "Sign In",
+      "having_trouble": "Having trouble?",
+      "contact_admin": "Contact your admin",
+      "error_invalid_response": "Invalid login response. Please try again.",
+      "error_invalid_credentials": "Invalid phone number or password.",
+      "error_no_connection": "No connection. Please check your internet.",
+      "error_try_again_seconds": "Try again in {seconds} seconds.",
+      "error_login_failed": "Login failed."
+    }
+  },
+  "splash": {
+    "title": "FSI COURIER",
+    "tagline": "SMART LOGISTICS • REAL-TIME DELIVERY",
+    "feature": {
+      "accept": "Accept",
+      "deliver": "Deliver",
+      "payout": "Payout"
+    },
+    "footer_brand": "Fastrak Services Inc."
+  },
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "profile": "Profile",
+    "settings": "Settings",
+    "notifications": "Notifications"
+  },
+  "dashboard": {
+    "exit_confirm_title": "Exit App",
+    "exit_confirm_subtitle": "Are you sure you want to exit?",
+    "exit_confirm_confirm": "Exit",
+    "exit_confirm_cancel": "Stay",
+    "stats": {
+      "dispatch_label": "DISPATCH",
+      "dispatch_details": "For acceptance.",
+      "deliveries_label": "DELIVERIES",
+      "deliveries_details": "Today's for deliveries.",
+      "delivered_label": "DELIVERED",
+      "delivered_details": "Today's delivered.",
+      "attempted_label": "Attempted",
+      "attempted_details": "Today's for failed or redel.",
+      "misrouted_label": "Misrouted",
+      "misrouted_details": "Misrouted deliveries.",
+      "sync_label": "SYNC",
+      "sync_pending_details": "Pending updates.",
+      "sync_all_synced_details": "All synced.",
+      "sync_no_activity_details": "No activity."
+    },
+    "scan": {
+      "dispatch_label": "SCAN DISPATCH",
+      "dispatch_details": "Scan a dispatch barcode\nto check eligibility.",
+      "pod_label": "SCAN POD",
+      "pod_details": "Scan a delivery barcode to\nfind and update POD."
+    },
+    "search": {
+      "placeholder": "Barcode, account name…"
+    },
+    "profile": {
+      "default_name": "Courier",
+      "role_freelance": "FREELANCE COURIER"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "preferences": "Preferences",
+    "language": "Language",
+    "language_english": "English",
+    "language_filipino": "Filipino",
+    "language_subtitle": "Choose your preferred language",
+    "edit_profile": "Edit Profile",
+    "account": "Account",
+    "privacy": "Privacy",
+    "help": "Help & Support",
+    "about": "About"
+  },
+  "wallet": {
+    "screen": {
+      "title": "Wallet",
+      "request_payout": "Request Payout",
+      "request_payout_debug": "Request Payout (DEBUG)",
+      "offline_message": "You're offline — only total earnings are shown.",
+      "existing_request_notice": "You have already submitted a request today. You can consolidate your deliveries tomorrow.",
+      "payout_history": "Payout History"
+    },
+    "request": {
+      "appbar_title": "Request Payout",
+      "appbar_title_consolidate": "Consolidate Request",
+      "appbar_title_debug": "Request Payout (DEBUG)",
+      "offline_title": "You're Offline",
+      "offline_body": "Payout requests require an internet\nconnection. Please reconnect and try again.",
+      "error_loading_preview": "Failed to load payment preview.",
+      "request_window_denied": "Payout requests are only allowed between {from} and {to}. Please try again during that window.",
+      "confirm_title": "Confirm Payout Request",
+      "confirm_title_consolidated": "Confirm Consolidated Request",
+      "confirm_body": "You are about to submit a payout request for:",
+      "confirm_warning": "This action cannot be undone. Proceed?",
+      "confirm_cancel": "Cancel",
+      "confirm_submit": "Submit",
+      "confirm_button": "CONFIRM",
+      "confirm_button_consolidate": "TAP TO CONFIRM",
+      "submitted_success": "Payout request submitted.",
+      "already_submitted_today": "You have already submitted a payout request today.",
+      "failed_submit": "Failed to submit payout request.",
+      "try_again": "Try Again",
+      "existing_request_details": "You've already submitted a payout request today. Only one request per day is allowed. Your eligible deliveries will automatically be included in tomorrow's request if you submit again.",
+      "pending_request_warning": "You have a pending payout request. Submitting another will combine all eligible deliveries into a single consolidated payout.",
+      "existing_request_today_notice": "You have already submitted a request today.",
+      "no_eligible_deliveries": "No eligible deliveries found for payout."
+    },
+    "detail": {
+      "view_history": "View History",
+      "deliveries_rundown": "Deliveries Rundown",
+      "load_more": "Load More",
+      "request_lifecycle": "Request Lifecycle",
+      "payment_request_not_found": "Payment request not found."
+    },
+    "history_row": {
+      "completed": "Payout Completed",
+      "request": "Payout Request",
+      "approved": "Payout Approved",
+      "cancelled": "Payout Cancelled"
+    },
+    "card": {
+      "available_balance": "Available Balance",
+      "accumulated_earnings": "Accumulated Earnings",
+      "tap_to_view_account": "TAP TO VIEW ACCOUNT",
+      "pending_payout": "PENDING PAYOUT",
+      "consolidate": "Consolidate",
+      "eligible_deliveries": "Eligible Deliveries",
+      "estimated_net_payout": "ESTIMATED NET PAYOUT",
+      "gross_amount": "Gross Amount",
+      "penalties": "Penalties",
+      "coordinator_incentive": "⚠ Coordinator Incentive",
+      "debug_only": "DEBUG ONLY — not visible in production",
+      "items": "{count} items"
+    },
+    "banner": {
+      "debug_window": "(DEBUG) Time restriction bypassed — requests allowed at any hour.",
+      "window_title": "Payout Requests: Morning Only",
+      "window_body": "You can request a payout between {from} and {to}. Please come back during that window."
+    },
+    "rundown": {
+      "one_delivery_item": "1 Delivery Item",
+      "delivery_items": "{count} Delivery Items"
+    }
+  },
+  "delivery_update": {
+    "location": {
+      "gps_required": "Please enable GPS / Location Services and try again.",
+      "permission_permanently_denied": "Location permission permanently denied. Enable it in Settings.",
+      "permission_required": "Location permission is required to capture your position.",
+      "gps_disabled": "GPS is disabled. Please turn on Location Services.",
+      "could_not_get_location": "Could not get location. Ensure GPS is on and try again."
+    },
+    "camera": {
+      "permission_settings": "Camera permission is required. Please enable it in Settings.",
+      "permission_photo": "Camera permission is required to take photos.",
+      "error": "Camera Error ({code}): {message}",
+      "capture_failed": "Failed to capture photo: {error}"
+    },
+    "photo": {
+      "recovered_success": "Successfully recovered image from camera.",
+      "compression_failed": "Image compression failed: {error}",
+      "tap_to_capture": "TAP TO CAPTURE"
+    },
+    "validation": {
+      "invalid_status": "Invalid status.",
+      "note_too_long": "Note must not exceed {max} characters.",
+      "field_required": "This field is required.",
+      "relationship_required": "Relationship is required.",
+      "relationship_specify": "Please specify the relationship.",
+      "placement_required": "Placement type is required.",
+      "pod_photo_required": "POD photo is required.",
+      "selfie_photo_required": "Selfie photo is required.",
+      "confirmation_code_required": "Delivery confirmation code is required.",
+      "mailpack_photo_required": "Mailpack photo is required.",
+      "reason_required": "Reason is required.",
+      "reason_specify": "Please specify the reason.",
+      "informant_name_required": "Informant name is required."
+    },
+    "status": {
+      "locked": "This delivery is locked and cannot be updated.",
+      "updated_success": "Delivery status updated successfully."
+    },
+    "switch_status": {
+      "title": "SWITCH STATUS?",
+      "content": "You have already filled in {detail} for {from}. Switching to {to} will clear all of that data.\n\nAre you sure you want to continue?",
+      "cancel": "CANCEL",
+      "confirm": "YES, SWITCH"
+    },
+    "detail": {
+      "recipient_info_photos_signature": "recipient info, photos, and signature",
+      "reason_and_selfie_photo": "reason and selfie photo"
+    },
+    "discard_changes": {
+      "title": "Discard changes?",
+      "message": "You have unsaved changes. Leave without submitting?",
+      "stay": "STAY",
+      "discard": "DISCARD"
+    },
+    "signature": {
+      "add_signature": "ADD SIGNATURE?",
+      "capture_prompt": "Do you want to capture the recipient's signature?",
+      "yes": "YES",
+      "cancel": "CANCEL",
+      "re_sign": "RE-SIGN",
+      "clear": "CLEAR",
+      "signature": "SIGNATURE",
+      "tap_to_sign_optional": "TAP TO SIGN (OPTIONAL)",
+      "include_recipient_signature": "Include recipient signature"
+    },
+    "button": {
+      "submit_update": "SUBMIT UPDATE"
+    },
+    "header": {
+      "update_status": "UPDATE STATUS",
+      "account_details": "Account Details",
+      "select_status": "SELECT STATUS",
+      "recipient_info": "RECIPIENT INFO",
+      "recipient_name_locked_owner": "RECIPIENT NAME (LOCKED — OWNER)",
+      "recipient_name": "RECIPIENT NAME",
+      "relationship_locked_owner": "RELATIONSHIP (LOCKED — OWNER)",
+      "relationship": "RELATIONSHIP",
+      "specify_relationship": "SPECIFY RELATIONSHIP",
+      "delivery_confirmation_code": "DELIVERY CONFIRMATION CODE",
+      "placement_type": "PLACEMENT TYPE",
+      "reason_for_non_delivery": "REASON FOR NON-DELIVERY",
+      "select_reason": "SELECT REASON",
+      "specify_reason": "SPECIFY REASON",
+      "according_to_name": "ACCORDING TO (NAME OF INFORMANT)",
+      "proof_of_delivery_photos": "PROOF OF DELIVERY PHOTOS",
+      "mailpack_photo": "MAILPACK PHOTO",
+      "selfie_photo": "SELFIE PHOTO",
+      "remarks_optional": "REMARKS (OPTIONAL)",
+      "preset_hint": "TAP A PRESET TO FILL — YOU CAN STILL ADD MORE DETAILS BELOW",
+      "remarks": "REMARKS",
+      "transaction_date_pst": "TRANSACTION DATE (PHILIPPINE STANDARD TIME)",
+      "geo_location": "GEO LOCATION",
+      "tap_swipe_change_status": "Tap or Swipe below to change status"
+    },
+    "hint": {
+      "confirmation_code_example": "e.g. AB1C2D",
+      "specify_reason_example": "e.g. GATE IS LOCKED, NO CONTACT NUMBER",
+      "according_to_example": "e.g. GUARD, NEIGHBOR"
+    },
+    "offline_banner": {
+      "queued_online": "Update queued—will submit when online"
+    }
+  },
+  "errors": {
+    "network": "No internet connection.",
+    "timeout": "Request timed out.",
+    "not_found": "Not found.",
+    "unauthorized": "Please log in again."
+  },
+  "greeting": "Hello, {}!",
+  "sync": {
+    "title": "History",
+    "actions": {
+      "sync_now": "Sync Now",
+      "syncing": "Syncing…",
+      "reload": "Reload"
+    },
+    "dialogs": {
+      "reload_confirm_title": "Reload from Server?",
+      "reload_confirm_subtitle": "This will clear your local delivery list and re-download it from the server. Pending sync updates will not be affected.",
+      "reload_success": "Deliveries reloaded from server.",
+      "reload_failed": "Reload failed. Please try again.",
+      "retry_confirm_title": "Retry sync?",
+      "retry_confirm_subtitle": "This will attempt to upload this update to the server again.",
+      "resolve_confirm_title": "Resolve conflict?",
+      "resolve_confirm_subtitle": "This will mark the update as \"Resolved\" locally without sending it to the server. Use this if you have manually confirmed the state on the server.",
+      "delete_confirm_title": "Delete operation?",
+      "delete_confirm_subtitle": "This will permanently remove this update from your sync queue. The local delivery status will NOT be reverted."
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "last_sync": "Last sync: {}",
+      "retention_days": "Sync history retention: {}",
+      "retention_eligible": "History eligible for deletion",
+      "retention_remaining": "History will be automatically cleared after {}"
+    },
+    "list": {
+      "delivered_label": "Delivered",
+      "transaction_label": "Transaction",
+      "dispatched_label": "Dispatched",
+      "queued_label": "Queued",
+      "synced_label": "Synced",
+      "archived_label": "ARCHIVED",
+      "locked_general": "This delivery is {} and cannot be opened.",
+      "locked_osa": "This item is marked OSA and cannot be opened.",
+      "locked_delivered": "This item has already been delivered and is sealed.",
+      "locked_failed_max": "This failed delivery has reached the maximum number of attempts and is locked.",
+      "locked_failed_verified": "This failed delivery has already been verified and is no longer actionable.",
+      "profile_update_info": "This entry is a profile update and has no delivery details.",
+      "retry_button": "RETRY",
+      "resolve_button": "RESOLVE"
+    },
+    "empty": {
+      "all_caught_up": "All caught up!",
+      "no_pending": "No pending deliveries to sync."
+    }
+  }
+}

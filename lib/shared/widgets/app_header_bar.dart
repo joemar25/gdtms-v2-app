@@ -1,6 +1,7 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter/services.dart';
@@ -316,14 +317,16 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
       if (lastName != null && lastName != 'null') lastName,
     ].join(' ').trim();
 
-    final name = nameStr.isEmpty ? 'Courier' : nameStr;
+    final name = nameStr.isEmpty
+        ? 'dashboard.profile.default_name'.tr()
+        : nameStr;
 
     // mar-note: this is necessary change since not all courier has email and to be considered all as FREELANCE COURIER
     // final email = courier['email']?.toString();
     // final role = email != null && email.isNotEmpty
     //     ? email
     //     : 'Freelance Courier';
-    final role = "FREELANCE COURIER";
+    final role = 'dashboard.profile.role_freelance'.tr();
     final profileUrlStr = courier['profile_picture_url']?.toString();
     final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
         ? null
@@ -422,7 +425,7 @@ class _SearchRow extends StatelessWidget {
                 fontSize: DSTypography.sizeMd,
               ),
               decoration: InputDecoration(
-                hintText: 'Barcode, account name…',
+                hintText: 'dashboard.search.placeholder'.tr(),
                 hintStyle: DSTypography.body(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? DSColors.labelSecondaryDark

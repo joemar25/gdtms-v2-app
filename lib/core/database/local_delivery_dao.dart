@@ -696,7 +696,7 @@ class LocalDeliveryDao {
     ).millisecondsSinceEpoch;
     final res = await db.rawQuery(
       'SELECT COUNT(*) FROM local_deliveries '
-      'WHERE delivery_status COLLATE NOCASE = "DELIVERED" '
+      "WHERE delivery_status COLLATE NOCASE = 'DELIVERED' "
       'AND delivered_at >= ? AND delivered_at < ? '
       'AND COALESCE(paid_at, 0) = 0 '
       'AND COALESCE(is_archived, 0) = 0',
@@ -760,7 +760,7 @@ class LocalDeliveryDao {
     ).millisecondsSinceEpoch;
     final res = await db.rawQuery(
       'SELECT COUNT(*) FROM local_deliveries '
-      'WHERE delivery_status COLLATE NOCASE = "OSA" '
+      "WHERE delivery_status COLLATE NOCASE = 'OSA' "
       'AND completed_at >= ? AND completed_at < ? '
       'AND COALESCE(is_archived, 0) = 0',
       [todayStart, tomorrowStart],

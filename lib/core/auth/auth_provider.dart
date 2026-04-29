@@ -95,6 +95,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> clearAuth() async {
     await _authStorage.clearAll();
+    try {
+      await AppDatabase.getInstance().then((db) => db.delete('error_logs'));
+    } catch (_) {}
     state = state.copyWith(
       isAuthenticated: false,
       courier: null,

@@ -28,6 +28,7 @@
 //   Hosts: FloatingBottomNavBar — shared with ScanScreen and ProfileScreen
 // =============================================================================
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -159,10 +160,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         if (didPop) return;
         final shouldExit = await ConfirmationDialog.show(
           context,
-          title: 'Exit App',
-          subtitle: 'Are you sure you want to exit?',
-          confirmLabel: 'Exit',
-          cancelLabel: 'Stay',
+          title: 'dashboard.exit_confirm_title'.tr(),
+          subtitle: 'dashboard.exit_confirm_subtitle'.tr(),
+          confirmLabel: 'dashboard.exit_confirm_confirm'.tr(),
+          cancelLabel: 'dashboard.exit_confirm_cancel'.tr(),
           isDestructive: true,
         );
         if (shouldExit == true && mounted) SystemNavigator.pop();
@@ -213,27 +214,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         children: [
                           Expanded(
                             child: StatCard(
-                              label: 'DISPATCH',
+                              label: 'dashboard.stats.dispatch_label'.tr(),
                               count: '$pendingDispatchCount',
                               icon: Icons.qr_code_rounded,
                               color: DSColors.error,
                               onTap: pendingDispatchCount == 0
                                   ? null
                                   : () => context.push('/dispatches'),
-                              details: 'For acceptance.',
+                              details: 'dashboard.stats.dispatch_details'.tr(),
                             ).dsCardEntry(delay: DSAnimations.stagger(0)),
                           ),
                           DSSpacing.wSm,
                           Expanded(
                             child: StatCard(
-                              label: 'DELIVERIES',
+                              label: 'dashboard.stats.deliveries_label'.tr(),
                               count: '$deliveriesCount',
                               icon: Icons.local_shipping_outlined,
                               color: DSColors.primary,
                               onTap: deliveriesCount == 0
                                   ? null
                                   : () => context.push('/deliveries'),
-                              details: "Today's for deliveries.",
+                              details: 'dashboard.stats.deliveries_details'
+                                  .tr(),
                             ).dsCardEntry(delay: DSAnimations.stagger(1)),
                           ),
                         ],
@@ -243,20 +245,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         children: [
                           Expanded(
                             child: StatCard(
-                              label: 'DELIVERED',
+                              label: 'dashboard.stats.delivered_label'.tr(),
                               count: '$deliveredCount',
                               icon: Icons.check_circle_outline_rounded,
                               color: DSColors.primary,
                               onTap: deliveredCount == 0
                                   ? null
                                   : () => context.push('/delivered'),
-                              details: "Today's delivered.",
+                              details: 'dashboard.stats.delivered_details'.tr(),
                             ).dsCardEntry(delay: DSAnimations.stagger(2)),
                           ),
                           DSSpacing.wSm,
                           Expanded(
                             child: StatCard(
-                              label: 'Attempted',
+                              label: 'dashboard.stats.attempted_label'.tr(),
                               count: '$failedDeliveryCount',
                               icon: Icons.assignment_return_outlined,
                               color: DSColors.error,
@@ -264,7 +266,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   ? null
                                   : () => context.push('/failed-deliveries'),
                               subdued: true,
-                              details: "Today's for failed or redel.",
+                              details: 'dashboard.stats.attempted_details'.tr(),
                             ).dsCardEntry(delay: DSAnimations.stagger(3)),
                           ),
                         ],
@@ -274,7 +276,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         children: [
                           Expanded(
                             child: StatCard(
-                              label: 'Misrouted',
+                              label: 'dashboard.stats.misrouted_label'.tr(),
                               count: '$osaCount',
                               icon: Icons.lock_outline_rounded,
                               color: isDark
@@ -284,13 +286,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   ? null
                                   : () => context.push('/osa'),
                               subdued: true,
-                              details: "Misrouted deliveries.",
+                              details: 'dashboard.stats.misrouted_details'.tr(),
                             ).dsCardEntry(delay: DSAnimations.stagger(4)),
                           ),
                           DSSpacing.wSm,
                           Expanded(
                             child: StatCard(
-                              label: 'SYNC',
+                              label: 'dashboard.stats.sync_label'.tr(),
                               count: pendingSyncCount > 0
                                   ? '$pendingSyncCount'
                                   : '$syncedTotalCount',
@@ -305,10 +307,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   pendingSyncCount == 0 &&
                                   syncedTotalCount == 0,
                               details: pendingSyncCount > 0
-                                  ? 'Pending updates.'
+                                  ? 'dashboard.stats.sync_pending_details'.tr()
                                   : (syncedTotalCount > 0
-                                        ? 'All synced.'
-                                        : 'No activity.'),
+                                        ? 'dashboard.stats.sync_all_synced_details'
+                                              .tr()
+                                        : 'dashboard.stats.sync_no_activity_details'
+                                              .tr()),
                             ).dsCardEntry(delay: DSAnimations.stagger(5)),
                           ),
                         ],
@@ -320,27 +324,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         children: [
                           Expanded(
                             child: ScanButton(
-                              label: 'SCAN DISPATCH',
+                              label: 'dashboard.scan.dispatch_label'.tr(),
                               icon: Icons.qr_code_scanner_rounded,
                               color: DSColors.error,
                               onTap: () => context.push(
                                 '/scan',
                                 extra: {'mode': 'dispatch'},
                               ),
-                              details:
-                                  'Scan a dispatch barcode\nto check eligibility.',
+                              details: 'dashboard.scan.dispatch_details'.tr(),
                             ).dsCtaEntry(delay: DSAnimations.stagger(6)),
                           ),
                           DSSpacing.wSm,
                           Expanded(
                             child: ScanButton(
-                              label: 'SCAN POD',
+                              label: 'dashboard.scan.pod_label'.tr(),
                               icon: Icons.qr_code_scanner_rounded,
                               color: DSColors.primary,
                               onTap: () =>
                                   context.push('/scan', extra: {'mode': 'pod'}),
-                              details:
-                                  'Scan a delivery barcode to\nfind and update POD.',
+                              details: 'dashboard.scan.pod_details'.tr(),
                             ).dsCtaEntry(delay: DSAnimations.stagger(7)),
                           ),
                         ],

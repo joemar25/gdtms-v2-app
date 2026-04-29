@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class EarningsCard extends StatelessWidget {
@@ -36,8 +37,8 @@ class EarningsCard extends StatelessWidget {
 
     final displayAmt = (isLatestPending && !showPending) ? 0.0 : tentativeAmt;
     final displayLabel = (isLatestPending && !showPending)
-        ? 'Accumulated Earnings'
-        : 'Available Balance';
+        ? 'wallet.card.accumulated_earnings'.tr()
+        : 'wallet.card.available_balance'.tr();
 
     return Container(
       width: double.infinity,
@@ -158,7 +159,7 @@ class EarningsCard extends StatelessWidget {
                                     ),
                                     DSSpacing.wXs,
                                     Text(
-                                      'TAP TO VIEW ACCOUNT',
+                                      'wallet.card.tap_to_view_account'.tr(),
                                       style:
                                           DSTypography.caption(
                                             color: DSColors.white,
@@ -204,7 +205,7 @@ class EarningsCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'PENDING PAYOUT',
+                                  'wallet.card.pending_payout'.tr(),
                                   style:
                                       DSTypography.caption(
                                         color: DSColors.white,
@@ -235,7 +236,7 @@ class EarningsCard extends StatelessWidget {
                                 Icons.swap_calls_rounded,
                                 size: 20,
                               ),
-                              label: const Text('Consolidate'),
+                              label: Text('wallet.card.consolidate'.tr()),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: DSColors.white,
                                 padding: EdgeInsets.symmetric(

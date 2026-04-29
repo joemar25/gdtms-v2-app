@@ -111,6 +111,7 @@ class _TimeEnforcerState extends ConsumerState<TimeEnforcer>
     // corrected their device time and tapped Retry.
     if (_blocked == true) TimeValidationService.instance.invalidateCache();
 
+    if (!mounted) return;
     final isOnline = ref.read(isOnlineProvider);
     final res = await TimeValidationService.instance.validate(
       isOnline: isOnline,

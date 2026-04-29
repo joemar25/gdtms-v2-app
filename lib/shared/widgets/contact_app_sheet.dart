@@ -79,7 +79,8 @@ Future<void> showContactAppSheet(
     context: context,
     backgroundColor: DSColors.transparent,
     isScrollControlled: true,
-    builder: (ctx) => _ContactAppSheet(phone: cleaned, apps: apps, title: title),
+    builder: (ctx) =>
+        _ContactAppSheet(phone: cleaned, apps: apps, title: title),
   );
 }
 
@@ -169,8 +170,9 @@ class _ContactAppSheet extends StatelessWidget {
             child: Text(
               phone,
               style: DSTypography.title(
-                color:
-                    isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
+                color: isDark
+                    ? DSColors.labelPrimaryDark
+                    : DSColors.labelPrimary,
                 fontSize: DSTypography.sizeLg,
               ),
             ),

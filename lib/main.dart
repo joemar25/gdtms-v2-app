@@ -1,6 +1,7 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/entry-points.md — update that file when you edit this one.
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,6 +21,7 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // Read app version once from platform metadata — cached for the session.
@@ -68,12 +70,24 @@ Future<void> main() async {
       options.tracesSampleRate = kReleaseMode ? 0.2 : 0.0;
       options.attachScreenshot = false; // disable for privacy
       options.sendDefaultPii = false;
-    }, appRunner: () => runApp(const ProviderScope(child: FsiCourierApp())));
+    }, appRunner: () => runApp(_buildApp()));
   } else {
     // No DSN — run normally (local dev / CI without secrets).
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
     };
-    runApp(const ProviderScope(child: FsiCourierApp()));
+    runApp(_buildApp());
   }
+}
+
+Widget _buildApp() {
+  return ProviderScope(
+    child: EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('fil')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('en'),
+      useOnlyLangCode: true,
+      child: const FsiCourierApp(),
+    ),
+  );
 }

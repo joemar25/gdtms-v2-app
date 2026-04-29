@@ -1,0 +1,115 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
+
+class LanguageSelectorBottomSheet extends StatelessWidget {
+  const LanguageSelectorBottomSheet({super.key});
+
+  static const _options = [
+    {'code': 'en', 'flag': '🇺🇸', 'key': 'profile.language_english'},
+    {'code': 'fil', 'flag': '🇵🇭', 'key': 'profile.language_filipino'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Null-safe locale lookup — modal route context may not inherit the
+    // EasyLocalization InheritedWidget directly.
+    final currentCode =
+        EasyLocalization.of(context)?.currentLocale?.languageCode ??
+        context.locale.languageCode;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? DSColors.cardDark : DSColors.cardLight,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(DSStyles.radiusSheet),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Drag handle ──────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.only(top: DSSpacing.md),
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? DSColors.separatorDark
+                      : DSColors.separatorLight,
+                  borderRadius: DSStyles.fullRadius,
+                ),
+              ),
+            ),
+            DSSpacing.hMd,
+
+            // ── Title ────────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: DSSpacing.md),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'profile.language_subtitle'.tr(),
+                  style: DSTypography.heading().copyWith(
+                    fontSize: DSTypography.sizeLg,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? DSColors.white : DSColors.labelPrimary,
+                  ),
+                ),
+              ),
+            ),
+            DSSpacing.hSm,
+
+            // ── Options ──────────────────────────────────────────────────────
+            ..._options.map((opt) {
+              final isSelected = currentCode == opt['code'];
+              return InkWell(
+                onTap: () {
+                  context.setLocale(Locale(opt['code']!));
+                  Navigator.pop(context);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DSSpacing.md,
+                    vertical: DSSpacing.md,
+                  ),
+                  child: Row(
+                    children: [
+                      Text(opt['flag']!, style: const TextStyle(fontSize: 22)),
+                      DSSpacing.wMd,
+                      Expanded(
+                        child: Text(
+                          opt['key']!.tr(),
+                          style: DSTypography.body().copyWith(
+                            fontSize: DSTypography.sizeMd,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected
+                                ? DSColors.primary
+                                : (isDark
+                                      ? DSColors.white
+                                      : DSColors.labelPrimary),
+                          ),
+                        ),
+                      ),
+                      if (isSelected)
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: DSColors.primary,
+                          size: DSIconSize.lg,
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            DSSpacing.hSm,
+          ],
+        ),
+      ),
+    );
+  }
+}

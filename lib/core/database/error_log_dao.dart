@@ -107,4 +107,22 @@ class ErrorLogDao {
     final db = await AppDatabase.getInstance();
     await db.delete('error_logs', where: 'created_at < ?', whereArgs: [cutoff]);
   }
+
+  Future<void> deleteByContext(String context, {String? message}) async {
+    final db = await AppDatabase.getInstance();
+    if (message != null) {
+      await db.delete(
+        'error_logs',
+        where: 'context = ? AND message = ?',
+        whereArgs: [context, message],
+      );
+    } else {
+      await db.delete('error_logs', where: 'context = ?', whereArgs: [context]);
+    }
+  }
+
+  Future<void> deleteById(int id) async {
+    final db = await AppDatabase.getInstance();
+    await db.delete('error_logs', where: 'id = ?', whereArgs: [id]);
+  }
 }

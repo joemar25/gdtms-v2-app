@@ -35,6 +35,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -288,8 +289,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         },
         child: Scaffold(
           extendBody: true,
-          appBar: const AppHeaderBar(
-            title: 'Wallet',
+          appBar: AppHeaderBar(
+            title: 'wallet.screen.title'.tr(),
             pageIcon: Icons.account_balance_wallet_rounded,
           ),
           bottomNavigationBar: (isOnline && canRequestPayout)
@@ -307,8 +308,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       ),
                       label: Text(
                         kAppDebugMode
-                            ? 'Request Payout (DEBUG)'
-                            : 'Request Payout',
+                            ? 'wallet.screen.request_payout_debug'.tr()
+                            : 'wallet.screen.request_payout'.tr(),
                       ),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(50),
@@ -334,10 +335,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     children: [
                       // ── Offline banner ─────────────────────────────────────
                       if (!isOnline)
-                        const OfflineBanner(
+                        OfflineBanner(
                           isMinimal: true,
-                          customMessage:
-                              'You\'re offline — only total earnings are shown.',
+                          customMessage: 'wallet.screen.offline_message'.tr(),
                           margin: EdgeInsets.only(bottom: DSSpacing.md),
                         ),
 
@@ -367,7 +367,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                               DSSpacing.wSm,
                               Expanded(
                                 child: Text(
-                                  'You have already submitted a request today. You can consolidate your deliveries tomorrow.',
+                                  'wallet.screen.existing_request_notice'.tr(),
                                   style: DSTypography.caption(
                                     color: DSColors.warning,
                                   ).copyWith(fontSize: DSTypography.sizeSm),
@@ -407,8 +407,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       if (isOnline) DSSpacing.hLg,
 
                       if (isOnline && _historyList.isNotEmpty) ...[
-                        const DSSectionHeader(
-                          title: 'Payout History',
+                        DSSectionHeader(
+                          title: 'wallet.screen.payout_history'.tr(),
                           padding: EdgeInsets.zero,
                         ).dsFadeEntry(delay: DSAnimations.stagger(3)),
                         DSSpacing.hSm,

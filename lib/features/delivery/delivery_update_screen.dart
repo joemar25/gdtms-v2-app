@@ -41,13 +41,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path_provider/path_provider.dart';
@@ -78,34 +78,12 @@ import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/features/delivery/delivery_update_components.dart';
 
 // ─── Consistent spacing constants ───────────────────────────────────────────
 const _kSectionGap = DSSpacing.hLg; // between major sections
 const _kFieldGap = DSSpacing.hMd; // between fields within a section
 const _kInnerGap = DSSpacing.hSm; // header → first field
-const _kPhotoHeight = 160.0; // photo slot height
-const _kSignatureHeight = 144.0; // signature slot height
-
-// ─── Status metadata ────────────────────────────────────────────────────────
-// Keys are the API string values (from DeliveryStatus.toApiString()) so that
-// _kStatusMeta[_status] still works when _status holds the raw API string.
-final _kStatusMeta = {
-  DeliveryStatus.delivered.toApiString(): (
-    label: 'DELIVERED',
-    icon: Icons.check_circle_rounded,
-    color: DSColors.success,
-  ),
-  DeliveryStatus.failedDelivery.toApiString(): (
-    label: 'FAILED',
-    icon: Icons.keyboard_return_rounded,
-    color: DSColors.error,
-  ),
-  DeliveryStatus.osa.toApiString(): (
-    label: 'MISROUTED',
-    icon: Icons.inbox_rounded,
-    color: DSColors.warning,
-  ),
-};
 
 class DeliveryUpdateScreen extends ConsumerStatefulWidget {
   const DeliveryUpdateScreen({super.key, required this.barcode});
@@ -124,7 +102,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   final _recipient = TextEditingController();
   final _relationshipSpecify = TextEditingController();
   final _reasonSpecify = TextEditingController(); // for reason == 'Others'
-  final _statusSelectorKey = GlobalKey<_StatusSelectorState>();
+  final _statusSelectorKey = GlobalKey<DeliveryStatusSelectorState>();
   final _errors = <String, String>{};
   final _uuid = const Uuid();
 
@@ -290,7 +268,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         if (mounted) {
           showAppSnackbar(
             context,
-            'Please enable GPS / Location Services and try again.',
+            'delivery_update.location.gps_required'.tr(),
             type: SnackbarType.error,
           );
         }
@@ -305,7 +283,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         if (mounted) {
           showAppSnackbar(
             context,
-            'Location permission permanently denied. Enable it in Settings.',
+            'delivery_update.location.permission_permanently_denied'.tr(),
             type: SnackbarType.error,
           );
           await openAppSettings();
@@ -316,7 +294,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         if (mounted) {
           showAppSnackbar(
             context,
-            'Location permission is required to capture your position.',
+            'delivery_update.location.permission_required'.tr(),
             type: SnackbarType.error,
           );
         }
@@ -339,7 +317,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (mounted) {
         showAppSnackbar(
           context,
-          'GPS is disabled. Please turn on Location Services.',
+          'delivery_update.location.gps_disabled'.tr(),
           type: SnackbarType.error,
         );
       }
@@ -347,7 +325,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (mounted) {
         showAppSnackbar(
           context,
-          'Could not get location. Ensure GPS is on and try again.',
+          'delivery_update.location.could_not_get_location'.tr(),
           type: SnackbarType.error,
         );
       }
@@ -370,7 +348,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (mounted) {
         showAppSnackbar(
           context,
-          'Camera permission is required. Please enable it in Settings.',
+          'delivery_update.camera.permission_settings'.tr(),
           type: SnackbarType.error,
         );
         await openAppSettings();
@@ -381,7 +359,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     if (mounted) {
       showAppSnackbar(
         context,
-        'Camera permission is required to take photos.',
+        'delivery_update.camera.permission_photo'.tr(),
         type: SnackbarType.error,
       );
     }
@@ -426,7 +404,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (!mounted) return;
       showAppSnackbar(
         context,
-        'Successfully recovered image from camera.',
+        'delivery_update.photo.recovered_success'.tr(),
         type: SnackbarType.success,
       );
     } catch (e) {
@@ -516,7 +494,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (mounted) {
         showAppSnackbar(
           context,
-          'Camera Error (${e.code}): ${e.message}',
+          'delivery_update.camera.error'.tr(
+            namedArgs: {'code': e.code, 'message': e.message ?? ''},
+          ),
           type: SnackbarType.error,
         );
       }
@@ -525,7 +505,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (mounted) {
         showAppSnackbar(
           context,
-          'Failed to capture photo: ${e.toString()}',
+          'delivery_update.camera.capture_failed'.tr(
+            namedArgs: {'error': e.toString()},
+          ),
           type: SnackbarType.error,
         );
       }
@@ -570,56 +552,68 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _errors.clear();
 
     if (!kUpdateStatuses.contains(_status.toUpperCase())) {
-      _errors['delivery_status'] = 'Invalid status.';
+      _errors['delivery_status'] = 'delivery_update.validation.invalid_status'
+          .tr();
     }
 
     if (_note.text.length > kMaxNoteLength) {
-      _errors['note'] = 'Note must not exceed $kMaxNoteLength characters.';
+      _errors['note'] = 'delivery_update.validation.note_too_long'.tr(
+        namedArgs: {'max': kMaxNoteLength.toString()},
+      );
     }
 
     if (_isDelivered) {
       if (_recipient.text.trim().isEmpty) {
-        _errors['recipient'] = 'This field is required.';
+        _errors['recipient'] = 'delivery_update.validation.field_required'.tr();
       }
       if (_relationship == null || _relationship!.isEmpty) {
-        _errors['relationship'] = 'Relationship is required.';
+        _errors['relationship'] =
+            'delivery_update.validation.relationship_required'.tr();
       } else if (_relationship == 'OTHERS' &&
           _relationshipSpecify.text.trim().isEmpty) {
-        _errors['relationship_specify'] = 'Please specify the relationship.';
+        _errors['relationship_specify'] =
+            'delivery_update.validation.relationship_specify'.tr();
       }
       if (_placement.isEmpty) {
-        _errors['placement'] = 'Placement type is required.';
+        _errors['placement'] = 'delivery_update.validation.placement_required'
+            .tr();
       }
       if (_podPhoto == null) {
-        _errors['pod_photo'] = 'POD photo is required.';
+        _errors['pod_photo'] = 'delivery_update.validation.pod_photo_required'
+            .tr();
       }
       if (_selfiePhoto == null) {
-        _errors['selfie_photo'] = 'Selfie photo is required.';
+        _errors['selfie_photo'] =
+            'delivery_update.validation.selfie_photo_required'.tr();
       }
       if (_confirmationCode.text.trim().isEmpty) {
         _errors['confirmation_code'] =
-            'Delivery confirmation code is required.';
+            'delivery_update.validation.confirmation_code_required'.tr();
       }
     }
 
     if (_isOsa) {
       if (_mailpackPhoto == null) {
-        _errors['mailpack_photo'] = 'Mailpack photo is required.';
+        _errors['mailpack_photo'] =
+            'delivery_update.validation.mailpack_photo_required'.tr();
       }
     }
 
     if (_isFailedDelivery) {
       if (_reason == null || _reason!.isEmpty) {
-        _errors['reason'] = 'Reason is required.';
+        _errors['reason'] = 'delivery_update.validation.reason_required'.tr();
       } else if (_reason == 'Others' && _reasonSpecify.text.trim().isEmpty) {
-        _errors['reason_specify'] = 'Please specify the reason.';
+        _errors['reason_specify'] = 'delivery_update.validation.reason_specify'
+            .tr();
       }
       if (_selfiePhoto == null) {
-        _errors['selfie_photo'] = 'Selfie photo is required.';
+        _errors['selfie_photo'] =
+            'delivery_update.validation.selfie_photo_required'.tr();
       }
       final config = kReasonConfigs[_reason] ?? const ReasonConfig();
       if (config.requiresAccordingTo && _accordingTo.text.trim().isEmpty) {
-        _errors['according_to'] = 'Informant name is required.';
+        _errors['according_to'] =
+            'delivery_update.validation.informant_name_required'.tr();
       }
     }
 
@@ -636,10 +630,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     // Prevent submission if the delivery is already locked (including attempts >= 3)
     if (checkIsLockedFromMap(_delivery)) {
       setState(() => _loading = false);
-      showInfoNotification(
-        context,
-        'This delivery is locked and cannot be updated.',
-      );
+      showInfoNotification(context, 'delivery_update.status.locked'.tr());
       return;
     }
 
@@ -757,7 +748,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     if (!mounted) return;
     ref.read(deliveryRefreshProvider.notifier).increment();
     setState(() => _loading = false);
-    showSuccessNotification(context, 'Delivery status updated successfully.');
+    showSuccessNotification(
+      context,
+      'delivery_update.status.updated_success'.tr(),
+    );
     // Fire-and-forget: may trigger the native in-app review sheet.
     ReviewPromptService.instance.onDeliveryCompleted();
     context.go('/dashboard');
@@ -811,7 +805,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         context,
         from: 'DELIVERED',
         to: newStatus,
-        detail: 'recipient info, photos, and signature',
+        detail: 'delivery_update.detail.recipient_info_photos_signature'.tr(),
       );
       if (confirmed != true || !mounted) return;
       _clearDeliveredFields();
@@ -820,7 +814,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         context,
         from: _status,
         to: newStatus,
-        detail: 'reason and selfie photo',
+        detail: 'delivery_update.detail.reason_and_selfie_photo'.tr(),
       );
       if (confirmed != true || !mounted) return;
       _clearNonDeliveredFields();
@@ -839,24 +833,24 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-          'SWITCH STATUS?',
+          'delivery_update.switch_status.title'.tr(),
           style: DSTypography.heading().copyWith(fontSize: DSTypography.sizeMd),
         ),
         content: Text(
-          'You have already filled in $detail for $from. '
-          'Switching to $to will clear all of that data.\n\n'
-          'Are you sure you want to continue?',
+          'delivery_update.switch_status.content'.tr(
+            namedArgs: {'detail': detail, 'from': from, 'to': to},
+          ),
           style: DSTypography.body().copyWith(fontSize: DSTypography.sizeMd),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('CANCEL'),
+            child: Text('delivery_update.switch_status.cancel'.tr()),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: DSColors.error),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('YES, SWITCH'),
+            child: Text('delivery_update.switch_status.confirm'.tr()),
           ),
         ],
       ),
@@ -874,9 +868,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
     final result = await SearchableSelectionSheet.show<String>(
       context: context,
-      title: 'SELECT RELATIONSHIP',
+      title: 'delivery_update.header.select_relationship'.tr(),
       options: options,
-      initialValue: _relationship,
     );
 
     if (result != null && mounted) {
@@ -892,9 +885,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   Future<void> _openReasonPicker() async {
     final result = await SearchableSelectionSheet.show<String>(
       context: context,
-      title: 'SELECT REASON',
+      title: 'delivery_update.header.select_reason'.tr(),
       options: kReasons,
-      initialValue: _reason,
     );
 
     if (result != null && mounted) {
@@ -909,371 +901,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   // ─── Build helpers ────────────────────────────────────────────────────────
 
-  /// Horizontal scrollable row of preset chips shown above the Remarks field.
-  /// Tapping a chip pre-fills the note with the preset text (and positions the
-  /// cursor at the end so the courier can immediately extend it).
-  /// Tapping the active chip again clears both the selection and the field.
-  Widget _buildNotePresets(bool isDark) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.only(bottom: DSSpacing.xs),
-      child: Row(
-        children: [
-          Builder(
-            builder: (context) {
-              final List<String> presets;
-              if (_isDelivered) {
-                presets = kDeliveredNotePresets;
-              } else if (_isOsa) {
-                presets = kOsaConfig.remarksPresets;
-              } else {
-                presets =
-                    (_reason != null
-                        ? kReasonConfigs[_reason]?.remarksPresets
-                        : null) ??
-                    [];
-              }
-              return Row(
-                children: [
-                  for (final preset in presets) ...[
-                    _NotePresetChip(
-                      label: preset,
-                      selected: _activeNotePreset == preset,
-                      isDark: isDark,
-                      onTap: () {
-                        setState(() {
-                          if (_activeNotePreset == preset) {
-                            // Second tap → deselect and clear only if the note still
-                            // matches the preset (user may have extended it).
-                            _activeNotePreset = null;
-                            if (_note.text == preset) _note.clear();
-                          } else {
-                            _activeNotePreset = preset;
-                            // Replace current text with the preset, cursor at end.
-                            _note.value = TextEditingValue(
-                              text: preset,
-                              selection: TextSelection.collapsed(
-                                offset: preset.length,
-                              ),
-                            );
-                          }
-                        });
-                      },
-                    ),
-                    DSSpacing.wSm,
-                  ],
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Clickable box for POD / SELFIE photo slots.
-  Widget _buildPhotoSlot({
-    required String slotType,
-    required String label,
-    required PhotoEntry? photo,
-    required IconData icon,
-    required Color color,
-    required bool isDark,
-    VoidCallback? onTapOverride,
-  }) {
-    final hasPhoto = photo != null;
-    final errorKey = slotType == 'pod'
-        ? 'pod_photo'
-        : slotType == 'mailpack'
-        ? 'mailpack_photo'
-        : 'selfie_photo';
-    final hasError = _errors[errorKey] != null;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTapOverride ?? () => _pickPhotoForSlot(slotType),
-        child: Container(
-          height: _kPhotoHeight,
-          decoration: BoxDecoration(
-            color: hasPhoto
-                ? DSColors.transparent
-                : (isDark ? DSColors.cardElevatedDark : DSColors.cardLight),
-            borderRadius: DSStyles.cardRadius,
-            border: Border.all(
-              color: hasError
-                  ? DSColors.error
-                  : hasPhoto
-                  ? (isDark
-                        ? DSColors.separatorDark
-                        : DSColors.secondarySurfaceLight)
-                  : color.withValues(alpha: DSStyles.alphaMuted),
-              width: hasError ? 1.5 : 1.2,
-            ),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOutBack,
-            switchOutCurve: Curves.easeInBack,
-            child: hasPhoto
-                ? Stack(
-                    key: const ValueKey('has_photo'),
-                    fit: StackFit.expand,
-                    children: [
-                      Image.file(
-                        File(photo.file),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
-                          color: isDark
-                              ? DSColors.cardElevatedDark
-                              : DSColors.secondarySurfaceLight,
-                          child: const Icon(
-                            Icons.broken_image_rounded,
-                            size: DSIconSize.xl,
-                            color: DSColors.labelTertiary,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          color: DSColors.black.withValues(
-                            alpha: DSStyles.alphaDisabled,
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: DSSpacing.md,
-                            vertical: DSSpacing.sm,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                label,
-                                style: DSTypography.label(color: DSColors.white)
-                                    .copyWith(
-                                      fontSize: DSTypography.sizeSm,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: DSTypography.lsLoose,
-                                    ),
-                              ),
-                              GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => setState(() {
-                                  if (slotType == 'pod') {
-                                    _podPhoto = null;
-                                  } else if (slotType == 'mailpack') {
-                                    _mailpackPhoto = null;
-                                  } else {
-                                    _selfiePhoto = null;
-                                  }
-                                }),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(DSSpacing.xs),
-                                  child: Icon(
-                                    Icons.delete_outline_rounded,
-                                    size: DSIconSize.sm,
-                                    color: DSColors.error,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Column(
-                    key: const ValueKey('no_photo'),
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, size: DSIconSize.xl, color: color),
-                      DSSpacing.hSm,
-                      Text(
-                        label,
-                        style: DSTypography.label(color: color).copyWith(
-                          fontSize: DSTypography.sizeSm,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: DSTypography.lsLoose,
-                        ),
-                      ),
-                      DSSpacing.hXs,
-                      Text(
-                        'TAP TO CAPTURE',
-                        style:
-                            DSTypography.label(
-                              color: isDark
-                                  ? DSColors.labelTertiaryDark
-                                  : DSColors.labelTertiary,
-                            ).copyWith(
-                              fontSize: DSTypography.sizeXs,
-                              letterSpacing: DSTypography.lsLoose,
-                            ),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Clickable box for the recipient signature.
-  Widget _buildSignatureSlot(bool isDark) {
-    final hasSignature = _signaturePath != null;
-    final hasError = _errors['recipient_signature'] != null;
-
-    return GestureDetector(
-      onTap: _openSignatureCapture,
-      child: Container(
-        height: _kSignatureHeight,
-        decoration: BoxDecoration(
-          borderRadius: DSStyles.cardRadius,
-          border: Border.all(
-            color: hasError
-                ? DSColors.error
-                : hasSignature
-                ? (isDark ? DSColors.separatorDark : DSColors.separatorLight)
-                : DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
-            width: hasError ? 1.5 : 1.2,
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeOutBack,
-          switchOutCurve: Curves.easeInBack,
-          child: hasSignature
-              ? Stack(
-                  key: const ValueKey('has_signature'),
-                  fit: StackFit.expand,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.all(DSSpacing.md),
-                      child: Image.file(
-                        File(_signaturePath!),
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        color: DSColors.black.withValues(
-                          alpha: DSStyles.alphaDisabled,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: DSSpacing.md,
-                          vertical: DSSpacing.sm,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'SIGNATURE',
-                              style: DSTypography.label(color: DSColors.white)
-                                  .copyWith(
-                                    fontSize: DSTypography.sizeSm,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: DSTypography.lsLoose,
-                                  ),
-                            ),
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: _openSignatureCapture,
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: DSSpacing.sm,
-                                      vertical: DSSpacing.xs,
-                                    ),
-                                    child: Text(
-                                      'RE-SIGN',
-                                      style: DSTypography.label(
-                                        color: DSColors.white.withValues(
-                                          alpha: DSStyles.alphaDisabled,
-                                        ),
-                                      ).copyWith(fontSize: DSTypography.sizeSm),
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () =>
-                                      setState(() => _signaturePath = null),
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: DSSpacing.sm,
-                                      vertical: DSSpacing.xs,
-                                    ),
-                                    child: Text(
-                                      'CLEAR',
-                                      style:
-                                          DSTypography.label(
-                                            color: DSColors.error,
-                                          ).copyWith(
-                                            fontSize: DSTypography.sizeSm,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Column(
-                  key: const ValueKey('no_signature'),
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.draw_rounded,
-                      size: DSIconSize.xl,
-                      color: DSColors.primary.withValues(
-                        alpha: DSStyles.alphaDisabled,
-                      ),
-                    ),
-                    DSSpacing.hSm,
-                    Text(
-                      'SIGNATURE',
-                      style:
-                          DSTypography.label(
-                            color: DSColors.primary.withValues(
-                              alpha: DSStyles.alphaDisabled,
-                            ),
-                          ).copyWith(
-                            fontSize: DSTypography.sizeSm,
-                            letterSpacing: DSTypography.lsLoose,
-                          ),
-                    ),
-                    DSSpacing.hXs,
-                    Text(
-                      'TAP TO SIGN (OPTIONAL)',
-                      style:
-                          DSTypography.label(
-                            color: isDark
-                                ? DSColors.labelTertiaryDark
-                                : DSColors.labelTertiary,
-                          ).copyWith(
-                            fontSize: DSTypography.sizeXs,
-                            letterSpacing: DSTypography.lsLoose,
-                          ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
   bool get _isDirty {
     // Compare against the loaded delivery's initial status so the form isn't
     // considered dirty just because the delivery wasn't DELIVERED to begin
@@ -1301,6 +928,18 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isOnline = ref.read(isOnlineProvider);
 
+    // Resolve preset chips based on current status / reason
+    final List<String> notePresets;
+    if (_isDelivered) {
+      notePresets = kDeliveredNotePresets;
+    } else if (_isOsa) {
+      notePresets = kOsaConfig.remarksPresets;
+    } else {
+      notePresets =
+          (_reason != null ? kReasonConfigs[_reason]?.remarksPresets : null) ??
+          [];
+    }
+
     return PopScope(
       canPop: _forcePop || !_isDirty,
       onPopInvokedWithResult: (didPop, _) async {
@@ -1308,19 +947,17 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         final leave = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Discard changes?'),
-            content: const Text(
-              'You have unsaved changes. Leave without submitting?',
-            ),
+            title: Text('delivery_update.discard_changes.title'.tr()),
+            content: Text('delivery_update.discard_changes.message'.tr()),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('STAY'),
+                child: Text('delivery_update.discard_changes.stay'.tr()),
               ),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
                 child: Text(
-                  'DISCARD',
+                  'delivery_update.discard_changes.discard'.tr(),
                   style: DSTypography.button().copyWith(color: DSColors.error),
                 ),
               ),
@@ -1371,7 +1008,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                     )
                   : const Icon(Icons.check_circle_outline_rounded),
               label: Text(
-                'SUBMIT UPDATE',
+                'delivery_update.button.submit_update'.tr(),
                 style: DSTypography.button().copyWith(
                   letterSpacing: DSTypography.lsExtraLoose,
                   fontSize: DSTypography.sizeMd,
@@ -1395,7 +1032,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'UPDATE STATUS',
+                'delivery_update.header.update_status'.tr(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: DSTypography.heading().copyWith(
@@ -1424,7 +1061,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.info_outline_rounded),
-              tooltip: 'Account Details',
+              tooltip: 'delivery_update.header.account_details'.tr(),
               onPressed: () => _showAccountDetailsDialog(context),
             ),
           ],
@@ -1468,21 +1105,23 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                               children: [
                                 // ── Offline Banner ──────────────────────────────
                                 if (!isOnline)
-                                  const OfflineBanner(
+                                  OfflineBanner(
                                     isMinimal: true,
                                     customMessage:
-                                        'Update queued—will submit when online',
+                                        'delivery_update.offline_banner.queued_online'
+                                            .tr(),
                                     margin: EdgeInsets.only(
                                       bottom: DSSpacing.lg,
                                     ),
                                   ),
 
                                 // ── STATUS SELECTION ────────────────────────────
-                                const DeliverySectionHeader(
-                                  label: 'SELECT STATUS',
+                                DeliverySectionHeader(
+                                  label: 'delivery_update.header.select_status'
+                                      .tr(),
                                 ),
                                 _kInnerGap,
-                                _StatusSelector(
+                                DeliveryStatusSelector(
                                   key: _statusSelectorKey,
                                   currentStatus: _status,
                                   onStatusChanged: _onStatusTap,
@@ -1501,8 +1140,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 // ── RECIPIENT INFO (delivered only) ─────────────
                                 if (_isDelivered) ...[
                                   _kSectionGap,
-                                  const DeliverySectionHeader(
-                                    label: 'RECIPIENT INFO',
+                                  DeliverySectionHeader(
+                                    label:
+                                        'delivery_update.header.recipient_info'
+                                            .tr(),
                                   ),
                                   _kInnerGap,
                                   DeliveryRecipientCards(
@@ -1569,8 +1210,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           deliveryFieldDecoration(
                                             context,
                                             labelText: _recipientIsOwner
-                                                ? 'RECIPIENT NAME (LOCKED — OWNER)'
-                                                : 'RECIPIENT NAME',
+                                                ? 'delivery_update.header.recipient_name_locked_owner'
+                                                      .tr()
+                                                : 'delivery_update.header.recipient_name'
+                                                      .tr(),
                                             errorText: _errors['recipient'],
                                           ).copyWith(
                                             suffixIcon: value.text.isNotEmpty
@@ -1622,8 +1265,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                             deliveryFieldDecoration(
                                               context,
                                               labelText: _recipientIsOwner
-                                                  ? 'RELATIONSHIP (LOCKED — OWNER)'
-                                                  : 'RELATIONSHIP',
+                                                  ? 'delivery_update.header.relationship_locked_owner'
+                                                        .tr()
+                                                  : 'delivery_update.header.relationship'
+                                                        .tr(),
                                               errorText:
                                                   _errors['relationship'],
                                             ).copyWith(
@@ -1653,7 +1298,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       decoration:
                                           deliveryFieldDecoration(
                                             context,
-                                            labelText: 'SPECIFY RELATIONSHIP',
+                                            labelText:
+                                                'delivery_update.header.specify_relationship'
+                                                    .tr(),
                                             errorText:
                                                 _errors['relationship_specify'],
                                           ).copyWith(
@@ -1723,8 +1370,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           deliveryFieldDecoration(
                                             context,
                                             labelText:
-                                                'DELIVERY CONFIRMATION CODE',
-                                            hintText: 'e.g. AB1C2D',
+                                                'delivery_update.header.delivery_confirmation_code'
+                                                    .tr(),
+                                            hintText:
+                                                'delivery_update.hint.confirmation_code_example'
+                                                    .tr(),
                                             errorText:
                                                 _errors['confirmation_code'],
                                           ).copyWith(
@@ -1758,7 +1408,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     initialValue: _placement,
                                     decoration: deliveryFieldDecoration(
                                       context,
-                                      labelText: 'PLACEMENT TYPE',
+                                      labelText:
+                                          'delivery_update.header.placement_type'
+                                              .tr(),
                                       errorText: _errors['placement'],
                                     ),
                                     items: kPlacementOptions
@@ -1778,8 +1430,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 // ── REASON FOR NON-DELIVERY (failed delivery only) ──────
                                 if (_isFailedDelivery) ...[
                                   _kSectionGap,
-                                  const DeliverySectionHeader(
-                                    label: 'REASON FOR NON-DELIVERY',
+                                  DeliverySectionHeader(
+                                    label:
+                                        'delivery_update.header.reason_for_non_delivery'
+                                            .tr(),
                                   ),
                                   _kInnerGap,
                                   GestureDetector(
@@ -1797,7 +1451,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         decoration:
                                             deliveryFieldDecoration(
                                               context,
-                                              labelText: 'SELECT REASON',
+                                              labelText:
+                                                  'delivery_update.header.select_reason'
+                                                      .tr(),
                                               errorText: _errors['reason'],
                                             ).copyWith(
                                               suffixIcon: Icon(
@@ -1820,9 +1476,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       decoration:
                                           deliveryFieldDecoration(
                                             context,
-                                            labelText: 'SPECIFY REASON',
+                                            labelText:
+                                                'delivery_update.header.specify_reason'
+                                                    .tr(),
                                             hintText:
-                                                'e.g. GATE IS LOCKED, NO CONTACT NUMBER',
+                                                'delivery_update.hint.specify_reason_example'
+                                                    .tr(),
                                             errorText:
                                                 _errors['reason_specify'],
                                           ).copyWith(
@@ -1861,8 +1520,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           deliveryFieldDecoration(
                                             context,
                                             labelText:
-                                                'ACCORDING TO (NAME OF INFORMANT)',
-                                            hintText: 'e.g. GUARD, NEIGHBOR',
+                                                'delivery_update.header.according_to_name'
+                                                    .tr(),
+                                            hintText:
+                                                'delivery_update.hint.according_to_example'
+                                                    .tr(),
                                             errorText: _errors['according_to'],
                                           ).copyWith(
                                             prefixIcon: const Icon(
@@ -1899,28 +1561,42 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 // ── PROOF OF DELIVERY (delivered) ────────────────
                                 if (_isDelivered) ...[
                                   _kSectionGap,
-                                  const DeliverySectionHeader(
-                                    label: 'PROOF OF DELIVERY PHOTOS',
+                                  DeliverySectionHeader(
+                                    label:
+                                        'delivery_update.header.proof_of_delivery_photos'
+                                            .tr(),
                                   ),
                                   _kInnerGap,
                                   Row(
                                     children: [
-                                      _buildPhotoSlot(
-                                        slotType: 'pod',
+                                      DeliveryPhotoSlot(
                                         label: 'POD',
                                         photo: _podPhoto,
                                         icon: Icons.inventory_2_rounded,
                                         color: DSColors.primary,
                                         isDark: isDark,
+                                        hasError: _errors['pod_photo'] != null,
+                                        onTap: () => _pickPhotoForSlot('pod'),
+                                        onClear: () => setState(() {
+                                          _podPhoto = null;
+                                          _errors.remove('pod_photo');
+                                        }),
                                       ),
                                       DSSpacing.wMd,
-                                      _buildPhotoSlot(
-                                        slotType: 'selfie',
+                                      DeliveryPhotoSlot(
                                         label: 'SELFIE',
                                         photo: _selfiePhoto,
                                         icon: Icons.face_rounded,
                                         color: DSColors.labelSecondary,
                                         isDark: isDark,
+                                        hasError:
+                                            _errors['selfie_photo'] != null,
+                                        onTap: () =>
+                                            _pickPhotoForSlot('selfie'),
+                                        onClear: () => setState(() {
+                                          _selfiePhoto = null;
+                                          _errors.remove('selfie_photo');
+                                        }),
                                       ),
                                     ],
                                   ),
@@ -1937,7 +1613,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                               context: context,
                                               builder: (ctx) => AlertDialog(
                                                 title: Text(
-                                                  'ADD SIGNATURE?',
+                                                  'delivery_update.signature.add_signature'
+                                                      .tr(),
                                                   style: DSTypography.heading()
                                                       .copyWith(
                                                         fontWeight:
@@ -1947,7 +1624,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                       ),
                                                 ),
                                                 content: Text(
-                                                  'Do you want to capture the recipient\'s signature?',
+                                                  'delivery_update.signature.capture_prompt'
+                                                      .tr(),
                                                   style: DSTypography.body()
                                                       .copyWith(
                                                         fontSize:
@@ -1960,7 +1638,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                         Navigator.of(
                                                           ctx,
                                                         ).pop(false),
-                                                    child: const Text('CANCEL'),
+                                                    child: Text(
+                                                      'delivery_update.signature.cancel'
+                                                          .tr(),
+                                                    ),
                                                   ),
                                                   FilledButton(
                                                     style:
@@ -1972,7 +1653,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                                         Navigator.of(
                                                           ctx,
                                                         ).pop(true),
-                                                    child: const Text('YES'),
+                                                    child: Text(
+                                                      'delivery_update.signature.yes'
+                                                          .tr(),
+                                                    ),
                                                   ),
                                                 ],
                                               ),
@@ -1991,7 +1675,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         },
                                       ),
                                       Text(
-                                        'Include recipient signature',
+                                        'delivery_update.signature.include_recipient_signature'
+                                            .tr(),
                                         style: DSTypography.body().copyWith(
                                           fontSize: DSTypography.sizeMd,
                                         ),
@@ -2000,28 +1685,44 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   ),
                                   if (_showSignatureSlot) ...[
                                     DSSpacing.hSm,
-                                    _buildSignatureSlot(isDark),
+                                    DeliverySignatureSlot(
+                                      isDark: isDark,
+                                      signaturePath: _signaturePath,
+                                      hasError:
+                                          _errors['recipient_signature'] !=
+                                          null,
+                                      onCapture: _openSignatureCapture,
+                                      onClear: () =>
+                                          setState(() => _signaturePath = null),
+                                    ),
                                   ],
                                 ],
 
                                 // ── MAILPACK PHOTO (misrouted / osa) ─────────────────
                                 if (_isOsa) ...[
                                   _kSectionGap,
-                                  const DeliverySectionHeader(
-                                    label: 'MAILPACK PHOTO',
+                                  DeliverySectionHeader(
+                                    label:
+                                        'delivery_update.header.mailpack_photo'
+                                            .tr(),
                                   ),
                                   _kInnerGap,
                                   Row(
                                     children: [
-                                      _buildPhotoSlot(
-                                        slotType: 'mailpack',
+                                      DeliveryPhotoSlot(
                                         label: 'MAILPACK',
                                         photo: _mailpackPhoto,
                                         icon: Icons.inventory_2_rounded,
                                         color: DSColors.warning,
                                         isDark: isDark,
-                                        onTapOverride: () =>
+                                        hasError:
+                                            _errors['mailpack_photo'] != null,
+                                        onTap: () =>
                                             _pickPhotoForSlot('mailpack'),
+                                        onClear: () => setState(() {
+                                          _mailpackPhoto = null;
+                                          _errors.remove('mailpack_photo');
+                                        }),
                                       ),
                                     ],
                                   ),
@@ -2030,21 +1731,26 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                 // ── SELFIE PHOTO (failed delivery only) ──────────────
                                 if (_isFailedDelivery) ...[
                                   _kSectionGap,
-                                  const DeliverySectionHeader(
-                                    label: 'SELFIE PHOTO',
+                                  DeliverySectionHeader(
+                                    label: 'delivery_update.header.selfie_photo'
+                                        .tr(),
                                   ),
                                   _kInnerGap,
                                   Row(
                                     children: [
-                                      _buildPhotoSlot(
-                                        slotType: 'selfie',
+                                      DeliveryPhotoSlot(
                                         label: 'SELFIE',
                                         photo: _selfiePhoto,
                                         icon: Icons.face_rounded,
                                         color: DSColors.labelSecondary,
                                         isDark: isDark,
-                                        onTapOverride:
-                                            _pickSelfieForFailedDeliveryOsa,
+                                        hasError:
+                                            _errors['selfie_photo'] != null,
+                                        onTap: _pickSelfieForFailedDeliveryOsa,
+                                        onClear: () => setState(() {
+                                          _selfiePhoto = null;
+                                          _errors.remove('selfie_photo');
+                                        }),
                                       ),
                                     ],
                                   ),
@@ -2052,13 +1758,35 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                                 // ── REMARKS ──────────────────────────────────────
                                 _kSectionGap,
-                                const DeliverySectionHeader(
-                                  label: 'REMARKS (OPTIONAL)',
+                                DeliverySectionHeader(
+                                  label:
+                                      'delivery_update.header.remarks_optional'
+                                          .tr(),
                                 ),
                                 _kInnerGap,
 
                                 // Quick-select preset chips
-                                _buildNotePresets(isDark),
+                                DeliveryNotePresets(
+                                  presets: notePresets,
+                                  activePreset: _activeNotePreset,
+                                  isDark: isDark,
+                                  onPresetTapped: (preset) {
+                                    setState(() {
+                                      if (_activeNotePreset == preset) {
+                                        _activeNotePreset = null;
+                                        if (_note.text == preset) _note.clear();
+                                      } else {
+                                        _activeNotePreset = preset;
+                                        _note.value = TextEditingValue(
+                                          text: preset,
+                                          selection: TextSelection.collapsed(
+                                            offset: preset.length,
+                                          ),
+                                        );
+                                      }
+                                    });
+                                  },
+                                ),
                                 DSSpacing.hSm,
 
                                 // Hint text below chips
@@ -2067,7 +1795,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     bottom: DSSpacing.sm,
                                   ),
                                   child: Text(
-                                    'TAP A PRESET TO FILL — YOU CAN STILL ADD MORE DETAILS BELOW',
+                                    'delivery_update.header.preset_hint'.tr(),
                                     style: DSTypography.label().copyWith(
                                       fontSize: DSTypography.sizeXs,
                                       color: isDark
@@ -2096,7 +1824,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     decoration:
                                         deliveryFieldDecoration(
                                           context,
-                                          hintText: 'REMARKS',
+                                          hintText:
+                                              'delivery_update.header.remarks_optional'
+                                                  .tr(),
                                           errorText: _errors['note'],
                                         ).copyWith(
                                           suffixIconConstraints:
@@ -2129,9 +1859,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                                 // ── TRANSACTION DATE ─────────────────────────────
                                 _kSectionGap,
-                                const DeliverySectionHeader(
+                                DeliverySectionHeader(
                                   label:
-                                      'TRANSACTION DATE (PHILIPPINE STANDARD TIME)',
+                                      'delivery_update.header.transaction_date_pst'
+                                          .tr(),
                                 ),
                                 _kInnerGap,
                                 TextFormField(
@@ -2161,8 +1892,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
                                 // ── GEO LOCATION ─────────────────────────────────
                                 _kSectionGap,
-                                const DeliverySectionHeader(
-                                  label: 'GEO LOCATION',
+                                DeliverySectionHeader(
+                                  label: 'delivery_update.header.geo_location'
+                                      .tr(),
                                 ),
                                 _kInnerGap,
                                 DeliveryGeoLocationField(
@@ -2184,269 +1916,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ─── Note preset chip ─────────────────────────────────────────────────────────
-/// A compact, tappable chip used in the quick-select remarks row.
-class _NotePresetChip extends StatelessWidget {
-  const _NotePresetChip({
-    required this.label,
-    required this.selected,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedColor = DSColors.primary;
-    final unselectedBg = isDark
-        ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
-        : DSColors.secondarySurfaceLight;
-    final unselectedBorder = isDark
-        ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-        : DSColors.separatorLight;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected
-              ? selectedColor.withValues(alpha: DSStyles.alphaSubtle)
-              : unselectedBg,
-          borderRadius: DSStyles.cardRadius,
-          border: Border.all(
-            color: selected
-                ? selectedColor.withValues(alpha: DSStyles.alphaDisabled)
-                : unselectedBorder,
-            width: selected ? 1.4 : 1.0,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (selected) ...[
-              Icon(
-                Icons.check_rounded,
-                size: DSIconSize.xs,
-                color: selectedColor,
-              ),
-              DSSpacing.wXs,
-            ],
-            Text(
-              label,
-              style: DSTypography.label().copyWith(
-                fontSize: DSTypography.sizeSm,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected
-                    ? selectedColor
-                    : (isDark
-                          ? DSColors.labelSecondaryDark
-                          : DSColors.labelSecondary),
-                letterSpacing: DSTypography.lsLoose,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Swipeable status selector ────────────────────────────────────────────────
-
-class _StatusSelector extends StatefulWidget {
-  const _StatusSelector({
-    super.key,
-    required this.currentStatus,
-    required this.onStatusChanged,
-  });
-
-  final String currentStatus;
-  final Future<void> Function(String) onStatusChanged;
-
-  @override
-  State<_StatusSelector> createState() => _StatusSelectorState();
-}
-
-class _StatusSelectorState extends State<_StatusSelector> {
-  bool _hasInteracted = false;
-
-  void markInteracted() {
-    if (mounted) setState(() => _hasInteracted = true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final selectedIndex = kUpdateStatuses.indexOf(widget.currentStatus);
-    final activeStatus = selectedIndex >= 0
-        ? widget.currentStatus
-        : kUpdateStatuses[0];
-    final activeMeta = _kStatusMeta[activeStatus]!;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 80,
-          decoration: BoxDecoration(
-            color: isDark
-                ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-                : DSColors.secondarySurfaceLight,
-            borderRadius: DSStyles.cardRadius,
-            border: Border.all(
-              color: isDark
-                  ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-                  : DSColors.separatorLight,
-              width: DSStyles.borderWidth,
-            ),
-          ),
-          child: Stack(
-            children: [
-              AnimatedAlign(
-                alignment: selectedIndex == 0
-                    ? Alignment.centerLeft
-                    : selectedIndex == 1
-                    ? Alignment.center
-                    : Alignment.centerRight,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.elasticOut,
-                child: FractionallySizedBox(
-                  widthFactor: 1 / 3,
-                  heightFactor: 1.0,
-                  child: Padding(
-                    padding: EdgeInsets.all(DSSpacing.sm),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            activeMeta.color,
-                            activeMeta.color.withValues(
-                              alpha: DSStyles.alphaOpaque,
-                            ),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: DSStyles.cardRadius,
-                        boxShadow: [
-                          BoxShadow(
-                            color: activeMeta.color.withValues(
-                              alpha: DSStyles.alphaMuted,
-                            ),
-                            blurRadius: DSStyles.radiusMD,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Row(
-                children: kUpdateStatuses.map((rawStatus) {
-                  final meta = _kStatusMeta[rawStatus]!;
-                  final selected = widget.currentStatus == rawStatus;
-
-                  return Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () async {
-                        markInteracted();
-                        await widget.onStatusChanged(rawStatus);
-                      },
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AnimatedScale(
-                              scale: selected ? 1.15 : 1.0,
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOutBack,
-                              child: Icon(
-                                meta.icon,
-                                color: selected
-                                    ? DSColors.white
-                                    : (isDark
-                                          ? DSColors.white.withValues(
-                                              alpha: DSStyles.alphaDisabled,
-                                            )
-                                          : DSColors.labelSecondary),
-                                size: selected ? DSIconSize.xl : DSIconSize.lg,
-                              ),
-                            ),
-                            DSSpacing.hXs,
-                            AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 250),
-                              style: DSTypography.label().copyWith(
-                                fontWeight: selected
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                                fontSize: selected ? 11 : 10,
-                                color: selected
-                                    ? DSColors.white
-                                    : (isDark
-                                          ? DSColors.labelSecondaryDark
-                                          : DSColors.labelSecondary),
-                                letterSpacing: DSTypography.lsLoose,
-                              ),
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  meta.label,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-        if (!_hasInteracted)
-          Padding(
-            padding: EdgeInsets.only(top: DSSpacing.sm),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.touch_app_rounded,
-                  size: DSIconSize.xs,
-                  color: isDark
-                      ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
-                      : DSColors.labelTertiary,
-                ),
-                DSSpacing.wXs,
-                Text(
-                  'Tap or Swipe below to change status',
-                  style: DSTypography.label().copyWith(
-                    fontSize: DSTypography.sizeXs,
-                    color: isDark
-                        ? DSColors.labelTertiaryDark
-                        : DSColors.labelTertiary,
-                    letterSpacing: DSTypography.lsLoose,
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }

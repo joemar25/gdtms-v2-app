@@ -2,8 +2,8 @@
 // DOCS: docs/features/auth.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
@@ -106,10 +106,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     if (_phoneController.text.trim().isEmpty) {
-      _errors['phone_number'] = 'This field is required.';
+      _errors['phone_number'] = 'common.field_required'.tr();
     }
     if (_passwordController.text.isEmpty) {
-      _errors['password'] = 'This field is required.';
+      _errors['password'] = 'common.field_required'.tr();
     }
 
     if (_errors.isNotEmpty) {
@@ -143,7 +143,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (token.isEmpty) {
           showAppSnackbar(
             context,
-            'Invalid login response. Please try again.',
+            'auth.login_screen.error_invalid_response'.tr(),
             type: SnackbarType.error,
           );
           break;
@@ -173,20 +173,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         await _saveCredentials();
         await ref.read(authProvider.notifier).initialize();
         if (mounted) context.go('/dashboard');
+        break;
       case ApiValidationError<Map<String, dynamic>>(:final errors):
         errors.forEach((key, value) => _errors[key] = value.first);
+        break;
       case ApiUnauthorized<Map<String, dynamic>>(:final message):
         showAppSnackbar(
           context,
-          message ?? 'Invalid phone number or password.',
+          message != null && message.isNotEmpty
+              ? message
+              : 'auth.login_screen.error_invalid_credentials'.tr(),
           type: SnackbarType.error,
         );
+        break;
       case ApiNetworkError<Map<String, dynamic>>():
         showAppSnackbar(
           context,
-          'No connection. Please check your internet.',
+          'auth.login_screen.error_no_connection'.tr(),
           type: SnackbarType.error,
         );
+        break;
       case ApiRateLimited<Map<String, dynamic>>(
         :final message,
         :final retryAfterSeconds,
@@ -195,13 +201,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _startRateLimitCountdown(seconds);
         showAppSnackbar(
           context,
-          '$message Try again in $seconds seconds.',
+          '${message.isNotEmpty ? message : ''} ${'auth.login_screen.error_try_again_seconds'.tr(namedArgs: {'seconds': '$seconds'})}',
           type: SnackbarType.error,
         );
+        break;
       case ApiServerError<Map<String, dynamic>>(:final message):
         showAppSnackbar(context, message, type: SnackbarType.error);
+        break;
       default:
-        showAppSnackbar(context, 'Login failed.', type: SnackbarType.error);
+        showAppSnackbar(
+          context,
+          'auth.login_screen.error_login_failed'.tr(),
+          type: SnackbarType.error,
+        );
     }
 
     if (mounted) setState(() => _loading = false);
@@ -273,7 +285,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                         // ── Title ────────────────────────────────────────
                         Text(
-                          'Sign In',
+                          'auth.login_screen.title'.tr(),
                           textAlign: TextAlign.center,
                           style: DSTypography.heading().copyWith(
                             fontSize: DSTypography.sizeXl,
@@ -289,7 +301,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         DSSpacing.hSm,
                         Text(
-                          'Enter your credentials to continue',
+                          'auth.login_screen.subtitle'.tr(),
                           textAlign: TextAlign.center,
                           style: DSTypography.body().copyWith(
                             fontSize: DSTypography.sizeMd,
@@ -304,7 +316,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         DSSpacing.hXl,
 
                         // ── Phone Number ──────────────────────────────────
-                        _fieldLabel('Phone Number').dsFadeEntry(
+                        _fieldLabel(
+                          'auth.login_screen.phone_number'.tr(),
+                        ).dsFadeEntry(
                           delay: DSAnimations.stagger(
                             3,
                             step: DSAnimations.staggerNormal,
@@ -315,7 +329,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
-                            hintText: 'e.g. 09XXXXXXXXX',
+                            hintText: 'auth.login_screen.phone_hint'.tr(),
                             prefixIcon: const Icon(
                               Icons.phone_outlined,
                               size: DSIconSize.md,
@@ -331,7 +345,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         DSSpacing.hMd,
 
                         // ── Password ──────────────────────────────────────
-                        _fieldLabel('Password').dsFadeEntry(
+                        _fieldLabel(
+                          'auth.login_screen.password'.tr(),
+                        ).dsFadeEntry(
                           delay: DSAnimations.stagger(
                             5,
                             step: DSAnimations.staggerNormal,
@@ -342,7 +358,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           controller: _passwordController,
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
-                            hintText: 'Your password',
+                            hintText: 'auth.login_screen.password_hint'.tr(),
                             prefixIcon: const Icon(
                               Icons.lock_outline,
                               size: DSIconSize.md,
@@ -375,7 +391,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             style: TextButton.styleFrom(
                               foregroundColor: DSColors.primary,
                             ),
-                            child: const Text('Forgot password?'),
+                            child: Text('auth.forgot_password'.tr()),
                           ),
                         ),
                         DSSpacing.hXs,
@@ -393,8 +409,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           child: Text(
                             _rateLimitRemaining > 0
-                                ? 'Wait ($_rateLimitRemaining s)'
-                                : 'Sign In',
+                                ? 'auth.login_screen.wait_seconds'.tr(
+                                    namedArgs: {
+                                      'seconds': '$_rateLimitRemaining',
+                                    },
+                                  )
+                                : 'auth.login_screen.sign_in'.tr(),
                             style: DSTypography.button().copyWith(
                               fontSize: DSTypography.sizeMd,
                               fontWeight: FontWeight.w600,
@@ -409,11 +429,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         DSSpacing.hXl,
 
                         // ── Contact Admin Footer ──────────────────────────
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: DSSpacing.xs,
                           children: [
                             Text(
-                              'Having trouble? ',
+                              'auth.login_screen.having_trouble'.tr(),
                               style: DSTypography.body().copyWith(
                                 fontSize: DSTypography.sizeMd,
                                 color: subtitleColor,
@@ -422,7 +444,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             GestureDetector(
                               onTap: _callAdmin,
                               child: Text(
-                                'Contact your admin',
+                                'auth.login_screen.contact_admin'.tr(),
                                 style: DSTypography.body().copyWith(
                                   fontSize: DSTypography.sizeMd,
                                   color: DSColors.primary,
@@ -464,7 +486,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await showContactAppSheet(
       context,
       '09213920200',
-      title: 'CONTACT YOUR ADMIN',
+      title: 'auth.login_screen.contact_admin'.tr(),
     );
   }
 }

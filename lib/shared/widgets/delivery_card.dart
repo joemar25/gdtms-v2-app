@@ -2,12 +2,11 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card_components.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
@@ -140,6 +139,14 @@ class DeliveryCard extends StatelessWidget {
       }
     }
 
+    final canViewDeliveryDetails =
+        !isPrivacyMode &&
+        !isChecking &&
+        !isLocked &&
+        isVisible &&
+        !inSyncQueue &&
+        ds != DeliveryStatus.unknown;
+
     if (compact) {
       return _buildCompactCard(
         context: context,
@@ -200,7 +207,7 @@ class DeliveryCard extends StatelessWidget {
             child: InkWell(
               borderRadius: effectiveRadius,
               onTap: isChecking ? null : onTap,
-              onLongPress: isChecking
+              onLongPress: (isChecking || isLocked)
                   ? null
                   : () => _showHoldOptions(context, isDark),
               splashColor: colorForStatus.withValues(alpha: DSStyles.alphaSoft),
@@ -258,12 +265,16 @@ class DeliveryCard extends StatelessWidget {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    if (!isPrivacyMode &&
-                                        (ds == DeliveryStatus.delivered ||
+                                    if (onTap != null &&
+                                        !isPrivacyMode &&
+                                        !isChecking &&
+                                        !isLocked &&
+                                        !inSyncQueue &&
+                                        (ds == DeliveryStatus.pending ||
                                             (ds ==
                                                     DeliveryStatus
                                                         .failedDelivery &&
-                                                attemptsCount >= 3)) &&
+                                                attemptsCount < 3)) &&
                                         mailType.isNotEmpty)
                                       Flexible(
                                         child: Container(
@@ -335,6 +346,39 @@ class DeliveryCard extends StatelessWidget {
                                           fg: attemptsCount >= 3
                                               ? DSColors.error
                                               : DSColors.warning,
+                                        ),
+                                      ),
+                                    if (canViewDeliveryDetails)
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                          left: DSSpacing.xs,
+                                        ),
+                                        child: Material(
+                                          color: DSColors.primary.withValues(
+                                            alpha: DSStyles.alphaSoft,
+                                          ),
+                                          borderRadius: DSStyles.pillRadius,
+                                          child: InkWell(
+                                            borderRadius: DSStyles.pillRadius,
+                                            onTap: () {
+                                              HapticFeedback.lightImpact();
+                                              showDeliveryAccountDetails(
+                                                context,
+                                                delivery,
+                                                barcode,
+                                              );
+                                            },
+                                            child: Container(
+                                              width: 44,
+                                              height: 44,
+                                              alignment: Alignment.center,
+                                              child: Icon(
+                                                Icons.info_rounded,
+                                                size: DSIconSize.lg,
+                                                color: DSColors.primary,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     if (showLockIcon &&
@@ -601,129 +645,9 @@ class DeliveryCard extends StatelessWidget {
   }
 
   void _showHoldOptions(BuildContext context, bool isDark) {
-    final identifier = resolveDeliveryIdentifier(delivery);
-    final address =
-        delivery['address']?.toString() ??
-        delivery['delivery_address']?.toString() ??
-        '';
-    final contact = delivery['contact']?.toString() ?? '';
-    final cleanedContact = contact.cleanContactNumber();
-    final hasMap = address.isNotEmpty && !isPrivacyMode && !isChecking;
-    final hasCall = cleanedContact.isNotEmpty && !isPrivacyMode && !isChecking;
-    final accountNumber = delivery['account_number']?.toString() ?? '';
-    final authRepNumber = delivery['auth_rep_number']?.toString() ?? '';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(DSStyles.radiusCard),
-        ),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(DSSpacing.md),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: DSIconSize.heroSm,
-                    height: DSSpacing.xs,
-                    margin: EdgeInsets.only(bottom: DSSpacing.xl),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? DSColors.white.withValues(
-                              alpha: DSStyles.alphaMuted,
-                            )
-                          : DSColors.black.withValues(
-                              alpha: DSStyles.alphaSubtle,
-                            ),
-                      borderRadius: BorderRadius.circular(DSStyles.radiusSM),
-                    ),
-                  ),
-                ),
-                if (hasMap)
-                  ListTile(
-                    leading: const Icon(
-                      Icons.map_rounded,
-                      color: DSColors.primary,
-                    ),
-                    title: const Text('Open in Maps'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      final url =
-                          'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(address)}';
-                      launchUrl(
-                        Uri.parse(url),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
-                  ),
-                if (hasCall)
-                  ListTile(
-                    leading: const Icon(
-                      Icons.phone_rounded,
-                      color: DSColors.primary,
-                    ),
-                    title: const Text('Call Contact'),
-                    subtitle: Text(cleanedContact),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      launchUrl(
-                        Uri.parse('tel:$cleanedContact'),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
-                  ),
-                if (accountNumber.isNotEmpty)
-                  ListTile(
-                    leading: Icon(
-                      Icons.account_balance_wallet_rounded,
-                      color: isDark
-                          ? DSColors.white.withValues(
-                              alpha: DSStyles.alphaDisabled,
-                            )
-                          : DSColors.black.withValues(
-                              alpha: DSStyles.alphaDisabled,
-                            ),
-                    ),
-                    title: const Text('Account Number'),
-                    subtitle: Text(accountNumber),
-                  ),
-                if (authRepNumber.isNotEmpty)
-                  ListTile(
-                    leading: Icon(
-                      Icons.badge_rounded,
-                      color: isDark
-                          ? DSColors.white.withValues(
-                              alpha: DSStyles.alphaDisabled,
-                            )
-                          : DSColors.black.withValues(
-                              alpha: DSStyles.alphaDisabled,
-                            ),
-                    ),
-                    title: const Text('Auth Rep Number'),
-                    subtitle: Text(authRepNumber),
-                  ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.info_outline_rounded),
-                  title: const Text('View Delivery Details'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    showDeliveryAccountDetails(context, delivery, identifier);
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    HapticFeedback.mediumImpact();
+    final barcode = delivery['barcode']?.toString() ?? '';
+    showDeliveryAccountDetails(context, delivery, barcode);
   }
 
   // ── Detail section ──────────────────────────────────────────────

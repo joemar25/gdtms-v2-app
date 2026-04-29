@@ -3,6 +3,7 @@
 
 import 'dart:async';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,16 +45,21 @@ class FsiCourierApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
     final auth = ref.watch(authProvider);
 
-    return MaterialApp.router(
-      title: 'GDTMS V2 Mobile App',
-      debugShowCheckedModeBanner: false,
-      scaffoldMessengerKey: appScaffoldMessengerKey,
-      themeMode: auth.themeMode,
-      theme: DSTheme.build(Brightness.light),
-      darkTheme: DSTheme.build(Brightness.dark),
-      routerConfig: router,
-      builder: (context, child) =>
-          TimeEnforcer(child: _AutoSyncListener(child: child!)),
+    return Builder(
+      builder: (context) => MaterialApp.router(
+        title: 'GDTMS V2 Mobile App',
+        debugShowCheckedModeBanner: false,
+        scaffoldMessengerKey: appScaffoldMessengerKey,
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
+        themeMode: auth.themeMode,
+        theme: DSTheme.build(Brightness.light),
+        darkTheme: DSTheme.build(Brightness.dark),
+        routerConfig: router,
+        builder: (context, child) =>
+            TimeEnforcer(child: _AutoSyncListener(child: child!)),
+      ),
     );
   }
 }
@@ -110,8 +116,14 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
 
   @override
   void dispose() {
-    _syncPillEntry?.remove();
-    _syncPillEntry = null;
+    if (_syncPillEntry != null) {
+      try {
+        _syncPillEntry?.remove();
+      } catch (e) {
+        debugPrint('[APP] Sync pill removal error: $e');
+      }
+      _syncPillEntry = null;
+    }
     _periodicTimer?.cancel();
     _locationPing.stop();
     WidgetsBinding.instance.removeObserver(this);

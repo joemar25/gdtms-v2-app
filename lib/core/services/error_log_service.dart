@@ -40,4 +40,18 @@ class ErrorLogService {
     detail: detail,
     barcode: barcode,
   );
+
+  /// Clears specific logs programmatically when an issue is resolved.
+  static Future<void> clearByContext(String context, {String? message}) async {
+    try {
+      await ErrorLogDao.instance.deleteByContext(context, message: message);
+    } catch (_) {}
+  }
+
+  /// Manually resolve a specific log entry by ID.
+  static Future<void> resolve(int id) async {
+    try {
+      await ErrorLogDao.instance.deleteById(id);
+    } catch (_) {}
+  }
 }
