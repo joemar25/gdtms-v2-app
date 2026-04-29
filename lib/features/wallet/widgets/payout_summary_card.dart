@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/utils/formatters.dart';
 import 'package:fsi_courier_app/core/config.dart'; // for kAppDebugMode
 
+/// A card displaying the financial summary of a payout request, including
+/// gross earnings, penalties, incentives, and the final net amount.
 class PayoutSummaryCard extends StatelessWidget {
   const PayoutSummaryCard({
     super.key,
@@ -106,21 +109,12 @@ class PayoutSummaryCard extends StatelessWidget {
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
-                        '₱',
-                        style: DSTypography.title(color: DSColors.white)
-                            .copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: DSTypography.sizeXl,
-                            ),
-                      ),
-                      DSSpacing.wXs,
-                      Text(
-                        estimatedNet.toStringAsFixed(2),
+                        AppFormatters.currency(estimatedNet),
                         style: DSTypography.display(color: DSColors.white)
                             .copyWith(
                               fontSize: DSTypography.sizeDisplayHero,
                               fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
+                              letterSpacing: DSTypography.lsTight,
                             ),
                       ),
                     ],
@@ -154,11 +148,12 @@ class PayoutSummaryCard extends StatelessWidget {
                           if (kAppDebugMode && estimatedIncentive != 0) ...[
                             DSSpacing.hXs,
                             _PayoutAmountRow(
-                              label: 'wallet.card.coordinator_incentive'.tr(),
+                              label:
+                                  '${'wallet.card.coordinator_incentive'.tr()} (DEBUG)',
                               amount: estimatedIncentive,
                               isDeduction: true,
                               isDebug: true,
-                              color: DSColors.warning,
+                              color: DSColors.error,
                             ),
                           ],
                         ],
@@ -231,7 +226,7 @@ class _PayoutAmountRow extends StatelessWidget {
             ],
           ),
           Text(
-            '${isDeduction ? '-' : ''}₱ ${amount.abs().toStringAsFixed(2)}',
+            '${isDeduction ? '-' : ''}${AppFormatters.currency(amount.abs())}',
             style: DSTypography.label(color: c).copyWith(
               fontSize: DSTypography.sizeMd,
               fontWeight: FontWeight.w800,

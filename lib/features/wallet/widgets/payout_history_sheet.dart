@@ -7,7 +7,7 @@ import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
 /// Shows a bottom sheet containing only the transaction history/stepper for a payout.
-/// 
+///
 /// ### Features
 /// - Implements a vertical stepper for the [transaction_history] with the latest
 ///   event highlighted at the top.
@@ -21,10 +21,10 @@ Future<void> showPayoutHistorySheet({
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
   final sortedHistory = history
-          .whereType<Map<String, dynamic>>()
-          .toList()
-          .reversed
-          .toList();
+      .whereType<Map<String, dynamic>>()
+      .toList()
+      .reversed
+      .toList();
 
   if (sortedHistory.isEmpty) return;
 
@@ -77,7 +77,7 @@ Future<void> showPayoutHistorySheet({
                 padding: EdgeInsets.zero,
                 trailing: const SecureBadge(),
               ),
-              
+
               DSSpacing.hMd,
 
               // ── Stepper Content ──────────────────────────────────────────
@@ -100,7 +100,10 @@ Future<void> showPayoutHistorySheet({
                         isLast: isLast,
                         isDark: isDark,
                       ).dsCardEntry(
-                        delay: DSAnimations.stagger(index, step: DSAnimations.staggerNormal),
+                        delay: DSAnimations.stagger(
+                          index,
+                          step: DSAnimations.staggerNormal,
+                        ),
                         duration: DSAnimations.dFast,
                       );
                     },

@@ -10,7 +10,7 @@
 //   history, and the list of delivered items that are eligible for payout.
 //
 // Key behaviours:
-//   • Balance card — shows current available balance fetched from the server.
+//   • Balance card — shows current available balance for request fetched from the server.
 //   • Delivered items list — paginated list of delivered parcels with their
 //     individual fees. Only deliveries that pass visibility rules (e.g. within
 //     the payout window, not already paid out) are shown. Locked items that
@@ -110,6 +110,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
     if (!ref.read(isOnlineProvider)) {
       if (mounted) {
+        _applyDynamicFlags(cachedData);
         _data = cachedData;
         _eligible = cachedEligible;
         _paymentMethod = cachedPaymentMethod;
@@ -141,29 +142,11 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       if (pendingAmount != null) {
         newEligible = double.tryParse('$pendingAmount') ?? 0.0;
       }
-
-      // Check if there is already a pending request to prevent duplicate requests
-      final latestRequest = summary['latest_request'];
-      final requestedAt = latestRequest?['requested_at']?.toString() ?? '';
-      bool isToday = false;
-      if (requestedAt.isNotEmpty) {
-        try {
-          final parsedDate = parseServerDate(requestedAt);
-          if (parsedDate != null) {
-            final reqDate = parsedDate.toLocal();
-            final now = DateTime.now();
-            isToday =
-                reqDate.year == now.year &&
-                reqDate.month == now.month &&
-                reqDate.day == now.day;
-          }
-        } catch (_) {}
-      }
-      newData['has_existing_request_today'] =
-          latestRequest != null &&
-          latestRequest['status']?.toString().toUpperCase() == 'PENDING' &&
-          isToday;
     }
+
+    // Recalculate flags (like has_existing_request_today) based on the latest available data
+    // (either fresh from API or from cache) to ensure they are never "stuck" in a stale state.
+    _applyDynamicFlags(newData);
 
     // ── Payout request history (from wallet-summary.payout_history.data) ────
     List<Map<String, dynamic>> historyList = [];
@@ -182,10 +165,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         now.year,
         now.month,
         now.day,
-      ).subtract(const Duration(days: 6));
+      ).subtract(const Duration(days: 30));
 
       historyList = rawList.where((req) {
-        final raw = req['date']?.toString() ?? '';
+        final status = req['status']?.toString().toUpperCase() ?? '';
+        // Always show pending/processing requests so the courier can track them.
+        if (status == 'PENDING' || status == 'PROCESSING') return true;
+
+        final raw = (req['requested_at'] ?? req['date'])?.toString() ?? '';
 
         String dateStr = '';
         if (raw.isNotEmpty) {
@@ -205,6 +192,17 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         }
       }).toList();
     }
+
+    // Sort history by date descending (latest first)
+    historyList.sort((a, b) {
+      final dateA =
+          DateTime.tryParse('${a['requested_at'] ?? a['date'] ?? ''}') ??
+          DateTime(0);
+      final dateB =
+          DateTime.tryParse('${b['requested_at'] ?? b['date'] ?? ''}') ??
+          DateTime(0);
+      return dateB.compareTo(dateA);
+    });
 
     // Parse payment method result
     Map<String, dynamic>? newPaymentMethod = cachedPaymentMethod;
@@ -260,6 +258,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final isInRequestWindow = isWithinPayoutRequestWindow();
 
     ref.listen<int>(walletRefreshProvider, (_, _) => _load());
+    ref.listen<int>(deliveryRefreshProvider, (_, _) => _load());
 
     return PopScope(
       canPop: false,
@@ -293,34 +292,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             title: 'wallet.screen.title'.tr(),
             pageIcon: Icons.account_balance_wallet_rounded,
           ),
-          bottomNavigationBar: (isOnline && canRequestPayout)
-              ? SafeArea(
-                  child: Padding(
-                    padding: EdgeInsets.all(DSSpacing.md),
-                    child: FilledButton.icon(
-                      onPressed: isInRequestWindow
-                          ? () => context.push('/wallet/request')
-                          : null,
-                      icon: Icon(
-                        isInRequestWindow
-                            ? Icons.payments_rounded
-                            : Icons.lock_clock_rounded,
-                      ),
-                      label: Text(
-                        kAppDebugMode
-                            ? 'wallet.screen.request_payout_debug'.tr()
-                            : 'wallet.screen.request_payout'.tr(),
-                      ),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: DSStyles.cardRadius,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              : null,
+          bottomNavigationBar: null,
           body: _loading
               ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(
@@ -390,10 +362,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             _eligible > 0 &&
                             !hasExistingRequestToday &&
                             isInRequestWindow,
-                        onConsolidate: () => context.push(
-                          '/wallet/request',
-                          extra: {'consolidate': true},
-                        ),
+                        canRequest: canRequestPayout && isOnline,
+                        onConsolidate: () =>
+                            context.push('/wallet/request?consolidate=1'),
+                        onRequest: () => context.push('/wallet/request'),
                       ).dsCardEntry(duration: DSAnimations.dNormal),
 
                       DSSpacing.hLg,
@@ -413,27 +385,60 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         ).dsFadeEntry(delay: DSAnimations.stagger(3)),
                         DSSpacing.hSm,
                         ..._historyList.asMap().entries.map(
-                          (entry) => PayoutHistoryRow(
-                            data: entry.value,
-                            onTap: () {
-                              final refVal =
-                                  '${entry.value['reference'] ?? entry.value['payment_reference'] ?? ''}';
-                              if (refVal.isNotEmpty) {
-                                context.push('/wallet/$refVal');
-                              }
-                            },
-                          ).dsCardEntry(
-                            delay: DSAnimations.stagger(entry.key + 1, step: DSAnimations.staggerNormal),
-                          ),
+                          (entry) =>
+                              PayoutHistoryRow(
+                                data: entry.value,
+                                onTap: () {
+                                  final refVal =
+                                      '${entry.value['reference'] ?? entry.value['payment_reference'] ?? ''}';
+                                  if (refVal.isNotEmpty) {
+                                    context.push('/wallet/$refVal');
+                                  }
+                                },
+                              ).dsCardEntry(
+                                delay: DSAnimations.stagger(
+                                  entry.key + 1,
+                                  step: DSAnimations.staggerNormal,
+                                ),
+                              ),
                         ),
                         DSSpacing.hLg,
                       ],
+                      DSSpacing.hXl,
                     ],
                   ),
                 ),
         ),
       ),
     );
+  }
+
+  void _applyDynamicFlags(Map<String, dynamic> data) {
+    final latestRequest = data['latest_request'] as Map<String, dynamic>?;
+    final requestedAt = latestRequest?['requested_at']?.toString() ?? '';
+
+    bool isToday = false;
+    if (requestedAt.isNotEmpty) {
+      try {
+        final parsedDate = parseServerDate(requestedAt);
+        if (parsedDate != null) {
+          final reqDate = parsedDate.toLocal();
+          final now = DateTime.now();
+          isToday =
+              reqDate.year == now.year &&
+              reqDate.month == now.month &&
+              reqDate.day == now.day;
+        }
+      } catch (_) {}
+    }
+
+    // A request is considered "existing today" only if it was made today AND it is still PENDING.
+    // If it was already PAID or REJECTED today, the courier should be allowed to submit a new
+    // request for any subsequent earnings.
+    data['has_existing_request_today'] =
+        latestRequest != null &&
+        latestRequest['status']?.toString().toUpperCase() == 'PENDING' &&
+        isToday;
   }
 
   // _showEarningsDetail removed — unused helper

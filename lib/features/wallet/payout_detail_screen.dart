@@ -11,10 +11,15 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/utils/formatters.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/deliveries_rundown_card.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/payout_history_sheet.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/payout_detail_components.dart';
 
+/// Detailed view of a specific payout request.
+///
+/// Displays the breakdown of earnings, transaction history, and the
+/// list of individual deliveries included in the payout.
 class PayoutDetailScreen extends ConsumerStatefulWidget {
   const PayoutDetailScreen({super.key, required this.reference});
 
@@ -106,8 +111,14 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         '${_data['reference'] ?? _data['payment_reference'] ?? widget.reference}';
     final status = '${_data['status'] ?? ''}';
     final amount = double.tryParse('${_data['amount'] ?? 0}') ?? 0.0;
-    final from = formatDate('${_data['from_date'] ?? ''}');
-    final to = formatDate('${_data['to_date'] ?? ''}');
+    final from = AppFormatters.date(
+      DateTime.tryParse('${_data['from_date'] ?? ''}') ?? DateTime(0),
+      context,
+    );
+    final to = AppFormatters.date(
+      DateTime.tryParse('${_data['to_date'] ?? ''}') ?? DateTime(0),
+      context,
+    );
     final periodLabel = (from == to) ? from : '$from – $to';
     final totalItems = _data['total_items'];
     final breakdown = asStringDynamicMap(_data['breakdown']);
@@ -116,6 +127,10 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
             ?.whereType<Map<String, dynamic>>()
             .toList() ??
         [];
+
+    final requestedAt = _data['requested_at'] != null
+        ? formatDate('${_data['requested_at']}', includeTime: true)
+        : null;
 
     return Scaffold(
       appBar: AppHeaderBar(
@@ -174,6 +189,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                     status: status,
                     reference: reference,
                     periodLabel: periodLabel,
+                    requestedAt: requestedAt,
                     totalItems: totalItems,
                     breakdown: breakdown,
                   ).dsHeroEntry(),
@@ -198,8 +214,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
       return [];
     }
 
-    final List<Map<String, dynamic>> normalised =
-        raw.whereType<Map<String, dynamic>>().map((day) {
+    final List<Map<String, dynamic>>
+    normalised = raw.whereType<Map<String, dynamic>>().map((day) {
       final deliveries =
           (day['deliveries'] as List?)?.whereType<Map<String, dynamic>>().map((
             d,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/utils/formatters.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
 /// Unified card showing the aggregate rundown of deliveries grouped by date.
@@ -100,7 +101,7 @@ class _RundownRow extends StatelessWidget {
             ),
           ),
           Text(
-            '₱ ${total.toStringAsFixed(2)}',
+            AppFormatters.currency(total),
             style:
                 DSTypography.title(
                   color: isDark ? DSColors.white : DSColors.labelPrimary,

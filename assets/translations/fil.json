@@ -224,6 +224,7 @@
       "items": "Mga Item",
       "reference": "Reference",
       "period": "Period",
+      "requested_at": "Hiniling Noong",
       "tap_to_reveal": "I-tap para makita ang breakdown",
       "breakdown_details": "Mga Detalye ng Breakdown",
       "view_history": "Tingnan ang Kasaysayan",
@@ -239,11 +240,13 @@
       "cancelled": "Payout Kinansela"
     },
     "card": {
-      "available_balance": "Magagamit na Balanse",
+      "available_balance": "Balanse",
       "accumulated_earnings": "Naipong Kita",
       "tap_to_view_account": "PINDUTIN UPANG TINGNAN ANG ACCOUNT",
       "pending_payout": "PENDING PAYOUT",
+      "available_to_request": "PUWEDENG HUMILING NG PAYOUT",
       "consolidate": "Pagsamahin",
+      "request": "Humiling",
       "eligible_deliveries": "Mga Karapat-dapat na Delivery",
       "estimated_net_payout": "TANTYANG NETONG PAYOUT",
       "gross_amount": "Kabuuang Halaga",

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/utils/formatters.dart';
 
 /// A card with a vertical colored strip used for grouping rundown items.
 class SectionCard extends StatelessWidget {
@@ -76,7 +77,10 @@ class StatusBadgeLight extends StatelessWidget {
       ),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: 5,
+      ),
       decoration: BoxDecoration(color: bg, borderRadius: DSStyles.cardRadius),
       child: Text(
         status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
@@ -96,6 +100,7 @@ class PayoutHeroFlipCard extends StatefulWidget {
     required this.status,
     required this.reference,
     required this.periodLabel,
+    this.requestedAt,
     this.totalItems,
     required this.breakdown,
   });
@@ -104,6 +109,7 @@ class PayoutHeroFlipCard extends StatefulWidget {
   final String status;
   final String reference;
   final String periodLabel;
+  final String? requestedAt;
   final int? totalItems;
   final Map<String, dynamic> breakdown;
 
@@ -214,13 +220,28 @@ class _PayoutHeroFlipCardState extends State<PayoutHeroFlipCard>
           ),
           DSSpacing.hXs,
           Text(
-            '₱ ${widget.amount.toStringAsFixed(2)}',
+            AppFormatters.currency(widget.amount),
             style: DSTypography.display(color: DSColors.white).copyWith(
               fontSize: DSIconSize.xl,
               fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
+              letterSpacing: DSTypography.lsTight,
             ),
           ),
+          if (widget.requestedAt != null) ...[
+            DSSpacing.hXs,
+            Text(
+              '${'wallet.detail.requested_at'.tr()}: ${widget.requestedAt}',
+              style:
+                  DSTypography.caption(
+                    color: DSColors.white.withValues(
+                      alpha: DSStyles.alphaDisabled,
+                    ),
+                  ).copyWith(
+                    fontSize: DSTypography.sizeXs,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ],
           DSSpacing.hMd,
           Divider(
             color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
@@ -317,7 +338,13 @@ class _PayoutHeroFlipCardState extends State<PayoutHeroFlipCard>
               .map((e) {
                 final val = double.tryParse('${e.value}') ?? 0.0;
                 final isDeduction = val < 0;
-                final label = _formatKey(e.key);
+                final isIncentive = e.key == 'coordinator_incentive';
+                final label = isIncentive
+                    ? '${_formatKey(e.key)} (DEBUG)'
+                    : _formatKey(e.key);
+                final valueColor = isIncentive
+                    ? DSColors.error
+                    : (isDeduction ? DSColors.errorSurface : DSColors.white);
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: DSSpacing.sm),
@@ -327,21 +354,21 @@ class _PayoutHeroFlipCardState extends State<PayoutHeroFlipCard>
                       Text(
                         label,
                         style: DSTypography.body().copyWith(
-                          color: DSColors.white.withValues(
-                            alpha: DSStyles.alphaOpaque,
-                          ),
+                          color: isIncentive
+                              ? DSColors.error
+                              : DSColors.white.withValues(
+                                  alpha: DSStyles.alphaOpaque,
+                                ),
                           fontSize: DSTypography.sizeSm,
                         ),
                       ),
                       Text(
-                        '₱ ${val.abs().toStringAsFixed(2)}',
+                        AppFormatters.currency(val),
                         style: DSTypography.body().copyWith(
-                          color: isDeduction
-                              ? DSColors.errorSurface
-                              : DSColors.white,
+                          color: valueColor,
                           fontWeight: FontWeight.w900,
                           fontSize: DSTypography.sizeMd,
-                          letterSpacing: -0.2,
+                          letterSpacing: DSTypography.lsTight,
                         ),
                       ),
                     ],

@@ -224,6 +224,7 @@
       "items": "Items",
       "reference": "Reference",
       "period": "Period",
+      "requested_at": "Requested At",
       "tap_to_reveal": "Tap to reveal breakdown",
       "breakdown_details": "Breakdown Details",
       "view_history": "View History",
@@ -239,11 +240,13 @@
       "cancelled": "Payout Cancelled"
     },
     "card": {
-      "available_balance": "Available Balance",
+      "available_balance": "Available For Request",
       "accumulated_earnings": "Accumulated Earnings",
       "tap_to_view_account": "TAP TO VIEW ACCOUNT",
       "pending_payout": "PENDING PAYOUT",
+      "available_to_request": "AVAILABLE TO REQUEST",
       "consolidate": "Consolidate",
+      "request": "Request",
       "eligible_deliveries": "Eligible Deliveries",
       "estimated_net_payout": "ESTIMATED NET PAYOUT",
       "gross_amount": "Gross Amount",

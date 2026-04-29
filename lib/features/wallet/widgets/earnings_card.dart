@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/utils/formatters.dart';
 
+/// A card widget that displays earnings information, typically showing
+/// tentative payout and pending request amounts.
 class EarningsCard extends StatelessWidget {
   const EarningsCard({
     super.key,
     required this.tentativePayout,
     required this.pendingRequestAmt,
     required this.canConsolidate,
+    required this.canRequest,
     this.onTap,
     this.onConsolidate,
+    this.onRequest,
     this.watermarkIcon = Icons.account_balance_wallet_rounded,
     this.isFlipping = true,
     this.isLatestPending = false,
@@ -20,8 +25,10 @@ class EarningsCard extends StatelessWidget {
   final dynamic tentativePayout;
   final dynamic pendingRequestAmt;
   final bool canConsolidate;
+  final bool canRequest;
   final VoidCallback? onTap;
   final VoidCallback? onConsolidate;
+  final VoidCallback? onRequest;
   final IconData watermarkIcon;
   final bool isFlipping;
   final bool isLatestPending;
@@ -179,80 +186,110 @@ class EarningsCard extends StatelessWidget {
                           ],
                         ),
                   ),
-                  if (showPending && isLatestPending && pendingAmt > 0)
+                  if ((showPending && isLatestPending && pendingAmt > 0) ||
+                      (canRequest && onRequest != null))
                     Container(
-                      padding: EdgeInsets.all(DSSpacing.xl),
+                      padding: EdgeInsets.all(
+                        isLatestPending ? DSSpacing.xl : DSSpacing.md,
+                      ),
                       decoration: BoxDecoration(
                         color: DSColors.black.withValues(
                           alpha: DSStyles.alphaSoft,
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(DSSpacing.md),
-                            decoration: const BoxDecoration(
-                              color: DSColors.pendingSurface,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.schedule_rounded,
-                              color: DSColors.pending,
-                              size: DSIconSize.md,
-                            ),
-                          ),
-                          DSSpacing.wMd,
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child: isLatestPending
+                          ? Row(
                               children: [
-                                Text(
-                                  'wallet.card.pending_payout'.tr(),
-                                  style:
-                                      DSTypography.caption(
-                                        color: DSColors.white,
-                                      ).copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing:
-                                            DSTypography.lsExtraLoose,
-                                        fontSize: DSTypography.sizeXs,
-                                      ),
+                                Container(
+                                  padding: EdgeInsets.all(DSSpacing.md),
+                                  decoration: const BoxDecoration(
+                                    color: DSColors.pendingSurface,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.schedule_rounded,
+                                    color: DSColors.pending,
+                                    size: DSIconSize.md,
+                                  ),
                                 ),
-                                Text(
-                                  '₱ ${_fmt(pendingAmt)}',
-                                  style:
-                                      DSTypography.title(
-                                        color: DSColors.white,
-                                      ).copyWith(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: DSTypography.sizeXl,
+                                DSSpacing.wMd,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'wallet.card.pending_payout'.tr(),
+                                        style:
+                                            DSTypography.caption(
+                                              color: DSColors.white,
+                                            ).copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing:
+                                                  DSTypography.lsExtraLoose,
+                                              fontSize: DSTypography.sizeXs,
+                                            ),
                                       ),
+                                      Text(
+                                        AppFormatters.currency(pendingAmt),
+                                        style:
+                                            DSTypography.title(
+                                              color: DSColors.white,
+                                            ).copyWith(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: DSTypography.sizeXl,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                                if (canConsolidate && onConsolidate != null)
+                                  OutlinedButton.icon(
+                                    onPressed: onConsolidate,
+                                    icon: const Icon(
+                                      Icons.swap_calls_rounded,
+                                      size: 20,
+                                    ),
+                                    label: Text('wallet.card.consolidate'.tr()),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: DSColors.white,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: DSSpacing.lg,
+                                        vertical: DSSpacing.md,
+                                      ),
+                                      side: const BorderSide(
+                                        color: DSColors.white,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: DSStyles.cardRadius,
+                                      ),
+                                    ),
+                                  ),
                               ],
-                            ),
-                          ),
-                          if (canConsolidate && onConsolidate != null)
-                            OutlinedButton.icon(
-                              onPressed: onConsolidate,
-                              icon: const Icon(
-                                Icons.swap_calls_rounded,
-                                size: 20,
+                            )
+                          : Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: DSSpacing.sm,
                               ),
-                              label: Text('wallet.card.consolidate'.tr()),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: DSColors.white,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: DSSpacing.lg,
-                                  vertical: DSSpacing.md,
+                              child: OutlinedButton.icon(
+                                onPressed: onRequest,
+                                icon: const Icon(
+                                  Icons.payments_rounded,
+                                  size: 20,
                                 ),
-                                side: const BorderSide(color: DSColors.white),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: DSStyles.cardRadius,
+                                label: Text(
+                                  'wallet.screen.request_payout'.tr(),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: DSColors.white,
+                                  minimumSize: const Size.fromHeight(48),
+                                  side: const BorderSide(color: DSColors.white),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: DSStyles.cardRadius,
+                                  ),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
                     ),
                 ],
               ),

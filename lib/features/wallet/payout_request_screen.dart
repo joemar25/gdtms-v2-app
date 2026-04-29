@@ -44,9 +44,16 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/utils/formatters.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/payout_summary_card.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/deliveries_rundown_card.dart';
 
+/// Screen for requesting a payout of accumulated earnings.
+///
+/// This screen allows couriers to review their eligible deliveries, see
+/// estimated gross/net amounts, and submit a formal payment request.
+/// It enforces the payout window time constraints and handles server
+/// validation and conflict states.
 class PayoutRequestScreen extends ConsumerStatefulWidget {
   const PayoutRequestScreen({super.key, this.isConsolidation = false});
 
@@ -105,35 +112,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    // ── Time-window guard (defense-in-depth) ────────────────────────────────
-    // The WalletScreen already prevents navigation here outside the window, but
-    // guard again in case the screen is reached via a deep-link or future route.
-    if (!isWithinPayoutRequestWindow()) {
-      final fromLabel =
-          '${kPayoutWindowStartHour.toString().padLeft(2, '0')}:00 AM';
-      final toLabel = kPayoutWindowEndHour == 12
-          ? '12:00 PM (noon)'
-          : '${kPayoutWindowEndHour.toString().padLeft(2, '0')}:00';
-      setState(() {
-        _error = 'wallet.request.request_window_denied'.tr(
-          namedArgs: {'from': fromLabel, 'to': toLabel},
-        );
-      });
-      return;
-    }
-
-    final preview = _previewData;
-    if (preview == null) return;
-
-    final coverage = preview['coverage_period'] as Map<String, dynamic>?;
-    final fromDate = coverage?['from_date'] as String?;
-    final toDate = coverage?['to_date'] as String?;
-    final estimatedNet =
-        (preview['estimated_net_payable'] as num?)?.toDouble() ?? 0;
-
+  Future<bool?> _showConfirmDialog(double estimatedNet) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final confirmed = await showDialog<bool>(
+    return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
@@ -159,10 +140,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             DSSpacing.hMd,
             Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(
-                horizontal: DSSpacing.md,
-                vertical: DSSpacing.md,
-              ),
+              padding: EdgeInsets.all(DSSpacing.md),
               decoration: BoxDecoration(
                 color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
                 borderRadius: DSStyles.cardRadius,
@@ -177,20 +155,12 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    '₱',
-                    style: DSTypography.title(color: DSColors.primary).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: DSTypography.sizeXl,
-                    ),
-                  ),
-                  DSSpacing.wXs,
-                  Text(
-                    estimatedNet.toStringAsFixed(2),
+                    AppFormatters.currency(estimatedNet),
                     style: DSTypography.display(color: DSColors.primary)
                         .copyWith(
                           fontWeight: FontWeight.w900,
                           fontSize: DSTypography.sizeHero,
-                          letterSpacing: -0.5,
+                          letterSpacing: DSTypography.lsTight,
                         ),
                   ),
                 ],
@@ -223,7 +193,34 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         ],
       ),
     );
+  }
 
+  Future<void> _submit() async {
+    if (!isWithinPayoutRequestWindow()) {
+      final fromLabel = kPayoutWindowStartHour == 0
+          ? '12:00 AM'
+          : '${kPayoutWindowStartHour.toString().padLeft(2, '0')}:00 AM';
+      final toLabel = kPayoutWindowEndHour == 12
+          ? '12:00 PM'
+          : '${kPayoutWindowEndHour.toString().padLeft(2, '0')}:00';
+      setState(() {
+        _error = 'wallet.request.request_window_denied'.tr(
+          namedArgs: {'from': fromLabel, 'to': toLabel},
+        );
+      });
+      return;
+    }
+
+    final preview = _previewData;
+    if (preview == null) return;
+
+    final coverage = preview['coverage_period'] as Map<String, dynamic>?;
+    final fromDate = coverage?['from_date'] as String?;
+    final toDate = coverage?['to_date'] as String?;
+    final estimatedNet =
+        (preview['estimated_net_payable'] as num?)?.toDouble() ?? 0;
+
+    final confirmed = await _showConfirmDialog(estimatedNet);
     if (confirmed != true) return;
 
     setState(() {
@@ -242,7 +239,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     if (!mounted) return;
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
-      // Signal wallet to reload before navigating back.
       ref.read(walletRefreshProvider.notifier).increment();
       showAppSnackbar(
         context,
@@ -258,7 +254,9 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       final firstError = result.errors.values.isNotEmpty
           ? result.errors.values.first.first
           : null;
-      setState(() => _error = firstError ?? result.message ?? 'Invalid input.');
+      setState(
+        () => _error = firstError ?? result.message ?? 'errors.not_found'.tr(),
+      );
     } else if (result is ApiConflict<Map<String, dynamic>>) {
       setState(
         () => _error = result.message.isNotEmpty
@@ -322,15 +320,19 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           }).toList() ??
           [];
       return <String, dynamic>{...day, 'deliveries': deliveries};
-    }).toList();
+    }).toList()..sort((a, b) {
+      final dateA = DateTime.tryParse('${a['date'] ?? ''}') ?? DateTime(0);
+      final dateB = DateTime.tryParse('${b['date'] ?? ''}') ?? DateTime(0);
+      return dateB.compareTo(dateA);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Use the canonical theme tokens so this screen matches every other screen.
-    // Do NOT hardcode raw Color() values here — use ColorStyles constants.
+
+    // Standard scaffolding following FSI Design System rules.
     final scaffoldBg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
     final appBarBg = isDark ? DSColors.cardDark : DSColors.cardLight;
 
@@ -341,7 +343,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           title: widget.isConsolidation
               ? 'wallet.request.appbar_title_consolidate'.tr()
               : 'wallet.request.appbar_title'.tr(),
-          // pageIcon: Icons.payments_rounded,
           backgroundColor: appBarBg,
         ),
         body: Center(
@@ -488,17 +489,14 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       (preview['daily_breakdown'] as List?)?.cast<Map<String, dynamic>>() ?? [],
     );
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
+
     return ListView(
       padding:
           EdgeInsets.all(DSSpacing.md) + EdgeInsets.only(bottom: bottomPadding),
       children: [
-        // ── Consolidation notice ──────────────────────────────────────
         if (widget.isConsolidation) ...[
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DSSpacing.md,
-              vertical: DSSpacing.md,
-            ),
+            padding: const EdgeInsets.all(DSSpacing.md),
             decoration: BoxDecoration(
               color: DSColors.warning.withValues(alpha: DSStyles.alphaSoft),
               borderRadius: DSStyles.cardRadius,
@@ -533,7 +531,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           DSSpacing.hMd,
         ],
 
-        // ── Summary Card ──────────────────────────────────────────────
         PayoutSummaryCard(
           eligibleCount: eligibleCount,
           estimatedGross: estimatedGross,
@@ -546,17 +543,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         ),
         DSSpacing.hMd,
 
-        // // ── Coverage Period ───────────────────────────────────────────
-        // if (toDate.isNotEmpty) ...[
-        //   _CoveragePeriodBar(
-        //     fromDate: fromDate,
-        //     toDate: toDate,
-        //     fmtShort: _fmtShort,
-        //   ),
-        //   DSSpacing.hLg,
-        // ],
-
-        // ── Date Strip + Deliveries ───────────────────────────────────
         if (dailyBreakdown.isNotEmpty) ...[
           DSSectionHeader(
             title: 'wallet.detail.deliveries_rundown'.tr(),
@@ -570,7 +556,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           ),
         ],
 
-        // ── Submission limits banner (hidden in consolidation — banner above covers it) ──
         if (!widget.isConsolidation &&
             preview['has_existing_request_today'] == true) ...[
           DSSpacing.hMd,
@@ -644,7 +629,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           ),
         ],
 
-        // ── Error banner ──────────────────────────────────────────────
         if (_error != null) ...[
           DSSpacing.hMd,
           Container(
@@ -671,86 +655,3 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     );
   }
 }
-
-// // ─── Coverage Period Bar ──────────────────────────────────────────────────────
-// // mar-note: do not remove this, since this can be useful someday
-
-// class _CoveragePeriodBar extends StatelessWidget {
-//   const _CoveragePeriodBar({
-//     required this.fromDate,
-//     required this.toDate,
-//     required this.fmtShort,
-//   });
-
-//   final String fromDate;
-//   final String toDate;
-//   final String Function(String) fmtShort;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     // If from == to (single day), just say "Up to [date]"
-//     final isSingleDay = fromDate == toDate || fromDate.isEmpty;
-//     final label = isSingleDay
-//         ? 'Up to ${fmtShort(toDate)}'
-//         : '${fmtShort(fromDate)}  –  ${fmtShort(toDate)}';
-
-//     return Container(
-//       padding: EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
-//       decoration: BoxDecoration(
-//         color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
-//         borderRadius: DSStyles.cardRadius,
-//         border: Border.all(color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted)),
-//       ),
-//       child: Row(
-//         children: [
-//           Icon(
-//             Icons.date_range_rounded,
-//             size: DSIconSize.md,
-//             color: DSColors.primary,
-//           ),
-//           DSSpacing.wSm,
-//           Expanded(
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 Text(
-//                   'COVERAGE PERIOD',
-//                   style: TextStyle(
-//                     fontSize: DSTypography.sizeXs,
-//                     fontWeight: FontWeight.w700,
-//                     letterSpacing: 1.0,
-//                     color: DSColors.primary,
-//                   ),
-//                 ),
-//                 DSSpacing.hXs,
-//                 Text(
-//                   label,
-//                   style: const TextStyle(
-//                     fontSize: DSTypography.sizeMd,
-//                     fontWeight: FontWeight.w800,
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//           if (!isSingleDay)
-//             Container(
-//               padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: DSSpacing.xs),
-//               decoration: BoxDecoration(
-//                 color: DSColors.primary.withValues(alpha: DSStyles.alphaSubtle),
-//                 borderRadius: DSStyles.cardRadius,
-//               ),
-//               child: Text(
-//                 '7 DAYS',
-//                 style: TextStyle(
-//                   fontSize: DSTypography.sizeXs,
-//                   fontWeight: FontWeight.w800,
-//                   color: DSColors.primary,
-//                 ),
-//               ),
-//             ),
-//         ],
-//       ),
-//     );
-//   }
-// }

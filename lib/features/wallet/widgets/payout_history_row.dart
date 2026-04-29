@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/utils/formatters.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
+/// A row widget for displaying a single payout request in the history list.
 class PayoutHistoryRow extends StatelessWidget {
   const PayoutHistoryRow({super.key, required this.data, required this.onTap});
 
@@ -13,7 +15,20 @@ class PayoutHistoryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = '${data['status'] ?? ''}';
     final amount = double.tryParse('${data['amount'] ?? 0}') ?? 0.0;
-    final dateLabel = formatDate('${data['date'] ?? ''}');
+    final rawDate =
+        data['requested_at'] ??
+        data['date'] ??
+        data['updated_at'] ??
+        data['created_at'] ??
+        data['paid_at'] ??
+        data['transaction_date'] ??
+        data['to_date'] ??
+        data['from_date'] ??
+        '';
+    final dateLabel = formatDate(
+      '$rawDate',
+      includeTime: rawDate.toString().contains('T'),
+    ).trim();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -97,12 +112,12 @@ class PayoutHistoryRow extends StatelessWidget {
                       color: isDark ? DSColors.white : DSColors.labelPrimary,
                     ),
                   ),
-                  DSSpacing
-                      .hXs, // Use XS (4.0) or half of it. I'll use hXs for simplicity or a custom small gap.
+                  DSSpacing.hXs,
                   Text(
-                    reference.isNotEmpty
-                        ? '$dateLabel \u2022 $reference'
-                        : dateLabel,
+                    [
+                      if (dateLabel.isNotEmpty) dateLabel,
+                      if (reference.isNotEmpty) reference,
+                    ].join(' \u2022 '),
                     style: DSTypography.caption(
                       color: isDark
                           ? DSColors.labelSecondaryDark
@@ -121,7 +136,7 @@ class PayoutHistoryRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '₱ ${amount.toStringAsFixed(2)}',
+                      AppFormatters.currency(amount),
                       style:
                           DSTypography.title(
                             color: isDark
@@ -130,7 +145,7 @@ class PayoutHistoryRow extends StatelessWidget {
                           ).copyWith(
                             fontWeight: FontWeight.w800,
                             fontSize: DSTypography.sizeMd,
-                            letterSpacing: -0.2,
+                            letterSpacing: DSTypography.lsTight,
                           ),
                     ),
                     Icon(

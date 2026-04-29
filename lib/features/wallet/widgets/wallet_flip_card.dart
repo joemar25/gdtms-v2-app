@@ -13,7 +13,9 @@ class WalletFlipCard extends StatefulWidget {
     required this.showPending,
     required this.paymentMethod,
     this.canConsolidate = false,
+    this.canRequest = false,
     this.onConsolidate,
+    this.onRequest,
   });
 
   final dynamic tentativePayout;
@@ -22,7 +24,9 @@ class WalletFlipCard extends StatefulWidget {
   final bool showPending;
   final Map<String, dynamic>? paymentMethod;
   final bool canConsolidate;
+  final bool canRequest;
   final VoidCallback? onConsolidate;
+  final VoidCallback? onRequest;
 
   @override
   State<WalletFlipCard> createState() => _WalletFlipCardState();
@@ -60,13 +64,15 @@ class _WalletFlipCardState extends State<WalletFlipCard>
 
   @override
   Widget build(BuildContext context) {
-    // If not latest pending, only show the front (no flip needed)
-    if (!widget.isLatestPending || widget.paymentMethod == null) {
+    // If no payment method is available, show the card without flipping
+    if (widget.paymentMethod == null) {
       return EarningsCard(
         tentativePayout: widget.tentativePayout,
         pendingRequestAmt: widget.pendingRequestAmt,
         canConsolidate: widget.canConsolidate,
+        canRequest: widget.canRequest,
         onConsolidate: widget.onConsolidate,
+        onRequest: widget.onRequest,
         isLatestPending: widget.isLatestPending,
         showPending: widget.showPending,
         isFlipping: false,
@@ -92,7 +98,9 @@ class _WalletFlipCardState extends State<WalletFlipCard>
                     tentativePayout: widget.tentativePayout,
                     pendingRequestAmt: widget.pendingRequestAmt,
                     canConsolidate: widget.canConsolidate,
+                    canRequest: widget.canRequest,
                     onConsolidate: widget.onConsolidate,
+                    onRequest: widget.onRequest,
                     isLatestPending: widget.isLatestPending,
                     showPending: widget.showPending,
                     watermarkIcon: Icons.account_balance_rounded,
@@ -107,7 +115,9 @@ class _WalletFlipCardState extends State<WalletFlipCard>
                   tentativePayout: widget.tentativePayout,
                   pendingRequestAmt: widget.pendingRequestAmt,
                   canConsolidate: widget.canConsolidate,
+                  canRequest: widget.canRequest,
                   onConsolidate: widget.onConsolidate,
+                  onRequest: widget.onRequest,
                   isLatestPending: widget.isLatestPending,
                   showPending: widget.showPending,
                   onTap: _flip,
