@@ -222,6 +222,11 @@ Future<void> showDeliveryAccountDetails(
       ? int.tryParse(barcode.substring(slashIdx + 1).trim()) ?? 0
       : 0;
 
+  final hasShownAuthRepInContact = contact.split('/').any((n) {
+    final cn = n.trim();
+    return authRepNumber.isNotEmpty && cn.contains(authRepNumber);
+  });
+
   void copyToClipboard(String text, String label) {
     if (text.isEmpty) return;
     Clipboard.setData(ClipboardData(text: text));
@@ -382,17 +387,20 @@ Future<void> showDeliveryAccountDetails(
                             onLongPress: () =>
                                 copyToClipboard(cleanContact, 'Contact number'),
                             showDivider: showDivider,
+                            padding: isFirstOfParty
+                                ? null
+                                : EdgeInsets.only(
+                                    top: 0,
+                                    bottom: DSSpacing.md,
+                                    left: DSSpacing.md,
+                                    right: DSSpacing.md,
+                                  ),
                           );
                         }),
                       if (authRepNumber.isNotEmpty &&
                           !contact.contains(authRepNumber))
                         DSInfoTile(
-                          label:
-                              contact.split('/').any((n) {
-                                final cn = n.trim();
-                                return authRepNumber.isNotEmpty &&
-                                    cn.contains(authRepNumber);
-                              })
+                          label: hasShownAuthRepInContact
                               ? ''
                               : 'Auth Rep Contact',
                           value: authRepNumber,
@@ -401,6 +409,14 @@ Future<void> showDeliveryAccountDetails(
                           onLongPress: () =>
                               copyToClipboard(authRepNumber, 'Auth rep number'),
                           showDivider: false,
+                          padding: hasShownAuthRepInContact
+                              ? EdgeInsets.only(
+                                  top: 0,
+                                  bottom: DSSpacing.md,
+                                  left: DSSpacing.md,
+                                  right: DSSpacing.md,
+                                )
+                              : null,
                         ),
                     ],
                   ),

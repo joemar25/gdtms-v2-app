@@ -54,15 +54,17 @@ class DSInfoTile extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          label.toUpperCase(),
-                          style: DSTypography.label(
-                            color: isDark
-                                ? DSColors.labelTertiaryDark
-                                : DSColors.labelTertiary,
+                        if (label.isNotEmpty) ...[
+                          Text(
+                            label.toUpperCase(),
+                            style: DSTypography.label(
+                              color: isDark
+                                  ? DSColors.labelTertiaryDark
+                                  : DSColors.labelTertiary,
+                            ),
                           ),
-                        ),
-                        DSSpacing.hXs,
+                          DSSpacing.hXs,
+                        ],
                         Text(
                           value,
                           style: DSTypography.body(color: valueColor).copyWith(

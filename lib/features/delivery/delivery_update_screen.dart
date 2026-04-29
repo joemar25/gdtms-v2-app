@@ -76,6 +76,7 @@ import 'package:fsi_courier_app/features/delivery/widgets/searchable_selection_s
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
@@ -221,9 +222,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             _delivery['delivery_status']?.toString().toUpperCase() ??
             'DELIVERED';
         setState(() {
-          if (kUpdateStatuses.contains(currentStatus)) {
-            _status = currentStatus;
-          }
+          _status = kUpdateStatuses.contains(currentStatus)
+              ? currentStatus
+              : kUpdateStatuses.first;
           _loadingDelivery = false;
         });
         return;
@@ -239,9 +240,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     final currentStatus =
         _delivery['delivery_status']?.toString().toUpperCase() ?? 'DELIVERED';
     setState(() {
-      if (kUpdateStatuses.contains(currentStatus)) {
-        _status = currentStatus;
-      }
+      _status = kUpdateStatuses.contains(currentStatus)
+          ? currentStatus
+          : kUpdateStatuses.first;
       _loadingDelivery = false;
     });
   }
@@ -752,6 +753,37 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     required String to,
     required String detail,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fullText = 'delivery_update.switch_status.content'.tr(
+      namedArgs: {
+        'detail': '<b>$detail</b>',
+        'from': '<b>${from.toDisplayStatus()}</b>',
+        'to': '<b>${to.toDisplayStatus()}</b>',
+      },
+    );
+
+    final spans = <InlineSpan>[];
+    final regex = RegExp(r'<b>(.*?)</b>');
+    int lastMatchEnd = 0;
+
+    for (final match in regex.allMatches(fullText)) {
+      if (match.start > lastMatchEnd) {
+        spans.add(
+          TextSpan(text: fullText.substring(lastMatchEnd, match.start)),
+        );
+      }
+      spans.add(
+        TextSpan(
+          text: match.group(1),
+          style: DSTypography.body(fontWeight: FontWeight.bold),
+        ),
+      );
+      lastMatchEnd = match.end;
+    }
+    if (lastMatchEnd < fullText.length) {
+      spans.add(TextSpan(text: fullText.substring(lastMatchEnd)));
+    }
+
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -759,11 +791,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           'delivery_update.switch_status.title'.tr(),
           style: DSTypography.heading().copyWith(fontSize: DSTypography.sizeMd),
         ),
-        content: Text(
-          'delivery_update.switch_status.content'.tr(
-            namedArgs: {'detail': detail, 'from': from, 'to': to},
+        content: Text.rich(
+          TextSpan(
+            style: DSTypography.body().copyWith(
+              fontSize: DSTypography.sizeMd,
+              color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
+            ),
+            children: spans,
           ),
-          style: DSTypography.body().copyWith(fontSize: DSTypography.sizeMd),
         ),
         actions: [
           TextButton(
@@ -825,13 +860,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   // ─── Build helpers ────────────────────────────────────────────────────────
 
   bool get _isDirty {
-    // Compare against the loaded delivery's initial status so the form isn't
-    // considered dirty just because the delivery wasn't DELIVERED to begin
-    // with (e.g. FAILED or MISROUTED).
-    final initialStatus =
-        _delivery['delivery_status']?.toString().toUpperCase() ?? 'DELIVERED';
-    return _status != initialStatus ||
-        _recipient.text.isNotEmpty ||
+    // We no longer consider the status selection itself as "dirty" for the
+    // purpose of the discard dialog. This allows couriers to toggle between
+    // DELIVERED, FAILED, and OSA to see the required fields without being
+    // warned on exit, provided they haven't actually filled anything yet.
+    return _recipient.text.isNotEmpty ||
         _note.text.isNotEmpty ||
         _relationship != null ||
         _relationshipSpecify.text.isNotEmpty ||
@@ -843,7 +876,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         _mailpackPhoto != null ||
         _photos.isNotEmpty ||
         _signaturePath != null ||
-        _confirmationCode.text.isNotEmpty;
+        _confirmationCode.text.isNotEmpty ||
+        _placement != 'RECEIVED';
   }
 
   @override
