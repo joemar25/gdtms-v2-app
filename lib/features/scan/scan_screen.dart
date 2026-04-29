@@ -792,16 +792,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                           isOnline
                                               ? 'Dispatch scanning requires an internet connection.'
                                               : 'You are offline — dispatch scanning unavailable.',
-                                          style: DSTypography.body(
-                                            color: isOnline
-                                                ? DSColors.white.withValues(
-                                                    alpha:
-                                                        DSStyles.alphaDisabled,
-                                                  )
-                                                : DSColors.warning,
-                                          ).copyWith(
-                                            fontSize: DSTypography.sizeSm,
-                                          ),
+                                          style:
+                                              DSTypography.body(
+                                                color: isOnline
+                                                    ? DSColors.white.withValues(
+                                                        alpha: DSStyles
+                                                            .alphaDisabled,
+                                                      )
+                                                    : DSColors.warning,
+                                              ).copyWith(
+                                                fontSize: DSTypography.sizeSm,
+                                              ),
                                         ),
                                       ],
                                     );
@@ -1205,13 +1206,14 @@ class _SearchResultsSheet extends StatelessWidget {
                       children: [
                         Text(
                           '${results.length} RESULT${results.length == 1 ? '' : 'S'} FOUND',
-                          style: DSTypography.label(
-                            color: DSColors.labelTertiary,
-                          ).copyWith(
-                            fontSize: DSTypography.sizeSm,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: DSTypography.lsExtraLoose,
-                          ),
+                          style:
+                              DSTypography.label(
+                                color: DSColors.labelTertiary,
+                              ).copyWith(
+                                fontSize: DSTypography.sizeSm,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: DSTypography.lsExtraLoose,
+                              ),
                         ),
                         DSSpacing.hXs,
                         Text(
@@ -1318,12 +1320,11 @@ class _SearchResultsSheet extends StatelessWidget {
                       ),
                       child: Text(
                         status.toUpperCase(),
-                        style: DSTypography.label(
-                          color: DSColors.accent,
-                        ).copyWith(
-                          fontSize: DSTypography.sizeXs,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: DSTypography.label(color: DSColors.accent)
+                            .copyWith(
+                              fontSize: DSTypography.sizeXs,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ),
                     onTap: () => Navigator.pop(context, d),

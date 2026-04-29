@@ -54,12 +54,11 @@ class DeliverySignatureField extends StatelessWidget {
                 child: IgnorePointer(
                   child: Text(
                     'Sign above',
-                    style: DSTypography.body(
-                      color: DSColors.labelTertiary,
-                    ).copyWith(
-                      fontSize: DSTypography.sizeSm,
-                      fontStyle: FontStyle.italic,
-                    ),
+                    style: DSTypography.body(color: DSColors.labelTertiary)
+                        .copyWith(
+                          fontSize: DSTypography.sizeSm,
+                          fontStyle: FontStyle.italic,
+                        ),
                   ),
                 ),
               ),

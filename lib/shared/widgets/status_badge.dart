@@ -14,7 +14,7 @@ class StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final ds = DeliveryStatus.fromString(status);
     final color = switch (ds) {
-      DeliveryStatus.pending => DSColors.warning,
+      DeliveryStatus.pending => DSColors.pending,
       DeliveryStatus.delivered => DSColors.success,
       DeliveryStatus.failedDelivery => DSColors.error,
       DeliveryStatus.osa => DSColors.warning,

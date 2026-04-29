@@ -180,12 +180,11 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                   labelStyle: DSTypography.body().copyWith(
                     fontSize: DSTypography.sizeMd,
                   ),
-                  hintStyle: DSTypography.body(
-                    color: DSColors.labelTertiary,
-                  ).copyWith(
-                    fontSize: DSTypography.sizeMd,
-                    letterSpacing: DSTypography.lsLoose,
-                  ),
+                  hintStyle: DSTypography.body(color: DSColors.labelTertiary)
+                      .copyWith(
+                        fontSize: DSTypography.sizeMd,
+                        letterSpacing: DSTypography.lsLoose,
+                      ),
                   prefixIcon: const Icon(
                     Icons.search_rounded,
                     size: DSIconSize.lg,
@@ -225,13 +224,14 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                         DSSpacing.hMd,
                         Text(
                           'NO MATCHES FOUND',
-                          style: DSTypography.caption(
-                            color: DSColors.labelTertiary,
-                          ).copyWith(
-                            fontSize: DSTypography.sizeSm,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: DSTypography.lsExtraLoose,
-                          ),
+                          style:
+                              DSTypography.caption(
+                                color: DSColors.labelTertiary,
+                              ).copyWith(
+                                fontSize: DSTypography.sizeSm,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: DSTypography.lsExtraLoose,
+                              ),
                         ),
                       ],
                     ),
@@ -275,18 +275,19 @@ class _SearchableSelectionSheetState extends State<SearchableSelectionSheet> {
                                 Expanded(
                                   child: Text(
                                     label,
-                                    style: DSTypography.body(
-                                      color: isSelected
-                                          ? DSColors.primary
-                                          : (widget.isDark
-                                                ? DSColors.white
-                                                : DSColors.labelPrimary),
-                                    ).copyWith(
-                                      fontSize: DSTypography.sizeMd,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w800
-                                          : FontWeight.w500,
-                                    ),
+                                    style:
+                                        DSTypography.body(
+                                          color: isSelected
+                                              ? DSColors.primary
+                                              : (widget.isDark
+                                                    ? DSColors.white
+                                                    : DSColors.labelPrimary),
+                                        ).copyWith(
+                                          fontSize: DSTypography.sizeMd,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w800
+                                              : FontWeight.w500,
+                                        ),
                                   ),
                                 ),
                                 if (isSelected)

@@ -240,9 +240,7 @@ class _SummaryBar extends StatelessWidget {
             DSSpacing.wSm,
             Text(
               'No errors recorded.',
-              style: DSTypography.body(
-                color: DSColors.successText,
-              ).copyWith(
+              style: DSTypography.body(color: DSColors.successText).copyWith(
                 fontSize: DSTypography.sizeMd,
                 fontWeight: FontWeight.w500,
               ),
@@ -316,9 +314,7 @@ class _Chip extends StatelessWidget {
           DSSpacing.wXs,
           Text(
             label,
-            style: DSTypography.label(
-              color: textColor,
-            ).copyWith(
+            style: DSTypography.label(color: textColor).copyWith(
               fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w600,
             ),
@@ -399,14 +395,15 @@ class _LogCardState extends State<_LogCard> {
                               Flexible(
                                 child: Text(
                                   e.barcode!,
-                                  style: DSTypography.body(
-                                    color: widget.isDark
-                                        ? DSColors.labelTertiaryDark
-                                        : DSColors.labelTertiary,
-                                  ).copyWith(
-                                    fontSize: DSTypography.sizeSm,
-                                    fontFamily: 'monospace',
-                                  ),
+                                  style:
+                                      DSTypography.body(
+                                        color: widget.isDark
+                                            ? DSColors.labelTertiaryDark
+                                            : DSColors.labelTertiary,
+                                      ).copyWith(
+                                        fontSize: DSTypography.sizeSm,
+                                        fontFamily: 'monospace',
+                                      ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -481,27 +478,29 @@ class _LogCardState extends State<_LogCard> {
                     ),
                     Text(
                       e.detail!,
-                      style: DSTypography.body(
-                        color: widget.isDark
-                            ? DSColors.labelSecondaryDark
-                            : DSColors.labelSecondary,
-                      ).copyWith(
-                        fontSize: DSTypography.sizeSm,
-                        fontFamily: 'monospace',
-                        height: DSStyles.heightRelaxed,
-                      ),
+                      style:
+                          DSTypography.body(
+                            color: widget.isDark
+                                ? DSColors.labelSecondaryDark
+                                : DSColors.labelSecondary,
+                          ).copyWith(
+                            fontSize: DSTypography.sizeSm,
+                            fontFamily: 'monospace',
+                            height: DSStyles.heightRelaxed,
+                          ),
                     ),
                     DSSpacing.hXs,
                     Text(
                       'Long-press to copy',
-                      style: DSTypography.caption(
-                        color: widget.isDark
-                            ? DSColors.labelTertiaryDark
-                            : DSColors.labelTertiary,
-                      ).copyWith(
-                        fontSize: DSTypography.sizeXs,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      style:
+                          DSTypography.caption(
+                            color: widget.isDark
+                                ? DSColors.labelTertiaryDark
+                                : DSColors.labelTertiary,
+                          ).copyWith(
+                            fontSize: DSTypography.sizeXs,
+                            fontStyle: FontStyle.italic,
+                          ),
                     ),
                   ],
                 ),
@@ -538,9 +537,7 @@ class _ContextBadge extends StatelessWidget {
       ),
       child: Text(
         context.replaceAll('_', ' ').toUpperCase(),
-        style: DSTypography.caption(
-          color: color,
-        ).copyWith(
+        style: DSTypography.caption(color: color).copyWith(
           fontSize: DSTypography.sizeXs,
           fontWeight: FontWeight.w700,
           letterSpacing: DSTypography.lsLoose,
@@ -580,14 +577,15 @@ class _EmptyState extends StatelessWidget {
           Text(
             'Errors and warnings will appear here\nwhen they occur.',
             textAlign: TextAlign.center,
-            style: DSTypography.body(
-              color: isDark
-                  ? DSColors.labelSecondaryDark
-                  : DSColors.labelSecondary,
-            ).copyWith(
-              fontSize: DSTypography.sizeMd,
-              height: DSStyles.heightRelaxed,
-            ),
+            style:
+                DSTypography.body(
+                  color: isDark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.labelSecondary,
+                ).copyWith(
+                  fontSize: DSTypography.sizeMd,
+                  height: DSStyles.heightRelaxed,
+                ),
           ),
         ],
       ),

@@ -605,12 +605,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       DSSpacing.hXs,
                       Text(
-                        'FSI Courier App © ${DateTime.now().year}',
+                        'Fastrak Services INC © ${DateTime.now().year}',
                         style: DSTypography.caption().copyWith(
                           color: isDark
                               ? DSColors.labelTertiaryDark
                               : DSColors.labelTertiary,
-                          fontSize: 10,
+                          fontSize: DSTypography.sizeXs,
                         ),
                       ),
                     ],
@@ -685,8 +685,8 @@ class _ProfileHeroCard extends StatelessWidget {
             children: [
               // Avatar
               Container(
-                width: DSSpacing.huge + DSSpacing.md, // 80.0
-                height: DSSpacing.huge + DSSpacing.md, // 80.0
+                width: DSSpacing.huge + DSSpacing.md,
+                height: DSSpacing.huge + DSSpacing.md,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
@@ -756,9 +756,9 @@ class _ProfileHeroCard extends StatelessWidget {
                     DSSpacing.hXs,
                     if (kDebugMode)
                       Container(
-                        padding: EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: DSSpacing.sm,
-                          vertical: 3,
+                          vertical: DSSpacing.xs,
                         ),
                         decoration: BoxDecoration(
                           color: DSColors.white.withValues(

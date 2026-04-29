@@ -325,10 +325,9 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
     //     : 'Freelance Courier';
     final role = "FREELANCE COURIER";
     final profileUrlStr = courier['profile_picture_url']?.toString();
-    final profileUrl =
-        (profileUrlStr == null || profileUrlStr == 'null')
-            ? null
-            : profileUrlStr;
+    final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
+        ? null
+        : profileUrlStr;
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
 
     return AppBar(

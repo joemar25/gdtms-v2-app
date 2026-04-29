@@ -1037,9 +1037,7 @@ class _PinConfirmDialogState extends State<_PinConfirmDialog> {
             Text(
               'ENTER LAST 4 DIGITS OF DISPATCH CODE TO CONFIRM',
               textAlign: TextAlign.center,
-              style: DSTypography.body(
-                color: DSColors.labelSecondary,
-              ).copyWith(
+              style: DSTypography.body(color: DSColors.labelSecondary).copyWith(
                 fontSize: DSTypography.sizeSm,
                 letterSpacing: DSTypography.lsLoose,
               ),
@@ -1233,9 +1231,7 @@ class _InfoRow extends StatelessWidget {
           DSSpacing.wXs,
           Text(
             '$label: ',
-            style: DSTypography.label(
-              color: DSColors.labelTertiary,
-            ).copyWith(
+            style: DSTypography.label(color: DSColors.labelTertiary).copyWith(
               fontSize: DSTypography.sizeSm,
               fontWeight: FontWeight.w600,
             ),
@@ -1261,9 +1257,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: DSTypography.caption(
-        color: DSColors.labelTertiary,
-      ).copyWith(
+      style: DSTypography.caption(color: DSColors.labelTertiary).copyWith(
         fontSize: DSTypography.sizeSm,
         fontWeight: FontWeight.w700,
         letterSpacing: DSTypography.lsExtraLoose,

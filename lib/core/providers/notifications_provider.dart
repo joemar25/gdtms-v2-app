@@ -65,8 +65,9 @@ class AppNotification {
       type: getString('type') ?? '',
       message: getString('message') ?? '',
       transactionReference: getString('transaction_reference'),
-      deliveryReferences:
-          refs is List ? refs.map((e) => e.toString()).toList() : const [],
+      deliveryReferences: refs is List
+          ? refs.map((e) => e.toString()).toList()
+          : const [],
       amount: json['amount'] != null && json['amount'].toString() != 'null'
           ? double.tryParse('${json['amount']}')
           : null,
@@ -75,9 +76,9 @@ class AppNotification {
       dispatchCode: getString('dispatch_code'),
       deliveryCount:
           json['delivery_count'] != null &&
-                  json['delivery_count'].toString() != 'null'
-              ? int.tryParse('${json['delivery_count']}')
-              : null,
+              json['delivery_count'].toString() != 'null'
+          ? int.tryParse('${json['delivery_count']}')
+          : null,
       action: getString('action'),
       date: getString('date') ?? '',
       read: json['read'] as bool? ?? false,

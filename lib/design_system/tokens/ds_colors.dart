@@ -18,6 +18,12 @@ class DSColors {
   static const primaryDark = Color(0xFF4ADE80); // Green 400
   static const primaryDarkPressed = Color(0xFF22C55E); // Green 500
 
+  static const primaryGradient = LinearGradient(
+    colors: [primary, Color(0xFF15803D)], // Green 500 to Green 700
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static const accent = Color(0xFF2563EB); // Blue 600
   static const accentSurface = Color(0xFFE0F2FE); // Light blue surface
 

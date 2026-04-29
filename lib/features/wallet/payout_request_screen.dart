@@ -42,8 +42,9 @@ import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
-import 'package:fsi_courier_app/shared/widgets/date_strip_with_deliveries.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/features/wallet/widgets/payout_summary_card.dart';
+import 'package:fsi_courier_app/features/wallet/widgets/deliveries_rundown_card.dart';
 
 class PayoutRequestScreen extends ConsumerStatefulWidget {
   const PayoutRequestScreen({super.key, this.isConsolidation = false});
@@ -60,7 +61,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   bool _submitting = false;
   String? _error;
   Map<String, dynamic>? _previewData;
-  String? _initialSelectedDate;
 
   @override
   void initState() {
@@ -89,7 +89,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       final preview = mapFromKey(previewResult.data, 'data');
       setState(() {
         _previewData = preview;
-        _initialSelectedDate = null;
         _loading = false;
       });
     } else {
@@ -168,12 +167,28 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                   ),
                 ),
               ),
-              child: Text(
-                '₱ ${estimatedNet.toStringAsFixed(2)}',
-                style: DSTypography.display(color: DSColors.primary).copyWith(
-                  fontSize: DSTypography.sizeXl,
-                  fontWeight: FontWeight.w800,
-                ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    '₱',
+                    style: DSTypography.title(color: DSColors.primary).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: DSTypography.sizeXl,
+                    ),
+                  ),
+                  DSSpacing.wXs,
+                  Text(
+                    estimatedNet.toStringAsFixed(2),
+                    style: DSTypography.display(color: DSColors.primary)
+                        .copyWith(
+                          fontWeight: FontWeight.w900,
+                          fontSize: DSTypography.sizeHero,
+                          letterSpacing: -0.5,
+                        ),
+                  ),
+                ],
               ),
             ),
             DSSpacing.hSm,
@@ -385,9 +400,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                         : Icons.lock_clock_rounded,
                   ),
             label: Text(
-              widget.isConsolidation
-                  ? 'SUBMIT CONSOLIDATED REQUEST'
-                  : 'SUBMIT REQUEST',
+              widget.isConsolidation ? 'TAP TO CONFIRM' : 'CONFIRM',
               style: DSTypography.label().copyWith(fontWeight: FontWeight.w700),
             ),
             style: FilledButton.styleFrom(
@@ -473,8 +486,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         // ── Consolidation notice ──────────────────────────────────────
         if (widget.isConsolidation) ...[
           Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: 14,
+            padding: const EdgeInsets.symmetric(
+              horizontal: DSSpacing.md,
               vertical: DSSpacing.md,
             ),
             decoration: BoxDecoration(
@@ -497,7 +510,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                   child: Text(
                     preview['has_existing_request_today'] == true
                         ? "You've already submitted a payout request today. Only one request per day is allowed. Your eligible deliveries will automatically be included in tomorrow's request if you submit again."
-                        : 'You currently have a pending payout request. If you submit another request, all eligible deliveries will be combined into a single consolidated payout.',
+                        : 'You have a pending payout request. Submitting another will combine all eligible deliveries into a single consolidated payout.',
                     style: DSTypography.caption(color: DSColors.warning)
                         .copyWith(
                           fontSize: DSTypography.sizeMd,
@@ -512,15 +525,14 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
         ],
 
         // ── Summary Card ──────────────────────────────────────────────
-        _SummaryCard(
+        PayoutSummaryCard(
           eligibleCount: eligibleCount,
           estimatedGross: estimatedGross,
           estimatedPenalties: estimatedPenalties,
           estimatedIncentive: estimatedIncentive,
           estimatedNet: estimatedNet,
-          isDark: isDark,
           deliveriesLabel: widget.isConsolidation
-              ? 'ELIGIBLE FOR CONSOLIDATION'
+              ? 'ELIGIBLE DELIVERIES'
               : 'ELIGIBLE DELIVERIES',
         ).dsCardEntry(
           delay: DSAnimations.stagger(0, step: DSAnimations.staggerNormal),
@@ -539,23 +551,15 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
         // ── Date Strip + Deliveries ───────────────────────────────────
         if (dailyBreakdown.isNotEmpty) ...[
-          Text(
-            widget.isConsolidation
-                ? 'ELIGIBLE FOR CONSOLIDATION'
-                : 'DELIVERIES',
-            style: DSTypography.label(color: DSColors.accent).copyWith(
-              fontSize: DSTypography.sizeSm,
-              fontWeight: FontWeight.w800,
-              letterSpacing: DSTypography.lsExtraLoose,
-            ),
+          const DSSectionHeader(
+            title: 'Deliveries Rundown',
+            padding: EdgeInsets.zero,
           ).dsFadeEntry(
             delay: DSAnimations.stagger(1, step: DSAnimations.staggerNormal),
           ),
           DSSpacing.hSm,
-          DateStripWithDeliveries(
-            dailyBreakdown: dailyBreakdown,
-            initialSelectedDate: _initialSelectedDate,
-            enableHoldToReveal: false,
+          DeliveriesRundownCard(dailyBreakdown: dailyBreakdown).dsFadeEntry(
+            delay: DSAnimations.stagger(2, step: DSAnimations.staggerNormal),
           ),
         ],
 
@@ -743,211 +747,3 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 //     );
 //   }
 // }
-
-// ─── Summary Card ─────────────────────────────────────────────────────────────
-
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.eligibleCount,
-    required this.estimatedGross,
-    required this.estimatedPenalties,
-    required this.estimatedIncentive,
-    required this.estimatedNet,
-    required this.isDark,
-    this.deliveriesLabel = 'ELIGIBLE DELIVERIES',
-  });
-
-  final int eligibleCount;
-  final double estimatedGross;
-  final double estimatedPenalties;
-  final double estimatedIncentive;
-  final double estimatedNet;
-  final bool isDark;
-  final String deliveriesLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final cardBg = isDark ? DSColors.cardDark : DSColors.white;
-    final cardBorder = isDark
-        ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
-        : DSColors.separatorLight;
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: DSStyles.cardRadius,
-        border: Border.all(color: cardBorder),
-        boxShadow: [
-          BoxShadow(
-            color: DSColors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, DSSpacing.xs),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              DSSpacing.md,
-              DSSpacing.md,
-              DSSpacing.md,
-              DSSpacing.md,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.local_shipping_rounded,
-                  size: DSIconSize.sm,
-                  color: isDark
-                      ? DSColors.labelSecondaryDark
-                      : DSColors.labelSecondary,
-                ),
-                DSSpacing.wSm,
-                Expanded(
-                  child: Text(
-                    deliveriesLabel,
-                    style:
-                        DSTypography.caption(
-                          color: isDark
-                              ? DSColors.labelSecondaryDark
-                              : DSColors.labelSecondary,
-                        ).copyWith(
-                          fontSize: DSTypography.sizeSm,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-                Text(
-                  '$eligibleCount',
-                  style: DSTypography.label(color: DSColors.primary).copyWith(
-                    fontSize: DSTypography.sizeMd,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: DSSpacing.md,
-              vertical: 14,
-            ),
-            decoration: BoxDecoration(
-              color: DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(16),
-              ),
-            ),
-            child: Column(
-              children: [
-                if (estimatedGross != estimatedNet) ...[
-                  _AmountRow(label: 'Gross Amount', amount: estimatedGross),
-                  if (estimatedPenalties != 0)
-                    _AmountRow(
-                      label: 'Penalties',
-                      amount: estimatedPenalties,
-                      isDeduction: true,
-                    ),
-                  // Coordinator incentive is an internal field — hidden from
-                  // production couriers; visible only in debug builds.
-                  if (kAppDebugMode && estimatedIncentive != 0)
-                    _AmountRow(
-                      label: '⚠ Coordinator Incentive',
-                      amount: estimatedIncentive,
-                      isDeduction: true,
-                      isDebug: true,
-                    ),
-                  DSSpacing.hSm,
-                  const Divider(height: 1),
-                  DSSpacing.hSm,
-                ],
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'ESTIMATED NET PAYABLE',
-                      style: DSTypography.label(
-                        color: DSColors.primary,
-                      ).copyWith(fontSize: DSTypography.sizeSm),
-                    ),
-                    Text(
-                      '₱ ${estimatedNet.toStringAsFixed(2)}',
-                      style: DSTypography.heading(color: DSColors.primary)
-                          .copyWith(
-                            fontSize: DSTypography.sizeLg,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AmountRow extends StatelessWidget {
-  const _AmountRow({
-    required this.label,
-    required this.amount,
-    this.isDeduction = false,
-    this.isDebug = false,
-  });
-
-  final String label;
-  final double amount;
-  final bool isDeduction;
-  final bool isDebug;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isDebug
-        ? DSColors.errorText
-        : (isDeduction ? DSColors.error : DSColors.accent);
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: DSSpacing.xs),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: DSTypography.caption(color: color).copyWith(
-                  fontSize: DSTypography.sizeSm,
-                  fontWeight: isDebug ? FontWeight.w700 : FontWeight.normal,
-                ),
-              ),
-              if (isDebug)
-                Text(
-                  'DEBUG ONLY — not visible in production',
-                  style:
-                      DSTypography.caption(
-                        color: DSColors.error.withValues(
-                          alpha: DSStyles.alphaDisabled,
-                        ),
-                      ).copyWith(
-                        fontSize: DSTypography.sizeXs,
-                        letterSpacing: DSTypography.lsLoose,
-                      ),
-                ),
-            ],
-          ),
-          Text(
-            '${isDeduction ? '-' : ''}₱ ${amount.abs().toStringAsFixed(2)}',
-            style: DSTypography.label(color: color).copyWith(
-              fontSize: DSTypography.sizeSm,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

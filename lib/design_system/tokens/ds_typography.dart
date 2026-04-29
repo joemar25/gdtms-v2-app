@@ -8,14 +8,15 @@ import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
 /// REJECT any new tier requests that exceed this scale.
 class DSTypography {
   // ── Size scale (5 tiers) ───────────────────────────────────────────────────
-  static const double sizeXs = 12.0; // labels, nav, micro badges
-  static const double sizeSm = 14.0; // captions, timestamps, meta
-  static const double sizeMd = 16.0; // body text (default)
-  static const double sizeLg = 18.0; // section titles
-  static const double sizeXl = 20.0; // headings, display
+  static const double sizeXs = 10.0; // labels, nav, micro badges
+  static const double sizeSm = 12.0; // captions, timestamps, meta
+  static const double sizeMd = 14.0; // body text (default)
+  static const double sizeLg = 16.0; // section titles
+  static const double sizeXl = 18.0; // headings, display
 
   // ── Specialty Sizes (Calculations in Config) ──────────────────────────────
-  static const double sizeHero = 32.0; // Large hero text
+  static const double sizeHero = sizeLg * 2; // Large hero text
+  static const double sizeDisplayHero = 42.0; // Premium large amounts (Wallet)
 
   // ── Letter spacing (5 tiers) ────────────────────────────────────────────────
   static const double lsTight = -1.0;

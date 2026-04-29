@@ -324,8 +324,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
     return Scaffold(
       appBar: AppHeaderBar(
-        titleWidget: _buildAppBarTitle(context, status, isDark),
-        backgroundColor: DSColors.transparent,
+        title: widget.barcode,
+        backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () {
@@ -336,6 +336,15 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
             }
           },
         ),
+        trailingActions: [
+          if (kAppDebugMode)
+            IconButton(
+              icon: const Icon(Icons.history_rounded),
+              onPressed: () => _showHistoryModal(context, isDark),
+              tooltip: 'Status History (Debug)',
+            ),
+        ],
+        showNotificationBell: false,
       ),
       floatingActionButton: showFab
           ? FloatingActionButton.extended(
@@ -399,52 +408,72 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                             : DSSpacing.xl,
                       ),
                       children: [
+                        // ── Delivery Hero Card ────────────────────────────
+                        _DeliveryHeroCard(
+                          barcode: widget.barcode,
+                          status: status,
+                          product: _str('product'),
+                          isDirty: _delivery['_sync_status'] == 'dirty',
+                          isDark: isDark,
+                        ).dsHeroEntry(),
+
+                        DSSpacing.hMd,
+
                         // ── Account details card ──────────────────────────
-                        if (!checkIsLockedFromMap(_delivery))
-                          DSCard(
-                            margin: EdgeInsets.only(bottom: DSSpacing.md),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const DSSectionHeader(title: 'Account Details'),
+                        DSCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const DSSectionHeader(title: 'Account Details'),
+                              DSInfoTile(
+                                label: 'Name',
+                                value: _str('name'),
+                                onLongPress: () =>
+                                    _copyToClipboard(_str('name'), 'Name'),
+                              ),
+                              if (_pieceCountFromBarcode > 0)
                                 DSInfoTile(
-                                  label: 'Name',
-                                  value: _str('name'),
-                                  onLongPress: () =>
-                                      _copyToClipboard(_str('name'), 'Name'),
+                                  label: 'Pieces',
+                                  value:
+                                      '$_pieceCountFromBarcode piece${_pieceCountFromBarcode > 1 ? 's' : ''} in this bundle',
                                 ),
-                                if (_pieceCountFromBarcode > 0)
-                                  DSInfoTile(
-                                    label: 'Pieces',
-                                    value:
-                                        '$_pieceCountFromBarcode piece${_pieceCountFromBarcode > 1 ? 's' : ''} in this bundle',
+                              if (_canShowContactInfo) ...[
+                                DSInfoTile(
+                                  label: 'Address',
+                                  value: _str('address'),
+                                  onTap: () => _launchMaps(_str('address')),
+                                  onLongPress: () => _copyToClipboard(
+                                    _str('address'),
+                                    'Address',
                                   ),
-                                if (_canShowContactInfo) ...[
-                                  DSInfoTile(
-                                    label: 'Address',
-                                    value: _str('address'),
-                                    onTap: () => _launchMaps(_str('address')),
-                                    onLongPress: () => _copyToClipboard(
-                                      _str('address'),
-                                      'Address',
-                                    ),
+                                ),
+                                DSInfoTile(
+                                  label: 'Contact',
+                                  value: _str('contact').cleanContactNumber(),
+                                  onTap: () => _onPhoneTap(
+                                    _str('contact').cleanContactNumber(),
                                   ),
-                                  DSInfoTile(
-                                    label: 'Contact',
-                                    value: _str('contact').cleanContactNumber(),
-                                    onTap: () => _onPhoneTap(
-                                      _str('contact').cleanContactNumber(),
-                                    ),
-                                    onLongPress: () => _copyToClipboard(
-                                      _str('contact').cleanContactNumber(),
-                                      'Contact',
-                                    ),
-                                    showDivider: false,
+                                  onLongPress: () => _copyToClipboard(
+                                    _str('contact').cleanContactNumber(),
+                                    'Contact',
                                   ),
-                                ],
+                                  showDivider: false,
+                                ),
+                              ] else if (status.isNotEmpty) ...[
+                                // When locked, show info as read-only (no actions)
+                                DSInfoTile(
+                                  label: 'Address',
+                                  value: _str('address'),
+                                ),
+                                DSInfoTile(
+                                  label: 'Contact',
+                                  value: _str('contact').cleanContactNumber(),
+                                  showDivider: false,
+                                ),
                               ],
-                            ),
+                            ],
                           ),
+                        ),
 
                         // ── Delivery details (most important, always on top) ──
                         _buildDeliveryDetailsCard(isDark),
@@ -455,8 +484,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         // ── Failed Delivery attempts ─────────────────────────────
                         _buildFailedDeliveryAttempts(isDark),
 
-                        // ── History timeline ──────────────────────────────
-                        _buildTimeline(isDark),
+                        // ── History timeline moved to AppBar action ────────
                       ],
                     ),
                   ),
@@ -466,41 +494,70 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     );
   }
 
-  Widget _buildAppBarTitle(BuildContext context, String status, bool isDark) {
-    return !_loading
-        ? Row(
+  void _showHistoryModal(BuildContext context, bool isDark) {
+    final history = _delivery['delivery_trans_history'];
+    if (history is! List || history.isEmpty) return;
+
+    final items = List<Map<String, dynamic>>.from(
+      history.whereType<Map<String, dynamic>>(),
+    ).reversed.toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: DSColors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        minChildSize: 0.4,
+        builder: (_, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? DSColors.cardDark : DSColors.cardLight,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(DSStyles.radiusCard),
+            ),
+          ),
+          child: Column(
             children: [
-              Flexible(
-                child: Text(
-                  widget.barcode,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      DSTypography.title(
-                        color: isDark
-                            ? DSColors.labelPrimaryDark
-                            : DSColors.labelPrimary,
-                      ).copyWith(
-                        fontSize: DSTypography.sizeMd,
-                        letterSpacing: DSTypography.lsLoose,
-                      ),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: EdgeInsets.only(
+                    top: DSSpacing.md,
+                    bottom: DSSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? DSColors.separatorDark
+                        : DSColors.separatorLight,
+                    borderRadius: DSStyles.pillRadius,
+                  ),
                 ),
               ),
-              DSSpacing.wMd,
-            ],
-          )
-        : Text(
-            widget.barcode,
-            style:
-                DSTypography.title(
-                  color: isDark
-                      ? DSColors.labelPrimaryDark
-                      : DSColors.labelPrimary,
-                ).copyWith(
-                  fontSize: DSTypography.sizeMd,
-                  letterSpacing: DSTypography.lsLoose,
+              Padding(
+                padding: EdgeInsets.all(DSSpacing.md),
+                child: Text(
+                  'Status History (Debug)',
+                  style: DSTypography.heading().copyWith(fontSize: 18),
                 ),
-          );
+              ),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: EdgeInsets.symmetric(horizontal: DSSpacing.md),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return _HistoryItem(data: item, isDark: isDark);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // ─── Proof of delivery (all conditions preserved) ─────────────────────────
@@ -1058,6 +1115,143 @@ class _TimelineItem extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delivery Hero Card & Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _DeliveryHeroCard extends StatelessWidget {
+  const _DeliveryHeroCard({
+    required this.barcode,
+    required this.status,
+    required this.product,
+    required this.isDirty,
+    required this.isDark,
+  });
+
+  final String barcode;
+  final String status;
+  final String product;
+  final bool isDirty;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = isDirty
+        ? DSColors.warning
+        : DSColors.statusColor(status);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [statusColor, statusColor.withValues(alpha: 0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: DSStyles.cardRadius,
+        boxShadow: [
+          BoxShadow(
+            color: statusColor.withValues(alpha: DSStyles.alphaMuted),
+            blurRadius: DSStyles.radiusMD,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(DSSpacing.lg),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -10,
+            child: Icon(
+              Icons.local_shipping_rounded,
+              size: 140,
+              color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'TRACKING NUMBER',
+                      style:
+                          DSTypography.caption(
+                            color: DSColors.white.withValues(
+                              alpha: DSStyles.alphaDisabled,
+                            ),
+                          ).copyWith(
+                            fontSize: DSTypography.sizeSm,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  _StatusBadgeLight(isDirty ? 'UNSYNCED' : status),
+                ],
+              ),
+              DSSpacing.hSm,
+              Text(
+                barcode,
+                style: DSTypography.display(color: DSColors.white).copyWith(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'monospace',
+                  letterSpacing: 2.0,
+                ),
+              ),
+              if (product.isNotEmpty) ...[
+                DSSpacing.hMd,
+                Text(
+                  product.toUpperCase(),
+                  style: DSTypography.body(color: DSColors.white).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: DSTypography.sizeSm,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadgeLight extends StatelessWidget {
+  const _StatusBadgeLight(this.status);
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = DSColors.white.withValues(alpha: DSStyles.alphaSoft);
+    final fg = DSColors.white;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: DSStyles.pillRadius,
+        border: Border.all(
+          color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
+        ),
+      ),
+      child: Text(
+        status.isEmpty ? '' : status.replaceAll('_', ' ').toUpperCase(),
+        style: DSTypography.label(color: fg).copyWith(
+          fontSize: DSTypography.sizeSm,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.0,
+        ),
       ),
     );
   }

@@ -98,7 +98,8 @@ class _DeliveryStatusListScreenState
       ? kCompactDeliveriesPerPage
       : kDeliveriesPerPage;
 
-  bool get _isFailedDelivery => widget.status.toUpperCase() == 'FAILED_DELIVERY';
+  bool get _isFailedDelivery =>
+      widget.status.toUpperCase() == 'FAILED_DELIVERY';
 
   int get _effectiveTotal => _isFailedDelivery
       ? (_failedSubFilter == 'rts' ? _totalRtsCount : _totalRedeliveryCount)
@@ -229,10 +230,9 @@ class _DeliveryStatusListScreenState
     if (!mounted) return;
 
     // 3. Determine effective total and check bounds
-    final effectiveTotal =
-        _isFailedDelivery
-            ? (_failedSubFilter == 'rts' ? rtsCount : redeliveryCount)
-            : total;
+    final effectiveTotal = _isFailedDelivery
+        ? (_failedSubFilter == 'rts' ? rtsCount : redeliveryCount)
+        : total;
 
     final totalPages = (effectiveTotal / _kPageSize).ceil().clamp(1, 999999);
     if (_currentPage > 0 && _currentPage >= totalPages) {
@@ -420,8 +420,9 @@ class _DeliveryStatusListScreenState
     final isOnline = ref.watch(isOnlineProvider);
     final displayed = _pageSlice;
     final effectiveTotal = _effectiveTotal;
-    final effectiveFirstItem =
-        effectiveTotal == 0 ? 0 : _currentPage * _kPageSize + 1;
+    final effectiveFirstItem = effectiveTotal == 0
+        ? 0
+        : _currentPage * _kPageSize + 1;
     final effectiveLastItem = (effectiveFirstItem + displayed.length - 1).clamp(
       0,
       effectiveTotal,

@@ -1211,12 +1211,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     ),
                                     child: Text(
                                       'CLEAR',
-                                      style: DSTypography.label(
-                                        color: DSColors.error,
-                                      ).copyWith(
-                                        fontSize: DSTypography.sizeSm,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                      style:
+                                          DSTypography.label(
+                                            color: DSColors.error,
+                                          ).copyWith(
+                                            fontSize: DSTypography.sizeSm,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                     ),
                                   ),
                                 ),
@@ -1427,6 +1428,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
               onPressed: () => _showAccountDetailsDialog(context),
             ),
           ],
+          showNotificationBell: false,
           backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
         ),
         body: GestureDetector(
