@@ -292,10 +292,11 @@ class _EntryTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           entry.barcode,
-                          style: theme.textTheme.bodyMedium?.copyWith(
+                          style: DSTypography.body().copyWith(
                             fontWeight: FontWeight.w700,
                             fontFamily: 'monospace',
                             letterSpacing: DSTypography.lsLoose,
+                            fontSize: DSTypography.sizeSm,
                           ),
                         ),
                       ),
@@ -327,8 +328,9 @@ class _EntryTile extends StatelessWidget {
                           isDifferent
                               ? '$recipientName (Recipient)'
                               : recipientName,
-                          style: theme.textTheme.bodyMedium?.copyWith(
+                          style: DSTypography.body().copyWith(
                             fontWeight: FontWeight.w600,
+                            fontSize: DSTypography.sizeSm,
                           ),
                         );
                       },
@@ -394,8 +396,10 @@ class _EntryTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             entry.lastError!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.error,
+                            style: DSTypography.caption(
+                              color: DSColors.error,
+                            ).copyWith(
+                              fontSize: DSTypography.sizeXs,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -419,7 +423,14 @@ class _EntryTile extends StatelessWidget {
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                               onPressed: onRetry,
-                              child: Text('sync.list.retry_button'.tr()),
+                              child: Text(
+                                'sync.list.retry_button'.tr(),
+                                style: DSTypography.button().copyWith(
+                                  color: DSColors.primary,
+                                  fontSize: DSTypography.sizeXs,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
                         if (onRetry != null &&
@@ -434,7 +445,14 @@ class _EntryTile extends StatelessWidget {
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                               onPressed: onDismiss,
-                              child: Text('sync.list.resolve_button'.tr()),
+                              child: Text(
+                                'sync.list.resolve_button'.tr(),
+                                style: DSTypography.button().copyWith(
+                                  color: DSColors.primary,
+                                  fontSize: DSTypography.sizeXs,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
                         if (onDismiss != null && onDelete != null)
@@ -629,17 +647,18 @@ class _MetaRow extends StatelessWidget {
           DSSpacing.wSm,
           Text(
             '$label: ',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: dimColor,
+            style: DSTypography.caption(color: dimColor).copyWith(
               fontWeight: FontWeight.w500,
+              fontSize: DSTypography.sizeXs,
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: valueColor ?? dimColor,
+              style: DSTypography.caption(color: valueColor ?? dimColor)
+                  .copyWith(
                 fontWeight: valueColor != null ? FontWeight.w600 : null,
+                fontSize: DSTypography.sizeXs,
               ),
               overflow: TextOverflow.ellipsis,
             ),

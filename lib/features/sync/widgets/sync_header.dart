@@ -29,41 +29,59 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
       children: [
         Container(
           width: double.infinity,
-          color: Theme.of(context).brightness == Brightness.dark
-              ? DSColors.scaffoldDark
-              : DSColors.scaffoldLight,
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? DSColors.scaffoldDark
+                : DSColors.scaffoldLight,
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? DSColors.separatorDark
+                    : DSColors.separatorLight,
+                width: DSStyles.borderWidth,
+              ),
+            ),
+          ),
           padding: EdgeInsets.fromLTRB(
             DSSpacing.md,
             DSSpacing.md,
             DSSpacing.md,
-            0,
+            DSSpacing.md,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    widget.isOnline
-                        ? Icons.wifi_rounded
-                        : Icons.wifi_off_rounded,
-                    size: DSIconSize.sm,
-                    color: widget.isOnline
-                        ? DSColors.success
-                        : DSColors.warning,
-                  ),
-                  DSSpacing.wXs,
-                  Text(
-                    widget.isOnline
-                        ? 'sync.status.online'.tr()
-                        : 'sync.status.offline'.tr(),
-                    style: DSTypography.label(
+              DSSectionHeader(
+                title: 'sync.status.online'.tr().toUpperCase(),
+                padding: EdgeInsets.zero,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      widget.isOnline
+                          ? Icons.wifi_rounded
+                          : Icons.wifi_off_rounded,
+                      size: DSIconSize.xs,
                       color: widget.isOnline
                           ? DSColors.success
                           : DSColors.warning,
-                    ).copyWith(fontSize: DSTypography.sizeSm),
-                  ),
-                ],
+                    ),
+                    DSSpacing.wXs,
+                    Text(
+                      widget.isOnline
+                          ? 'sync.status.online'.tr()
+                          : 'sync.status.offline'.tr(),
+                      style: DSTypography.label(
+                        color: widget.isOnline
+                            ? DSColors.success
+                            : DSColors.warning,
+                      ).copyWith(
+                        fontSize: DSTypography.sizeXs,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (lastSyncTime != null) ...[
                 DSSpacing.hXs,
@@ -232,8 +250,12 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
         const SyncProgressBar(
           padding: EdgeInsets.symmetric(
             horizontal: DSSpacing.md,
-            vertical: DSSpacing.sm,
+            vertical: DSSpacing.md,
           ),
+        ),
+        DSSectionHeader(
+          title: 'sync.title'.tr(),
+          useLocalization: false,
         ),
       ],
     );

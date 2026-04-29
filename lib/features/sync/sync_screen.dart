@@ -132,19 +132,25 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                         strokeWidth: DSStyles.strokeWidth,
                       ),
                     )
-                  : const Icon(Icons.sync_rounded, size: DSIconSize.md),
+                  : const Icon(Icons.sync_rounded, size: DSIconSize.sm),
               label: Text(
                 syncState.isSyncing
                     ? 'sync.actions.syncing'.tr()
                     : 'sync.actions.sync_now'.tr(),
                 style: DSTypography.button().copyWith(
-                  fontSize: DSTypography.sizeSm,
+                  fontSize: DSTypography.sizeXs,
+                  fontWeight: FontWeight.w700,
                 ),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: DSColors.primary,
+                padding: EdgeInsets.symmetric(horizontal: DSSpacing.sm),
               ),
             ),
           if (isOnline)
-            TextButton.icon(
+            IconButton(
               onPressed: canReload ? _reloadFromServer : null,
+              tooltip: 'sync.actions.reload'.tr(),
               icon: _reloading
                   ? const SizedBox(
                       width: DSIconSize.sm,
@@ -155,14 +161,8 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                     )
                   : const Icon(
                       Icons.cloud_download_outlined,
-                      size: DSIconSize.sm,
+                      size: DSIconSize.md,
                     ),
-              label: Text(
-                'sync.actions.reload'.tr(),
-                style: DSTypography.button().copyWith(
-                  fontSize: DSTypography.sizeSm,
-                ),
-              ),
             ),
         ],
       ),
