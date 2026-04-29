@@ -32,6 +32,26 @@ final pendingSyncCountProvider = Provider<int>((ref) {
       .length;
 });
 
+/// A map of barcode to count of FAILED_DELIVERY status updates in the sync queue.
+/// Used to determine if a delivery is locked due to maximum retry attempts.
+final failedDeliveryCountsProvider = Provider<Map<String, int>>((ref) {
+  final entries = ref.watch(syncManagerProvider).entries;
+  final counts = <String, int>{};
+
+  for (final e in entries) {
+    if (e.operationType != 'UPDATE_STATUS') continue;
+    try {
+      // ignore: avoid_dynamic_calls
+      final status =
+          e.payload['delivery_status']?.toString().toUpperCase() ?? '';
+      if (status == 'FAILED_DELIVERY') {
+        counts[e.barcode] = (counts[e.barcode] ?? 0) + 1;
+      }
+    } catch (_) {}
+  }
+  return counts;
+});
+
 /// The timestamp of the last successful full sync.
 class _LastSyncTimeNotifier extends Notifier<DateTime?> {
   @override

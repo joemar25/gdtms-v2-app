@@ -64,9 +64,7 @@ class _SyncEmptyStateState extends State<SyncEmptyState>
                   DSSpacing.hMd,
                   Text(
                     'sync.actions.syncing'.tr(),
-                    style: DSTypography.heading().copyWith(
-                      fontSize: DSTypography.sizeMd,
-                    ),
+                    style: DSTypography.heading(fontSize: DSTypography.sizeMd),
                   ),
                 ] else ...[
                   Lottie.asset(
@@ -79,7 +77,7 @@ class _SyncEmptyStateState extends State<SyncEmptyState>
                   DSSpacing.hMd,
                   Text(
                     'sync.empty.all_caught_up'.tr(),
-                    style: DSTypography.heading().copyWith(
+                    style: DSTypography.heading(
                       fontSize: DSTypography.sizeMd,
                       fontWeight: FontWeight.w700,
                     ),

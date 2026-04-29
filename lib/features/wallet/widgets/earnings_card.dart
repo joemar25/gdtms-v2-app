@@ -158,17 +158,19 @@ class EarningsCard extends StatelessWidget {
                                       size: DSIconSize.xs,
                                     ),
                                     DSSpacing.wXs,
-                                    Text(
-                                      'wallet.card.tap_to_view_account'.tr(),
-                                      style:
-                                          DSTypography.caption(
-                                            color: DSColors.white,
-                                          ).copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing:
-                                                DSTypography.lsExtraLoose,
-                                            fontSize: DSTypography.sizeXs,
-                                          ),
+                                    Flexible(
+                                      child: Text(
+                                        'wallet.card.tap_to_view_account'.tr(),
+                                        style:
+                                            DSTypography.caption(
+                                              color: DSColors.white,
+                                            ).copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing:
+                                                  DSTypography.lsExtraLoose,
+                                              fontSize: DSTypography.sizeXs,
+                                            ),
+                                      ),
                                     ),
                                   ],
                                 ),

@@ -25,6 +25,9 @@
 //      uploads the payload + media to the server.
 //   4. On success, rawJson is refreshed from the server response.
 //
+// Permissions:
+//   Standardized handling via [locationProvider] and [extraPermissionsProvider].
+//
 // Media:
 //   Images are compressed to 600 px / quality 70 before queuing.
 //   Signatures are captured via [SignatureCaptureScreen] and saved as PNG.
@@ -64,6 +67,8 @@ import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/models/photo_entry.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/features/permissions/providers/location_provider.dart';
+import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/features/delivery/signature_capture_screen.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
@@ -87,6 +92,7 @@ import 'package:fsi_courier_app/features/delivery/widgets/delivery_reason_sectio
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_recipient_section.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_remarks_section.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_single_photo_section.dart';
+import 'package:fsi_courier_app/features/delivery/helpers/delivery_update_helper.dart';
 
 // ─── Consistent spacing constants ───────────────────────────────────────────
 const _kSectionGap = DSSpacing.hLg; // between major sections
@@ -270,40 +276,41 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   Future<void> _captureLocation() async {
     setState(() => _gettingLocation = true);
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+      final locState = ref.read(locationProvider);
+      if (locState.status == LocationStatus.serviceDisabled) {
         if (mounted) {
-          showAppSnackbar(
+          showErrorNotification(
             context,
             'delivery_update.location.gps_required'.tr(),
-            type: SnackbarType.error,
           );
         }
         return;
       }
-      var status = await Permission.location.status;
-      if (status.isDenied) status = await Permission.location.request();
-      if (status.isPermanentlyDenied) {
-        if (mounted) {
-          showAppSnackbar(
-            context,
-            'delivery_update.location.permission_permanently_denied'.tr(),
-            type: SnackbarType.error,
-          );
-          await openAppSettings();
+
+      if (!locState.isReady) {
+        await ref.read(locationProvider.notifier).requestPermission();
+        final updated = ref.read(locationProvider);
+        if (updated.status == LocationStatus.permissionPermanentlyDenied) {
+          if (mounted) {
+            showErrorNotification(
+              context,
+              'delivery_update.location.permission_permanently_denied'.tr(),
+            );
+            await ref.read(locationProvider.notifier).openSettings();
+          }
+          return;
         }
-        return;
-      }
-      if (!status.isGranted) {
-        if (mounted) {
-          showAppSnackbar(
-            context,
-            'delivery_update.location.permission_required'.tr(),
-            type: SnackbarType.error,
-          );
+        if (!updated.isReady) {
+          if (mounted) {
+            showErrorNotification(
+              context,
+              'delivery_update.location.permission_required'.tr(),
+            );
+          }
+          return;
         }
-        return;
       }
+
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
@@ -318,18 +325,16 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
     } on LocationServiceDisabledException {
       if (mounted) {
-        showAppSnackbar(
+        showErrorNotification(
           context,
           'delivery_update.location.gps_disabled'.tr(),
-          type: SnackbarType.error,
         );
       }
     } catch (_) {
       if (mounted) {
-        showAppSnackbar(
+        showErrorNotification(
           context,
           'delivery_update.location.could_not_get_location'.tr(),
-          type: SnackbarType.error,
         );
       }
     } finally {
@@ -339,32 +344,33 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
 
   // ── Camera permission ─────────────────────────────────────────────────────
   Future<bool> _handleCameraPermission() async {
-    var status = await Permission.camera.status;
-    if (status.isGranted) {
+    final perms = ref.read(extraPermissionsProvider);
+    if (perms.cameraStatus.isGranted) {
       return true;
     }
-    if (status.isDenied) {
-      status = await Permission.camera.request();
-      if (status.isGranted) {
-        return true;
-      }
-    }
-    if (status.isPermanentlyDenied) {
+
+    if (perms.cameraStatus.isPermanentlyDenied) {
       if (mounted) {
-        showAppSnackbar(
+        showErrorNotification(
           context,
           'delivery_update.camera.permission_settings'.tr(),
-          type: SnackbarType.error,
         );
-        await openAppSettings();
+        await ref.read(extraPermissionsProvider.notifier).openSettings();
       }
       return false;
     }
+
+    await ref.read(extraPermissionsProvider.notifier).requestCamera();
+    final updated = ref.read(extraPermissionsProvider);
+
+    if (updated.cameraStatus.isGranted) {
+      return true;
+    }
+
     if (mounted) {
-      showAppSnackbar(
+      showErrorNotification(
         context,
         'delivery_update.camera.permission_photo'.tr(),
-        type: SnackbarType.error,
       );
     }
     return false;
@@ -392,10 +398,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         _podPhoto ??= PhotoEntry(id: entry.id, file: entry.file, type: 'pod');
       });
       if (!mounted) return;
-      showAppSnackbar(
+      showSuccessNotification(
         context,
         'delivery_update.photo.recovered_success'.tr(),
-        type: SnackbarType.success,
       );
     } catch (e) {
       debugPrint('Error recovering lost data: $e');
@@ -470,23 +475,21 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         return;
       }
       if (mounted) {
-        showAppSnackbar(
+        showErrorNotification(
           context,
           'delivery_update.camera.error'.tr(
             namedArgs: {'code': e.code, 'message': e.message ?? ''},
           ),
-          type: SnackbarType.error,
         );
       }
     } catch (e) {
       setState(() => _isPickerActive = false);
       if (mounted) {
-        showAppSnackbar(
+        showErrorNotification(
           context,
           'delivery_update.camera.capture_failed'.tr(
             namedArgs: {'error': e.toString()},
           ),
-          type: SnackbarType.error,
         );
       }
     }
@@ -860,24 +863,22 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   // ─── Build helpers ────────────────────────────────────────────────────────
 
   bool get _isDirty {
-    // We no longer consider the status selection itself as "dirty" for the
-    // purpose of the discard dialog. This allows couriers to toggle between
-    // DELIVERED, FAILED, and OSA to see the required fields without being
-    // warned on exit, provided they haven't actually filled anything yet.
-    return _recipient.text.isNotEmpty ||
-        _note.text.isNotEmpty ||
-        _relationship != null ||
-        _relationshipSpecify.text.isNotEmpty ||
-        _reason != null ||
-        _reasonSpecify.text.isNotEmpty ||
-        _accordingTo.text.isNotEmpty ||
-        _podPhoto != null ||
-        _selfiePhoto != null ||
-        _mailpackPhoto != null ||
-        _photos.isNotEmpty ||
-        _signaturePath != null ||
-        _confirmationCode.text.isNotEmpty ||
-        _placement != 'RECEIVED';
+    return DeliveryUpdateHelper.isDirty(
+      recipient: _recipient.text,
+      note: _note.text,
+      relationship: _relationship,
+      relationshipSpecify: _relationshipSpecify.text,
+      reason: _reason,
+      reasonSpecify: _reasonSpecify.text,
+      accordingTo: _accordingTo.text,
+      hasPodPhoto: _podPhoto != null,
+      hasSelfiePhoto: _selfiePhoto != null,
+      hasMailpackPhoto: _mailpackPhoto != null,
+      hasAdditionalPhotos: _photos.isNotEmpty,
+      hasSignature: _signaturePath != null,
+      confirmationCode: _confirmationCode.text,
+      placement: _placement,
+    );
   }
 
   @override
@@ -914,7 +915,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                 onPressed: () => Navigator.of(ctx).pop(true),
                 child: Text(
                   'delivery_update.discard_changes.discard'.tr(),
-                  style: DSTypography.button().copyWith(color: DSColors.error),
+                  style: DSTypography.button(color: DSColors.error),
                 ),
               ),
             ],

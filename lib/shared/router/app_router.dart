@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
-import 'package:fsi_courier_app/core/providers/location_provider.dart';
-import 'package:fsi_courier_app/core/providers/permissions_provider.dart';
-import 'package:fsi_courier_app/features/location/location_required_screen.dart';
+import 'package:fsi_courier_app/features/permissions/providers/location_provider.dart';
+import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
+import 'package:fsi_courier_app/features/permissions/permissions_required_screen.dart';
 import 'package:fsi_courier_app/features/auth/login_screen.dart';
 import 'package:fsi_courier_app/features/auth/reset_password_screen.dart';
 import 'package:fsi_courier_app/splash_screen.dart';
@@ -188,11 +188,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (path != '/splash' && !isUpdateRoute && !isLegalRoute) {
         final allReady = locationState.isReady && permsState.isReady;
         if (!allReady) {
-          if (path != '/location-required') {
-            return '/location-required';
+          if (path != '/permissions-required') {
+            return '/permissions-required';
           }
           return null;
-        } else if (path == '/location-required') {
+        } else if (path == '/permissions-required') {
           return '/dashboard';
         }
       }
@@ -232,10 +232,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/location-required',
+        path: '/permissions-required',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
-          child: const LocationRequiredScreen(),
+          child: const PermissionsRequiredScreen(),
           extra: state.extra,
         ),
       ),

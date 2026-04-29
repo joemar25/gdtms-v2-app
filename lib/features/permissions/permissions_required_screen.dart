@@ -3,15 +3,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easy_localization/easy_localization.dart';
 
-import 'package:fsi_courier_app/core/providers/location_provider.dart';
-import 'package:fsi_courier_app/core/providers/permissions_provider.dart';
+import 'package:fsi_courier_app/features/permissions/providers/location_provider.dart';
+import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
 
 import 'package:permission_handler/permission_handler.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
-class LocationRequiredScreen extends ConsumerWidget {
-  const LocationRequiredScreen({super.key});
+class PermissionsRequiredScreen extends ConsumerWidget {
+  const PermissionsRequiredScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,7 +20,6 @@ class LocationRequiredScreen extends ConsumerWidget {
     final locationNotifier = ref.read(locationProvider.notifier);
     final permsState = ref.watch(extraPermissionsProvider);
     final permsNotifier = ref.read(extraPermissionsProvider.notifier);
-    final theme = Theme.of(context);
 
     final locationGranted = locationState.isReady;
     final cameraGranted = permsState.cameraStatus.isGranted;
@@ -40,9 +40,10 @@ class LocationRequiredScreen extends ConsumerWidget {
               ).dsHeroEntry(),
               DSSpacing.hLg,
               Text(
-                'Permissions Required',
+                'permissions.title'.tr(),
                 textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall?.copyWith(
+                style: DSTypography.heading(
+                  fontSize: DSTypography.sizeXl,
                   fontWeight: FontWeight.w700,
                 ),
               ).dsFadeEntry(
@@ -53,12 +54,11 @@ class LocationRequiredScreen extends ConsumerWidget {
               ),
               DSSpacing.hSm,
               Text(
-                'FSI Courier needs the following permissions to function properly. Please enable all of them to continue.',
+                'permissions.subtitle'.tr(),
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  height: DSStyles.heightRelaxed,
-                ),
+                style: DSTypography.body(
+                  color: DSColors.labelSecondary,
+                ).copyWith(height: DSStyles.heightRelaxed),
               ).dsFadeEntry(
                 delay: DSAnimations.stagger(
                   2,
@@ -72,13 +72,13 @@ class LocationRequiredScreen extends ConsumerWidget {
                 icon: locationGranted
                     ? Icons.location_on_rounded
                     : Icons.location_off_rounded,
-                label: 'Location',
+                label: 'permissions.location.label'.tr(),
                 description: locationGranted
-                    ? 'Granted'
+                    ? 'permissions.status_granted'.tr()
                     : _locationDescription(locationState.status),
                 granted: locationGranted,
                 buttonLabel: locationGranted
-                    ? 'Enabled'
+                    ? 'permissions.button_enabled'.tr()
                     : _locationButtonLabel(locationState.status),
                 onTap: locationGranted
                     ? null
@@ -99,18 +99,20 @@ class LocationRequiredScreen extends ConsumerWidget {
                 icon: cameraGranted
                     ? Icons.camera_alt_rounded
                     : Icons.no_photography_rounded,
-                label: 'Camera',
+                label: 'permissions.camera.label'.tr(),
                 description: cameraGranted
-                    ? 'Granted'
+                    ? 'permissions.status_granted'.tr()
                     : permsState.cameraStatus.isPermanentlyDenied
-                    ? 'Permanently denied — open Settings to enable'
-                    : 'Required to capture proof-of-delivery photos',
+                    ? 'permissions.status_permanently_denied'.tr()
+                    : 'permissions.status_denied'.tr(
+                        namedArgs: {'reason': 'permissions.camera.reason'.tr()},
+                      ),
                 granted: cameraGranted,
                 buttonLabel: cameraGranted
-                    ? 'Enabled'
+                    ? 'permissions.button_enabled'.tr()
                     : permsState.cameraStatus.isPermanentlyDenied
-                    ? 'Open Settings'
-                    : 'Grant Permission',
+                    ? 'permissions.button_settings'.tr()
+                    : 'permissions.button_grant'.tr(),
                 onTap: cameraGranted
                     ? null
                     : permsState.cameraStatus.isPermanentlyDenied
@@ -129,18 +131,22 @@ class LocationRequiredScreen extends ConsumerWidget {
                 icon: notifGranted
                     ? Icons.notifications_rounded
                     : Icons.notifications_off_rounded,
-                label: 'Notifications',
+                label: 'permissions.notifications.label'.tr(),
                 description: notifGranted
-                    ? 'Granted'
+                    ? 'permissions.status_granted'.tr()
                     : permsState.notificationStatus.isPermanentlyDenied
-                    ? 'Permanently denied — open Settings to enable'
-                    : 'Required for dispatch assignments and delivery alerts',
+                    ? 'permissions.status_permanently_denied'.tr()
+                    : 'permissions.status_denied'.tr(
+                        namedArgs: {
+                          'reason': 'permissions.notifications.reason'.tr(),
+                        },
+                      ),
                 granted: notifGranted,
                 buttonLabel: notifGranted
-                    ? 'Enabled'
+                    ? 'permissions.button_enabled'.tr()
                     : permsState.notificationStatus.isPermanentlyDenied
-                    ? 'Open Settings'
-                    : 'Grant Permission',
+                    ? 'permissions.button_settings'.tr()
+                    : 'permissions.button_grant'.tr(),
                 onTap: notifGranted
                     ? null
                     : permsState.notificationStatus.isPermanentlyDenied
@@ -160,10 +166,10 @@ class LocationRequiredScreen extends ConsumerWidget {
                   permsNotifier.refresh();
                 },
                 style: TextButton.styleFrom(
-                  foregroundColor: theme.colorScheme.onSurfaceVariant,
+                  foregroundColor: DSColors.labelSecondary,
                   minimumSize: const Size.fromHeight(48),
                 ),
-                child: const Text('I have enabled them, refresh'),
+                child: Text('permissions.refresh'.tr()),
               ).dsFadeEntry(
                 delay: DSAnimations.stagger(
                   6,
@@ -179,22 +185,26 @@ class LocationRequiredScreen extends ConsumerWidget {
 
   String _locationDescription(LocationStatus status) {
     return switch (status) {
-      LocationStatus.serviceDisabled =>
-        'GPS is turned off — required to verify delivery coordinates',
+      LocationStatus.serviceDisabled => 'permissions.location.gps_off'.tr(),
       LocationStatus.permissionPermanentlyDenied =>
-        'Permanently denied — open Settings to enable',
-      LocationStatus.permissionDenied =>
-        'Required to verify delivery coordinates and tracking',
-      LocationStatus.determining || LocationStatus.ready => 'Checking…',
+        'permissions.status_permanently_denied'.tr(),
+      LocationStatus.permissionDenied => 'permissions.status_denied'.tr(
+        namedArgs: {'reason': 'permissions.location.reason'.tr()},
+      ),
+      LocationStatus.determining ||
+      LocationStatus.ready => 'common.loading'.tr(),
     };
   }
 
   String _locationButtonLabel(LocationStatus status) {
     return switch (status) {
-      LocationStatus.serviceDisabled => 'Open Location Settings',
-      LocationStatus.permissionPermanentlyDenied => 'Open Settings',
-      LocationStatus.permissionDenied => 'Grant Permission',
-      LocationStatus.determining || LocationStatus.ready => 'Loading…',
+      LocationStatus.serviceDisabled =>
+        'permissions.location.settings_label'.tr(),
+      LocationStatus.permissionPermanentlyDenied =>
+        'permissions.button_settings'.tr(),
+      LocationStatus.permissionDenied => 'permissions.button_grant'.tr(),
+      LocationStatus.determining ||
+      LocationStatus.ready => 'common.loading'.tr(),
     };
   }
 
@@ -236,9 +246,7 @@ class _PermissionCard extends StatelessWidget {
 
     final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
     final iconColor = granted ? DSColors.primary : DSColors.error;
-    final statusColor = granted
-        ? DSColors.primary
-        : theme.colorScheme.onSurfaceVariant;
+    final statusColor = granted ? DSColors.primary : DSColors.labelSecondary;
 
     return Container(
       decoration: BoxDecoration(
@@ -247,72 +255,88 @@ class _PermissionCard extends StatelessWidget {
         border: Border.all(
           color: granted
               ? DSColors.primary.withValues(alpha: DSStyles.alphaMuted)
-              : theme.dividerColor.withValues(alpha: DSStyles.alphaMuted),
+              : DSColors.separatorLight.withValues(alpha: DSStyles.alphaMuted),
           width: DSStyles.borderWidth,
         ),
       ),
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: DSSpacing.sm,
-      ),
-      child: Row(
+      padding: EdgeInsets.all(DSSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: DSIconSize.heroSm,
-            height: DSIconSize.heroSm,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
-              borderRadius: DSStyles.cardRadius,
-            ),
-            child: Icon(icon, color: iconColor, size: DSIconSize.lg),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: DSIconSize.heroSm,
+                height: DSIconSize.heroSm,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
+                  borderRadius: DSStyles.cardRadius,
+                ),
+                child: Icon(icon, color: iconColor, size: DSIconSize.lg),
+              ),
+              DSSpacing.wMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: DSTypography.subTitle(
+                        fontSize: DSTypography.sizeMd,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    DSSpacing.hXs,
+                    Text(
+                      description,
+                      style: DSTypography.caption(
+                        color: statusColor,
+                      ).copyWith(height: DSStyles.heightNormal),
+                    ),
+                  ],
+                ),
+              ),
+              if (granted) ...[
+                DSSpacing.wSm,
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: DSColors.primary,
+                  size: DSIconSize.xl,
+                ),
+              ],
+            ],
           ),
-          DSSpacing.wMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.titleSmall?.copyWith(
+          if (!granted) ...[
+            DSSpacing.hMd,
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onTap,
+                style: TextButton.styleFrom(
+                  foregroundColor: DSColors.error,
+                  backgroundColor: DSColors.error.withValues(alpha: 0.1),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: DSSpacing.md,
+                    vertical: DSSpacing.sm,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: DSStyles.pillRadius,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  buttonLabel,
+                  style: DSTypography.button(
+                    color: DSColors.error,
+                    fontSize: DSTypography.sizeSm,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                DSSpacing.hXs,
-                Text(
-                  description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: statusColor,
-                    height: DSStyles.heightNormal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          DSSpacing.wSm,
-          if (granted)
-            Icon(
-              Icons.check_circle_rounded,
-              color: DSColors.primary,
-              size: DSIconSize.xl,
-            )
-          else
-            TextButton(
-              onPressed: onTap,
-              style: TextButton.styleFrom(
-                foregroundColor: DSColors.error,
-                padding: EdgeInsets.symmetric(
-                  horizontal: DSSpacing.md,
-                  vertical: DSSpacing.sm,
-                ),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: DSTypography.button().copyWith(
-                  fontSize: DSTypography.sizeSm,
-                  fontWeight: FontWeight.w700,
-                ),
               ),
-              child: Text(buttonLabel),
             ),
+          ],
         ],
       ),
     );

@@ -422,5 +422,30 @@
       "all_caught_up": "Lahat ay ayos na!",
       "no_pending": "Walang mga nakabinbing pagpapadala na dapat i-sync."
     }
+  },
+  "permissions": {
+    "title": "Kinakailangang Permiso",
+    "subtitle": "Kailangan ng FSI Courier ang mga sumusunod na permiso para gumana nang maayos. Pakisubukang i-enable lahat para magpatuloy.",
+    "refresh": "Naka-enable na ang mga ito, i-refresh",
+    "status_granted": "Pinahintulutan",
+    "status_denied": "Kinakailangan para {reason}",
+    "status_permanently_denied": "Permanenteng tinanggihan — buksan ang Settings para i-enable",
+    "button_enabled": "Naka-enable",
+    "button_grant": "Ibigay ang Permiso",
+    "button_settings": "Buksan ang Settings",
+    "location": {
+      "label": "Lokasyon",
+      "reason": "i-verify ang mga coordinate ng delivery at tracking",
+      "gps_off": "Naka-off ang GPS — kinakailangan para i-verify ang mga coordinate ng delivery",
+      "settings_label": "Buksan ang Location Settings"
+    },
+    "camera": {
+      "label": "Camera",
+      "reason": "kumuha ng mga larawan bilang patunay ng delivery"
+    },
+    "notifications": {
+      "label": "Mga Abiso",
+      "reason": "mga assignment sa dispatch at alerto sa delivery"
     }
   }
+}

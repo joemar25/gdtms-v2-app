@@ -46,7 +46,7 @@ class PushNotificationService {
     _apiClient = apiClient;
 
     // Check current permission status without prompting the user.
-    // The permissions screen (LocationRequiredScreen) is responsible for
+    // The permissions screen (PermissionsRequiredScreen) is responsible for
     // requesting notification permission before the user reaches the dashboard.
     final settings = await _messaging.getNotificationSettings();
 

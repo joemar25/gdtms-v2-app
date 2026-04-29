@@ -23,14 +23,13 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
-import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
-import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
-import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/services/error_log_service.dart';
 import 'package:fsi_courier_app/core/services/time_validation_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/core/database/database_providers.dart';
+import 'package:fsi_courier_app/core/models/sync_operation.dart';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -112,7 +111,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
   Future<void> loadEntries() async {
     final courier = ref.read(authProvider).courier ?? {};
     final courierId = courier['id']?.toString() ?? '';
-    final entries = await SyncOperationsDao.instance.getAll(courierId);
+    final entries = await ref.read(syncOperationsDaoProvider).getAll(courierId);
     if (!_disposed) state = state.copyWith(entries: entries);
     _autoCleanupIfEligible(entries);
   }
@@ -168,7 +167,9 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
     final courier = ref.read(authProvider).courier ?? {};
     final courierId = courier['id']?.toString() ?? '';
-    final pending = await SyncOperationsDao.instance.getPending(courierId);
+    final pending = await ref
+        .read(syncOperationsDaoProvider)
+        .getPending(courierId);
     if (pending.isEmpty) {
       await loadEntries();
       return;
@@ -195,23 +196,23 @@ class SyncManagerNotifier extends Notifier<SyncState> {
       // They must never enter the delivery sync pipeline. Auto-resolve any
       // stale UPDATE_PROFILE entries so they disappear from the queue.
       if (entry.operationType == 'UPDATE_PROFILE') {
-        await SyncOperationsDao.instance.updateStatus(
-          entry.id,
-          'synced',
-          lastAttemptAt: DateTime.now().millisecondsSinceEpoch,
-          lastError:
-              'Resolved: profile updates use direct API, not sync queue.',
-        );
+        await ref
+            .read(syncOperationsDaoProvider)
+            .updateStatus(
+              entry.id,
+              'synced',
+              lastAttemptAt: DateTime.now().millisecondsSinceEpoch,
+              lastError:
+                  'Resolved: profile updates use direct API, not sync queue.',
+            );
         state = state.copyWith(processed: state.processed + 1);
         continue;
       }
 
       final attemptAt = DateTime.now().millisecondsSinceEpoch;
-      await SyncOperationsDao.instance.updateStatus(
-        entry.id,
-        'processing',
-        lastAttemptAt: attemptAt,
-      );
+      await ref
+          .read(syncOperationsDaoProvider)
+          .updateStatus(entry.id, 'processing', lastAttemptAt: attemptAt);
 
       try {
         final payload = jsonDecode(entry.payloadJson) as Map<String, dynamic>;
@@ -371,12 +372,14 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                 '[SYNC] ALL media uploads failed for ${entry.barcode} '
                 '(${pendingMedia.length} files) — marking failed, will retry.',
               );
-              await SyncOperationsDao.instance.updateStatus(
-                entry.id,
-                'failed',
-                lastError: mediaError,
-                retryCount: newRetryCount,
-              );
+              await ref
+                  .read(syncOperationsDaoProvider)
+                  .updateStatus(
+                    entry.id,
+                    'failed',
+                    lastError: mediaError,
+                    retryCount: newRetryCount,
+                  );
               await ErrorLogService.warning(
                 context: 'sync',
                 message: 'Media upload failed for ${entry.barcode}',
@@ -441,29 +444,25 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
         if (result is ApiSuccess<Map<String, dynamic>>) {
           final now = DateTime.now().millisecondsSinceEpoch;
-          await SyncOperationsDao.instance.updateStatus(
-            entry.id,
-            'synced',
-            lastAttemptAt: now,
-          );
+          await ref
+              .read(syncOperationsDaoProvider)
+              .updateStatus(entry.id, 'synced', lastAttemptAt: now);
           // Advance the sync anchor so any future submission whose device
           // clock is behind this moment is rejected as a backdated update.
           unawaited(TimeValidationService.instance.recordSyncAnchor());
           final deliveryData = result.data['data'];
           if (deliveryData is Map<String, dynamic>) {
-            await LocalDeliveryDao.instance.updateFromJson(
-              entry.barcode,
-              deliveryData,
-            );
+            await ref
+                .read(localDeliveryDaoProvider)
+                .updateFromJson(entry.barcode, deliveryData);
           } else {
             // Payload stores UPPERCASE status (server format); normalise to
             // lowercase before writing to local DB (internal app format).
             final status = payload['delivery_status']?.toString().toUpperCase();
             if (status != null) {
-              await LocalDeliveryDao.instance.updateStatus(
-                entry.barcode,
-                status,
-              );
+              await ref
+                  .read(localDeliveryDaoProvider)
+                  .updateStatus(entry.barcode, status);
             }
           }
           successCount++;
@@ -537,19 +536,20 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                   ? responseData['data'] ?? responseData
                   : null;
               if (maybeData is Map<String, dynamic>) {
-                await LocalDeliveryDao.instance.updateFromJson(
-                  entry.barcode,
-                  maybeData,
-                );
+                await ref
+                    .read(localDeliveryDaoProvider)
+                    .updateFromJson(entry.barcode, maybeData);
               }
             }
 
-            await SyncOperationsDao.instance.updateStatus(
-              entry.id,
-              'synced',
-              lastAttemptAt: now,
-              lastError: 'Resolved: $errorMsg',
-            );
+            await ref
+                .read(syncOperationsDaoProvider)
+                .updateStatus(
+                  entry.id,
+                  'synced',
+                  lastAttemptAt: now,
+                  lastError: 'Resolved: $errorMsg',
+                );
             successCount++;
             state = state.copyWith(
               processed: state.processed + 1,
@@ -557,11 +557,9 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                   'Delivery ${entry.barcode} already updated on server.',
             );
           } else {
-            await SyncOperationsDao.instance.updateStatus(
-              entry.id,
-              'conflict',
-              lastError: errorMsg,
-            );
+            await ref
+                .read(syncOperationsDaoProvider)
+                .updateStatus(entry.id, 'conflict', lastError: errorMsg);
             await ErrorLogService.warning(
               context: 'sync',
               message: 'Conflict on ${entry.barcode}',
@@ -576,12 +574,14 @@ class SyncManagerNotifier extends Notifier<SyncState> {
         } else {
           final errorMsg = _errorMessage(result);
           final newRetryCount = entry.retryCount + 1;
-          await SyncOperationsDao.instance.updateStatus(
-            entry.id,
-            'failed',
-            lastError: errorMsg,
-            retryCount: newRetryCount,
-          );
+          await ref
+              .read(syncOperationsDaoProvider)
+              .updateStatus(
+                entry.id,
+                'failed',
+                lastError: errorMsg,
+                retryCount: newRetryCount,
+              );
           await ErrorLogService.log(
             context: 'sync',
             message: 'Failed to sync ${entry.barcode}',
@@ -595,12 +595,14 @@ class SyncManagerNotifier extends Notifier<SyncState> {
         }
       } catch (e) {
         final newRetryCount = entry.retryCount + 1;
-        await SyncOperationsDao.instance.updateStatus(
-          entry.id,
-          'failed',
-          lastError: e.toString(),
-          retryCount: newRetryCount,
-        );
+        await ref
+            .read(syncOperationsDaoProvider)
+            .updateStatus(
+              entry.id,
+              'failed',
+              lastError: e.toString(),
+              retryCount: newRetryCount,
+            );
         await ErrorLogService.log(
           context: 'sync',
           message: 'Exception syncing ${entry.barcode}',
@@ -622,7 +624,9 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     // Import is deferred at runtime to avoid circular reference at parse time.
     _runCleanupSilently();
 
-    final allEntries = await SyncOperationsDao.instance.getAll(courierId);
+    final allEntries = await ref
+        .read(syncOperationsDaoProvider)
+        .getAll(courierId);
     if (!_disposed) {
       state = state.copyWith(
         isSyncing: false,
@@ -655,7 +659,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
   /// processes the queue. Intended for manual retry from the Sync screen.
   Future<void> retrySingle(String id) async {
     if (state.isSyncing) return;
-    await SyncOperationsDao.instance.resetToPending(id);
+    await ref.read(syncOperationsDaoProvider).resetToPending(id);
     await processQueue();
   }
 
@@ -663,19 +667,17 @@ class SyncManagerNotifier extends Notifier<SyncState> {
   Future<void> clearFailed() async {
     final auth = ref.read(authProvider);
     if (auth.courier == null) return;
-    await SyncOperationsDao.instance.deleteAllFailed(
-      auth.courier!['id'].toString(),
-    );
+    await ref
+        .read(syncOperationsDaoProvider)
+        .deleteAllFailed(auth.courier!['id'].toString());
     await loadEntries(); // Reload list
   }
 
   /// Dismisses a conflict operation.
   Future<void> dismissConflict(String id) async {
-    await SyncOperationsDao.instance.updateStatus(
-      id,
-      'synced',
-      lastError: 'Dismissed by user',
-    );
+    await ref
+        .read(syncOperationsDaoProvider)
+        .updateStatus(id, 'synced', lastError: 'Dismissed by user');
     await loadEntries();
   }
 
@@ -716,11 +718,10 @@ class SyncManagerNotifier extends Notifier<SyncState> {
       const paidDeliveryMs =
           kPaidDeliveryRetentionDays * Duration.millisecondsPerDay;
       await Future.wait([
-        SyncOperationsDao.instance.deleteOldSynced(retentionDays),
-        LocalDeliveryDao.instance.deleteOldSynced(
-          deliveryMs,
-          paidRetentionMs: paidDeliveryMs,
-        ),
+        ref.read(syncOperationsDaoProvider).deleteOldSynced(retentionDays),
+        ref
+            .read(localDeliveryDaoProvider)
+            .deleteOldSynced(deliveryMs, paidRetentionMs: paidDeliveryMs),
       ]);
     } catch (_) {
       // Cleanup failures are non-critical — silently ignored.

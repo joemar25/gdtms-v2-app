@@ -75,9 +75,6 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                         color: widget.isOnline
                             ? DSColors.success
                             : DSColors.warning,
-                      ).copyWith(
-                        fontSize: DSTypography.sizeXs,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -93,7 +90,8 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                     color: Theme.of(context).brightness == Brightness.dark
                         ? DSColors.labelSecondaryDark
                         : DSColors.labelSecondary,
-                  ).copyWith(fontSize: DSTypography.sizeXs),
+                    fontSize: DSTypography.sizeXs,
+                  ),
                 ),
               ],
 
@@ -134,7 +132,8 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                                       Brightness.dark
                                   ? DSColors.labelSecondaryDark
                                   : DSColors.labelSecondary,
-                            ).copyWith(fontSize: DSTypography.sizeXs),
+                              fontSize: DSTypography.sizeXs,
+                            ),
                           ),
                         );
                       }
@@ -232,7 +231,8 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                                             Brightness.dark
                                         ? DSColors.labelSecondaryDark
                                         : DSColors.labelSecondary,
-                                  ).copyWith(fontSize: DSTypography.sizeXs),
+                                    fontSize: DSTypography.sizeXs,
+                                  ),
                                 ),
                               ],
                             ),
@@ -253,10 +253,7 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
             vertical: DSSpacing.md,
           ),
         ),
-        DSSectionHeader(
-          title: 'sync.title'.tr(),
-          useLocalization: false,
-        ),
+        DSSectionHeader(title: 'sync.title'.tr(), useLocalization: false),
       ],
     );
   }

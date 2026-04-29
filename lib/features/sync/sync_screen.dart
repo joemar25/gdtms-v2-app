@@ -83,11 +83,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
       }
     } catch (_) {
       if (mounted) {
-        showAppSnackbar(
-          context,
-          'sync.dialogs.reload_failed'.tr(),
-          type: SnackbarType.error,
-        );
+        showErrorNotification(context, 'sync.dialogs.reload_failed'.tr());
       }
     } finally {
       if (mounted) setState(() => _reloading = false);
@@ -111,7 +107,9 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
     return Scaffold(
       appBar: AppHeaderBar(
         title: 'sync.title'.tr(),
+        pageIcon: Icons.sync_rounded,
         actions: [
+          const SecureBadge(),
           if (isOnline &&
               syncState.entries.any(
                 (e) =>
@@ -137,7 +135,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                 syncState.isSyncing
                     ? 'sync.actions.syncing'.tr()
                     : 'sync.actions.sync_now'.tr(),
-                style: DSTypography.button().copyWith(
+                style: DSTypography.button(
                   fontSize: DSTypography.sizeXs,
                   fontWeight: FontWeight.w700,
                 ),
@@ -166,42 +164,46 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
             ),
         ],
       ),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onHorizontalDragEnd: (details) {
-          final velocity = details.primaryVelocity ?? 0;
-          if (velocity < -200 && _currentPage < totalPages) {
-            HapticFeedback.mediumImpact();
-            setState(() => _currentPage++);
-          } else if (velocity > 200 && _currentPage > 1) {
-            HapticFeedback.mediumImpact();
-            setState(() => _currentPage--);
-          }
-        },
-        child: Column(
-          children: [
-            SyncHeader(isOnline: isOnline),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  if (ref.read(isOnlineProvider)) {
-                    await ref.read(syncManagerProvider.notifier).processQueue();
-                  }
-                  await ref.read(syncManagerProvider.notifier).loadEntries();
-                },
-                child: syncState.entries.isEmpty
-                    ? SyncEmptyState(isSyncing: syncState.isSyncing)
-                    : SyncEntryList(
-                        syncState: syncState,
-                        deliveries: _deliveries,
-                        page: _currentPage,
-                        pageSize: _pageSize,
-                        onPageChanged: (p) =>
-                            setState(() => _currentPage = p + 1),
-                      ),
+      body: SecureView(
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: (details) {
+            final velocity = details.primaryVelocity ?? 0;
+            if (velocity < -200 && _currentPage < totalPages) {
+              HapticFeedback.mediumImpact();
+              setState(() => _currentPage++);
+            } else if (velocity > 200 && _currentPage > 1) {
+              HapticFeedback.mediumImpact();
+              setState(() => _currentPage--);
+            }
+          },
+          child: Column(
+            children: [
+              SyncHeader(isOnline: isOnline),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    if (ref.read(isOnlineProvider)) {
+                      await ref
+                          .read(syncManagerProvider.notifier)
+                          .processQueue();
+                    }
+                    await ref.read(syncManagerProvider.notifier).loadEntries();
+                  },
+                  child: syncState.entries.isEmpty
+                      ? SyncEmptyState(isSyncing: syncState.isSyncing)
+                      : SyncEntryList(
+                          syncState: syncState,
+                          deliveries: _deliveries,
+                          page: _currentPage,
+                          pageSize: _pageSize,
+                          onPageChanged: (p) =>
+                              setState(() => _currentPage = p + 1),
+                        ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

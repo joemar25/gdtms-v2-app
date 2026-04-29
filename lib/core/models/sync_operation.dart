@@ -1,5 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/core/models.md — update that file when you edit this one.
+import 'dart:convert';
 
 /// A durable operation recorded on the mobile device before syncing to the server.
 class SyncOperation {
@@ -28,6 +29,15 @@ class SyncOperation {
   final String? lastError;
   final int createdAt;
   final int? lastAttemptAt;
+
+  /// Decoded [payloadJson] as a Map.
+  Map<String, dynamic> get payload {
+    try {
+      return jsonDecode(payloadJson) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
 
   factory SyncOperation.fromDb(Map<String, dynamic> row) {
     return SyncOperation(

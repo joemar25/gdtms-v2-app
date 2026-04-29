@@ -107,13 +107,21 @@ class DSTypography {
     letterSpacing: lsNone,
   );
 
-  static TextStyle label({Color? color}) => TextStyle(
+  static TextStyle label({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+  }) => TextStyle(
     fontFamily: 'Montserrat',
-    fontSize: sizeXs,
-    fontWeight: FontWeight.w700,
+    fontSize: fontSize ?? sizeXs,
+    fontWeight: fontWeight ?? FontWeight.w700,
     color: color,
     letterSpacing: lsExtraLoose,
   );
 
-  static TextStyle get labelCaps => label();
+  static TextStyle labelCaps({
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+  }) => label(color: color, fontSize: fontSize, fontWeight: fontWeight);
 }

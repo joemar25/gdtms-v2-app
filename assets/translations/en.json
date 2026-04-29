@@ -433,5 +433,30 @@
       "all_caught_up": "All caught up!",
       "no_pending": "No pending deliveries to sync."
     }
+  },
+  "permissions": {
+    "title": "Permissions Required",
+    "subtitle": "FSI Courier needs the following permissions to function properly. Please enable all of them to continue.",
+    "refresh": "I have enabled them, refresh",
+    "status_granted": "Granted",
+    "status_denied": "Required to {reason}",
+    "status_permanently_denied": "Permanently denied — open Settings to enable",
+    "button_enabled": "Enabled",
+    "button_grant": "Grant Permission",
+    "button_settings": "Open Settings",
+    "location": {
+      "label": "Location",
+      "reason": "verify delivery coordinates and tracking",
+      "gps_off": "GPS is turned off — required to verify delivery coordinates",
+      "settings_label": "Open Location Settings"
+    },
+    "camera": {
+      "label": "Camera",
+      "reason": "capture proof-of-delivery photos"
+    },
+    "notifications": {
+      "label": "Notifications",
+      "reason": "dispatch assignments and delivery alerts"
+    }
   }
 }
