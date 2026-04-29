@@ -412,14 +412,18 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           padding: EdgeInsets.zero,
                         ).dsFadeEntry(delay: DSAnimations.stagger(3)),
                         DSSpacing.hSm,
-                        ..._historyList.map(
-                          (req) => PayoutHistoryRow(
-                            data: req,
+                        ..._historyList.asMap().entries.map(
+                          (entry) => PayoutHistoryRow(
+                            data: entry.value,
                             onTap: () {
-                              final ref =
-                                  '${req['reference'] ?? req['payment_reference'] ?? ''}';
-                              if (ref.isNotEmpty) context.push('/wallet/$ref');
+                              final refVal =
+                                  '${entry.value['reference'] ?? entry.value['payment_reference'] ?? ''}';
+                              if (refVal.isNotEmpty) {
+                                context.push('/wallet/$refVal');
+                              }
                             },
+                          ).dsCardEntry(
+                            delay: DSAnimations.stagger(entry.key + 1, step: DSAnimations.staggerNormal),
                           ),
                         ),
                         DSSpacing.hLg,

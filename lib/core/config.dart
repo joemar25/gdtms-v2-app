@@ -3,6 +3,14 @@
 
 import 'package:flutter/foundation.dart';
 
+/// - Set via --dart-define=API_BASE_URL at build/run time.
+/// - Default: Local dev server (for emulator/real device on same WiFi).
+///   To expose locally: run `php artisan serve --host=0.0.0.0` and
+///   `npm run dev --host=0.0.0.0`, then use your IPv4 address from `ipconfig`.
+/// - Note: This will not work for web builds.
+/// - Run :  flutter run --dart-define-from-file=dart_defines.json
+/// - Prod:  flutter build apk --dart-define-from-file=dart_defines.json
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  FSI Courier App Configuration
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,14 +25,6 @@ const String appName = 'FSI Courier';
 const String packageId = 'com.fsi.courier';
 
 /// Base URL for API requests.
-///
-/// - Set via --dart-define=API_BASE_URL at build/run time.
-/// - Default: Local dev server (for emulator/real device on same WiFi).
-///   To expose locally: run `php artisan serve --host=0.0.0.0` and
-///   `npm run dev --host=0.0.0.0`, then use your IPv4 address from `ipconfig`.
-/// - Note: This will not work for web builds.
-/// - Run :  flutter run --dart-define-from-file=dart_defines.json
-/// - Prod:  flutter build apk --dart-define-from-file=dart_defines.json
 const String apiBaseUrl = String.fromEnvironment(
   // 'API_BASE_URL_PROD',
   'API_BASE_URL_DEMO',

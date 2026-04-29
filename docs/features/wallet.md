@@ -35,14 +35,17 @@
 
 ## `payout_detail_screen.dart`
 
-### Stepper
+### Transaction History
 
-`_buildHorizontalStepper()` renders the payout status progression in **2 rows**:
+Tapping the history icon in the app bar triggers `showPayoutHistorySheet()`, which renders the payout status progression as a **vertical animated stepper**:
 
-- Row 1: status circles.
-- Row 2: centered labels beneath each circle.
+- Latest status at the top.
+- Uses semantic colors (Green for `PAID`, Red for `REJECTED`).
+- Displays timestamps and remarks for each event.
 
-Do not collapse back to a single row — the labels overflow on small screens.
+### Breakdown Flip Card
+
+The `PayoutHeroFlipCard` displays the total amount on the front and flips to show a detailed tax/incentive breakdown on the back when tapped.
 
 ### Visibility lock
 

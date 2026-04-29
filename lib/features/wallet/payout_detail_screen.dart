@@ -1,21 +1,19 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/wallet.md — update that file when you edit this one.
 
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
-
-import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/deliveries_rundown_card.dart';
+import 'package:fsi_courier_app/features/wallet/widgets/payout_history_sheet.dart';
+import 'package:fsi_courier_app/features/wallet/widgets/payout_detail_components.dart';
 
 class PayoutDetailScreen extends ConsumerStatefulWidget {
   const PayoutDetailScreen({super.key, required this.reference});
@@ -44,8 +42,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
   }
 
   void _markLocalDeliveriesAsPaid(Map<String, dynamic> data) {
-    // API v2.0: daily_breakdown is { data: [...], meta: {} }
-    // API v1.x: daily_breakdown is a flat List
     final rawBreakdown = data['daily_breakdown'];
     final List<dynamic> raw;
     if (rawBreakdown is List) {
@@ -81,13 +77,9 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     if (!mounted) return;
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       _data = mapFromKey(data, 'data');
-      // Privacy rule: if payout is paid, mark all associated delivered records
-      // with paid_at so the cleanup service applies the shorter 1-day retention
-      // (kPaidDeliveryRetentionDays) instead of the standard window.
       if ((_data['status'] as String?)?.toUpperCase() == 'PAID') {
         _markLocalDeliveriesAsPaid(_data);
       }
-      // Initialise breakdown + pagination
       _accumulatedBreakdown = _normalisedBreakdown();
       _breakdownPage = 1;
       final rawBreakdown = _data['daily_breakdown'];
@@ -132,8 +124,10 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
           if (transactionHistory.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.history_rounded),
-              onPressed: () =>
-                  _showTransactionHistory(context, transactionHistory),
+              onPressed: () => showPayoutHistorySheet(
+                context: context,
+                history: _data['transaction_history'] ?? [],
+              ),
               tooltip: 'wallet.detail.view_history'.tr(),
             ),
         ],
@@ -168,15 +162,14 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: EdgeInsets.fromLTRB(
+                padding: const EdgeInsets.fromLTRB(
                   DSSpacing.md,
                   DSSpacing.sm,
                   DSSpacing.md,
                   DSSpacing.xl,
                 ),
                 children: [
-                  // ── Amount hero ──────────────────────────────────────────
-                  _PayoutHeroFlipCard(
+                  PayoutHeroFlipCard(
                     amount: amount,
                     status: status,
                     reference: reference,
@@ -186,8 +179,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   ).dsHeroEntry(),
 
                   DSSpacing.hMd,
-
-                  // ── Daily breakdown ──────────────────────────────────────
                   ..._buildDateStripSection(),
                 ],
               ),
@@ -195,8 +186,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     );
   }
 
-  // Normalises the daily_breakdown from the API into a flat list suitable for
-  // DateStripWithDeliveries.
   List<Map<String, dynamic>> _normalisedBreakdown([dynamic rawOverride]) {
     final rawBreakdown = rawOverride ?? _data['daily_breakdown'];
     final List<dynamic> raw;
@@ -209,9 +198,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
       return [];
     }
 
-    return raw.whereType<Map<String, dynamic>>().map((day) {
-      // Ensure each delivery has a delivery_status field so DeliveryCard
-      // can colour-code correctly (all deliveries in a payout are delivered).
+    final List<Map<String, dynamic>> normalised =
+        raw.whereType<Map<String, dynamic>>().map((day) {
       final deliveries =
           (day['deliveries'] as List?)?.whereType<Map<String, dynamic>>().map((
             d,
@@ -219,8 +207,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
             final status = (d['delivery_status'] ?? 'DELIVERED')
                 .toString()
                 .toUpperCase();
-            // FAILED_DELIVERY deliveries included in a payout are implicitly verified
-            // with pay — no chevron, no navigation (same as status list).
             final defaultFailedDeliveryVerif = status == 'FAILED_DELIVERY'
                 ? 'verified_with_pay'
                 : 'unvalidated';
@@ -245,10 +231,18 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
       return <String, dynamic>{
         ...day,
         'deliveries': deliveries,
-        'delivery_count':
-            deliveries.length, // Ensure volume is available for the tiles
+        'delivery_count': deliveries.length,
       };
     }).toList();
+
+    // Sort by date descending (latest first)
+    normalised.sort((a, b) {
+      final dateA = DateTime.tryParse('${a['date'] ?? ''}') ?? DateTime(0);
+      final dateB = DateTime.tryParse('${b['date'] ?? ''}') ?? DateTime(0);
+      return dateB.compareTo(dateA);
+    });
+
+    return normalised;
   }
 
   Future<void> _loadMoreBreakdown() async {
@@ -271,7 +265,14 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
           : null;
       final lastPage = (meta?['last_page'] as num?)?.toInt() ?? nextPage;
       setState(() {
-        _accumulatedBreakdown = [..._accumulatedBreakdown, ...newDays];
+        final merged = [..._accumulatedBreakdown, ...newDays];
+        // Ensure the entire merged list is sorted by date descending
+        merged.sort((a, b) {
+          final dateA = DateTime.tryParse('${a['date'] ?? ''}') ?? DateTime(0);
+          final dateB = DateTime.tryParse('${b['date'] ?? ''}') ?? DateTime(0);
+          return dateB.compareTo(dateA);
+        });
+        _accumulatedBreakdown = merged;
         _breakdownPage = nextPage;
         _hasMoreBreakdownPages = nextPage < lastPage;
         _loadingMoreDays = false;
@@ -285,7 +286,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     if (_accumulatedBreakdown.isEmpty) return [];
 
     return [
-      _SectionCard(
+      SectionCard(
         title: 'wallet.detail.deliveries_rundown'.tr().toUpperCase(),
         children: [
           DeliveriesRundownCard(dailyBreakdown: _accumulatedBreakdown),
@@ -302,596 +303,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
               ),
             ),
         ],
-      ),
+      ).dsCardEntry(delay: DSAnimations.stagger(1)),
       DSSpacing.hMd,
     ];
-  }
-
-  void _showTransactionHistory(
-    BuildContext context,
-    List<Map<String, dynamic>> history,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: DSColors.transparent,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        maxChildSize: 0.95,
-        minChildSize: 0.4,
-        builder: (_, scrollCtrl) => Container(
-          decoration: BoxDecoration(
-            color: isDark ? DSColors.cardDark : DSColors.white,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(DSStyles.radiusSheet),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Drag handle
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(
-                    top: DSSpacing.md,
-                    bottom: DSSpacing.xs,
-                  ),
-                  width: DSSpacing.xl,
-                  height: DSStyles.strokeWidth * 2,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
-                        : DSColors.labelTertiary,
-                    borderRadius: DSStyles.pillRadius,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(DSSpacing.lg),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'wallet.detail.request_lifecycle'.tr(),
-                      style: DSTypography.heading().copyWith(
-                        fontSize: DSTypography.sizeLg,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close_rounded),
-                      style: IconButton.styleFrom(
-                        backgroundColor: isDark
-                            ? DSColors.white.withValues(
-                                alpha: DSStyles.alphaSubtle,
-                              )
-                            : DSColors.black.withValues(
-                                alpha: DSStyles.alphaSubtle,
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollCtrl,
-                  padding: EdgeInsets.fromLTRB(
-                    DSSpacing.lg,
-                    0,
-                    DSSpacing.lg,
-                    DSSpacing.xl,
-                  ),
-                  itemCount: history.length,
-                  itemBuilder: (_, i) {
-                    final item = history[i];
-                    final label = '${item['label'] ?? item['event'] ?? ''}';
-                    final timestamp = formatDate(
-                      '${item['timestamp'] ?? ''}',
-                      includeTime: true,
-                    );
-                    final remarks = item['remarks']?.toString() ?? '';
-                    final isLast = i == history.length - 1;
-
-                    return IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Timeline spine
-                          Column(
-                            children: [
-                              Container(
-                                width: DSIconSize.xs,
-                                height: DSIconSize.xs,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: DSColors.primary,
-                                  border: Border.all(
-                                    color: DSColors.primary.withValues(
-                                      alpha: DSStyles.alphaSubtle,
-                                    ),
-                                    width: DSStyles.strokeWidth,
-                                    strokeAlign: BorderSide.strokeAlignOutside,
-                                  ),
-                                ),
-                              ),
-                              if (!isLast)
-                                Expanded(
-                                  child: Container(
-                                    width: DSStyles.strokeWidth,
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: DSSpacing.xs,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          DSColors.primary,
-                                          DSColors.primary.withValues(
-                                            alpha: DSStyles.alphaMuted,
-                                          ),
-                                        ],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          DSSpacing.wMd,
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  label.replaceAll('_', ' ').toUpperCase(),
-                                  style: DSTypography.body().copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: DSTypography.sizeSm,
-                                    letterSpacing: DSTypography.lsLoose,
-                                    color: isDark
-                                        ? DSColors.white
-                                        : DSColors.labelPrimary,
-                                  ),
-                                ),
-                                const SizedBox(
-                                  height: 2,
-                                ), // Keep minimal gap for readability, or use token if available
-                                Text(
-                                  timestamp,
-                                  style: DSTypography.caption(
-                                    color: isDark
-                                        ? DSColors.labelSecondaryDark
-                                        : DSColors.labelSecondary,
-                                  ).copyWith(fontSize: DSTypography.sizeSm),
-                                ),
-                                if (remarks.isNotEmpty) ...[
-                                  DSSpacing.hXs,
-                                  Container(
-                                    padding: const EdgeInsets.all(DSSpacing.sm),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? DSColors.white.withValues(
-                                              alpha: DSStyles.alphaSubtle,
-                                            )
-                                          : DSColors.black.withValues(
-                                              alpha: DSStyles.alphaSubtle,
-                                            ),
-                                      borderRadius: DSStyles.cardRadius,
-                                    ),
-                                    child: Text(
-                                      remarks,
-                                      style: DSTypography.body().copyWith(
-                                        fontSize: DSTypography.sizeSm,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                if (!isLast) DSSpacing.hLg,
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Shared widgets ───────────────────────────────────────────────────────────
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.children});
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: DSStyles.elevationNone,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: DSStyles.cardRadius,
-        side: BorderSide(
-          color: Theme.of(
-            context,
-          ).dividerColor.withValues(alpha: DSStyles.alphaMuted),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(DSSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? DSColors.labelSecondaryDark
-                    : DSColors.labelSecondary,
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            DSSpacing.hSm,
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusBadgeLight extends StatelessWidget {
-  const _StatusBadgeLight(this.status);
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final (bg, fg) = switch (status.toUpperCase()) {
-      'PAID' => (
-        DSColors.white.withValues(alpha: DSStyles.alphaMuted),
-        DSColors.white,
-      ),
-      'REJECTED' => (
-        DSColors.error.withValues(alpha: DSStyles.alphaMuted),
-        DSColors.white,
-      ),
-      'PROCESSING' => (
-        DSColors.warning.withValues(alpha: DSStyles.alphaMuted),
-        DSColors.white,
-      ),
-      _ => (
-        DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
-        DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
-      ),
-    };
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: DSStyles.cardRadius),
-      child: Text(
-        status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
-        style: DSTypography.label(
-          color: fg,
-        ).copyWith(fontSize: DSTypography.sizeSm, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-}
-
-class _PayoutHeroFlipCard extends StatefulWidget {
-  const _PayoutHeroFlipCard({
-    required this.amount,
-    required this.status,
-    required this.reference,
-    required this.periodLabel,
-    this.totalItems,
-    required this.breakdown,
-  });
-
-  final double amount;
-  final String status;
-  final String reference;
-  final String periodLabel;
-  final int? totalItems;
-  final Map<String, dynamic> breakdown;
-
-  @override
-  State<_PayoutHeroFlipCard> createState() => _PayoutHeroFlipCardState();
-}
-
-class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  bool _isFront = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: DSAnimations.dSlow,
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _flip() {
-    if (_isFront) {
-      _controller.forward();
-    } else {
-      _controller.reverse();
-    }
-    _isFront = !_isFront;
-  }
-
-  String _formatKey(String key) {
-    return key
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-        .join(' ');
-  }
-
-  Widget _buildHeroDetail(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: DSTypography.label().copyWith(
-            fontSize: DSTypography.sizeXs,
-            fontWeight: FontWeight.w800,
-            letterSpacing: DSTypography.lsExtraLoose,
-            color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
-          ),
-        ),
-        DSSpacing.hXs,
-        Text(
-          value,
-          style: DSTypography.body(color: DSColors.white).copyWith(
-            fontSize: DSTypography.sizeMd,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFront() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [DSColors.primary, DSColors.success],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: DSStyles.cardRadius,
-        boxShadow: [
-          BoxShadow(
-            color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
-            blurRadius: DSStyles.radiusMD,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(DSSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'wallet.detail.payout_amount'.tr().toUpperCase(),
-                  style: DSTypography.label().copyWith(
-                    fontSize: DSTypography.sizeXs,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: DSTypography.lsExtraLoose,
-                    color: DSColors.white,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              _StatusBadgeLight(widget.status),
-            ],
-          ),
-          DSSpacing.hXs,
-          Text(
-            '₱ ${widget.amount.toStringAsFixed(2)}',
-            style: DSTypography.display(color: DSColors.white).copyWith(
-              fontSize: DSIconSize.xl,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-            ),
-          ),
-          DSSpacing.hMd,
-          Divider(
-            color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
-            height: DSStyles.borderWidth,
-          ),
-          DSSpacing.hMd,
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.totalItems != null)
-                Expanded(
-                  flex: 2,
-                  child: _buildHeroDetail(
-                    'wallet.detail.items'.tr(),
-                    '${widget.totalItems}',
-                  ),
-                ),
-              Expanded(
-                flex: 3,
-                child: _buildHeroDetail(
-                  'wallet.detail.reference'.tr(),
-                  widget.reference,
-                ),
-              ),
-              Expanded(
-                flex: 4,
-                child: _buildHeroDetail(
-                  'wallet.detail.period'.tr(),
-                  widget.periodLabel,
-                ),
-              ),
-            ],
-          ),
-          if (widget.breakdown.isNotEmpty) ...[
-            DSSpacing.hMd,
-            Center(
-              child: Text(
-                'wallet.detail.tap_to_reveal'.tr(),
-                style:
-                    DSTypography.caption(
-                      color: DSColors.white.withValues(
-                        alpha: DSStyles.alphaDisabled,
-                      ),
-                    ).copyWith(
-                      fontSize: DSTypography.sizeSm,
-                      letterSpacing: DSTypography.lsLoose,
-                    ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBack(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        gradient: isDark ? null : DSColors.primaryGradient,
-        color: isDark ? DSColors.cardDark : null,
-        borderRadius: DSStyles.cardRadius,
-        boxShadow: DSStyles.shadowLG(context),
-      ),
-      padding: const EdgeInsets.all(DSSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'wallet.detail.breakdown_details'.tr().toUpperCase(),
-                  style: DSTypography.label().copyWith(
-                    fontSize: DSTypography.sizeXs,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: DSTypography.lsExtraLoose,
-                    color: DSColors.white,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              _StatusBadgeLight(widget.status),
-            ],
-          ),
-          DSSpacing.hMd,
-          ...widget.breakdown.entries
-              .where((e) {
-                if (e.key == 'coordinator_incentive') return kAppDebugMode;
-                return true;
-              })
-              .map((e) {
-                final val = double.tryParse('${e.value}') ?? 0.0;
-                final isDeduction = val < 0;
-                final label = _formatKey(e.key);
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: DSSpacing.sm),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        label,
-                        style: DSTypography.body().copyWith(
-                          color: DSColors.white.withValues(
-                            alpha: DSStyles.alphaOpaque,
-                          ),
-                          fontSize: DSTypography.sizeSm,
-                        ),
-                      ),
-                      Text(
-                        '₱ ${val.abs().toStringAsFixed(2)}',
-                        style: DSTypography.body().copyWith(
-                          color: isDeduction
-                              ? DSColors.errorSurface
-                              : DSColors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: DSTypography.sizeMd,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-          DSSpacing.hMd,
-          Center(
-            child: Text(
-              'Tap to flip back',
-              style:
-                  DSTypography.caption(
-                    color: DSColors.white.withValues(
-                      alpha: DSStyles.alphaDisabled,
-                    ),
-                  ).copyWith(
-                    fontSize: DSTypography.sizeSm,
-                    letterSpacing: DSTypography.lsLoose,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.breakdown.isNotEmpty ? _flip : null,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final isUnder = _controller.value > 0.5;
-          final transform = Matrix4.identity()
-            ..setEntry(3, 2, 0.001) // perspective
-            ..rotateX(_controller.value * math.pi);
-
-          return Transform(
-            transform: transform,
-            alignment: Alignment.center,
-            child: isUnder
-                ? Transform(
-                    transform: Matrix4.identity()..rotateX(math.pi),
-                    alignment: Alignment.center,
-                    child: _buildBack(context),
-                  )
-                : _buildFront(),
-          );
-        },
-      ),
-    );
   }
 }
