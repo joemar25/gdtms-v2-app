@@ -90,4 +90,3 @@ String formatEpoch(int? ms, {bool includeTime = true}) {
       ? DateFormat('MMM d, yyyy · h:mm a').format(pst)
       : DateFormat('MMM d, yyyy').format(pst);
 }
-

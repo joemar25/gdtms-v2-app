@@ -58,8 +58,9 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                         ? 'sync.status.online'.tr()
                         : 'sync.status.offline'.tr(),
                     style: DSTypography.label(
-                      color:
-                          widget.isOnline ? DSColors.success : DSColors.warning,
+                      color: widget.isOnline
+                          ? DSColors.success
+                          : DSColors.warning,
                     ).copyWith(fontSize: DSTypography.sizeSm),
                   ),
                 ],
@@ -67,9 +68,9 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
               if (lastSyncTime != null) ...[
                 DSSpacing.hXs,
                 Text(
-                  'sync.status.last_sync'.tr(args: [
-                    formatEpoch(lastSyncTime.millisecondsSinceEpoch),
-                  ]),
+                  'sync.status.last_sync'.tr(
+                    args: [formatEpoch(lastSyncTime.millisecondsSinceEpoch)],
+                  ),
                   style: DSTypography.caption(
                     color: Theme.of(context).brightness == Brightness.dark
                         ? DSColors.labelSecondaryDark
@@ -110,7 +111,8 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                               args: [retentionLabel],
                             ),
                             style: DSTypography.caption(
-                              color: Theme.of(context).brightness ==
+                              color:
+                                  Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? DSColors.labelSecondaryDark
                                   : DSColors.labelSecondary,
@@ -197,7 +199,8 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                                 Icon(
                                   Icons.timer,
                                   size: DSIconSize.xs,
-                                  color: Theme.of(context).brightness ==
+                                  color:
+                                      Theme.of(context).brightness ==
                                           Brightness.dark
                                       ? DSColors.labelSecondaryDark
                                       : DSColors.labelSecondary,
@@ -206,7 +209,8 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                                 Text(
                                   label,
                                   style: DSTypography.caption(
-                                    color: Theme.of(context).brightness ==
+                                    color:
+                                        Theme.of(context).brightness ==
                                             Brightness.dark
                                         ? DSColors.labelSecondaryDark
                                         : DSColors.labelSecondary,

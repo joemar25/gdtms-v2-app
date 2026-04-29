@@ -73,7 +73,7 @@ class DeliveryListEmptyState extends StatelessWidget {
                       color: statusColor.withValues(
                         alpha: DSStyles.alphaSubtle,
                       ),
-                      width: DSStyles.borderWidth * 1.5,
+                      width: DSStyles.strokeWidth,
                     ),
                   ),
                   child: Icon(

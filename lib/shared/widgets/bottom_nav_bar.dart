@@ -2,8 +2,10 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'dart:ui';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
@@ -43,7 +45,9 @@ class AppBottomNavBar extends StatelessWidget {
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+                  color: DSColors.black.withValues(
+                    alpha: isDark ? DSStyles.alphaMuted : DSStyles.alphaSoft,
+                  ),
                   blurRadius: DSSpacing.lg,
                   offset: const Offset(0, 10),
                 ),
@@ -56,14 +60,14 @@ class AppBottomNavBar extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: backgroundColor.withValues(
-                      alpha: isDark
-                          ? DSStyles.alphaDisabled
-                          : DSStyles.alphaOpaque,
+                      alpha: isDark ? DSStyles.alphaSoft : DSStyles.alphaOpaque,
                     ),
                     borderRadius: DSStyles.circularRadius,
                     border: Border.all(
-                      color: borderColor.withValues(alpha: DSStyles.alphaMuted),
-                      width: DSStyles.borderWidth * 0.5,
+                      color: borderColor.withValues(
+                        alpha: DSStyles.alphaSubtle,
+                      ),
+                      width: DSStyles.borderWidth,
                     ),
                   ),
                   child: LayoutBuilder(
@@ -72,64 +76,85 @@ class AppBottomNavBar extends StatelessWidget {
                       final currentIdx = navigationShell.currentIndex;
 
                       return Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          // ── Sliding Indicator (Pill) ───────────────────────
-                          AnimatedPositioned(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOutQuart,
-                            left: tabWidth * currentIdx + (tabWidth * 0.1),
-                            top: 8,
-                            child: Container(
-                              width: tabWidth * 0.8,
-                              height: DSIconSize.heroSm,
-                              decoration: BoxDecoration(
-                                color: activeColor.withValues(
-                                  alpha: DSStyles.alphaSoft,
+                          // ── Elastic Sliding Pill ──────────────────────────
+                          AnimatedAlign(
+                            alignment: Alignment(
+                              -1.0 + (2.0 * currentIdx / (3 - 1)),
+                              0,
+                            ),
+                            duration: DSAnimations.dNormal,
+                            curve: DSAnimations.curveElasticPill,
+                            child: FractionallySizedBox(
+                              widthFactor: 1 / 3,
+                              heightFactor: 1.0,
+                              child: Padding(
+                                padding: EdgeInsets.all(DSSpacing.sm),
+                                child: AnimatedContainer(
+                                  duration: DSAnimations.dFast,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        activeColor,
+                                        activeColor.withValues(
+                                          alpha: DSStyles.alphaOpaque,
+                                        ),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: DSStyles.cardRadius,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: activeColor.withValues(
+                                          alpha: DSStyles.alphaMuted,
+                                        ),
+                                        blurRadius: DSStyles.radiusMD,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                borderRadius: DSStyles.cardRadius,
                               ),
                             ),
                           ),
 
                           // ── Nav Items ──────────────────────────────────────
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _NavBarItem(
-                                  index: 0,
-                                  selectedIndex: currentIdx,
-                                  icon: Icons.home_outlined,
-                                  selectedIcon: Icons.home_rounded,
-                                  label: 'Home',
-                                  activeColor: activeColor,
-                                  inactiveColor: inactiveColor,
-                                  onTap: () => _onTap(0),
-                                ),
-                                _NavBarItem(
-                                  index: 1,
-                                  selectedIndex: currentIdx,
-                                  icon: Icons.account_balance_wallet_outlined,
-                                  selectedIcon:
-                                      Icons.account_balance_wallet_rounded,
-                                  label: 'Wallet',
-                                  activeColor: activeColor,
-                                  inactiveColor: inactiveColor,
-                                  onTap: () => _onTap(1),
-                                ),
-                                _NavBarItem(
-                                  index: 2,
-                                  selectedIndex: currentIdx,
-                                  icon: Icons.person_outline_rounded,
-                                  selectedIcon: Icons.person_rounded,
-                                  label: 'Profile',
-                                  activeColor: activeColor,
-                                  inactiveColor: inactiveColor,
-                                  onTap: () => _onTap(2),
-                                ),
-                              ],
-                            ),
+                          Row(
+                            children: [
+                              _NavBarItem(
+                                index: 0,
+                                selectedIndex: currentIdx,
+                                icon: Icons.home_outlined,
+                                activeIcon: Icons.home_rounded,
+                                label: 'nav.home'.tr(),
+                                activeColor: DSColors.white,
+                                inactiveColor: inactiveColor,
+                                onTap: () => _onTap(0),
+                              ),
+                              _NavBarItem(
+                                index: 1,
+                                selectedIndex: currentIdx,
+                                icon: Icons.account_balance_wallet_outlined,
+                                activeIcon:
+                                    Icons.account_balance_wallet_rounded,
+                                label: 'nav.wallet'.tr(),
+                                activeColor: DSColors.white,
+                                inactiveColor: inactiveColor,
+                                onTap: () => _onTap(1),
+                              ),
+                              _NavBarItem(
+                                index: 2,
+                                selectedIndex: currentIdx,
+                                icon: Icons.person_outline_rounded,
+                                activeIcon: Icons.person_rounded,
+                                label: 'nav.profile'.tr(),
+                                activeColor: DSColors.white,
+                                inactiveColor: inactiveColor,
+                                onTap: () => _onTap(2),
+                              ),
+                            ],
                           ),
                         ],
                       );
@@ -145,10 +170,13 @@ class AppBottomNavBar extends StatelessWidget {
   }
 
   void _onTap(int index) {
-    navigationShell.goBranch(
-      index,
-      initialLocation: index == navigationShell.currentIndex,
-    );
+    if (index != navigationShell.currentIndex) {
+      HapticFeedback.selectionClick();
+      navigationShell.goBranch(
+        index,
+        initialLocation: index == navigationShell.currentIndex,
+      );
+    }
   }
 }
 
@@ -157,7 +185,7 @@ class _NavBarItem extends StatelessWidget {
     required this.index,
     required this.selectedIndex,
     required this.icon,
-    required this.selectedIcon,
+    required this.activeIcon,
     required this.label,
     required this.activeColor,
     required this.inactiveColor,
@@ -167,7 +195,7 @@ class _NavBarItem extends StatelessWidget {
   final int index;
   final int selectedIndex;
   final IconData icon;
-  final IconData selectedIcon;
+  final IconData activeIcon;
   final String label;
   final Color activeColor;
   final Color inactiveColor;
@@ -183,32 +211,43 @@ class _NavBarItem extends StatelessWidget {
         onTap: isSelected ? null : onTap,
         splashColor: DSColors.transparent,
         highlightColor: DSColors.transparent,
-        child: AnimatedScale(
-          scale: isSelected ? 1.05 : 1.0,
-          duration: const Duration(milliseconds: 200),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                transform: Matrix4.translationValues(0, isSelected ? -2 : 0, 0),
-                child: Icon(
-                  isSelected ? selectedIcon : icon,
-                  color: color,
-                  size: isSelected ? DSIconSize.xl : DSIconSize.lg,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedScale(
+              scale: isSelected
+                  ? DSAnimations.scaleActive
+                  : DSAnimations.scaleNormal,
+              duration: DSAnimations.dFast,
+              curve: DSAnimations.curveIconPop,
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                color: color,
+                size: isSelected ? DSIconSize.xl : DSIconSize.lg,
+              ),
+            ),
+            AnimatedContainer(
+              duration: DSAnimations.dFast,
+              height: isSelected ? 0 : 16,
+              child: AnimatedOpacity(
+                duration: DSAnimations.dFast,
+                opacity: isSelected ? 0.0 : 1.0,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: AnimatedDefaultTextStyle(
+                    duration: DSAnimations.dFast,
+                    style: DSTypography.label(color: color).copyWith(
+                      fontSize: DSTypography.sizeXs,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                    ),
+                    child: Text(label),
+                  ),
                 ),
               ),
-              DSSpacing.hXs,
-              Text(
-                label,
-                style: DSTypography.caption(color: color).copyWith(
-                  fontSize: DSTypography.sizeXs,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  letterSpacing: isSelected ? 0.2 : 0,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

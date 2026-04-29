@@ -128,10 +128,10 @@ class NotificationBell extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Semantics(
-      label: 'Notifications',
+      label: 'nav.notifications'.tr(),
       value: hasUnread
-          ? '$label unread notifications'
-          : 'No unread notifications',
+          ? 'notifications.unread_count'.tr(namedArgs: {'count': label})
+          : 'notifications.none'.tr(),
       button: true,
       child: IconButton(
         padding: EdgeInsets.all(DSSpacing.sm),
@@ -139,7 +139,7 @@ class NotificationBell extends StatelessWidget {
           minWidth: DSSpacing.xs,
           minHeight: DSSpacing.xs,
         ),
-        tooltip: 'Notifications',
+        tooltip: 'nav.notifications'.tr(),
         onPressed: () {
           HapticFeedback.lightImpact();
           onTap();

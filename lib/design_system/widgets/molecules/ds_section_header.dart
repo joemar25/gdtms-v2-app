@@ -1,5 +1,6 @@
 // DOCS: docs/development-standards.md
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class DSSectionHeader extends StatelessWidget {
@@ -8,11 +9,13 @@ class DSSectionHeader extends StatelessWidget {
     required this.title,
     this.padding,
     this.trailing,
+    this.useLocalization = false,
   });
 
   final String title;
   final EdgeInsetsGeometry? padding;
   final Widget? trailing;
+  final bool useLocalization;
 
   @override
   Widget build(BuildContext context) {
@@ -30,14 +33,14 @@ class DSSectionHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            title.toUpperCase(),
+            (useLocalization ? title.tr() : title).toUpperCase(),
             style: DSTypography.caption(color: DSColors.primary).copyWith(
               fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
               fontSize: DSTypography.sizeXs,
             ),
           ),
-          ?trailing,
+          ...[trailing].nonNulls,
         ],
       ),
     );

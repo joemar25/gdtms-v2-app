@@ -190,13 +190,27 @@ void showDeliveryAccountDetails(
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
   final name = delivery['name']?.toString() ?? '';
+  final authRepName =
+      (delivery['authorized_rep']?.toString() ??
+              delivery['recipient']?.toString() ??
+              '')
+          .trim();
+  // Ensure authRepName is not just the same as name
+  final effectiveAuthRepName =
+      (authRepName.isNotEmpty &&
+          authRepName.toLowerCase() != name.toLowerCase())
+      ? authRepName
+      : '';
   final address =
       delivery['address']?.toString() ??
       delivery['delivery_address']?.toString() ??
       '';
   final contact = delivery['contact']?.toString() ?? '';
   final accountNumber = delivery['account_number']?.toString() ?? '';
-  final authRepNumber = delivery['auth_rep_number']?.toString() ?? '';
+  final authRepNumber =
+      delivery['contact_rep']?.toString() ??
+      delivery['auth_rep_number']?.toString() ??
+      '';
   final product = (delivery['product']?.toString() ?? '').toDisplayStatus();
   final specialInstruction = delivery['special_instruction']?.toString() ?? '';
   final transmittalDate = delivery['transmittal_date']?.toString() ?? '';
@@ -289,6 +303,15 @@ void showDeliveryAccountDetails(
                         value: name,
                         onLongPress: () => copyToClipboard(name, 'Name'),
                       ),
+                    if (effectiveAuthRepName.isNotEmpty)
+                      DSInfoTile(
+                        label: 'Auth Rep Name',
+                        value: effectiveAuthRepName,
+                        onLongPress: () => copyToClipboard(
+                          effectiveAuthRepName,
+                          'Auth rep name',
+                        ),
+                      ),
                     if (address.isNotEmpty)
                       DSInfoTile(
                         label: 'Delivery Address',
@@ -303,16 +326,76 @@ void showDeliveryAccountDetails(
                         if (cleanContact.isEmpty) {
                           return const SizedBox.shrink();
                         }
-                        final isLast = idx == contact.split('/').length - 1;
+                        final isAuthRepNum =
+                            authRepNumber.isNotEmpty &&
+                            cleanContact.contains(authRepNumber);
+                        final nextEntry = contact.split('/').length > idx + 1
+                            ? contact.split('/')[idx + 1].trim()
+                            : null;
+                        final nextIsAuthRep =
+                            nextEntry != null &&
+                            authRepNumber.isNotEmpty &&
+                            nextEntry.contains(authRepNumber);
+
+                        final hasExtraTile =
+                            authRepNumber.isNotEmpty &&
+                            !contact.contains(authRepNumber);
+
+                        // Show divider only if switching parties (Recipient -> Auth Rep)
+                        // OR if it's the last item in the list and there's an extra tile below
+                        // that belongs to a different party.
+                        final showDivider =
+                            (nextEntry != null &&
+                                isAuthRepNum != nextIsAuthRep) ||
+                            (nextEntry == null &&
+                                hasExtraTile &&
+                                !isAuthRepNum);
+
+                        final previousEntry = idx > 0
+                            ? contact.split('/')[idx - 1].trim()
+                            : null;
+                        final previousIsAuthRep =
+                            previousEntry != null &&
+                            authRepNumber.isNotEmpty &&
+                            previousEntry.contains(authRepNumber);
+
+                        final isFirstOfParty =
+                            idx == 0 || (isAuthRepNum != previousIsAuthRep);
+
                         return DSInfoTile(
-                          label: 'Contact Number',
+                          label: isFirstOfParty
+                              ? (isAuthRepNum
+                                    ? 'Auth Rep Contact'
+                                    : 'Recipient Number')
+                              : '',
                           value: cleanContact,
-                          onTap: () => onPhoneTap(cleanContact, name),
+                          onTap: () => onPhoneTap(
+                            cleanContact,
+                            isAuthRepNum ? effectiveAuthRepName : name,
+                          ),
                           onLongPress: () =>
                               copyToClipboard(cleanContact, 'Contact number'),
-                          showDivider: !isLast,
+                          showDivider: showDivider,
                         );
                       }),
+                    if (authRepNumber.isNotEmpty &&
+                        !contact.contains(authRepNumber))
+                      DSInfoTile(
+                        label:
+                            contact.split('/').any((n) {
+                              final cn = n.trim();
+                              return authRepNumber.isNotEmpty &&
+                                  cn.contains(authRepNumber);
+                            })
+                            ? ''
+                            : 'Auth Rep Contact',
+                        value: authRepNumber,
+                        onTap: () =>
+                            onPhoneTap(authRepNumber, effectiveAuthRepName),
+                        onLongPress: () =>
+                            copyToClipboard(authRepNumber, 'Auth rep number'),
+                        showDivider: false,
+                      ),
                   ],
                 ),
               ),
@@ -331,13 +414,6 @@ void showDeliveryAccountDetails(
                           onLongPress: () =>
                               copyToClipboard(accountNumber, 'Account number'),
                         ),
-                      if (authRepNumber.isNotEmpty)
-                        DSInfoTile(
-                          label: 'Auth Rep Number',
-                          value: authRepNumber,
-                          onLongPress: () =>
-                              copyToClipboard(authRepNumber, 'Auth rep number'),
-                        ),
                       if (pieceCount > 0)
                         DSInfoTile(
                           label: 'Bundle Size',
@@ -355,7 +431,7 @@ void showDeliveryAccountDetails(
                   tat.isNotEmpty) ...[
                 DSSpacing.hMd,
                 const DSSectionHeader(
-                  title: 'Shipment Details',
+                  title: 'Other Information',
                   padding: EdgeInsets.zero,
                 ),
                 DSCard(

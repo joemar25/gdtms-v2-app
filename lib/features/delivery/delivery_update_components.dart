@@ -11,6 +11,7 @@
 //   (Rule 01) and gives each component a single, debuggable responsibility.
 //
 // Components:
+//   • [DeliverySubmitFab]           — gradient full-width submit FAB
 //   • [DeliveryPhotoSlot]           — captures / displays a single photo slot
 //   • [DeliverySignatureSlot]       — captures / displays the optional signature
 //   • [DeliveryNotePresets]         — scrollable row of quick-fill remark chips
@@ -114,7 +115,7 @@ class DeliveryPhotoSlot extends StatelessWidget {
                         ? DSColors.separatorDark
                         : DSColors.secondarySurfaceLight)
                   : color.withValues(alpha: DSStyles.alphaMuted),
-              width: hasError ? 1.5 : 1.2,
+              width: hasError ? DSStyles.strokeWidth : DSStyles.borderWidth,
             ),
           ),
           clipBehavior: Clip.antiAlias,
@@ -257,6 +258,7 @@ class DeliverySignatureSlot extends StatelessWidget {
     return GestureDetector(
       onTap: onCapture,
       child: Container(
+        width: double.infinity,
         height: kSignatureSlotHeight,
         decoration: BoxDecoration(
           borderRadius: DSStyles.cardRadius,
@@ -266,7 +268,7 @@ class DeliverySignatureSlot extends StatelessWidget {
                 : hasSignature
                 ? (isDark ? DSColors.separatorDark : DSColors.separatorLight)
                 : DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
-            width: hasError ? 1.5 : 1.2,
+            width: hasError ? DSStyles.strokeWidth : DSStyles.borderWidth,
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -489,7 +491,7 @@ class _NotePresetChip extends StatelessWidget {
             color: selected
                 ? selectedColor.withValues(alpha: DSStyles.alphaDisabled)
                 : unselectedBorder,
-            width: selected ? 1.4 : 1.0,
+            width: selected ? DSStyles.strokeWidth : DSStyles.borderWidth,
           ),
         ),
         child: Row(
@@ -722,3 +724,4 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
     );
   }
 }
+

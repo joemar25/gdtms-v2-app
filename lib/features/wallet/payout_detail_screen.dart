@@ -103,7 +103,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     } else if (result is ApiServerError<Map<String, dynamic>>) {
       _notFound = result.message.isNotEmpty
           ? result.message
-          : 'Payment request not found.';
+          : 'wallet.detail.not_found'.tr();
     }
     setState(() => _loading = false);
   }
@@ -698,7 +698,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
             children: [
               Expanded(
                 child: Text(
-                  'Payout Amount'.toUpperCase(),
+                  'wallet.detail.payout_amount'.tr().toUpperCase(),
                   style: DSTypography.label().copyWith(
                     fontSize: DSTypography.sizeXs,
                     fontWeight: FontWeight.w800,
@@ -732,15 +732,24 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
               if (widget.totalItems != null)
                 Expanded(
                   flex: 2,
-                  child: _buildHeroDetail('Items', '${widget.totalItems}'),
+                  child: _buildHeroDetail(
+                    'wallet.detail.items'.tr(),
+                    '${widget.totalItems}',
+                  ),
                 ),
               Expanded(
                 flex: 3,
-                child: _buildHeroDetail('Reference', widget.reference),
+                child: _buildHeroDetail(
+                  'wallet.detail.reference'.tr(),
+                  widget.reference,
+                ),
               ),
               Expanded(
                 flex: 4,
-                child: _buildHeroDetail('Period', widget.periodLabel),
+                child: _buildHeroDetail(
+                  'wallet.detail.period'.tr(),
+                  widget.periodLabel,
+                ),
               ),
             ],
           ),
@@ -748,7 +757,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
             DSSpacing.hMd,
             Center(
               child: Text(
-                'Tap to reveal breakdown',
+                'wallet.detail.tap_to_reveal'.tr(),
                 style:
                     DSTypography.caption(
                       color: DSColors.white.withValues(
@@ -785,7 +794,7 @@ class _PayoutHeroFlipCardState extends State<_PayoutHeroFlipCard>
             children: [
               Expanded(
                 child: Text(
-                  'Breakdown Details'.toUpperCase(),
+                  'wallet.detail.breakdown_details'.tr().toUpperCase(),
                   style: DSTypography.label().copyWith(
                     fontSize: DSTypography.sizeXs,
                     fontWeight: FontWeight.w800,

@@ -91,8 +91,8 @@ class SyncEntryList extends ConsumerWidget {
                         final confirmed = await ConfirmationDialog.show(
                           context,
                           title: 'sync.dialogs.resolve_confirm_title'.tr(),
-                          subtitle:
-                              'sync.dialogs.resolve_confirm_subtitle'.tr(),
+                          subtitle: 'sync.dialogs.resolve_confirm_subtitle'
+                              .tr(),
                           confirmLabel: 'sync.list.resolve_button'.tr(),
                         );
                         if (confirmed == true) {
@@ -197,9 +197,7 @@ class _EntryTile extends StatelessWidget {
     }
 
     final String dlDate = dlDateResolved;
-    final String txDate = isSameInstant
-        ? ''
-        : formatEpoch(entry.createdAt);
+    final String txDate = isSameInstant ? '' : formatEpoch(entry.createdAt);
 
     return (
       deliveryDate: dlDate,
@@ -250,8 +248,9 @@ class _EntryTile extends StatelessWidget {
           ? () {
               final s = currentStatus.toUpperCase();
               final v = currentFailedDeliveryVerif;
-              String msg = 'sync.list.locked_general'
-                  .tr(args: [currentStatus.toLowerCase()]);
+              String msg = 'sync.list.locked_general'.tr(
+                args: [currentStatus.toLowerCase()],
+              );
               if (s == 'OSA') {
                 msg = 'sync.list.locked_osa'.tr();
               } else if (s == 'DELIVERED') {
@@ -266,9 +265,9 @@ class _EntryTile extends StatelessWidget {
             }
           : (entry.operationType == 'UPDATE_PROFILE')
           ? () => showInfoNotification(
-                context,
-                'sync.list.profile_update_info'.tr(),
-              )
+              context,
+              'sync.list.profile_update_info'.tr(),
+            )
           : () => context.push('/deliveries/${entry.barcode}/update'),
       onLongPress: onDelete,
       child: Padding(
@@ -312,11 +311,27 @@ class _EntryTile extends StatelessWidget {
                       recipientName.isNotEmpty &&
                       !isLocked) ...[
                     DSSpacing.hXs,
-                    Text(
-                      recipientName,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final dMap = delivery!.toDeliveryMap();
+                        final authRep =
+                            (dMap['authorized_rep']?.toString() ??
+                                    dMap['recipient']?.toString() ??
+                                    '')
+                                .trim();
+                        final isDifferent =
+                            authRep.isNotEmpty &&
+                            authRep.toLowerCase() !=
+                                recipientName.toLowerCase();
+                        return Text(
+                          isDifferent
+                              ? '$recipientName (Recipient)'
+                              : recipientName,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        );
+                      },
                     ),
                   ],
                   DSSpacing.hSm,

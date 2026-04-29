@@ -2,12 +2,16 @@
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
-
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:easy_localization/easy_localization.dart';
 
+/// A modern, premium floating navigation bar with a sliding pill indicator.
+///
+/// This version is used for manual navigation path management.
+/// For StatefulNavigationShell integration, use [AppBottomNavBar].
 class FloatingBottomNavBar extends StatelessWidget {
   const FloatingBottomNavBar({super.key, required this.currentPath});
 
@@ -22,77 +26,149 @@ class FloatingBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // iOS-style glass: semi-transparent bg layered over blur
-    final glassBg = isDark
-        ? DSColors.cardDark.withValues(alpha: DSStyles.alphaDisabled)
-        : DSColors.white.withValues(alpha: DSStyles.alphaDisabled);
-
+    final backgroundColor = isDark ? DSColors.cardDark : DSColors.cardLight;
     final borderColor = isDark
-        ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
-        : DSColors.white.withValues(alpha: DSStyles.alphaMuted);
+        ? DSColors.separatorDark
+        : DSColors.separatorLight;
+    final activeColor = DSColors.primary;
+    final inactiveColor = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
 
-    return SafeArea(
+    return Align(
+      alignment: Alignment.bottomCenter,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          DSSpacing.md,
+          DSSpacing.lg,
           0,
-          DSSpacing.md,
-          DSSpacing.sm,
+          DSSpacing.lg,
+          MediaQuery.paddingOf(context).bottom + DSSpacing.md,
         ),
-        child: ClipRRect(
-          borderRadius: DSStyles.circularRadius,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              decoration: BoxDecoration(
-                color: glassBg,
-                borderRadius: DSStyles.circularRadius,
-                border: Border.all(
-                  color: borderColor,
-                  width: DSStyles.borderWidth,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: DSColors.black.withValues(
-                      alpha: isDark ? 0.35 : 0.10,
-                    ),
-                    blurRadius: DSStyles.radiusXL * 1.33,
-                    spreadRadius: -4,
-                    offset: const Offset(0, 8),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Container(
+            height: 72,
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: DSColors.black.withValues(
+                    alpha: isDark ? DSStyles.alphaMuted : DSStyles.alphaSoft,
                   ),
-                ],
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  vertical: DSSpacing.sm,
-                  horizontal: DSSpacing.sm,
+                  blurRadius: DSSpacing.lg,
+                  offset: const Offset(0, 10),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _NavItem(
-                      icon: Icons.home_outlined,
-                      activeIcon: Icons.home_rounded,
-                      label: 'Home',
-                      isSelected: _index == 0,
-                      onTap: () => context.go('/dashboard'),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: DSStyles.circularRadius,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: backgroundColor.withValues(
+                      alpha: isDark ? DSStyles.alphaSoft : DSStyles.alphaOpaque,
                     ),
-                    _NavItem(
-                      icon: Icons.account_balance_wallet_outlined,
-                      activeIcon: Icons.account_balance_wallet_rounded,
-                      label: 'Wallet',
-                      isSelected: _index == 1,
-                      onTap: () => context.go('/wallet'),
+                    borderRadius: DSStyles.circularRadius,
+                    border: Border.all(
+                      color: borderColor.withValues(
+                        alpha: DSStyles.alphaSubtle,
+                      ),
+                      width: DSStyles.borderWidth,
                     ),
-                    _NavItem(
-                      icon: Icons.person_outline,
-                      activeIcon: Icons.person_rounded,
-                      label: 'Profile',
-                      isSelected: _index == 2,
-                      onTap: () => context.go('/profile'),
-                    ),
-                  ],
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final tabWidth = constraints.maxWidth / 3;
+                      final currentIdx = _index;
+
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // ── Elastic Sliding Pill ──────────────────────────
+                          AnimatedAlign(
+                            alignment: Alignment(
+                              -1.0 + (2.0 * currentIdx / (3 - 1)),
+                              0,
+                            ),
+                            duration: DSAnimations.dNormal,
+                            curve: DSAnimations.curveElasticPill,
+                            child: FractionallySizedBox(
+                              widthFactor: 1 / 3,
+                              heightFactor: 1.0,
+                              child: Padding(
+                                padding: EdgeInsets.all(DSSpacing.sm),
+                                child: AnimatedContainer(
+                                  duration: DSAnimations.dFast,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        activeColor,
+                                        activeColor.withValues(
+                                          alpha: DSStyles.alphaOpaque,
+                                        ),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: DSStyles.cardRadius,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: activeColor.withValues(
+                                          alpha: DSStyles.alphaMuted,
+                                        ),
+                                        blurRadius: DSStyles.radiusMD,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // ── Nav Items ──────────────────────────────────────
+                          Row(
+                            children: [
+                              _NavItem(
+                                index: 0,
+                                currentIndex: currentIdx,
+                                icon: Icons.home_outlined,
+                                activeIcon: Icons.home_rounded,
+                                label: 'nav.home'.tr(),
+                                activeColor: DSColors.white,
+                                inactiveColor: inactiveColor,
+                                onTap: () =>
+                                    _handleNavigation(context, '/dashboard', 0),
+                              ),
+                              _NavItem(
+                                index: 1,
+                                currentIndex: currentIdx,
+                                icon: Icons.account_balance_wallet_outlined,
+                                activeIcon:
+                                    Icons.account_balance_wallet_rounded,
+                                label: 'nav.wallet'.tr(),
+                                activeColor: DSColors.white,
+                                inactiveColor: inactiveColor,
+                                onTap: () =>
+                                    _handleNavigation(context, '/wallet', 1),
+                              ),
+                              _NavItem(
+                                index: 2,
+                                currentIndex: currentIdx,
+                                icon: Icons.person_outline_rounded,
+                                activeIcon: Icons.person_rounded,
+                                label: 'nav.profile'.tr(),
+                                activeColor: DSColors.white,
+                                inactiveColor: inactiveColor,
+                                onTap: () =>
+                                    _handleNavigation(context, '/profile', 2),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -101,113 +177,83 @@ class FloatingBottomNavBar extends StatelessWidget {
       ),
     );
   }
+
+  void _handleNavigation(BuildContext context, String route, int index) {
+    if (index != _index) {
+      HapticFeedback.selectionClick();
+      context.go(route);
+    }
+  }
 }
 
-class _NavItem extends StatefulWidget {
+class _NavItem extends StatelessWidget {
   const _NavItem({
+    required this.index,
+    required this.currentIndex,
     required this.icon,
     required this.activeIcon,
     required this.label,
-    required this.isSelected,
+    required this.activeColor,
+    required this.inactiveColor,
     required this.onTap,
   });
 
+  final int index;
+  final int currentIndex;
   final IconData icon;
   final IconData activeIcon;
   final String label;
-  final bool isSelected;
+  final Color activeColor;
+  final Color inactiveColor;
   final VoidCallback onTap;
 
   @override
-  State<_NavItem> createState() => _NavItemState();
-}
-
-class _NavItemState extends State<_NavItem>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 180),
-    );
-    _scale = Tween<double>(
-      begin: 1.0,
-      end: 0.88,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onTapDown(TapDownDetails _) => _controller.forward();
-
-  void _onTapUp(TapUpDetails _) {
-    _controller.reverse();
-    widget.onTap();
-  }
-
-  void _onTapCancel() => _controller.reverse();
-
-  @override
   Widget build(BuildContext context) {
-    final color = widget.isSelected
-        ? DSColors.primary
-        : DSColors.labelSecondary;
+    final isSelected = index == currentIndex;
+    final color = isSelected ? activeColor : inactiveColor;
 
-    return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: _onTapCancel,
-      child: ScaleTransition(
-        scale: _scale,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeInOut,
-          padding: EdgeInsets.symmetric(
-            horizontal: DSSpacing.lg,
-            vertical: DSSpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            color: widget.isSelected
-                ? DSColors.primary.withValues(alpha: DSStyles.alphaSubtle)
-                : DSColors.transparent,
-            borderRadius: DSStyles.cardRadius,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                transitionBuilder: (child, anim) =>
-                    ScaleTransition(scale: anim, child: child),
-                child: Icon(
-                  widget.isSelected ? widget.activeIcon : widget.icon,
-                  key: ValueKey(widget.isSelected),
-                  color: color,
-                  size: DSIconSize.xl,
+    return Expanded(
+      child: InkWell(
+        onTap: isSelected ? null : onTap,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedScale(
+              scale: isSelected
+                  ? DSAnimations.scaleActive
+                  : DSAnimations.scaleNormal,
+              duration: DSAnimations.dFast,
+              curve: DSAnimations.curveIconPop,
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                color: color,
+                size: isSelected ? DSIconSize.xl : DSIconSize.lg,
+              ),
+            ),
+            AnimatedContainer(
+              duration: DSAnimations.dFast,
+              height: isSelected ? 0 : 16,
+              child: AnimatedOpacity(
+                duration: DSAnimations.dFast,
+                opacity: isSelected ? 0.0 : 1.0,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: AnimatedDefaultTextStyle(
+                    duration: DSAnimations.dFast,
+                    style: DSTypography.label(color: color).copyWith(
+                      fontSize: DSTypography.sizeXs,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                    ),
+                    child: Text(label),
+                  ),
                 ),
               ),
-              DSSpacing.hXs,
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 220),
-                style: DSTypography.label().copyWith(
-                  fontSize: DSTypography.sizeXs,
-                  fontWeight: widget.isSelected
-                      ? FontWeight.w700
-                      : FontWeight.w400,
-                  color: color,
-                ),
-                child: Text(widget.label),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -118,7 +118,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         if (mounted && data['is_active'] == false) {
           showErrorNotification(
             context,
-            'Your account is currently inactive. Please contact support.',
+            'profile.account.inactive_account'.tr(),
           );
         }
       }
@@ -147,7 +147,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _showSettingsUpdated() {
     if (!mounted) return;
-    showSuccessNotification(context, 'Settings updated');
+    showSuccessNotification(
+      context,
+      'profile.preferences.settings_updated'.tr(),
+    );
   }
 
   Future<void> _loadDeviceSpecs() async {
@@ -182,11 +185,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (pendingCount > 0) {
       final forceLogout = await ConfirmationDialog.show(
         context,
-        title: 'Pending Sync Operations',
-        subtitle:
-            'You have $pendingCount pending offline updates. If you sign out now, they may be lost. Are you sure you want to force sign out?',
-        confirmLabel: 'Force Sign Out',
-        cancelLabel: 'Wait',
+        title: 'profile.account.pending_sync_title'.tr(),
+        subtitle: 'profile.account.pending_sync_message'.tr(
+          args: [pendingCount.toString()],
+        ),
+        confirmLabel: 'profile.account.force_sign_out'.tr(),
+        cancelLabel: 'profile.account.wait'.tr(),
         isDestructive: true,
       );
       if (forceLogout != true) return;
@@ -291,15 +295,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 DSSpacing.hSm,
 
                 // ── Account Section ────────────────────────────────────────
-                const DSSectionHeader(title: 'Account Settings'),
+                const DSSectionHeader(
+                  title: 'profile.sections.account',
+                  useLocalization: true,
+                ),
                 _ModernCard(
                   isDark: isDark,
                   children: [
                     _ActionTile(
                       icon: Icons.lock_reset_rounded,
                       iconColor: DSColors.primary,
-                      label: 'Change Password',
-                      subtitle: 'Update your login credentials',
+                      label: 'profile.account.change_password'.tr(),
+                      subtitle: 'profile.account.change_password_sub'.tr(),
                       isDark: isDark,
                       onTap: () => context.push('/change-password'),
                     ),
@@ -307,18 +314,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _ActionTile(
                       icon: Icons.logout_rounded,
                       iconColor: DSColors.error,
-                      label: 'Sign Out',
-                      subtitle: 'End your current session',
+                      label: 'profile.account.sign_out'.tr(),
+                      subtitle: 'profile.account.sign_out_sub'.tr(),
                       isDark: isDark,
                       isDestructive: true,
                       onTap: () async {
                         final confirmed = await ConfirmationDialog.show(
                           context,
-                          title: 'Sign out',
-                          subtitle:
-                              'Are you sure you want to sign out? You will need to log in again to access the app.',
-                          confirmLabel: 'Sign out',
-                          cancelLabel: 'Cancel',
+                          title: 'profile.account.logout_confirm_title'.tr(),
+                          subtitle: 'profile.account.logout_confirm_message'
+                              .tr(),
+                          confirmLabel: 'profile.account.logout_confirm_confirm'
+                              .tr(),
+                          cancelLabel: 'profile.account.logout_confirm_cancel'
+                              .tr(),
                           isDestructive: true,
                         );
                         if (confirmed == true && mounted) await _logout();
@@ -351,7 +360,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 DSSpacing.hSm,
 
                 // ── Preferences Section ────────────────────────────────────
-                DSSectionHeader(title: 'profile.preferences'.tr()),
+                const DSSectionHeader(
+                  title: 'profile.sections.preferences',
+                  useLocalization: true,
+                ),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -363,9 +375,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _ModernSwitchTile(
                       icon: Icons.flash_on_rounded,
                       iconColor: DSColors.warning,
-                      label: 'Auto-accept Dispatch',
-                      subtitle:
-                          'Automatically accept new dispatches after a successful barcode scan. Recommended for high-volume days.',
+                      label: 'profile.preferences.auto_accept'.tr(),
+                      subtitle: 'profile.preferences.auto_accept_sub'.tr(),
                       value: _autoAccept,
                       isDark: isDark,
                       onChanged: isOnline
@@ -373,11 +384,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               if (v) {
                                 final ok = await ConfirmationDialog.show(
                                   context,
-                                  title: 'Enable Auto-Accept?',
+                                  title:
+                                      'profile.preferences.auto_accept_confirm_title'
+                                          .tr(),
                                   subtitle:
-                                      'Dispatches will be automatically accepted after scanning without manual confirmation. Only enable this if you are ready to receive all incoming dispatches.',
-                                  confirmLabel: 'Enable',
-                                  cancelLabel: 'Cancel',
+                                      'profile.preferences.auto_accept_confirm_message'
+                                          .tr(),
+                                  confirmLabel: 'dashboard.exit_confirm_confirm'
+                                      .tr(), // reuse generic Enable/Confirm
+                                  cancelLabel: 'dashboard.exit_confirm_cancel'
+                                      .tr(),
                                   isDestructive: false,
                                 );
                                 if (ok != true || !mounted) return;
@@ -395,9 +411,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _ModernSwitchTile(
                       icon: Icons.density_small_rounded,
                       iconColor: DSColors.primary,
-                      label: 'Compact Mode',
-                      subtitle:
-                          'Shrinks delivery cards to show more items on screen at once.',
+                      label: 'profile.preferences.compact_mode'.tr(),
+                      subtitle: 'profile.preferences.compact_mode_sub'.tr(),
                       value: isCompact,
                       isDark: isDark,
                       onChanged: (v) async {
@@ -416,11 +431,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         onChanged: (val) async {
                           final confirmed = await ConfirmationDialog.show(
                             context,
-                            title: 'Update Retention Period?',
+                            title: 'profile.preferences.retention_update_title'
+                                .tr(),
                             subtitle:
-                                'This changes how long offline sync history is kept on this device. Are you sure you want to change it?',
-                            confirmLabel: 'Update',
-                            cancelLabel: 'Cancel',
+                                'profile.preferences.retention_update_message'
+                                    .tr(),
+                            confirmLabel: 'dashboard.exit_confirm_confirm'.tr(),
+                            cancelLabel: 'dashboard.exit_confirm_cancel'.tr(),
                           );
                           if (confirmed != true || !mounted) return;
                           await ref
@@ -436,7 +453,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 DSSpacing.hSm,
 
                 // ── Appearance Section ─────────────────────────────────────
-                const DSSectionHeader(title: 'Appearance'),
+                const DSSectionHeader(
+                  title: 'profile.sections.appearance',
+                  useLocalization: true,
+                ),
                 _ModernCard(
                   isDark: isDark,
                   children: [
@@ -455,7 +475,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 DSSpacing.hSm,
 
                 // ── Device Section ─────────────────────────────────────────
-                const DSSectionHeader(title: 'Device Info'),
+                const DSSectionHeader(
+                  title: 'profile.sections.device',
+                  useLocalization: true,
+                ),
                 if (_specsLoaded &&
                     _freeStorageGb >= 0 &&
                     _freeStorageGb < 2.0) ...[
@@ -469,7 +492,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _DetailTile(
                         icon: Icons.cloud_outlined,
                         iconColor: DSColors.success,
-                        label: 'Backend',
+                        label: 'profile.device.backend'.tr(),
                         value: _backendLabel,
                         isDark: isDark,
                       ),
@@ -477,7 +500,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _DetailTile(
                         icon: Icons.smartphone_outlined,
                         iconColor: DSColors.primary,
-                        label: 'Device Model',
+                        label: 'profile.device.model'.tr(),
                         value: _specsLoaded ? _deviceModel : '…',
                         isDark: isDark,
                       ),
@@ -487,7 +510,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ? Icons.android_outlined
                             : Icons.phone_iphone_outlined,
                         iconColor: DSColors.success,
-                        label: 'Operating System',
+                        label: 'profile.device.os'.tr(),
                         value: _specsLoaded ? _osVersion : '…',
                         isDark: isDark,
                       ),
@@ -495,7 +518,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _DetailTile(
                         icon: Icons.fingerprint_outlined,
                         iconColor: DSColors.pending,
-                        label: 'Device ID',
+                        label: 'profile.device.id'.tr(),
                         value: _specsLoaded ? _deviceId : '…',
                         isDark: isDark,
                       ),
@@ -504,7 +527,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _DetailTile(
                       icon: Icons.info_outline_rounded,
                       iconColor: DSColors.primary,
-                      label: 'App Version',
+                      label: 'profile.device.app_version'.tr(),
                       value: AppVersionService.displayVersion,
                       isDark: isDark,
                     ),
@@ -513,7 +536,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _DetailTile(
                         icon: Icons.code_rounded,
                         iconColor: DSColors.warning,
-                        label: 'SDK Version',
+                        label: 'profile.device.sdk_version'.tr(),
                         value: _specsLoaded ? _sdkVersion : '…',
                         isDark: isDark,
                       ),
@@ -522,11 +545,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _DetailTile(
                       icon: Icons.sd_storage_outlined,
                       iconColor: _storageIconColor,
-                      label: 'Available Storage',
+                      label: 'profile.device.storage'.tr(),
                       value: _specsLoaded
                           ? (_freeStorageGb >= 0
-                                ? '${_freeStorageGb.toStringAsFixed(1)} GB free'
-                                : 'Unavailable')
+                                ? 'profile.device.storage_free'.tr(
+                                    args: [_freeStorageGb.toStringAsFixed(1)],
+                                  )
+                                : 'profile.device.storage_unavailable'.tr())
                           : '…',
                       valueColor: _specsLoaded && _freeStorageGb >= 0
                           ? (_freeStorageGb < 0.5
@@ -542,15 +567,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 DSSpacing.hSm,
 
                 // ── Legal Section ──────────────────────────────────────────
-                const DSSectionHeader(title: 'Legal & Info'),
+                const DSSectionHeader(
+                  title: 'profile.sections.legal',
+                  useLocalization: true,
+                ),
                 _ModernCard(
                   isDark: isDark,
                   children: [
                     _ActionTile(
                       icon: Icons.description_outlined,
                       iconColor: DSColors.primary,
-                      label: 'Terms & Conditions',
-                      subtitle: 'Read the app terms of service',
+                      label: 'profile.legal.terms'.tr(),
+                      subtitle: 'profile.legal.terms_sub'.tr(),
                       isDark: isDark,
                       onTap: () => context.push('/terms?mode=view'),
                     ),
@@ -558,8 +586,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _ActionTile(
                       icon: Icons.shield_outlined,
                       iconColor: DSColors.success,
-                      label: 'Privacy Policy',
-                      subtitle: 'How we collect and use your data',
+                      label: 'profile.legal.privacy'.tr(),
+                      subtitle: 'profile.legal.privacy_sub'.tr(),
                       isDark: isDark,
                       onTap: () => context.push('/privacy'),
                     ),
@@ -568,17 +596,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 DSSpacing.hSm,
 
                 // ── Diagnostics Section ────────────────────────────────────
-                const DSSectionHeader(title: 'Diagnostics'),
+                const DSSectionHeader(
+                  title: 'profile.sections.diagnostics',
+                  useLocalization: true,
+                ),
                 _ModernCard(
                   isDark: isDark,
                   children: [
                     _ActionTile(
                       icon: Icons.bug_report_outlined,
                       iconColor: DSColors.warning,
-                      label: 'Report an Issue',
+                      label: 'profile.diagnostics.report_issue'.tr(),
                       subtitle: isOnline
-                          ? 'Send a bug report or feedback to the admin'
-                          : 'Requires internet connection',
+                          ? 'profile.diagnostics.report_issue_sub'.tr()
+                          : 'profile.diagnostics.offline_warning'.tr(),
                       isDark: isDark,
                       onTap: isOnline ? () => context.push('/report') : null,
                     ),
@@ -609,7 +640,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       DSSpacing.hXs,
                       Text(
-                        'Fastrak Services INC © ${DateTime.now().year}',
+                        'profile.info.copyright'.tr(
+                          args: [DateTime.now().year.toString()],
+                        ),
                         style: DSTypography.caption().copyWith(
                           color: isDark
                               ? DSColors.labelTertiaryDark
@@ -655,7 +688,7 @@ class _ProfileHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = '${courier['first_name'] ?? '-'} ${courier['last_name'] ?? ''}'
         .trim();
-    final email = courier['email']?.toString() ?? 'No email';
+    final email = courier['email']?.toString() ?? 'profile.info.no_email'.tr();
     final courierCode = courier['courier_code']?.toString() ?? '-';
 
     return Container(

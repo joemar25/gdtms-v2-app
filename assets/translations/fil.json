@@ -57,9 +57,14 @@
   "nav": {
     "home": "Home",
     "search": "Maghanap",
+    "wallet": "Wallet",
     "profile": "Profile",
     "settings": "Mga Setting",
     "notifications": "Mga Abiso"
+  },
+  "notifications": {
+    "unread_count": "{count} na hindi pa nababasang abiso",
+    "none": "Walang hindi pa nababasang abiso"
   },
   "dashboard": {
     "exit_confirm_title": "Lumabas ng App",
@@ -107,7 +112,67 @@
     "account": "Account",
     "privacy": "Privacy",
     "help": "Tulong at Suporta",
-    "about": "Tungkol Sa"
+    "about": "Tungkol Sa",
+    "sections": {
+      "account": "Account",
+      "preferences": "Mga Kagustuhan",
+      "appearance": "Hitsura",
+      "device": "Device",
+      "legal": "Legal",
+      "diagnostics": "Diagnostics"
+    },
+    "account": {
+      "inactive_account": "Hindi aktibo ang iyong account. Makipag-ugnayan sa suporta para sa tulong.",
+      "change_password": "Palitan ang Password",
+      "change_password_sub": "I-update ang iyong login password",
+      "sign_out": "Mag-sign Out",
+      "sign_out_sub": "Mag-log out mula sa device na ito",
+      "logout_confirm_title": "Mag-sign Out",
+      "logout_confirm_message": "Sigurado ka bang gusto mong mag-sign out?",
+      "logout_confirm_confirm": "Mag-sign Out",
+      "logout_confirm_cancel": "Kanselahin",
+      "pending_sync_title": "May Nakabinbing Sync",
+      "pending_sync_message": "Mayroon kang {} pending sync item. Mag-sign out pa rin?",
+      "force_sign_out": "Mag-sign Out Pa Rin",
+      "wait": "Maghintay"
+    },
+    "preferences": {
+      "auto_accept": "Auto-Accept Dispatch",
+      "auto_accept_sub": "Awtomatikong tanggapin ang mga kwalipikadong dispatch",
+      "auto_accept_confirm_title": "I-enable ang Auto-Accept?",
+      "auto_accept_confirm_message": "Awtomatikong tatanggapin ng setting na ito ang dispatches para sa iyo.",
+      "compact_mode": "Compact Mode",
+      "compact_mode_sub": "Ipakita ang mas maraming deliveries sa listahan",
+      "retention_update_title": "I-update ang Sync Retention",
+      "retention_update_message": "Papaltan ng setting na ito kung gaano katagal maiimbak nang lokal ang kasaysayan.",
+      "settings_updated": "Na-update ang mga kagustuhan."
+    },
+    "device": {
+      "backend": "Backend",
+      "model": "Modelo ng Device",
+      "os": "Operating System",
+      "id": "Device ID",
+      "app_version": "App Version",
+      "sdk_version": "SDK Version",
+      "storage": "Storage",
+      "storage_free": "{} GB libre",
+      "storage_unavailable": "Hindi available ang storage"
+    },
+    "legal": {
+      "terms": "Mga Tuntunin at Kundisyon",
+      "terms_sub": "Basahin ang buong tuntunin at kundisyon",
+      "privacy": "Patakaran sa Privacy",
+      "privacy_sub": "Tingnan ang aming patakaran sa privacy"
+    },
+    "diagnostics": {
+      "report_issue": "I-report ang Isyu",
+      "report_issue_sub": "Ipadala ang feedback o bug report",
+      "offline_warning": "Hindi makapag-report ng isyu habang offline"
+    },
+    "info": {
+      "copyright": "© {} Fastrak Services Inc.",
+      "no_email": "Walang magagamit na email"
+    }
   },
   "wallet": {
     "screen": {
@@ -116,7 +181,18 @@
       "request_payout_debug": "Humiling ng Payout (DEBUG)",
       "offline_message": "Wala kang koneksyon — tanging kabuuang kita ang ipinapakita.",
       "existing_request_notice": "Nakapag-submit ka na ng request ngayon. Maaari mong pagsamahin ang iyong mga deliveries bukas.",
-      "payout_history": "Kasaysayan ng Payout"
+      "payout_history": "Kasaysayan ng Payout",
+      "payout_amount": "Halaga ng Payout",
+      "items": "Mga Item",
+      "reference": "Reference",
+      "period": "Period",
+      "tap_to_reveal": "I-tap para makita ang breakdown",
+      "breakdown_details": "Mga Detalye ng Breakdown",
+      "not_found": "Hindi nahanap ang kahilingan sa pagbabayad.",
+      "view_history": "Tingnan ang Kasaysayan",
+      "request_lifecycle": "Lifecycle ng Kahilingan",
+      "load_more": "Mag-load ng higit pang mga araw",
+      "deliveries_rundown": "Rundown ng mga Pagpapadala"
     },
     "request": {
       "appbar_title": "Humiling ng Payout",
@@ -197,6 +273,9 @@
     "photo": {
       "recovered_success": "Matagumpay na na-recover ang larawan mula sa camera.",
       "compression_failed": "Nabigong i-compress ang larawan: {error}",
+      "tap_to_capture": "PINDUTIN UPANG KUMUHA"
+    },
+    "photo_slot": {
       "tap_to_capture": "PINDUTIN UPANG KUMUHA"
     },
     "validation": {
@@ -337,5 +416,5 @@
       "all_caught_up": "Lahat ay ayos na!",
       "no_pending": "Walang mga nakabinbing pagpapadala na dapat i-sync."
     }
+    }
   }
-}

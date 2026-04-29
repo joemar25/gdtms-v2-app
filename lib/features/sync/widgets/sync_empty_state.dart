@@ -87,9 +87,7 @@ class _SyncEmptyStateState extends State<SyncEmptyState>
                   DSSpacing.hSm,
                   Text(
                     'sync.empty.no_pending'.tr(),
-                    style: DSTypography.body(
-                      color: DSColors.labelTertiary,
-                    ),
+                    style: DSTypography.body(color: DSColors.labelTertiary),
                   ),
                 ],
               ],

@@ -57,9 +57,14 @@
   "nav": {
     "home": "Home",
     "search": "Search",
+    "wallet": "Wallet",
     "profile": "Profile",
     "settings": "Settings",
     "notifications": "Notifications"
+  },
+  "notifications": {
+    "unread_count": "{count} unread notifications",
+    "none": "No unread notifications"
   },
   "dashboard": {
     "exit_confirm_title": "Exit App",
@@ -107,7 +112,67 @@
     "account": "Account",
     "privacy": "Privacy",
     "help": "Help & Support",
-    "about": "About"
+    "about": "About",
+    "sections": {
+      "account": "Account",
+      "preferences": "Preferences",
+      "appearance": "Appearance",
+      "device": "Device",
+      "legal": "Legal",
+      "diagnostics": "Diagnostics"
+    },
+    "account": {
+      "inactive_account": "Your account is inactive. Contact support for help.",
+      "change_password": "Change Password",
+      "change_password_sub": "Update your login password",
+      "sign_out": "Sign Out",
+      "sign_out_sub": "Log out from this device",
+      "logout_confirm_title": "Sign Out",
+      "logout_confirm_message": "Are you sure you want to sign out?",
+      "logout_confirm_confirm": "Sign Out",
+      "logout_confirm_cancel": "Cancel",
+      "pending_sync_title": "Pending Sync Items",
+      "pending_sync_message": "You have {} pending sync items. Sign out anyway?",
+      "force_sign_out": "Sign Out Anyway",
+      "wait": "Wait"
+    },
+    "preferences": {
+      "auto_accept": "Auto-Accept Dispatch",
+      "auto_accept_sub": "Automatically accept eligible dispatches",
+      "auto_accept_confirm_title": "Enable Auto-Accept?",
+      "auto_accept_confirm_message": "Auto-accept will automatically accept dispatches on your behalf.",
+      "compact_mode": "Compact Mode",
+      "compact_mode_sub": "Show more deliveries in list view",
+      "retention_update_title": "Update Sync Retention",
+      "retention_update_message": "Changing this setting will update how long history is kept locally.",
+      "settings_updated": "Preferences updated."
+    },
+    "device": {
+      "backend": "Backend",
+      "model": "Device Model",
+      "os": "Operating System",
+      "id": "Device ID",
+      "app_version": "App Version",
+      "sdk_version": "SDK Version",
+      "storage": "Storage",
+      "storage_free": "{} GB free",
+      "storage_unavailable": "Storage unavailable"
+    },
+    "legal": {
+      "terms": "Terms & Conditions",
+      "terms_sub": "Read the full terms and conditions",
+      "privacy": "Privacy Policy",
+      "privacy_sub": "View our privacy policy"
+    },
+    "diagnostics": {
+      "report_issue": "Report an Issue",
+      "report_issue_sub": "Send feedback or bug reports",
+      "offline_warning": "Cannot report issue while offline"
+    },
+    "info": {
+      "copyright": "© {} Fastrak Services Inc.",
+      "no_email": "Email not available"
+    }
   },
   "wallet": {
     "screen": {
@@ -116,7 +181,18 @@
       "request_payout_debug": "Request Payout (DEBUG)",
       "offline_message": "You're offline — only total earnings are shown.",
       "existing_request_notice": "You have already submitted a request today. You can consolidate your deliveries tomorrow.",
-      "payout_history": "Payout History"
+      "payout_history": "Payout History",
+      "payout_amount": "Payout Amount",
+      "items": "Items",
+      "reference": "Reference",
+      "period": "Period",
+      "tap_to_reveal": "Tap to reveal breakdown",
+      "breakdown_details": "Breakdown Details",
+      "not_found": "Payment request not found.",
+      "view_history": "View History",
+      "request_lifecycle": "Request Lifecycle",
+      "load_more": "Load more days",
+      "deliveries_rundown": "Deliveries Rundown"
     },
     "request": {
       "appbar_title": "Request Payout",
@@ -181,6 +257,7 @@
     }
   },
   "delivery_update": {
+    "title": "Update Delivery",
     "location": {
       "gps_required": "Please enable GPS / Location Services and try again.",
       "permission_permanently_denied": "Location permission permanently denied. Enable it in Settings.",
@@ -197,7 +274,16 @@
     "photo": {
       "recovered_success": "Successfully recovered image from camera.",
       "compression_failed": "Image compression failed: {error}",
+      "tap_to_capture": "TAP TO CAPTURE",
+      "pod": "POD",
+      "selfie": "SELFIE",
+      "mailpack": "MAILPACK"
+    },
+    "photo_slot": {
       "tap_to_capture": "TAP TO CAPTURE"
+    },
+    "photo_recovered": {
+      "success": "A lost photo was successfully recovered."
     },
     "validation": {
       "invalid_status": "Invalid status.",
@@ -281,6 +367,10 @@
     },
     "offline_banner": {
       "queued_online": "Update queued—will submit when online"
+    },
+    "datetime": {
+      "format": "MMMM d, yyyy 'at' h:mm a",
+      "at": "at"
     }
   },
   "errors": {
