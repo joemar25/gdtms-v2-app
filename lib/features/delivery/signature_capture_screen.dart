@@ -163,52 +163,52 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
       ),
       body: SecureView(
         child: Stack(
-        children: [
-          // Full-screen white canvas
-          Positioned.fill(
-            child: Container(
-              color: DSColors.white,
-              child: Signature(
-                controller: _controller,
-                backgroundColor: DSColors.white,
-              ),
-            ),
-          ),
-          // Baseline hint
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 60,
-            child: IgnorePointer(
-              child: Center(
-                child: Container(
-                  height: DSStyles.borderWidth,
-                  margin: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
-                  color: DSColors.separatorLight,
+          children: [
+            // Full-screen white canvas
+            Positioned.fill(
+              child: Container(
+                color: DSColors.white,
+                child: Signature(
+                  controller: _controller,
+                  backgroundColor: DSColors.white,
                 ),
               ),
             ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 36,
-            child: IgnorePointer(
-              child: Center(
-                child: Text(
-                  'Sign above the line',
-                  style: DSTypography.caption().copyWith(
-                    fontSize: DSTypography.sizeSm,
+            // Baseline hint
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 60,
+              child: IgnorePointer(
+                child: Center(
+                  child: Container(
+                    height: DSStyles.borderWidth,
+                    margin: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
                     color: DSColors.separatorLight,
-                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 36,
+              child: IgnorePointer(
+                child: Center(
+                  child: Text(
+                    'Sign above the line',
+                    style: DSTypography.caption().copyWith(
+                      fontSize: DSTypography.sizeSm,
+                      color: DSColors.separatorLight,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
