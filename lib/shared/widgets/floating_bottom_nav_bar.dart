@@ -78,7 +78,6 @@ class FloatingBottomNavBar extends StatelessWidget {
                   ),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final tabWidth = constraints.maxWidth / 3;
                       final currentIdx = _index;
 
                       return Stack(

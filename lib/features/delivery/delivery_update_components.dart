@@ -724,4 +724,3 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
     );
   }
 }
-

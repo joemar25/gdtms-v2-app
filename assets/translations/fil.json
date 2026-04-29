@@ -220,6 +220,12 @@
       "no_eligible_deliveries": "Walang karapat-dapat na delivery para sa payout."
     },
     "detail": {
+      "payout_amount": "Halaga ng Payout",
+      "items": "Mga Item",
+      "reference": "Reference",
+      "period": "Period",
+      "tap_to_reveal": "I-tap para makita ang breakdown",
+      "breakdown_details": "Mga Detalye ng Breakdown",
       "view_history": "Tingnan ang Kasaysayan",
       "deliveries_rundown": "Buod ng Mga Delivery",
       "load_more": "Mag-load pa",

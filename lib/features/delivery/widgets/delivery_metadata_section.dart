@@ -8,7 +8,7 @@ import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_geo_location_field.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_update_screen_widgets.dart';
 
-/// Bottom section of the [DeliveryUpdateScreen] showing read-only transaction 
+/// Bottom section of the [DeliveryUpdateScreen] showing read-only transaction
 /// metadata: the PST date/time and the current GPS coordinates.
 class DeliveryUpdateMetadataSection extends StatelessWidget {
   const DeliveryUpdateMetadataSection({
@@ -39,7 +39,6 @@ class DeliveryUpdateMetadataSection extends StatelessWidget {
         const DeliveryTransactionDateField(),
 
         DSSpacing.hLg, // _kSectionGap equivalent
-
         // ── GEO LOCATION ─────────────────────────────────
         DeliverySectionHeader(
           label: 'delivery_update.header.geo_location'.tr(),

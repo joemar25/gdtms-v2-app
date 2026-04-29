@@ -72,7 +72,6 @@ class AppBottomNavBar extends StatelessWidget {
                   ),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final tabWidth = constraints.maxWidth / 3;
                       final currentIdx = navigationShell.currentIndex;
 
                       return Stack(

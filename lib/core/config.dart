@@ -142,6 +142,19 @@ const String firebaseApiKeyWindows = String.fromEnvironment(
 /// - Add to dart_defines.json for prod/demo builds.
 const String sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Security Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Toggle for screenshot and screen recording protection.
+///
+/// - Set via --dart-define=SECURE_SCREENSHOTS=true/false.
+/// - Default: true (protection enabled).
+const bool kSecureScreenshots = bool.fromEnvironment(
+  'SECURE_SCREENSHOTS',
+  defaultValue: true,
+);
+
 /// API connection timeout.
 const Duration kApiConnectTimeout = Duration(seconds: 30);
 

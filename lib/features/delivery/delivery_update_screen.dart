@@ -317,11 +317,19 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
     } on LocationServiceDisabledException {
       if (mounted) {
-        showAppSnackbar(context, 'delivery_update.location.gps_disabled'.tr(), type: SnackbarType.error);
+        showAppSnackbar(
+          context,
+          'delivery_update.location.gps_disabled'.tr(),
+          type: SnackbarType.error,
+        );
       }
     } catch (_) {
       if (mounted) {
-        showAppSnackbar(context, 'delivery_update.location.could_not_get_location'.tr(), type: SnackbarType.error);
+        showAppSnackbar(
+          context,
+          'delivery_update.location.could_not_get_location'.tr(),
+          type: SnackbarType.error,
+        );
       }
     } finally {
       if (mounted) setState(() => _gettingLocation = false);
@@ -331,20 +339,32 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   // ── Camera permission ─────────────────────────────────────────────────────
   Future<bool> _handleCameraPermission() async {
     var status = await Permission.camera.status;
-    if (status.isGranted) { return true; }
+    if (status.isGranted) {
+      return true;
+    }
     if (status.isDenied) {
       status = await Permission.camera.request();
-      if (status.isGranted) { return true; }
+      if (status.isGranted) {
+        return true;
+      }
     }
     if (status.isPermanentlyDenied) {
       if (mounted) {
-        showAppSnackbar(context, 'delivery_update.camera.permission_settings'.tr(), type: SnackbarType.error);
+        showAppSnackbar(
+          context,
+          'delivery_update.camera.permission_settings'.tr(),
+          type: SnackbarType.error,
+        );
         await openAppSettings();
       }
       return false;
     }
     if (mounted) {
-      showAppSnackbar(context, 'delivery_update.camera.permission_photo'.tr(), type: SnackbarType.error);
+      showAppSnackbar(
+        context,
+        'delivery_update.camera.permission_photo'.tr(),
+        type: SnackbarType.error,
+      );
     }
     return false;
   }
@@ -445,14 +465,28 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       });
     } on PlatformException catch (e) {
       setState(() => _isPickerActive = false);
-      if (e.code == 'already_active') { return; }
+      if (e.code == 'already_active') {
+        return;
+      }
       if (mounted) {
-        showAppSnackbar(context, 'delivery_update.camera.error'.tr(namedArgs: {'code': e.code, 'message': e.message ?? ''}), type: SnackbarType.error);
+        showAppSnackbar(
+          context,
+          'delivery_update.camera.error'.tr(
+            namedArgs: {'code': e.code, 'message': e.message ?? ''},
+          ),
+          type: SnackbarType.error,
+        );
       }
     } catch (e) {
       setState(() => _isPickerActive = false);
       if (mounted) {
-        showAppSnackbar(context, 'delivery_update.camera.capture_failed'.tr(namedArgs: {'error': e.toString()}), type: SnackbarType.error);
+        showAppSnackbar(
+          context,
+          'delivery_update.camera.capture_failed'.tr(
+            namedArgs: {'error': e.toString()},
+          ),
+          type: SnackbarType.error,
+        );
       }
     }
   }
@@ -482,33 +516,63 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   bool _validate() {
     _errors.clear();
     if (!kUpdateStatuses.contains(_status.toUpperCase())) {
-      _errors['delivery_status'] = 'delivery_update.validation.invalid_status'.tr();
+      _errors['delivery_status'] = 'delivery_update.validation.invalid_status'
+          .tr();
     }
     if (_note.text.length > kMaxNoteLength) {
-      _errors['note'] = 'delivery_update.validation.note_too_long'.tr(namedArgs: {'max': kMaxNoteLength.toString()});
+      _errors['note'] = 'delivery_update.validation.note_too_long'.tr(
+        namedArgs: {'max': kMaxNoteLength.toString()},
+      );
     }
     if (_isDelivered) {
-      if (_recipient.text.trim().isEmpty) { _errors['recipient'] = 'delivery_update.validation.field_required'.tr(); }
-      if (_relationship == null || _relationship!.isEmpty) {
-        _errors['relationship'] = 'delivery_update.validation.relationship_required'.tr();
-      } else if (_relationship == 'OTHERS' && _relationshipSpecify.text.trim().isEmpty) {
-        _errors['relationship_specify'] = 'delivery_update.validation.relationship_specify'.tr();
+      if (_recipient.text.trim().isEmpty) {
+        _errors['recipient'] = 'delivery_update.validation.field_required'.tr();
       }
-      if (_placement.isEmpty) { _errors['placement'] = 'delivery_update.validation.placement_required'.tr(); }
-      if (_podPhoto == null) { _errors['pod_photo'] = 'delivery_update.validation.pod_photo_required'.tr(); }
-      if (_selfiePhoto == null) { _errors['selfie_photo'] = 'delivery_update.validation.selfie_photo_required'.tr(); }
-      if (_confirmationCode.text.trim().isEmpty) { _errors['confirmation_code'] = 'delivery_update.validation.confirmation_code_required'.tr(); }
+      if (_relationship == null || _relationship!.isEmpty) {
+        _errors['relationship'] =
+            'delivery_update.validation.relationship_required'.tr();
+      } else if (_relationship == 'OTHERS' &&
+          _relationshipSpecify.text.trim().isEmpty) {
+        _errors['relationship_specify'] =
+            'delivery_update.validation.relationship_specify'.tr();
+      }
+      if (_placement.isEmpty) {
+        _errors['placement'] = 'delivery_update.validation.placement_required'
+            .tr();
+      }
+      if (_podPhoto == null) {
+        _errors['pod_photo'] = 'delivery_update.validation.pod_photo_required'
+            .tr();
+      }
+      if (_selfiePhoto == null) {
+        _errors['selfie_photo'] =
+            'delivery_update.validation.selfie_photo_required'.tr();
+      }
+      if (_confirmationCode.text.trim().isEmpty) {
+        _errors['confirmation_code'] =
+            'delivery_update.validation.confirmation_code_required'.tr();
+      }
     }
-    if (_isOsa && _mailpackPhoto == null) { _errors['mailpack_photo'] = 'delivery_update.validation.mailpack_photo_required'.tr(); }
+    if (_isOsa && _mailpackPhoto == null) {
+      _errors['mailpack_photo'] =
+          'delivery_update.validation.mailpack_photo_required'.tr();
+    }
     if (_isFailedDelivery) {
       if (_reason == null || _reason!.isEmpty) {
         _errors['reason'] = 'delivery_update.validation.reason_required'.tr();
       } else if (_reason == 'Others' && _reasonSpecify.text.trim().isEmpty) {
-        _errors['reason_specify'] = 'delivery_update.validation.reason_specify'.tr();
+        _errors['reason_specify'] = 'delivery_update.validation.reason_specify'
+            .tr();
       }
-      if (_selfiePhoto == null) { _errors['selfie_photo'] = 'delivery_update.validation.selfie_photo_required'.tr(); }
+      if (_selfiePhoto == null) {
+        _errors['selfie_photo'] =
+            'delivery_update.validation.selfie_photo_required'.tr();
+      }
       final config = kReasonConfigs[_reason] ?? const ReasonConfig();
-      if (config.requiresAccordingTo && _accordingTo.text.trim().isEmpty) { _errors['according_to'] = 'delivery_update.validation.informant_name_required'.tr(); }
+      if (config.requiresAccordingTo && _accordingTo.text.trim().isEmpty) {
+        _errors['according_to'] =
+            'delivery_update.validation.informant_name_required'.tr();
+      }
     }
     setState(() {});
     return _errors.isEmpty;
@@ -569,10 +633,14 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       payload['placement_type'] = _placement;
       payload['delivery_confirmation_code'] = _confirmationCode.text.trim();
     } else if (_isOsa) {
-      if (_mailpackPhoto != null) { pendingMediaPaths['mailpack'] = _mailpackPhoto!.file; }
+      if (_mailpackPhoto != null) {
+        pendingMediaPaths['mailpack'] = _mailpackPhoto!.file;
+      }
     } else if (_isFailedDelivery) {
       payload['reason'] = resolvedReason;
-      if (_selfiePhoto != null) { pendingMediaPaths['selfie'] = _selfiePhoto!.file; }
+      if (_selfiePhoto != null) {
+        pendingMediaPaths['selfie'] = _selfiePhoto!.file;
+      }
       final config = kReasonConfigs[_reason] ?? const ReasonConfig();
       if (config.requiresAccordingTo && _accordingTo.text.trim().isNotEmpty) {
         payload['according_to'] = _accordingTo.text.trim();
@@ -833,6 +901,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         appBar: AppHeaderBar(
           titleWidget: DeliveryUpdateAppBarTitle(barcode: widget.barcode),
           actions: [
+            const Center(child: SecureBadge()),
+            DSSpacing.wXs,
             IconButton(
               icon: const Icon(Icons.info_outline_rounded),
               tooltip: 'delivery_update.header.account_details'.tr(),
@@ -842,274 +912,297 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           showNotificationBell: false,
           backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
         ),
-        body: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragStart: (d) => _dragStart = d.localPosition.dx,
-          onHorizontalDragEnd: (d) {
-            final delta = d.localPosition.dx - _dragStart;
-            if (delta.abs() > 30) {
-              _cycleStatus(delta < 0 ? 1 : -1);
-            }
-          },
-          child: Column(
-            children: [
-              Expanded(
-                child: LoadingOverlay(
-                  isLoading: _loading,
-                  child: Stack(
-                    children: [
-                      _loadingDelivery
-                          ? const Column(
-                              children: [
-                                SyncProgressBar(),
-                                Expanded(
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : ListView(
-                              padding: EdgeInsets.fromLTRB(
-                                DSSpacing.md,
-                                DSSpacing.md,
-                                DSSpacing.md,
-                                100,
-                              ),
-                              children: [
-                                // ── Offline Banner ──────────────────────────────
-                                if (!isOnline)
-                                  OfflineBanner(
-                                    isMinimal: true,
-                                    customMessage:
-                                        'delivery_update.offline_banner.queued_online'
-                                            .tr(),
-                                    margin: EdgeInsets.only(
-                                      bottom: DSSpacing.lg,
+        body: SecureView(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (d) => _dragStart = d.localPosition.dx,
+            onHorizontalDragEnd: (d) {
+              final delta = d.localPosition.dx - _dragStart;
+              if (delta.abs() > 30) {
+                _cycleStatus(delta < 0 ? 1 : -1);
+              }
+            },
+            child: Column(
+              children: [
+                Expanded(
+                  child: LoadingOverlay(
+                    isLoading: _loading,
+                    child: Stack(
+                      children: [
+                        _loadingDelivery
+                            ? const Column(
+                                children: [
+                                  SyncProgressBar(),
+                                  Expanded(
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
                                     ),
                                   ),
-
-                                // ── STATUS SELECTION ────────────────────────────
-                                DeliveryStatusSection(
-                                  statusSelectorKey: _statusSelectorKey,
-                                  currentStatus: _status,
-                                  onStatusChanged: _onStatusTap,
-                                  error: _errors['delivery_status'],
+                                ],
+                              )
+                            : ListView(
+                                padding: EdgeInsets.fromLTRB(
+                                  DSSpacing.md,
+                                  DSSpacing.md,
+                                  DSSpacing.md,
+                                  100,
                                 ),
+                                children: [
+                                  // ── Offline Banner ──────────────────────────────
+                                  if (!isOnline)
+                                    OfflineBanner(
+                                      isMinimal: true,
+                                      customMessage:
+                                          'delivery_update.offline_banner.queued_online'
+                                              .tr(),
+                                      margin: EdgeInsets.only(
+                                        bottom: DSSpacing.lg,
+                                      ),
+                                    ),
 
-                                // ── RECIPIENT INFO (delivered only) ──────────
-                                if (_isDelivered) ...[
-                                  _kSectionGap,
-                                  DeliverySectionHeader(
-                                    label:
-                                        'delivery_update.header.recipient_info'
-                                            .tr(),
+                                  // ── STATUS SELECTION ────────────────────────────
+                                  DeliveryStatusSection(
+                                    statusSelectorKey: _statusSelectorKey,
+                                    currentStatus: _status,
+                                    onStatusChanged: _onStatusTap,
+                                    error: _errors['delivery_status'],
                                   ),
-                                  _kInnerGap,
-                                  DeliveryRecipientSection(
-                                    delivery: _delivery,
-                                    recipientController: _recipient,
-                                    relationshipSpecifyController:
-                                        _relationshipSpecify,
-                                    confirmationCodeController:
-                                        _confirmationCode,
-                                    confirmationCodeFocusNode:
-                                        _confirmationCodeFocus,
-                                    relationship: _relationship,
-                                    recipientIsOwner: _recipientIsOwner,
-                                    placement: _placement,
-                                    errors: _errors,
-                                    isDark: isDark,
-                                    onSelectRecipient: (name, rel) {
-                                      _recipient.text = name;
-                                      setState(() {
-                                        _relationship = rel;
-                                        _recipientIsOwner = rel == 'OWNER';
-                                        _errors.remove('recipient');
-                                        _errors.remove('relationship');
-                                      });
-                                    },
-                                    onRecipientManuallyChanged: () =>
+
+                                  // ── RECIPIENT INFO (delivered only) ──────────
+                                  if (_isDelivered) ...[
+                                    _kSectionGap,
+                                    DeliverySectionHeader(
+                                      label:
+                                          'delivery_update.header.recipient_info'
+                                              .tr(),
+                                    ),
+                                    _kInnerGap,
+                                    DeliveryRecipientSection(
+                                      delivery: _delivery,
+                                      recipientController: _recipient,
+                                      relationshipSpecifyController:
+                                          _relationshipSpecify,
+                                      confirmationCodeController:
+                                          _confirmationCode,
+                                      confirmationCodeFocusNode:
+                                          _confirmationCodeFocus,
+                                      relationship: _relationship,
+                                      recipientIsOwner: _recipientIsOwner,
+                                      placement: _placement,
+                                      errors: _errors,
+                                      isDark: isDark,
+                                      onSelectRecipient: (name, rel) {
+                                        _recipient.text = name;
+                                        setState(() {
+                                          _relationship = rel;
+                                          _recipientIsOwner = rel == 'OWNER';
+                                          _errors.remove('recipient');
+                                          _errors.remove('relationship');
+                                        });
+                                      },
+                                      onRecipientManuallyChanged: () =>
+                                          setState(() {
+                                            _recipientIsOwner = false;
+                                            _relationship = null;
+                                          }),
+                                      onRecipientCleared: () {
+                                        _recipient.clear();
                                         setState(() {
                                           _recipientIsOwner = false;
                                           _relationship = null;
-                                        }),
-                                    onRecipientCleared: () {
-                                      _recipient.clear();
-                                      setState(() {
-                                        _recipientIsOwner = false;
-                                        _relationship = null;
-                                      });
-                                    },
-                                    onRelationshipPickerTap:
-                                        _openRelationshipPicker,
-                                    onRelationshipSpecifyChanged: () =>
-                                        setState(
-                                          () => _errors.remove(
-                                            'relationship_specify',
+                                        });
+                                      },
+                                      onRelationshipPickerTap:
+                                          _openRelationshipPicker,
+                                      onRelationshipSpecifyChanged: () =>
+                                          setState(
+                                            () => _errors.remove(
+                                              'relationship_specify',
+                                            ),
                                           ),
-                                        ),
-                                    onConfirmationCodeChanged: () => setState(
-                                      () => _errors.remove('confirmation_code'),
+                                      onConfirmationCodeChanged: () => setState(
+                                        () =>
+                                            _errors.remove('confirmation_code'),
+                                      ),
+                                      onConfirmationCodeCleared: () => setState(
+                                        () => _confirmationCode.clear(),
+                                      ),
+                                      onPlacementChanged: (v) => setState(
+                                        () => _placement = v ?? _placement,
+                                      ),
                                     ),
-                                    onConfirmationCodeCleared: () => setState(
-                                      () => _confirmationCode.clear(),
+                                  ],
+
+                                  // ── REASON FOR NON-DELIVERY (failed delivery only) ──────
+                                  if (_isFailedDelivery) ...[
+                                    _kSectionGap,
+                                    DeliverySectionHeader(
+                                      label:
+                                          'delivery_update.header.reason_for_non_delivery'
+                                              .tr(),
                                     ),
-                                    onPlacementChanged: (v) => setState(
-                                      () => _placement = v ?? _placement,
+                                    _kInnerGap,
+                                    DeliveryReasonSection(
+                                      reason: _reason,
+                                      reasonSpecifyController: _reasonSpecify,
+                                      accordingToController: _accordingTo,
+                                      errors: _errors,
+                                      isDark: isDark,
+                                      onReasonPickerTap: _openReasonPicker,
+                                      onReasonSpecifyChanged: () => setState(
+                                        () => _errors.remove('reason_specify'),
+                                      ),
+                                      onAccordingToChanged: () => setState(
+                                        () => _errors.remove('according_to'),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
 
-                                // ── REASON FOR NON-DELIVERY (failed delivery only) ──────
-                                if (_isFailedDelivery) ...[
-                                  _kSectionGap,
-                                  DeliverySectionHeader(
-                                    label:
-                                        'delivery_update.header.reason_for_non_delivery'
-                                            .tr(),
-                                  ),
-                                  _kInnerGap,
-                                  DeliveryReasonSection(
-                                    reason: _reason,
-                                    reasonSpecifyController: _reasonSpecify,
-                                    accordingToController: _accordingTo,
-                                    errors: _errors,
-                                    isDark: isDark,
-                                    onReasonPickerTap: _openReasonPicker,
-                                    onReasonSpecifyChanged: () => setState(
-                                      () => _errors.remove('reason_specify'),
+                                  // ── PROOF OF DELIVERY (delivered) ────────────────
+                                  if (_isDelivered) ...[
+                                    _kSectionGap,
+                                    DeliverySectionHeader(
+                                      label:
+                                          'delivery_update.header.proof_of_delivery_photos'
+                                              .tr(),
                                     ),
-                                    onAccordingToChanged: () => setState(
-                                      () => _errors.remove('according_to'),
+                                    _kInnerGap,
+                                    DeliveryProofSection(
+                                      podPhoto: _podPhoto,
+                                      selfiePhoto: _selfiePhoto,
+                                      signaturePath: _signaturePath,
+                                      showSignatureSlot: _showSignatureSlot,
+                                      errors: _errors,
+                                      isDark: isDark,
+                                      onPodTap: () => _pickPhotoForSlot('pod'),
+                                      onPodClear: () => setState(() {
+                                        _podPhoto = null;
+                                        _errors.remove('pod_photo');
+                                      }),
+                                      onSelfieTap: () =>
+                                          _pickPhotoForSlot('selfie'),
+                                      onSelfieClear: () => setState(() {
+                                        _selfiePhoto = null;
+                                        _errors.remove('selfie_photo');
+                                      }),
+                                      onSignatureSlotToggled:
+                                          (show, clearPath) => setState(() {
+                                            _showSignatureSlot = show;
+                                            if (clearPath) {
+                                              _signaturePath = null;
+                                            }
+                                          }),
+                                      onSignatureCapture: _openSignatureCapture,
+                                      onSignatureClear: () =>
+                                          setState(() => _signaturePath = null),
                                     ),
-                                  ),
-                                ],
+                                  ],
 
-                                // ── PROOF OF DELIVERY (delivered) ────────────────
-                                if (_isDelivered) ...[
-                                  _kSectionGap,
-                                  DeliverySectionHeader(
-                                    label:
-                                        'delivery_update.header.proof_of_delivery_photos'
-                                            .tr(),
-                                  ),
-                                  _kInnerGap,
-                                  DeliveryProofSection(
-                                    podPhoto: _podPhoto,
-                                    selfiePhoto: _selfiePhoto,
-                                    signaturePath: _signaturePath,
-                                    showSignatureSlot: _showSignatureSlot,
-                                    errors: _errors,
-                                    isDark: isDark,
-                                    onPodTap: () => _pickPhotoForSlot('pod'),
-                                    onPodClear: () => setState(() {
-                                      _podPhoto = null;
-                                      _errors.remove('pod_photo');
-                                    }),
-                                    onSelfieTap: () =>
-                                        _pickPhotoForSlot('selfie'),
-                                    onSelfieClear: () => setState(() {
-                                      _selfiePhoto = null;
-                                      _errors.remove('selfie_photo');
-                                    }),
-                                    onSignatureSlotToggled: (show, clearPath) =>
-                                        setState(() {
-                                          _showSignatureSlot = show;
-                                          if (clearPath) _signaturePath = null;
-                                        }),
-                                    onSignatureCapture: _openSignatureCapture,
-                                    onSignatureClear: () =>
-                                        setState(() => _signaturePath = null),
-                                  ),
-                                ],
-
-                                // ── MAILPACK PHOTO (misrouted / osa) ─────────────────
-                                if (_isOsa) ...[
-                                  _kSectionGap,
-                                  DeliverySectionHeader(label: 'delivery_update.header.mailpack_photo'.tr()),
-                                  _kInnerGap,
-                                  DeliverySinglePhotoSection(
-                                    label: 'delivery_update.photo.mailpack'.tr(),
-                                    photo: _mailpackPhoto,
-                                    icon: Icons.inventory_2_rounded,
-                                    color: DSColors.warning,
-                                    isDark: isDark,
-                                    hasError: _errors['mailpack_photo'] != null,
-                                    onTap: () => _pickPhotoForSlot('mailpack'),
-                                    onClear: () => setState(() { _mailpackPhoto = null; _errors.remove('mailpack_photo'); }),
-                                  ),
-                                ],
-
-                                // ── SELFIE PHOTO (failed delivery only) ──────────────
-                                if (_isFailedDelivery) ...[
-                                  _kSectionGap,
-                                  DeliverySectionHeader(label: 'delivery_update.header.selfie_photo'.tr()),
-                                  _kInnerGap,
-                                  DeliverySinglePhotoSection(
-                                    label: 'delivery_update.photo.selfie'.tr(),
-                                    photo: _selfiePhoto,
-                                    icon: Icons.face_rounded,
-                                    color: DSColors.labelSecondary,
-                                    isDark: isDark,
-                                    hasError: _errors['selfie_photo'] != null,
-                                    onTap: _pickSelfieForFailedDeliveryOsa,
-                                    onClear: () => setState(() { _selfiePhoto = null; _errors.remove('selfie_photo'); }),
-                                  ),
-                                ],
-
-                                // ── REMARKS ──────────────────────────────────────
-                                _kSectionGap,
-                                DeliverySectionHeader(
-                                  label:
-                                      'delivery_update.header.remarks_optional'
+                                  // ── MAILPACK PHOTO (misrouted / osa) ─────────────────
+                                  if (_isOsa) ...[
+                                    _kSectionGap,
+                                    DeliverySectionHeader(
+                                      label:
+                                          'delivery_update.header.mailpack_photo'
+                                              .tr(),
+                                    ),
+                                    _kInnerGap,
+                                    DeliverySinglePhotoSection(
+                                      label: 'delivery_update.photo.mailpack'
                                           .tr(),
-                                ),
-                                _kInnerGap,
-                                DeliveryRemarksSection(
-                                  noteController: _note,
-                                  notePresets: notePresets,
-                                  activeNotePreset: _activeNotePreset,
-                                  errors: _errors,
-                                  isDark: isDark,
-                                  onPresetTapped: (preset) => setState(() {
-                                    if (_activeNotePreset == preset) {
-                                      _activeNotePreset = null;
-                                      if (_note.text == preset) _note.clear();
-                                    } else {
-                                      _activeNotePreset = preset;
-                                      _note.value = TextEditingValue(
-                                        text: preset,
-                                        selection: TextSelection.collapsed(
-                                          offset: preset.length,
-                                        ),
-                                      );
-                                    }
-                                  }),
-                                  onNoteCleared: () {
-                                    _note.clear();
-                                    setState(() => _activeNotePreset = null);
-                                  },
-                                ),
+                                      photo: _mailpackPhoto,
+                                      icon: Icons.inventory_2_rounded,
+                                      color: DSColors.warning,
+                                      isDark: isDark,
+                                      hasError:
+                                          _errors['mailpack_photo'] != null,
+                                      onTap: () =>
+                                          _pickPhotoForSlot('mailpack'),
+                                      onClear: () => setState(() {
+                                        _mailpackPhoto = null;
+                                        _errors.remove('mailpack_photo');
+                                      }),
+                                    ),
+                                  ],
 
-                                // ── METADATA (DATE & GEO) ────────────────────────
-                                _kSectionGap,
-                                DeliveryUpdateMetadataSection(
-                                  latitude: _latitude,
-                                  longitude: _longitude,
-                                  geoAccuracy: _geoAccuracy,
-                                  isGettingLocation: _gettingLocation,
-                                  onCaptureLocation: _captureLocation,
-                                ),
+                                  // ── SELFIE PHOTO (failed delivery only) ──────────────
+                                  if (_isFailedDelivery) ...[
+                                    _kSectionGap,
+                                    DeliverySectionHeader(
+                                      label:
+                                          'delivery_update.header.selfie_photo'
+                                              .tr(),
+                                    ),
+                                    _kInnerGap,
+                                    DeliverySinglePhotoSection(
+                                      label: 'delivery_update.photo.selfie'
+                                          .tr(),
+                                      photo: _selfiePhoto,
+                                      icon: Icons.face_rounded,
+                                      color: DSColors.labelSecondary,
+                                      isDark: isDark,
+                                      hasError: _errors['selfie_photo'] != null,
+                                      onTap: _pickSelfieForFailedDeliveryOsa,
+                                      onClear: () => setState(() {
+                                        _selfiePhoto = null;
+                                        _errors.remove('selfie_photo');
+                                      }),
+                                    ),
+                                  ],
 
-                                DSSpacing.hLg,
-                              ],
-                            ),
-                    ],
+                                  // ── REMARKS ──────────────────────────────────────
+                                  _kSectionGap,
+                                  DeliverySectionHeader(
+                                    label:
+                                        'delivery_update.header.remarks_optional'
+                                            .tr(),
+                                  ),
+                                  _kInnerGap,
+                                  DeliveryRemarksSection(
+                                    noteController: _note,
+                                    notePresets: notePresets,
+                                    activeNotePreset: _activeNotePreset,
+                                    errors: _errors,
+                                    isDark: isDark,
+                                    onPresetTapped: (preset) => setState(() {
+                                      if (_activeNotePreset == preset) {
+                                        _activeNotePreset = null;
+                                        if (_note.text == preset) _note.clear();
+                                      } else {
+                                        _activeNotePreset = preset;
+                                        _note.value = TextEditingValue(
+                                          text: preset,
+                                          selection: TextSelection.collapsed(
+                                            offset: preset.length,
+                                          ),
+                                        );
+                                      }
+                                    }),
+                                    onNoteCleared: () {
+                                      _note.clear();
+                                      setState(() => _activeNotePreset = null);
+                                    },
+                                  ),
+
+                                  // ── METADATA (DATE & GEO) ────────────────────────
+                                  _kSectionGap,
+                                  DeliveryUpdateMetadataSection(
+                                    latitude: _latitude,
+                                    longitude: _longitude,
+                                    geoAccuracy: _geoAccuracy,
+                                    isGettingLocation: _gettingLocation,
+                                    onCaptureLocation: _captureLocation,
+                                  ),
+
+                                  DSSpacing.hLg,
+                                ],
+                              ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

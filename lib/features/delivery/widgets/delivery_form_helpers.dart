@@ -180,13 +180,14 @@ class DeliveryPhotoSourceButton extends StatelessWidget {
 }
 
 // ─── Shared account details sheet ───────────────────────────────────────────
+// ─── Shared account details sheet trigger ────────────────────────────────────
 /// Shows the "Account Details" bottom sheet for [delivery].
 /// Used by DeliveryUpdateScreen (info button) and DeliveryCard (hold action).
-void showDeliveryAccountDetails(
+Future<void> showDeliveryAccountDetails(
   BuildContext context,
   Map<String, dynamic> delivery,
   String barcode,
-) {
+) async {
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
   final name = delivery['name']?.toString() ?? '';
@@ -246,226 +247,234 @@ void showDeliveryAccountDetails(
     await showContactAppSheet(context, phone, messageTemplate: template);
   }
 
-  showModalBottomSheet(
+  if (!context.mounted) return;
+
+  await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: DSColors.transparent,
     builder: (ctx) {
-      return Container(
-        decoration: BoxDecoration(
-          color: isDark ? DSColors.cardDark : DSColors.cardLight,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          boxShadow: [
-            BoxShadow(
-              color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
-              blurRadius: DSStyles.radiusXL,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        padding: EdgeInsets.fromLTRB(
-          DSSpacing.lg,
-          DSSpacing.sm,
-          DSSpacing.lg,
-          DSSpacing.xl,
-        ),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: DSIconSize.heroSm,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? DSColors.separatorDark
-                        : DSColors.separatorLight,
-                    borderRadius: DSStyles.cardRadius,
+      return SecureView(
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? DSColors.cardDark : DSColors.cardLight,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+                blurRadius: DSStyles.radiusXL,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.fromLTRB(
+            DSSpacing.lg,
+            DSSpacing.sm,
+            DSSpacing.lg,
+            DSSpacing.xl,
+          ),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: DSIconSize.heroSm,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? DSColors.separatorDark
+                          : DSColors.separatorLight,
+                      borderRadius: DSStyles.cardRadius,
+                    ),
                   ),
                 ),
-              ),
-              DSSpacing.hMd,
-              const DSSectionHeader(
-                title: 'Account Details',
-                padding: EdgeInsets.zero,
-              ),
-
-              DSCard(
-                margin: EdgeInsets.only(top: DSSpacing.sm),
-                child: Column(
-                  children: [
-                    if (name.isNotEmpty)
-                      DSInfoTile(
-                        label: 'Recipient Name',
-                        value: name,
-                        onLongPress: () => copyToClipboard(name, 'Name'),
-                      ),
-                    if (effectiveAuthRepName.isNotEmpty)
-                      DSInfoTile(
-                        label: 'Auth Rep Name',
-                        value: effectiveAuthRepName,
-                        onLongPress: () => copyToClipboard(
-                          effectiveAuthRepName,
-                          'Auth rep name',
-                        ),
-                      ),
-                    if (address.isNotEmpty)
-                      DSInfoTile(
-                        label: 'Delivery Address',
-                        value: address,
-                        onTap: () => launchMaps(address),
-                        onLongPress: () => copyToClipboard(address, 'Address'),
-                      ),
-                    if (contact.isNotEmpty)
-                      ...contact.split('/').asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final cleanContact = entry.value.trim();
-                        if (cleanContact.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-                        final isAuthRepNum =
-                            authRepNumber.isNotEmpty &&
-                            cleanContact.contains(authRepNumber);
-                        final nextEntry = contact.split('/').length > idx + 1
-                            ? contact.split('/')[idx + 1].trim()
-                            : null;
-                        final nextIsAuthRep =
-                            nextEntry != null &&
-                            authRepNumber.isNotEmpty &&
-                            nextEntry.contains(authRepNumber);
-
-                        final hasExtraTile =
-                            authRepNumber.isNotEmpty &&
-                            !contact.contains(authRepNumber);
-
-                        // Show divider only if switching parties (Recipient -> Auth Rep)
-                        // OR if it's the last item in the list and there's an extra tile below
-                        // that belongs to a different party.
-                        final showDivider =
-                            (nextEntry != null &&
-                                isAuthRepNum != nextIsAuthRep) ||
-                            (nextEntry == null &&
-                                hasExtraTile &&
-                                !isAuthRepNum);
-
-                        final previousEntry = idx > 0
-                            ? contact.split('/')[idx - 1].trim()
-                            : null;
-                        final previousIsAuthRep =
-                            previousEntry != null &&
-                            authRepNumber.isNotEmpty &&
-                            previousEntry.contains(authRepNumber);
-
-                        final isFirstOfParty =
-                            idx == 0 || (isAuthRepNum != previousIsAuthRep);
-
-                        return DSInfoTile(
-                          label: isFirstOfParty
-                              ? (isAuthRepNum
-                                    ? 'Auth Rep Contact'
-                                    : 'Recipient Number')
-                              : '',
-                          value: cleanContact,
-                          onTap: () => onPhoneTap(
-                            cleanContact,
-                            isAuthRepNum ? effectiveAuthRepName : name,
-                          ),
-                          onLongPress: () =>
-                              copyToClipboard(cleanContact, 'Contact number'),
-                          showDivider: showDivider,
-                        );
-                      }),
-                    if (authRepNumber.isNotEmpty &&
-                        !contact.contains(authRepNumber))
-                      DSInfoTile(
-                        label:
-                            contact.split('/').any((n) {
-                              final cn = n.trim();
-                              return authRepNumber.isNotEmpty &&
-                                  cn.contains(authRepNumber);
-                            })
-                            ? ''
-                            : 'Auth Rep Contact',
-                        value: authRepNumber,
-                        onTap: () =>
-                            onPhoneTap(authRepNumber, effectiveAuthRepName),
-                        onLongPress: () =>
-                            copyToClipboard(authRepNumber, 'Auth rep number'),
-                        showDivider: false,
-                      ),
-                  ],
-                ),
-              ),
-              DSSpacing.hMd,
-
-              if (accountNumber.isNotEmpty ||
-                  authRepNumber.isNotEmpty ||
-                  pieceCount > 0)
-                DSCard(
-                  child: Column(
-                    children: [
-                      if (accountNumber.isNotEmpty)
-                        DSInfoTile(
-                          label: 'Account Number',
-                          value: accountNumber,
-                          onLongPress: () =>
-                              copyToClipboard(accountNumber, 'Account number'),
-                        ),
-                      if (pieceCount > 0)
-                        DSInfoTile(
-                          label: 'Bundle Size',
-                          value:
-                              '$pieceCount piece${pieceCount > 1 ? 's' : ''}',
-                          showDivider: false,
-                        ),
-                    ],
-                  ),
-                ),
-
-              if (product.isNotEmpty ||
-                  specialInstruction.isNotEmpty ||
-                  transmittalDate.isNotEmpty ||
-                  tat.isNotEmpty) ...[
                 DSSpacing.hMd,
-                const DSSectionHeader(
-                  title: 'Other Information',
+                DSSectionHeader(
+                  title: 'Account Details',
                   padding: EdgeInsets.zero,
+                  trailing: const SecureBadge(),
                 ),
+
                 DSCard(
                   margin: EdgeInsets.only(top: DSSpacing.sm),
                   child: Column(
                     children: [
-                      if (product.isNotEmpty)
-                        DSInfoTile(label: 'Product', value: product),
-                      if (specialInstruction.isNotEmpty)
+                      if (name.isNotEmpty)
                         DSInfoTile(
-                          label: 'Instructions',
-                          value: specialInstruction,
+                          label: 'Recipient Name',
+                          value: name,
+                          onLongPress: () => copyToClipboard(name, 'Name'),
+                        ),
+                      if (effectiveAuthRepName.isNotEmpty)
+                        DSInfoTile(
+                          label: 'Auth Rep Name',
+                          value: effectiveAuthRepName,
                           onLongPress: () => copyToClipboard(
-                            specialInstruction,
-                            'Instructions',
+                            effectiveAuthRepName,
+                            'Auth rep name',
                           ),
                         ),
-                      if (transmittalDate.isNotEmpty)
+                      if (address.isNotEmpty)
                         DSInfoTile(
-                          label: 'Transmittal Date',
-                          value: formatDate(transmittalDate),
+                          label: 'Delivery Address',
+                          value: address,
+                          onTap: () => launchMaps(address),
+                          onLongPress: () =>
+                              copyToClipboard(address, 'Address'),
                         ),
-                      if (tat.isNotEmpty)
+                      if (contact.isNotEmpty)
+                        ...contact.split('/').asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final cleanContact = entry.value.trim();
+                          if (cleanContact.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          final isAuthRepNum =
+                              authRepNumber.isNotEmpty &&
+                              cleanContact.contains(authRepNumber);
+                          final nextEntry = contact.split('/').length > idx + 1
+                              ? contact.split('/')[idx + 1].trim()
+                              : null;
+                          final nextIsAuthRep =
+                              nextEntry != null &&
+                              authRepNumber.isNotEmpty &&
+                              nextEntry.contains(authRepNumber);
+
+                          final hasExtraTile =
+                              authRepNumber.isNotEmpty &&
+                              !contact.contains(authRepNumber);
+
+                          // Show divider only if switching parties (Recipient -> Auth Rep)
+                          // OR if it's the last item in the list and there's an extra tile below
+                          // that belongs to a different party.
+                          final showDivider =
+                              (nextEntry != null &&
+                                  isAuthRepNum != nextIsAuthRep) ||
+                              (nextEntry == null &&
+                                  hasExtraTile &&
+                                  !isAuthRepNum);
+
+                          final previousEntry = idx > 0
+                              ? contact.split('/')[idx - 1].trim()
+                              : null;
+                          final previousIsAuthRep =
+                              previousEntry != null &&
+                              authRepNumber.isNotEmpty &&
+                              previousEntry.contains(authRepNumber);
+
+                          final isFirstOfParty =
+                              idx == 0 || (isAuthRepNum != previousIsAuthRep);
+
+                          return DSInfoTile(
+                            label: isFirstOfParty
+                                ? (isAuthRepNum
+                                      ? 'Auth Rep Contact'
+                                      : 'Recipient Number')
+                                : '',
+                            value: cleanContact,
+                            onTap: () => onPhoneTap(
+                              cleanContact,
+                              isAuthRepNum ? effectiveAuthRepName : name,
+                            ),
+                            onLongPress: () =>
+                                copyToClipboard(cleanContact, 'Contact number'),
+                            showDivider: showDivider,
+                          );
+                        }),
+                      if (authRepNumber.isNotEmpty &&
+                          !contact.contains(authRepNumber))
                         DSInfoTile(
-                          label: 'TAT',
-                          value: formatDate(tat),
+                          label:
+                              contact.split('/').any((n) {
+                                final cn = n.trim();
+                                return authRepNumber.isNotEmpty &&
+                                    cn.contains(authRepNumber);
+                              })
+                              ? ''
+                              : 'Auth Rep Contact',
+                          value: authRepNumber,
+                          onTap: () =>
+                              onPhoneTap(authRepNumber, effectiveAuthRepName),
+                          onLongPress: () =>
+                              copyToClipboard(authRepNumber, 'Auth rep number'),
                           showDivider: false,
                         ),
                     ],
                   ),
                 ),
+                DSSpacing.hMd,
+
+                if (accountNumber.isNotEmpty ||
+                    authRepNumber.isNotEmpty ||
+                    pieceCount > 0)
+                  DSCard(
+                    child: Column(
+                      children: [
+                        if (accountNumber.isNotEmpty)
+                          DSInfoTile(
+                            label: 'Account Number',
+                            value: accountNumber,
+                            onLongPress: () => copyToClipboard(
+                              accountNumber,
+                              'Account number',
+                            ),
+                          ),
+                        if (pieceCount > 0)
+                          DSInfoTile(
+                            label: 'Bundle Size',
+                            value:
+                                '$pieceCount piece${pieceCount > 1 ? 's' : ''}',
+                            showDivider: false,
+                          ),
+                      ],
+                    ),
+                  ),
+
+                if (product.isNotEmpty ||
+                    specialInstruction.isNotEmpty ||
+                    transmittalDate.isNotEmpty ||
+                    tat.isNotEmpty) ...[
+                  DSSpacing.hMd,
+                  const DSSectionHeader(
+                    title: 'Other Information',
+                    padding: EdgeInsets.zero,
+                  ),
+                  DSCard(
+                    margin: EdgeInsets.only(top: DSSpacing.sm),
+                    child: Column(
+                      children: [
+                        if (product.isNotEmpty)
+                          DSInfoTile(label: 'Product', value: product),
+                        if (specialInstruction.isNotEmpty)
+                          DSInfoTile(
+                            label: 'Instructions',
+                            value: specialInstruction,
+                            onLongPress: () => copyToClipboard(
+                              specialInstruction,
+                              'Instructions',
+                            ),
+                          ),
+                        if (transmittalDate.isNotEmpty)
+                          DSInfoTile(
+                            label: 'Transmittal Date',
+                            value: formatDate(transmittalDate),
+                          ),
+                        if (tat.isNotEmpty)
+                          DSInfoTile(
+                            label: 'TAT',
+                            value: formatDate(tat),
+                            showDivider: false,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                DSSpacing.hLg,
               ],
-              DSSpacing.hLg,
-            ],
+            ),
           ),
         ),
       );

@@ -220,6 +220,12 @@
       "no_eligible_deliveries": "No eligible deliveries found for payout."
     },
     "detail": {
+      "payout_amount": "Payout Amount",
+      "items": "Items",
+      "reference": "Reference",
+      "period": "Period",
+      "tap_to_reveal": "Tap to reveal breakdown",
+      "breakdown_details": "Breakdown Details",
       "view_history": "View History",
       "deliveries_rundown": "Deliveries Rundown",
       "load_more": "Load More",

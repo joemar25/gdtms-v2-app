@@ -106,6 +106,8 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
           ),
         ),
         actions: [
+          const Center(child: SecureBadge()),
+          DSSpacing.wSm,
           TextButton.icon(
             onPressed: hasStrokes ? _clear : null,
             icon: Icon(
@@ -159,7 +161,8 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
         backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
         showNotificationBell: false,
       ),
-      body: Stack(
+      body: SecureView(
+        child: Stack(
         children: [
           // Full-screen white canvas
           Positioned.fill(
@@ -205,6 +208,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

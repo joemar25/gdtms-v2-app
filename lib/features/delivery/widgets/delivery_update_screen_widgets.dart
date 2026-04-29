@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 
-
 /// App bar title column (heading + barcode subtitle) for [DeliveryUpdateScreen].
 class DeliveryUpdateAppBarTitle extends StatelessWidget {
   const DeliveryUpdateAppBarTitle({super.key, required this.barcode});
@@ -58,8 +57,9 @@ class DeliveryTransactionDateField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dateStr =
-        DateFormat('delivery_update.datetime.format'.tr()).format(_pstNow());
+    final dateStr = DateFormat(
+      'delivery_update.datetime.format'.tr(),
+    ).format(_pstNow());
 
     return TextFormField(
       initialValue: dateStr,

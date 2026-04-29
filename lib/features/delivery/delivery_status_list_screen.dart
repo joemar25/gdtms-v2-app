@@ -367,8 +367,14 @@ class _DeliveryStatusListScreenState
       },
     );
     final status = widget.status.toUpperCase();
+    final secureBadge = const Padding(
+      padding: EdgeInsets.only(right: DSSpacing.sm),
+      child: Center(child: SecureBadge()),
+    );
+
     return switch (status) {
       'FOR_DELIVERY' => [
+        secureBadge,
         searchBtn,
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -377,6 +383,7 @@ class _DeliveryStatusListScreenState
         ),
       ],
       'FAILED_DELIVERY' => [
+        secureBadge,
         searchBtn,
         IconButton(
           icon: const Icon(Icons.help_outline_rounded),
@@ -389,7 +396,7 @@ class _DeliveryStatusListScreenState
           onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
         ),
       ],
-      _ => [searchBtn],
+      _ => [secureBadge, searchBtn],
     };
   }
 
@@ -456,225 +463,234 @@ class _DeliveryStatusListScreenState
           title: widget.title,
           actions: _buildActions(context),
         ),
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragEnd: (details) {
-            final velocity = details.primaryVelocity ?? 0;
-            if (velocity < -200 && _currentPage < _totalPages - 1) {
-              HapticFeedback.mediumImpact();
-              _goToPage(_currentPage + 1);
-            } else if (velocity > 200 && _currentPage > 0) {
-              HapticFeedback.mediumImpact();
-              _goToPage(_currentPage - 1);
-            }
-          },
-          child: Column(
-            children: [
-              // ── Search bar ─────────────────────────────────────────────────────
-              AnimatedSize(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutQuart,
-                child: AnimatedSwitcher(
+        body: SecureView(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0;
+              if (velocity < -200 && _currentPage < _totalPages - 1) {
+                HapticFeedback.mediumImpact();
+                _goToPage(_currentPage + 1);
+              } else if (velocity > 200 && _currentPage > 0) {
+                HapticFeedback.mediumImpact();
+                _goToPage(_currentPage - 1);
+              }
+            },
+            child: Column(
+              children: [
+                // ── Search bar ─────────────────────────────────────────────────────
+                AnimatedSize(
                   duration: const Duration(milliseconds: 300),
-                  reverseDuration: const Duration(milliseconds: 220),
-                  switchInCurve: Curves.easeOutQuart,
-                  switchOutCurve: Curves.easeInQuad,
-                  transitionBuilder: (child, anim) {
-                    final slide = Tween<Offset>(
-                      begin: const Offset(0, -0.2),
-                      end: Offset.zero,
-                    ).animate(anim);
-                    return FadeTransition(
-                      opacity: anim,
-                      child: SlideTransition(position: slide, child: child),
-                    );
-                  },
-                  child: _showSearch
-                      ? AppSearchBar(
-                          key: const ValueKey('search_bar'),
-                          autofocus: true,
-                          controller: _searchController,
-                          query: _searchQuery,
-                          hintText: 'BARCODE OR NAME',
-                          isLoading: _searchLoading,
-                          resultCount: isSearching
-                              ? (_searchLoading ? null : _searchResults.length)
-                              : null,
-                          totalCount: (!isSearching && _searchQuery.isEmpty)
-                              ? _totalCount
-                              : null,
-                          onChanged: (v) {
-                            setState(() => _searchQuery = v);
-                            _runSearch(v);
-                          },
-                          onClear: () {
-                            setState(() {
-                              _searchQuery = '';
-                              _searchResults = [];
-                              _searchController.clear();
-                            });
-                          },
-                        )
-                      : const SizedBox.shrink(key: ValueKey('empty')),
-                ),
-              ),
-
-              // ── Failed-delivery sub-filter chips ──────────────────────────────
-              if (_isFailedDelivery)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    DSSpacing.md,
-                    DSSpacing.sm,
-                    DSSpacing.md,
-                    0,
-                  ),
-                  child: DSSegmentedSelector<String>(
-                    selected: _failedSubFilter,
-                    onChanged: (v) => setState(() {
-                      _failedSubFilter = v;
-                      _currentPage = 0;
-                    }),
-                    options: [
-                      DSSegmentOption(
-                        value: 'redelivery',
-                        label: 'For Redelivery',
-                        icon: Icons.local_shipping_rounded,
-                        color: DSColors.error,
-                        badge: _countFailedSubGroup('redelivery'),
-                      ),
-                      DSSegmentOption(
-                        value: 'rts',
-                        label: 'For Return',
-                        icon: Icons.assignment_return_rounded,
-                        color: DeliveryCard.statusColor('FAILED_DELIVERY'),
-                        badge: _countFailedSubGroup('rts'),
-                      ),
-                    ],
+                  curve: Curves.easeOutQuart,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    reverseDuration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOutQuart,
+                    switchOutCurve: Curves.easeInQuad,
+                    transitionBuilder: (child, anim) {
+                      final slide = Tween<Offset>(
+                        begin: const Offset(0, -0.2),
+                        end: Offset.zero,
+                      ).animate(anim);
+                      return FadeTransition(
+                        opacity: anim,
+                        child: SlideTransition(position: slide, child: child),
+                      );
+                    },
+                    child: _showSearch
+                        ? AppSearchBar(
+                            key: const ValueKey('search_bar'),
+                            autofocus: true,
+                            controller: _searchController,
+                            query: _searchQuery,
+                            hintText: 'BARCODE OR NAME',
+                            isLoading: _searchLoading,
+                            resultCount: isSearching
+                                ? (_searchLoading
+                                      ? null
+                                      : _searchResults.length)
+                                : null,
+                            totalCount: (!isSearching && _searchQuery.isEmpty)
+                                ? _totalCount
+                                : null,
+                            onChanged: (v) {
+                              setState(() => _searchQuery = v);
+                              _runSearch(v);
+                            },
+                            onClear: () {
+                              setState(() {
+                                _searchQuery = '';
+                                _searchResults = [];
+                                _searchController.clear();
+                              });
+                            },
+                          )
+                        : const SizedBox.shrink(key: ValueKey('empty')),
                   ),
                 ),
 
-              // ── List ───────────────────────────────────────────────────────────
-              Expanded(
-                child: RefreshIndicator(
-                  color: DSColors.error,
-                  onRefresh: _onRefresh,
-                  child: _loading
-                      ? Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation(DSColors.error),
-                          ),
-                        )
-                      : (_searchLoading && displayed.isEmpty)
-                      ? Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation(DSColors.error),
-                          ),
-                        )
-                      : displayed.isEmpty
-                      ? DeliveryListEmptyState(
-                          message: isSearching
-                              ? 'No results for "$_searchQuery".'
-                              : _emptyMessage(),
-                          status: widget.status,
-                          isSearching: isSearching,
-                          isDark: isDark,
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.fromLTRB(
-                            DSSpacing.md,
-                            DSSpacing.sm,
-                            DSSpacing.md,
-                            DSSpacing.sm,
-                          ),
-                          itemCount: displayed.length + _bannerCount(isOnline),
-                          itemBuilder: (context, index) {
-                            final banners = _bannerCount(isOnline);
-                            if (index < banners) {
-                              return _buildBanner(index, isOnline, isDark);
-                            }
-                            final d = displayed[index - banners];
-                            final identifier = resolveDeliveryIdentifier(d);
-                            final deliveryStatus =
-                                d['delivery_status']?.toString() ??
-                                'FOR_DELIVERY';
-                            final isLocked = checkIsLockedFromMap(d);
-                            final canUpdate =
-                                identifier.isNotEmpty &&
-                                !isLocked &&
-                                deliveryStatus.toUpperCase() != 'OSA';
-
-                            return DeliveryCard(
-                              delivery: d,
-                              compact: isCompact,
-                              showChevron: !isLocked,
-                              onUpdateTap: canUpdate
-                                  ? () => context.push(
-                                      '/deliveries/$identifier/update',
-                                    )
-                                  : null,
-                              onTap: (identifier.isEmpty)
-                                  ? () {}
-                                  : (isLocked)
-                                  ? () {
-                                      final s = deliveryStatus.toUpperCase();
-                                      final v =
-                                          (d['_rts_verification_status'] ??
-                                                  d['_failed_delivery_verification_status'] ??
-                                                  'unvalidated')
-                                              .toString()
-                                              .toLowerCase();
-                                      final attemptsCount =
-                                          getAttemptsCountFromMap(d);
-
-                                      final ds = DeliveryStatus.fromString(s);
-                                      final rv =
-                                          FailedDeliveryVerificationStatus.fromString(
-                                            v,
-                                          );
-                                      String msg =
-                                          'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
-                                      if (ds == DeliveryStatus.osa) {
-                                        msg =
-                                            'This item is marked OSA and cannot be opened.';
-                                      } else if (ds ==
-                                          DeliveryStatus.delivered) {
-                                        msg =
-                                            'This item has already been delivered and is sealed.';
-                                      } else if (ds ==
-                                              DeliveryStatus.failedDelivery &&
-                                          attemptsCount >= 3) {
-                                        msg =
-                                            'This failed delivery has reached the maximum number of attempts and is locked.';
-                                      } else if (ds ==
-                                              DeliveryStatus.failedDelivery &&
-                                          rv.isVerified) {
-                                        msg =
-                                            'This failed delivery has already been verified and is no longer actionable.';
-                                      }
-                                      showInfoNotification(context, msg);
-                                    }
-                                  : () => context.push(
-                                      '/deliveries/$identifier/update',
-                                    ),
-                            );
-                          },
+                // ── Failed-delivery sub-filter chips ──────────────────────────────
+                if (_isFailedDelivery)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      DSSpacing.md,
+                      DSSpacing.sm,
+                      DSSpacing.md,
+                      0,
+                    ),
+                    child: DSSegmentedSelector<String>(
+                      selected: _failedSubFilter,
+                      onChanged: (v) => setState(() {
+                        _failedSubFilter = v;
+                        _currentPage = 0;
+                      }),
+                      options: [
+                        DSSegmentOption(
+                          value: 'redelivery',
+                          label: 'For Redelivery',
+                          icon: Icons.local_shipping_rounded,
+                          color: DSColors.error,
+                          badge: _countFailedSubGroup('redelivery'),
                         ),
-                ),
-              ),
+                        DSSegmentOption(
+                          value: 'rts',
+                          label: 'For Return',
+                          icon: Icons.assignment_return_rounded,
+                          color: DeliveryCard.statusColor('FAILED_DELIVERY'),
+                          badge: _countFailedSubGroup('rts'),
+                        ),
+                      ],
+                    ),
+                  ),
 
-              // ── Pagination bar ─────────────────────────────────────────────────
-              if (!isSearching && !_loading && effectiveTotal > _kPageSize)
-                PaginationBar(
-                  currentPage: _currentPage,
-                  totalPages: _totalPages,
-                  firstItem: effectiveFirstItem,
-                  lastItem: effectiveLastItem,
-                  totalCount: effectiveTotal,
-                  onPageChanged: _goToPage,
+                // ── List ───────────────────────────────────────────────────────────
+                Expanded(
+                  child: RefreshIndicator(
+                    color: DSColors.error,
+                    onRefresh: _onRefresh,
+                    child: _loading
+                        ? Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation(
+                                DSColors.error,
+                              ),
+                            ),
+                          )
+                        : (_searchLoading && displayed.isEmpty)
+                        ? Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation(
+                                DSColors.error,
+                              ),
+                            ),
+                          )
+                        : displayed.isEmpty
+                        ? DeliveryListEmptyState(
+                            message: isSearching
+                                ? 'No results for "$_searchQuery".'
+                                : _emptyMessage(),
+                            status: widget.status,
+                            isSearching: isSearching,
+                            isDark: isDark,
+                          )
+                        : ListView.builder(
+                            controller: _scrollController,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.fromLTRB(
+                              DSSpacing.md,
+                              DSSpacing.sm,
+                              DSSpacing.md,
+                              DSSpacing.sm,
+                            ),
+                            itemCount:
+                                displayed.length + _bannerCount(isOnline),
+                            itemBuilder: (context, index) {
+                              final banners = _bannerCount(isOnline);
+                              if (index < banners) {
+                                return _buildBanner(index, isOnline, isDark);
+                              }
+                              final d = displayed[index - banners];
+                              final identifier = resolveDeliveryIdentifier(d);
+                              final deliveryStatus =
+                                  d['delivery_status']?.toString() ??
+                                  'FOR_DELIVERY';
+                              final isLocked = checkIsLockedFromMap(d);
+                              final canUpdate =
+                                  identifier.isNotEmpty &&
+                                  !isLocked &&
+                                  deliveryStatus.toUpperCase() != 'OSA';
+
+                              return DeliveryCard(
+                                delivery: d,
+                                compact: isCompact,
+                                showChevron: !isLocked,
+                                onUpdateTap: canUpdate
+                                    ? () => context.push(
+                                        '/deliveries/$identifier/update',
+                                      )
+                                    : null,
+                                onTap: (identifier.isEmpty)
+                                    ? () {}
+                                    : (isLocked)
+                                    ? () {
+                                        final s = deliveryStatus.toUpperCase();
+                                        final v =
+                                            (d['_rts_verification_status'] ??
+                                                    d['_failed_delivery_verification_status'] ??
+                                                    'unvalidated')
+                                                .toString()
+                                                .toLowerCase();
+                                        final attemptsCount =
+                                            getAttemptsCountFromMap(d);
+
+                                        final ds = DeliveryStatus.fromString(s);
+                                        final rv =
+                                            FailedDeliveryVerificationStatus.fromString(
+                                              v,
+                                            );
+                                        String msg =
+                                            'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
+                                        if (ds == DeliveryStatus.osa) {
+                                          msg =
+                                              'This item is marked OSA and cannot be opened.';
+                                        } else if (ds ==
+                                            DeliveryStatus.delivered) {
+                                          msg =
+                                              'This item has already been delivered and is sealed.';
+                                        } else if (ds ==
+                                                DeliveryStatus.failedDelivery &&
+                                            attemptsCount >= 3) {
+                                          msg =
+                                              'This failed delivery has reached the maximum number of attempts and is locked.';
+                                        } else if (ds ==
+                                                DeliveryStatus.failedDelivery &&
+                                            rv.isVerified) {
+                                          msg =
+                                              'This failed delivery has already been verified and is no longer actionable.';
+                                        }
+                                        showInfoNotification(context, msg);
+                                      }
+                                    : () => context.push(
+                                        '/deliveries/$identifier/update',
+                                      ),
+                              );
+                            },
+                          ),
+                  ),
                 ),
-            ],
+
+                // ── Pagination bar ─────────────────────────────────────────────────
+                if (!isSearching && !_loading && effectiveTotal > _kPageSize)
+                  PaginationBar(
+                    currentPage: _currentPage,
+                    totalPages: _totalPages,
+                    firstItem: effectiveFirstItem,
+                    lastItem: effectiveLastItem,
+                    totalCount: effectiveTotal,
+                    onPageChanged: _goToPage,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
