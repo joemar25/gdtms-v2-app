@@ -1,7 +1,9 @@
 // DOCS: docs/development-standards.md
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 
 /// Shows a bottom sheet with various communication apps (SMS, Call, Viber, WhatsApp, Telegram)
 /// for a given phone number.
@@ -9,6 +11,7 @@ Future<void> showContactAppSheet(
   BuildContext context,
   String phone, {
   String? messageTemplate,
+  String title = 'CONTACT RECIPIENT',
 }) async {
   final cleaned = phone.trim();
   if (cleaned.isEmpty) return;
@@ -76,7 +79,7 @@ Future<void> showContactAppSheet(
     context: context,
     backgroundColor: DSColors.transparent,
     isScrollControlled: true,
-    builder: (ctx) => _ContactAppSheet(phone: cleaned, apps: apps),
+    builder: (ctx) => _ContactAppSheet(phone: cleaned, apps: apps, title: title),
   );
 }
 
@@ -94,9 +97,14 @@ class _CommApp {
 }
 
 class _ContactAppSheet extends StatelessWidget {
-  const _ContactAppSheet({required this.phone, required this.apps});
+  const _ContactAppSheet({
+    required this.phone,
+    required this.apps,
+    required this.title,
+  });
   final String phone;
   final List<_CommApp> apps;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -134,18 +142,37 @@ class _ContactAppSheet extends StatelessWidget {
             ),
           ),
           Text(
-            'CONTACT RECIPIENT',
+            title,
             style: DSTypography.caption(color: DSColors.primary).copyWith(
               fontWeight: FontWeight.w900,
               fontSize: DSTypography.sizeSm,
             ),
           ),
           DSSpacing.hXs,
-          Text(
-            phone,
-            style: DSTypography.title(
-              color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
-              fontSize: DSTypography.sizeLg,
+          GestureDetector(
+            onTap: () async {
+              final uri = Uri(scheme: 'tel', path: phone);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+            },
+            onLongPress: () async {
+              await Clipboard.setData(ClipboardData(text: phone));
+              if (context.mounted) {
+                showAppSnackbar(
+                  context,
+                  'Phone number copied to clipboard',
+                  type: SnackbarType.success,
+                );
+              }
+            },
+            child: Text(
+              phone,
+              style: DSTypography.title(
+                color:
+                    isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
+                fontSize: DSTypography.sizeLg,
+              ),
             ),
           ),
           DSSpacing.hXl,

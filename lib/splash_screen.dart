@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -33,7 +34,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<void> _initAndNavigate() async {
     await Future.wait([
       _initialize(),
-      Future.delayed(const Duration(milliseconds: 2500)),
+      // Ensure the splash is visible long enough for the "premium" feel.
+      Future.delayed(const Duration(milliseconds: 10000)),
     ]);
     if (!mounted) return;
     final auth = ref.read(authProvider);
@@ -58,166 +60,130 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
+    final backgroundColor =
+        isDark ? DSColors.scaffoldDark : const Color(0xFFF1F5F9);
+    final backgroundEndColor = isDark ? const Color(0xFF0F172A) : DSColors.white;
+    final textColor = isDark ? DSColors.white : DSColors.labelPrimary;
+    final subtitleColor =
+        (isDark ? DSColors.white : DSColors.labelPrimary).withValues(
+          alpha: DSStyles.alphaMuted,
+        );
+
     return Scaffold(
-      backgroundColor: DSColors.scaffoldDark,
-      body: SafeArea(child: _buildContent(context)),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // ── Brand Card (Text-only, no logo) ──────────────────────────
-            Container(
-                  width: DSIconSize.heroLg,
-                  padding: EdgeInsets.all(DSSpacing.xl),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        DSColors.primary.withValues(
-                          alpha: DSStyles.alphaOpaque,
-                        ),
-                        DSColors.primary,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: DSStyles.circularRadius,
-                    boxShadow: [
-                      BoxShadow(
-                        color: DSColors.primary.withValues(
-                          alpha: DSStyles.alphaMuted,
-                        ),
-                        blurRadius: DSStyles.shadowBlurHero,
-                        offset: const Offset(0, DSSpacing.md),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Title
-                      Text(
-                            'FSI COURIER',
-                            textAlign: TextAlign.center,
-                            style: DSTypography.heading(color: DSColors.white)
-                                .copyWith(
-                                  fontSize: DSTypography.sizeHero,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          )
-                          .animate()
-                          .fadeIn(duration: DSAnimations.dSlow)
-                          .slideY(begin: DSAnimations.slideXOffset.dx, end: 0),
-
-                      DSSpacing.hSm,
-
-                      // Subtitle
-                      Text(
-                            'Delivery Management',
-                            textAlign: TextAlign.center,
-                            style: DSTypography.body(color: DSColors.white)
-                                .copyWith(
-                                  fontSize: DSTypography.sizeMd,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          )
-                          .animate()
-                          .fadeIn(delay: DSAnimations.staggerWide)
-                          .slideY(begin: DSAnimations.slideXOffset.dx, end: 0),
-
-                      DSSpacing.hLg,
-
-                      // Feature chips
-                      IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child:
-                                  _SplashChip(
-                                        icon: Icons.local_shipping_rounded,
-                                        label: 'Dispatch',
-                                      )
-                                      .animate()
-                                      .fadeIn(delay: DSAnimations.dNormal)
-                                      .scaleXY(
-                                        begin: DSAnimations.scaleActive,
-                                        end: DSAnimations.scaleNormal,
-                                      ),
-                            ),
-                            DSSpacing.wSm,
-                            Expanded(
-                              child:
-                                  _SplashChip(
-                                        icon: Icons.inventory_2_rounded,
-                                        label: 'Delivery',
-                                      )
-                                      .animate()
-                                      .fadeIn(delay: DSAnimations.stagger(5))
-                                      .scaleXY(
-                                        begin: DSAnimations.scaleActive,
-                                        end: DSAnimations.scaleNormal,
-                                      ),
-                            ),
-                            DSSpacing.wSm,
-                            Expanded(
-                              child:
-                                  _SplashChip(
-                                        icon: Icons
-                                            .account_balance_wallet_rounded,
-                                        label: 'Wallet',
-                                      )
-                                      .animate()
-                                      .fadeIn(delay: DSAnimations.dSlow)
-                                      .scaleXY(
-                                        begin: DSAnimations.scaleActive,
-                                        end: DSAnimations.scaleNormal,
-                                      ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-                .animate()
-                .fadeIn(duration: DSAnimations.dHero)
-                .slideY(begin: DSAnimations.slideYOffset.dy, end: 0),
-
-            DSSpacing.hXl,
-            DSSpacing.hXl,
-
-            // ── Loading indicator ────────────────────────────────────────
-            SizedBox(
-              width: DSIconSize.heroSm,
-              height: DSIconSize.heroSm,
-              child: const SpinKitFadingCircle(
-                color: DSColors.white,
-                size: DSIconSize.heroSm,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ── Background Gradient ────────────────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [backgroundColor, backgroundEndColor],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-            ).animate().fadeIn(delay: DSAnimations.dHero),
+            ),
+          ),
 
-            DSSpacing.hLg,
+          // ── Center Brand ───────────────────────────────────────────────────
+          SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo Container (Actual App Brand)
+                  Container(
+                    width: DSIconSize.heroLg,
+                    height: DSIconSize.heroLg,
+                    padding: const EdgeInsets.all(DSSpacing.md),
+                    decoration: BoxDecoration(
+                      color:
+                          isDark ? DSColors.cardElevatedDark : DSColors.white,
+                      borderRadius: DSStyles.sheetRadius,
+                      boxShadow: DSStyles.shadowXL(context),
+                    ),
+                    child: Image.asset(
+                      'assets/android-chrome-512x512.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ).dsHeroEntry(),
 
-            Text(
-              'Fastrak Services Inc.',
-              style: DSTypography.caption(
-                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
-              ).copyWith(fontSize: DSTypography.sizeSm),
-            ).animate().fadeIn(delay: DSAnimations.staggerLong),
-          ],
-        ),
+                  DSSpacing.hXl,
+
+                  // App Name
+                  Text(
+                    'FSI COURIER',
+                    style: DSTypography.display(color: textColor).copyWith(
+                      fontSize: 32,
+                      letterSpacing: 4.0,
+                    ),
+                  ).dsFadeEntry(delay: DSAnimations.stagger(2)),
+
+                  DSSpacing.hSm,
+
+                  // Tagline
+                  Text(
+                    'SMART LOGISTICS • REAL-TIME DELIVERY',
+                    style: DSTypography.label(color: subtitleColor),
+                  ).dsFadeEntry(delay: DSAnimations.stagger(4)),
+
+                  DSSpacing.hXl,
+                  DSSpacing.hLg,
+
+                  // Feature chips (Reused but refined)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _SplashChip(
+                        icon: LucideIcons.truck,
+                        label: 'Accept',
+                      ).dsCardEntry(delay: DSAnimations.stagger(6)),
+                      DSSpacing.wMd,
+                      _SplashChip(
+                        icon: LucideIcons.package,
+                        label: 'Deliver',
+                      ).dsCardEntry(delay: DSAnimations.stagger(8)),
+                      DSSpacing.wMd,
+                      _SplashChip(
+                        icon: LucideIcons.wallet,
+                        label: 'Request Payout',
+                      ).dsCardEntry(delay: DSAnimations.stagger(10)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Footer ─────────────────────────────────────────────────────────
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: DSSpacing.xl,
+            child: Column(
+              children: [
+                const SpinKitThreeBounce(
+                  color: DSColors.primary,
+                  size: DSIconSize.md,
+                ).dsFadeEntry(delay: DSAnimations.stagger(12)),
+                DSSpacing.hLg,
+                Text(
+                  'Fastrak Services Inc.',
+                  style: DSTypography.caption(color: subtitleColor).copyWith(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
+                  ),
+                ).dsFadeEntry(delay: DSAnimations.stagger(15)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
-
-// ── Chip widget ───────────────────────────────────────────────────────────────
 
 class _SplashChip extends StatelessWidget {
   const _SplashChip({required this.icon, required this.label});
@@ -227,33 +193,39 @@ class _SplashChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: EdgeInsets.symmetric(
         vertical: DSSpacing.md,
-        horizontal: DSSpacing.sm,
+        horizontal: DSSpacing.lg,
       ),
       decoration: BoxDecoration(
-        color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
+        color: (isDark ? DSColors.white : DSColors.primary).withValues(
+          alpha: 0.05,
+        ),
         borderRadius: DSStyles.cardRadius,
+        border: Border.all(
+          color: (isDark ? DSColors.white : DSColors.primary).withValues(
+            alpha: 0.1,
+          ),
+          width: 1,
+        ),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: DSColors.white, size: DSIconSize.sm),
+          Icon(icon, color: DSColors.primary, size: DSIconSize.md),
           DSSpacing.hXs,
           Text(
             label,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: DSTypography.label(color: DSColors.white).copyWith(
-              fontSize: DSTypography.sizeXs,
-              fontWeight: FontWeight.w600,
-            ),
+            style: DSTypography.label(
+              color: isDark ? DSColors.white : DSColors.labelPrimary,
+            ).copyWith(fontSize: 10, letterSpacing: 0.5),
           ),
         ],
       ),
     );
   }
 }
+
+

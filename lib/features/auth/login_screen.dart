@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
+import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
+
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
@@ -459,9 +461,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _callAdmin() async {
-    final uri = Uri.parse('tel:09213920200');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+    await showContactAppSheet(
+      context,
+      '09213920200',
+      title: 'CONTACT YOUR ADMIN',
+    );
   }
 }
