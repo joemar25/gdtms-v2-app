@@ -190,7 +190,7 @@ class EarningsCard extends StatelessWidget {
                       (canRequest && onRequest != null))
                     Container(
                       padding: EdgeInsets.all(
-                        isLatestPending ? DSSpacing.xl : DSSpacing.md,
+                        isLatestPending ? DSSpacing.lg : DSSpacing.md,
                       ),
                       decoration: BoxDecoration(
                         color: DSColors.black.withValues(
@@ -233,32 +233,33 @@ class EarningsCard extends StatelessWidget {
                                       Text(
                                         AppFormatters.currency(pendingAmt),
                                         style:
-                                            DSTypography.title(
-                                              color: DSColors.white,
+                                            DSTypography.body(
+                                              color: DSColors.white.withValues(
+                                                alpha: DSStyles.alphaDisabled,
+                                              ),
                                             ).copyWith(
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: DSTypography.sizeXl,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: DSTypography.sizeMd,
                                             ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 if (canConsolidate && onConsolidate != null)
-                                  OutlinedButton.icon(
+                                  ElevatedButton.icon(
                                     onPressed: onConsolidate,
                                     icon: const Icon(
                                       Icons.swap_calls_rounded,
                                       size: 20,
                                     ),
                                     label: Text('wallet.card.consolidate'.tr()),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: DSColors.white,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: DSColors.white,
+                                      foregroundColor: DSColors.primary,
+                                      elevation: 0,
                                       padding: EdgeInsets.symmetric(
                                         horizontal: DSSpacing.lg,
                                         vertical: DSSpacing.md,
-                                      ),
-                                      side: const BorderSide(
-                                        color: DSColors.white,
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: DSStyles.cardRadius,
@@ -271,7 +272,7 @@ class EarningsCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                 horizontal: DSSpacing.sm,
                               ),
-                              child: OutlinedButton.icon(
+                              child: ElevatedButton.icon(
                                 onPressed: onRequest,
                                 icon: const Icon(
                                   Icons.payments_rounded,
@@ -280,10 +281,11 @@ class EarningsCard extends StatelessWidget {
                                 label: Text(
                                   'wallet.screen.request_payout'.tr(),
                                 ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: DSColors.white,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: DSColors.white,
+                                  foregroundColor: DSColors.primary,
+                                  elevation: 0,
                                   minimumSize: const Size.fromHeight(48),
-                                  side: const BorderSide(color: DSColors.white),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: DSStyles.cardRadius,
                                   ),
