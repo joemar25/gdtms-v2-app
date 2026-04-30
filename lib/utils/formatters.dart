@@ -18,4 +18,12 @@ class AppFormatters {
     final locale = context.locale.languageCode == 'fil' ? 'fil' : 'en';
     return DateFormat.yMMMMd(locale).format(date);
   }
+
+  /// Returns a localized greeting based on the current time of day.
+  static String greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'dashboard.greeting.morning'.tr();
+    if (hour < 17) return 'dashboard.greeting.afternoon'.tr();
+    return 'dashboard.greeting.evening'.tr();
+  }
 }

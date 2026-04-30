@@ -165,6 +165,19 @@ const Duration kApiReceiveTimeout = Duration(seconds: 60);
 const Duration kApiSendTimeout = Duration(seconds: 60);
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Feature Toggles
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Toggle for global search functionality in the dashboard.
+///
+/// - Set via --dart-define=ENABLE_GLOBAL_SEARCH=true/false.
+/// - Default: false (not yet confirmed).
+const bool kEnableGlobalSearch = bool.fromEnvironment(
+  'ENABLE_GLOBAL_SEARCH',
+  defaultValue: false,
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Debug Mode
 // ─────────────────────────────────────────────────────────────────────────────
 

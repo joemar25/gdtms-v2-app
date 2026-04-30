@@ -9,10 +9,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/scan_mode_sheet.dart';
+import 'package:fsi_courier_app/utils/formatters.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   const AppHeaderBar({
@@ -28,6 +31,8 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     this.centerTitle = false,
     this.showNotificationBell = true,
     this.heroTag,
+    this.showProfileAvatar = false,
+    this.isPersonalized = false,
   });
 
   final String? title;
@@ -41,52 +46,65 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   final bool centerTitle;
   final bool showNotificationBell;
   final String? heroTag;
+  final bool showProfileAvatar;
+  final bool isPersonalized;
 
   @override
   Size get preferredSize =>
-      Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
+      Size.fromHeight(72 + (bottom?.preferredSize.height ?? 0));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final headerColor = backgroundColor ??
+        (isDark ? DSColors.cardDark : DSColors.white);
+    final courier = ref.watch(authProvider).courier ?? {};
+    final profileUrlStr = courier['profile_picture_url']?.toString();
+    final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
+        ? null
+        : profileUrlStr;
 
     final appBar = AppBar(
-      scrolledUnderElevation: DSStyles.elevationNone,
-      elevation: DSStyles.elevationNone,
+      scrolledUnderElevation: 0,
+      elevation: 0,
       backgroundColor: backgroundColor ?? DSColors.transparent,
       surfaceTintColor: DSColors.transparent,
-      titleSpacing: 0,
+      titleSpacing: (leading == null && !context.canPop()) ? 16 : 0,
       centerTitle: centerTitle,
-      leading: leading,
-      leadingWidth: DSIconSize.heroSm,
-      title: Padding(
-        padding: EdgeInsets.only(left: DSSpacing.sm),
-        child:
-            titleWidget ??
-            Row(
-              children: [
-                if (pageIcon != null) ...[
-                  Icon(
-                    pageIcon,
-                    size: DSIconSize.lg,
-                    color: colorScheme.onSurface,
-                  ),
-                  DSSpacing.wSm,
-                ],
-                Expanded(
-                  child: Text(
-                    title ?? '',
-                    overflow: TextOverflow.ellipsis,
-                    style: DSTypography.heading().copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: DSTypography.lsSlightlyTight,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-      ),
+      leading: leading ??
+          (context.canPop()
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  iconSize: DSIconSize.lg,
+                  color: isDark
+                      ? DSColors.labelPrimaryDark
+                      : DSColors.labelPrimary,
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    context.pop();
+                  },
+                ).animate().fadeIn(duration: DSAnimations.dFast)
+              : null),
+      leadingWidth: 56,
+      title:
+          titleWidget ??
+          (isPersonalized
+              ? _PersonalizedTitle(
+                  title: title ?? '',
+                  name: _formatName(courier),
+                  isDark: isDark,
+                )
+              : Text(
+                  title ?? '',
+                  overflow: TextOverflow.ellipsis,
+                  style: DSTypography.heading(
+                    color: isDark
+                        ? DSColors.labelPrimaryDark
+                        : DSColors.labelPrimary,
+                  ).copyWith(letterSpacing: DSTypography.lsSlightlyTight),
+                ).animate().fadeIn(duration: DSAnimations.dFast)),
+      toolbarHeight: 72,
       bottom: bottom,
       actions: [
         ...(actions ?? []),
@@ -95,19 +113,56 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
             unreadCount: unreadCount,
             onTap: () => context.push('/notifications'),
           ),
+        if (showProfileAvatar && !isPersonalized) ...[
+          DSSpacing.wSm,
+          _HeaderProfileAvatar(profileUrl: profileUrl),
+        ],
         ...(trailingActions ?? []),
         DSSpacing.wMd,
       ],
     );
 
-    if (heroTag != null) {
-      return Hero(
-        tag: heroTag!,
-        // Use a material wrapper to prevent text style issues during Hero transition
-        child: Material(color: DSColors.transparent, child: appBar),
-      );
-    }
-    return appBar;
+    final content = heroTag != null
+        ? Hero(
+            tag: heroTag!,
+            child: Material(color: DSColors.transparent, child: appBar),
+          )
+        : appBar;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: headerColor,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark
+                ? DSColors.separatorDark.withValues(alpha: DSStyles.alphaMuted)
+                : DSColors.separatorLight.withValues(alpha: DSStyles.alphaDisabled),
+            width: 0.5,
+          ),
+        ),
+        boxShadow: [
+          if (backgroundColor != null &&
+              backgroundColor != DSColors.transparent)
+            BoxShadow(
+              color: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: content,
+    );
+  }
+
+  String _formatName(Map<String, dynamic> courier) {
+    final firstName = courier['first_name']?.toString();
+    final lastName = courier['last_name']?.toString();
+    final nameStr = [
+      if (firstName != null && firstName != 'null') firstName,
+      if (lastName != null && lastName != 'null') lastName,
+    ].join(' ').trim();
+
+    return nameStr.isEmpty ? 'dashboard.profile.default_name'.tr() : nameStr;
   }
 }
 
@@ -125,7 +180,7 @@ class NotificationBell extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasUnread = unreadCount > 0;
     final label = unreadCount > 99 ? '99+' : unreadCount.toString();
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Semantics(
       label: 'nav.notifications'.tr(),
@@ -133,87 +188,54 @@ class NotificationBell extends StatelessWidget {
           ? 'notifications.unread_count'.tr(namedArgs: {'count': label})
           : 'notifications.none'.tr(),
       button: true,
-      child: IconButton(
-        padding: EdgeInsets.all(DSSpacing.sm),
-        constraints: const BoxConstraints(
-          minWidth: DSSpacing.xs,
-          minHeight: DSSpacing.xs,
-        ),
-        tooltip: 'nav.notifications'.tr(),
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          onTap();
-        },
-        icon: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              transitionBuilder: (child, anim) =>
-                  FadeTransition(opacity: anim, child: child),
-              child: Icon(
-                hasUnread
-                    ? Icons.notifications_rounded
-                    : Icons.notifications_outlined,
-                key: ValueKey(hasUnread),
-                size: DSIconSize.xl,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            if (hasUnread)
-              Positioned(
-                top: -5,
-                right: -5,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, anim) =>
-                      ScaleTransition(scale: anim, child: child),
-                  child: _Badge(key: ValueKey(label), label: label),
-                ),
-              ),
-          ],
-        ),
+      child: _HeaderIconButton(
+        icon: hasUnread
+            ? Icons.notifications_rounded
+            : Icons.notifications_outlined,
+        onTap: onTap,
+        iconColor: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
+        badge: hasUnread ? label : null,
+        isFlat: true,
       ),
     );
   }
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({super.key, required this.label});
+  const _Badge({required this.label});
 
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    final isWide = label.length > 2;
+    final isSingle = label.length == 1;
 
     return Container(
-      height: 17.5,
-      padding: EdgeInsets.symmetric(horizontal: isWide ? 6.5 : 5.5),
+      height: DSIconSize.sm,
+      constraints: const BoxConstraints(minWidth: DSIconSize.sm),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSingle ? 0 : DSSpacing.xs,
+      ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.error,
-        borderRadius: DSStyles.cardRadius,
-        border: Border.all(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          width: DSStyles.strokeWidth,
-        ),
+        color: DSColors.error,
+        borderRadius: BorderRadius.circular(DSStyles.radiusSM),
         boxShadow: [
           BoxShadow(
-            color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
+            color: DSColors.error.withValues(alpha: DSStyles.alphaMuted),
+            blurRadius: DSStyles.radiusXS,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       alignment: Alignment.center,
       child: Text(
         label,
+        textAlign: TextAlign.center,
         style: DSTypography.label(color: DSColors.white).copyWith(
-          fontSize: DSTypography.sizeXs,
-          fontWeight: FontWeight.w700,
-          height: 1.0,
-          letterSpacing: -0.3,
+          fontSize: DSTypography.sizeXs - 1,
+          fontWeight: FontWeight.w800,
+          height: 1.1,
+          letterSpacing: -0.2,
         ),
       ),
     );
@@ -308,6 +330,7 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = ref.watch(authProvider);
     final courier = auth.courier ?? {};
     final firstName = courier['first_name']?.toString();
@@ -333,33 +356,59 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
         : profileUrlStr;
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
 
-    return AppBar(
-      scrolledUnderElevation: DSStyles.elevationNone,
-      elevation: DSStyles.elevationNone,
-      backgroundColor: DSColors.transparent,
-      surfaceTintColor: DSColors.transparent,
-      automaticallyImplyLeading: false,
-      titleSpacing: 16,
-      title: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
-        transitionBuilder: (child, anim) =>
-            FadeTransition(opacity: anim, child: child),
-        child: _expanded
-            ? _SearchRow(
-                key: const ValueKey('search'),
-                controller: _searchController,
-                focusNode: _focusNode,
-                onCollapse: _collapse,
-                onSubmit: _onSubmit,
-              )
-            : _ProfileRow(
-                key: const ValueKey('profile'),
-                name: name,
-                role: role,
-                profileUrl: profileUrl,
-                unreadCount: unreadCount,
-                onSearchTap: _expand,
-              ),
+    final headerColor = isDark ? DSColors.cardDark : DSColors.white;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: headerColor,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark
+                ? DSColors.separatorDark.withValues(alpha: DSStyles.alphaMuted)
+                : DSColors.separatorLight.withValues(alpha: DSStyles.alphaDisabled),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: AppBar(
+        scrolledUnderElevation: 0,
+        elevation: 0,
+        backgroundColor: DSColors.transparent,
+        surfaceTintColor: DSColors.transparent,
+        automaticallyImplyLeading: false,
+        titleSpacing: 16,
+        toolbarHeight: 72,
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, anim) => FadeTransition(
+            opacity: anim,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.1),
+                end: Offset.zero,
+              ).animate(anim),
+              child: child,
+            ),
+          ),
+          child: _expanded
+              ? _SearchRow(
+                  key: const ValueKey('search'),
+                  controller: _searchController,
+                  focusNode: _focusNode,
+                  onCollapse: _collapse,
+                  onSubmit: _onSubmit,
+                )
+              : _ProfileRow(
+                  key: const ValueKey('profile'),
+                  name: name,
+                  role: role,
+                  profileUrl: profileUrl,
+                  unreadCount: unreadCount,
+                  onSearchTap: _expand,
+                ),
+        ),
       ),
     );
   }
@@ -387,28 +436,11 @@ class _SearchRow extends StatelessWidget {
     return Row(
       children: [
         // ── Back button ────────────────────────────────────────────
-        GestureDetector(
-          onTap: onCollapse,
-          child: Container(
-            width: DSIconSize.heroSm,
-            height: DSIconSize.heroSm,
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(DSStyles.radiusMD),
-              boxShadow: [
-                BoxShadow(
-                  color: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.arrow_back_rounded,
-              size: DSIconSize.md,
-              color: cs.onSurface,
-            ),
-          ),
+        IconButton(
+          icon: const Icon(Icons.close_rounded),
+          iconSize: DSIconSize.xl,
+          color: cs.onSurface,
+          onPressed: onCollapse,
         ),
         DSSpacing.wSm,
 
@@ -495,101 +527,33 @@ class _ProfileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         // ── Avatar ─────────────────────────────────────────────────
-        GestureDetector(
-          onTap: () => context.go('/profile'),
-          child: Container(
-            width: DSIconSize.heroSm,
-            height: DSIconSize.heroSm,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? DSColors.secondarySurfaceDark
-                  : DSColors.secondarySurfaceLight,
-              border: Border.all(
-                color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
-                width: DSStyles.strokeWidth,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
-                  blurRadius: DSStyles.radiusSM,
-                  offset: const Offset(0, DSSpacing.xs),
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: profileUrl != null && profileUrl!.isNotEmpty
-                  ? Image.network(
-                      profileUrl!,
-                      width: DSIconSize.heroSm,
-                      height: DSIconSize.heroSm,
-                      fit: BoxFit.cover,
-                      // Graceful offline / broken-URL fallback.
-                      errorBuilder: (_, _, _) => const Icon(
-                        Icons.person_rounded,
-                        size: DSIconSize.xl,
-                        color: DSColors.labelSecondary,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.person_rounded,
-                      size: DSIconSize.xl,
-                      color: DSColors.labelSecondary,
-                    ),
-            ),
-          ),
-        ),
+        _HeaderAvatar(profileUrl: profileUrl),
         DSSpacing.wMd,
 
         // ── Name + role ─────────────────────────────────────────────
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                name,
-                style: DSTypography.label().copyWith(
-                  fontSize: DSTypography.sizeMd,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                  height: DSStyles.heightTight,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              DSSpacing.hXs,
-              Text(
-                role,
-                style:
-                    DSTypography.caption(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? DSColors.labelSecondaryDark
-                          : DSColors.labelSecondary,
-                    ).copyWith(
-                      fontSize: DSTypography.sizeSm,
-                      fontWeight: FontWeight.w500,
-                      height: DSStyles.heightTight,
-                    ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+          child: _PersonalizedTitle(
+            title: AppFormatters.greeting(),
+            name: name,
+            isDark: isDark,
           ),
         ),
 
         // ── Search icon ──────────────────────────────────────────────
-        _HeaderIconButton(
-          icon: Icons.search_rounded,
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onSearchTap();
-          },
-        ),
-        DSSpacing.wSm,
+        if (kEnableGlobalSearch) ...[
+          _HeaderIconButton(
+            icon: Icons.search_rounded,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onSearchTap();
+            },
+          ),
+          DSSpacing.wSm,
+        ],
 
         // ── Notification bell ────────────────────────────────────────
         NotificationBell(
@@ -602,36 +566,214 @@ class _ProfileRow extends StatelessWidget {
   }
 }
 
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon, required this.onTap});
+class _HeaderProfileAvatar extends StatelessWidget {
+  const _HeaderProfileAvatar({required this.profileUrl});
 
-  final IconData icon;
-  final VoidCallback onTap;
+  final String? profileUrl;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTap: () => context.go('/profile'),
+      child: Container(
+        width: DSIconSize.xl,
+        height: DSIconSize.xl,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? DSColors.secondarySurfaceDark
+              : DSColors.secondarySurfaceLight,
+          border: Border.all(
+            color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+            width: 1.0,
+          ),
+        ),
+        child: ClipOval(
+          child: profileUrl != null && profileUrl!.isNotEmpty
+              ? Image.network(
+                  profileUrl!,
+                  width: DSIconSize.xl,
+                  height: DSIconSize.xl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const Icon(
+                    Icons.person_rounded,
+                    size: DSIconSize.lg,
+                    color: DSColors.labelSecondary,
+                  ),
+                )
+              : const Icon(
+                  Icons.person_rounded,
+                  size: DSIconSize.lg,
+                  color: DSColors.labelSecondary,
+                ),
+        ),
+      ),
+    ).animate().fadeIn(duration: DSAnimations.dFast);
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.icon,
+    required this.onTap,
+    this.iconColor,
+    this.badge,
+    this.isFlat = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color? iconColor;
+  final String? badge;
+  final bool isFlat;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: DSIconSize.heroSm,
+        height: DSIconSize.heroSm,
+        decoration: isFlat
+            ? null
+            : BoxDecoration(
+                color: isDark ? DSColors.cardElevatedDark : DSColors.cardLight,
+                borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+                boxShadow: DSStyles.shadowXS(context),
+              ),
+        child: Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            Center(
+              child: Icon(
+                icon,
+                size: DSIconSize.lg,
+                color: iconColor ??
+                    (isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary),
+              ),
+            ),
+            if (badge != null)
+              Positioned(
+                top: isFlat ? 4 : 2,
+                right: isFlat ? 4 : 2,
+                child: _Badge(label: badge!)
+                    .animate(onPlay: (c) => c.repeat())
+                    .scale(
+                      begin: const Offset(1, 1),
+                      end: const Offset(1.12, 1.12),
+                      duration: 1000.ms,
+                      curve: Curves.easeInOut,
+                    )
+                    .then()
+                    .scale(
+                      begin: const Offset(1.12, 1.12),
+                      end: const Offset(1, 1),
+                      duration: 1000.ms,
+                      curve: Curves.easeInOut,
+                    ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderAvatar extends StatelessWidget {
+  const _HeaderAvatar({required this.profileUrl});
+
+  final String? profileUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.go('/profile'),
       child: Container(
         width: DSIconSize.heroSm,
         height: DSIconSize.heroSm,
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+          shape: BoxShape.circle,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? DSColors.secondarySurfaceDark
+              : DSColors.secondarySurfaceLight,
+          border: Border.all(
+            color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+            width: DSStyles.strokeWidth,
+          ),
           boxShadow: [
             BoxShadow(
-              color: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
-              blurRadius: DSStyles.radiusSM * 0.75,
+              color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
+              blurRadius: DSStyles.radiusSM,
               offset: const Offset(0, DSSpacing.xs),
             ),
           ],
         ),
-        child: Icon(
-          icon,
-          size: DSIconSize.lg,
-          color: Theme.of(context).iconTheme.color,
+        child: ClipOval(
+          child: profileUrl != null && profileUrl!.isNotEmpty
+              ? Image.network(
+                  profileUrl!,
+                  width: DSIconSize.heroSm,
+                  height: DSIconSize.heroSm,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const Icon(
+                    Icons.person_rounded,
+                    size: DSIconSize.xl,
+                    color: DSColors.labelSecondary,
+                  ),
+                )
+              : const Icon(
+                  Icons.person_rounded,
+                  size: DSIconSize.xl,
+                  color: DSColors.labelSecondary,
+                ),
         ),
       ),
+    );
+  }
+}
+
+class _PersonalizedTitle extends StatelessWidget {
+  const _PersonalizedTitle({
+    required this.title,
+    required this.name,
+    required this.isDark,
+  });
+
+  final String title;
+  final String name;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style:
+              DSTypography.caption(
+                color: isDark
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
+              ).copyWith(
+                fontWeight: FontWeight.w500,
+                letterSpacing: DSTypography.lsLoose,
+              ),
+        ).animate().fadeIn(duration: DSAnimations.dFast),
+        DSSpacing.hXs,
+        Text(
+          name,
+          style: DSTypography.heading(
+            color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
+          ).copyWith(height: DSStyles.heightTight),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ).animate().fadeIn(duration: DSAnimations.dFast, delay: 50.ms),
+      ],
     );
   }
 }

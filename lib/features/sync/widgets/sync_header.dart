@@ -17,244 +17,286 @@ class SyncHeader extends ConsumerStatefulWidget {
 }
 
 class _SyncHeaderState extends ConsumerState<SyncHeader> {
-  bool _eligibleCleanupTriggered = false;
-
   @override
   Widget build(BuildContext context) {
     final lastSyncTime = ref.watch(lastSyncTimeProvider);
     final syncState = ref.watch(syncManagerProvider);
+    final hasPending = syncState.entries.any(
+      (e) =>
+          e.status == 'pending' ||
+          e.status == 'error' ||
+          e.status == 'failed' ||
+          e.status == 'processing',
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? DSColors.scaffoldDark
-                : DSColors.scaffoldLight,
-            border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? DSColors.separatorDark
-                    : DSColors.separatorLight,
-                width: DSStyles.borderWidth,
-              ),
-            ),
+        DSHeroCard(
+          margin: EdgeInsets.symmetric(
+            horizontal: DSSpacing.md,
+            vertical: DSSpacing.sm,
           ),
-          padding: EdgeInsets.fromLTRB(
-            DSSpacing.md,
-            DSSpacing.md,
-            DSSpacing.md,
-            DSSpacing.md,
-          ),
+          accentColor: hasPending && !syncState.isSyncing
+              ? DSColors.warning
+              : DSColors.primary,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DSSectionHeader(
-                title: 'sync.status.online'.tr().toUpperCase(),
-                padding: EdgeInsets.zero,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      widget.isOnline
-                          ? Icons.wifi_rounded
-                          : Icons.wifi_off_rounded,
-                      size: DSIconSize.xs,
-                      color: widget.isOnline
-                          ? DSColors.success
-                          : DSColors.warning,
-                    ),
-                    DSSpacing.wXs,
-                    Text(
-                      widget.isOnline
-                          ? 'sync.status.online'.tr()
-                          : 'sync.status.offline'.tr(),
-                      style: DSTypography.label(
-                        color: widget.isOnline
-                            ? DSColors.success
-                            : DSColors.warning,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (lastSyncTime != null) ...[
-                DSSpacing.hXs,
-                Text(
-                  'sync.status.last_sync'.tr(
-                    args: [formatEpoch(lastSyncTime.millisecondsSinceEpoch)],
-                  ),
-                  style: DSTypography.caption(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? DSColors.labelSecondaryDark
-                        : DSColors.labelSecondary,
-                    fontSize: DSTypography.sizeXs,
-                  ),
-                ),
-              ],
-
-              Builder(
-                builder: (ctx) {
-                  final synced = syncState.entries
-                      .where((e) => e.status == 'synced')
-                      .map((e) => e.createdAt)
-                      .toList();
-                  final int? earliestSynced = synced.isEmpty
-                      ? null
-                      : synced.reduce((a, b) => a < b ? a : b);
-
-                  return FutureBuilder<int>(
-                    future: ref
-                        .read(appSettingsProvider)
-                        .getSyncRetentionDays(),
-                    builder: (context, snap) {
-                      final int? days = snap.data;
-                      if (days == null) {
-                        return const SizedBox.shrink();
-                      }
-
-                      final retentionLabel = days <= 0
-                          ? '1 min (debug)'
-                          : '$days day${days == 1 ? '' : 's'}';
-
-                      if (earliestSynced == null) {
-                        return Padding(
-                          padding: EdgeInsets.only(top: DSSpacing.sm),
-                          child: Text(
-                            'sync.status.retention_days'.tr(
-                              args: [retentionLabel],
-                            ),
-                            style: DSTypography.caption(
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? DSColors.labelSecondaryDark
-                                  : DSColors.labelSecondary,
-                              fontSize: DSTypography.sizeXs,
-                            ),
-                          ),
-                        );
-                      }
-
-                      final int expiryMs;
-                      if (days <= 0) {
-                        expiryMs =
-                            earliestSynced +
-                            const Duration(minutes: 1).inMilliseconds;
-                      } else {
-                        final created = DateTime.fromMillisecondsSinceEpoch(
-                          earliestSynced,
-                        );
-                        final creationDay = DateTime(
-                          created.year,
-                          created.month,
-                          created.day,
-                        );
-                        expiryMs = creationDay
-                            .add(Duration(days: days))
-                            .millisecondsSinceEpoch;
-                      }
-
-                      return StreamBuilder<int>(
-                        stream: Stream.periodic(
-                          const Duration(seconds: 1),
-                          (_) => DateTime.now().millisecondsSinceEpoch,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          syncState.isSyncing
+                              ? 'sync.actions.syncing'.tr()
+                              : hasPending
+                              ? 'sync.status.pending_changes'.tr()
+                              : 'sync.status.up_to_date'.tr(),
+                          style: DSTypography.heading(
+                            color: DSColors.white,
+                          ).copyWith(fontSize: 18),
                         ),
-                        builder: (context, nowSnap) {
-                          final nowMs =
-                              nowSnap.data ??
-                              DateTime.now().millisecondsSinceEpoch;
-                          final remaining = expiryMs - nowMs;
-
-                          if (remaining <= 0 && !_eligibleCleanupTriggered) {
-                            _eligibleCleanupTriggered = true;
-                            WidgetsBinding.instance.addPostFrameCallback((
-                              _,
-                            ) async {
-                              if (!mounted) return;
-                              await ref
-                                  .read(syncManagerProvider.notifier)
-                                  .loadEntries();
-                              if (mounted) {
-                                setState(
-                                  () => _eligibleCleanupTriggered = false,
-                                );
-                              }
-                            });
-                          }
-
-                          String label;
-                          if (remaining <= 0) {
-                            label = 'sync.status.retention_eligible'.tr();
-                          } else {
-                            final d = Duration(milliseconds: remaining);
-                            final dd = d.inDays;
-                            final hh = d.inHours % 24;
-                            final mm = d.inMinutes % 60;
-                            final ss = d.inSeconds % 60;
-                            String timeStr;
-                            if (dd > 0) {
-                              timeStr = '${dd}d ${hh}h ${mm}m';
-                            } else if (hh > 0) {
-                              timeStr = '${hh}h ${mm}m ${ss}s';
-                            } else if (mm > 0) {
-                              timeStr = '${mm}m ${ss}s';
-                            } else {
-                              timeStr = '${ss}s';
-                            }
-                            label = 'sync.status.retention_remaining'.tr(
-                              args: [timeStr],
-                            );
-                          }
-
-                          return Padding(
-                            padding: EdgeInsets.only(top: DSSpacing.sm),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.timer,
-                                  size: DSIconSize.xs,
-                                  color:
-                                      Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? DSColors.labelSecondaryDark
-                                      : DSColors.labelSecondary,
-                                ),
-                                DSSpacing.wSm,
-                                Text(
-                                  label,
-                                  style: DSTypography.caption(
-                                    color:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? DSColors.labelSecondaryDark
-                                        : DSColors.labelSecondary,
-                                    fontSize: DSTypography.sizeXs,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
+                        DSSpacing.hXs,
+                        Text(
+                          lastSyncTime != null
+                              ? 'sync.status.last_sync'.tr(
+                                  args: [
+                                    formatEpoch(
+                                      lastSyncTime.millisecondsSinceEpoch,
+                                    ),
+                                  ],
+                                )
+                              : 'sync.status.never_synced'.tr(),
+                          style: DSTypography.caption(
+                            color: DSColors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    syncState.isSyncing
+                        ? Icons.sync_rounded
+                        : hasPending
+                        ? Icons.cloud_upload_outlined
+                        : Icons.cloud_done_outlined,
+                    color: DSColors.white,
+                    size: 32,
+                  ),
+                ],
               ),
               DSSpacing.hMd,
+              Row(
+                children: [
+                  // ── Online Status Badge ──────────────────────────────────
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: DSSpacing.sm,
+                      vertical: DSSpacing.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: DSColors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(DSStyles.radiusSM),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: widget.isOnline
+                                ? DSColors.success
+                                : DSColors.error,
+                            boxShadow: [
+                              if (widget.isOnline)
+                                BoxShadow(
+                                  color: DSColors.success.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  blurRadius: 4,
+                                ),
+                            ],
+                          ),
+                        ),
+                        DSSpacing.wSm,
+                        Text(
+                          widget.isOnline
+                              ? 'sync.status.online'.tr()
+                              : 'sync.status.offline'.tr(),
+                          style: DSTypography.label(
+                            color: DSColors.white,
+                          ).copyWith(fontSize: 10, letterSpacing: 0.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+              DSSpacing.hMd,
+              if (syncState.isSyncing) ...[
+                const SyncProgressBar(padding: EdgeInsets.zero),
+                DSSpacing.hSm,
+              ],
+              _RetentionTimer(syncState: syncState),
             ],
           ),
         ),
-        const SyncProgressBar(
-          padding: EdgeInsets.symmetric(
-            horizontal: DSSpacing.md,
-            vertical: DSSpacing.md,
-          ),
+        DSSectionHeader(
+          title: 'sync.list.history_title'.tr(),
+          trailing: widget.isOnline
+              ? TextButton.icon(
+                  onPressed: syncState.isSyncing
+                      ? null
+                      : () => ref
+                            .read(syncManagerProvider.notifier)
+                            .processQueue(),
+                  icon: syncState.isSyncing
+                      ? const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: DSColors.primary,
+                          ),
+                        )
+                      : const Icon(Icons.sync_rounded, size: 14),
+                  label: Text(
+                    syncState.isSyncing
+                        ? 'sync.actions.syncing'.tr()
+                        : 'sync.actions.sync_now'.tr(),
+                    style: DSTypography.button(
+                      color: DSColors.primary,
+                      fontSize: 12,
+                    ),
+                  ),
+                )
+              : null,
         ),
-        DSSectionHeader(title: 'sync.title'.tr(), useLocalization: false),
       ],
+    );
+  }
+}
+
+class _RetentionTimer extends ConsumerStatefulWidget {
+  const _RetentionTimer({required this.syncState});
+  final SyncState syncState;
+
+  @override
+  ConsumerState<_RetentionTimer> createState() => _RetentionTimerState();
+}
+
+class _RetentionTimerState extends ConsumerState<_RetentionTimer> {
+  bool _eligibleCleanupTriggered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final synced = widget.syncState.entries
+        .where((e) => e.status == 'synced')
+        .map((e) => e.createdAt)
+        .toList();
+    final int? earliestSynced = synced.isEmpty
+        ? null
+        : synced.reduce((a, b) => a < b ? a : b);
+
+    return FutureBuilder<int>(
+      future: ref.read(appSettingsProvider).getSyncRetentionDays(),
+      builder: (context, snap) {
+        final int? days = snap.data;
+        if (days == null) return const SizedBox.shrink();
+
+        final retentionLabel = days <= 0
+            ? '1 min (debug)'
+            : '$days day${days == 1 ? '' : 's'}';
+
+        if (earliestSynced == null) {
+          return Text(
+            'sync.status.retention_days'.tr(args: [retentionLabel]),
+            style: DSTypography.caption(
+              color: DSColors.white.withValues(alpha: 0.7),
+              fontSize: 10,
+            ),
+          );
+        }
+
+        final int expiryMs;
+        if (days <= 0) {
+          expiryMs = earliestSynced + const Duration(minutes: 1).inMilliseconds;
+        } else {
+          final created = DateTime.fromMillisecondsSinceEpoch(earliestSynced);
+          final creationDay = DateTime(
+            created.year,
+            created.month,
+            created.day,
+          );
+          expiryMs = creationDay
+              .add(Duration(days: days))
+              .millisecondsSinceEpoch;
+        }
+
+        return StreamBuilder<int>(
+          stream: Stream.periodic(
+            const Duration(seconds: 1),
+            (_) => DateTime.now().millisecondsSinceEpoch,
+          ),
+          builder: (context, nowSnap) {
+            final nowMs = nowSnap.data ?? DateTime.now().millisecondsSinceEpoch;
+            final remaining = expiryMs - nowMs;
+
+            if (remaining <= 0 && !_eligibleCleanupTriggered) {
+              _eligibleCleanupTriggered = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (!mounted) return;
+                await ref.read(syncManagerProvider.notifier).loadEntries();
+                if (mounted) setState(() => _eligibleCleanupTriggered = false);
+              });
+            }
+
+            String label;
+            if (remaining <= 0) {
+              label = 'sync.status.retention_eligible'.tr();
+            } else {
+              final d = Duration(milliseconds: remaining);
+              final dd = d.inDays;
+              final hh = d.inHours % 24;
+              final mm = d.inMinutes % 60;
+              final ss = d.inSeconds % 60;
+              String timeStr = dd > 0
+                  ? '${dd}d ${hh}h ${mm}m'
+                  : hh > 0
+                  ? '${hh}h ${mm}m ${ss}s'
+                  : mm > 0
+                  ? '${mm}m ${ss}s'
+                  : '${ss}s';
+              label = 'sync.status.retention_remaining'.tr(args: [timeStr]);
+            }
+
+            return Row(
+              children: [
+                Icon(
+                  Icons.timer_outlined,
+                  size: 12,
+                  color: DSColors.white.withValues(alpha: 0.7),
+                ),
+                DSSpacing.wSm,
+                Text(
+                  label,
+                  style: DSTypography.caption(
+                    color: DSColors.white.withValues(alpha: 0.7),
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

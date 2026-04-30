@@ -99,6 +99,11 @@
     "profile": {
       "default_name": "Courier",
       "role_freelance": "FREELANCE COURIER"
+    },
+    "greeting": {
+      "morning": "Good morning,",
+      "afternoon": "Good afternoon,",
+      "evening": "Good evening,"
     }
   },
   "profile": {
@@ -412,11 +417,13 @@
       "online": "Online",
       "offline": "Offline",
       "last_sync": "Last sync: {}",
+      "up_to_date": "Up to date",
       "retention_days": "Sync history retention: {}",
       "retention_eligible": "History eligible for deletion",
       "retention_remaining": "History will be automatically cleared after {}"
     },
     "list": {
+      "history_title": "History",
       "delivered_label": "Delivered",
       "transaction_label": "Transaction",
       "dispatched_label": "Dispatched",

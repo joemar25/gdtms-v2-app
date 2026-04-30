@@ -99,6 +99,11 @@
     "profile": {
       "default_name": "Courier",
       "role_freelance": "FREELANCE COURIER"
+    },
+    "greeting": {
+      "morning": "Magandang umaga,",
+      "afternoon": "Magandang hapon,",
+      "evening": "Magandang gabi,"
     }
   },
   "profile": {
@@ -401,11 +406,13 @@
       "online": "Online",
       "offline": "Offline",
       "last_sync": "Huling sync: {}",
+      "up_to_date": "Naka-update na",
       "retention_days": "Pagpapanatili ng kasaysayan ng sync: {}",
       "retention_eligible": "Ang kasaysayan ay maaari nang burahin",
       "retention_remaining": "Ang kasaysayan ay awtomatikong buburahin pagkalipas ng {}"
     },
     "list": {
+      "history_title": "Kasaysayan",
       "delivered_label": "Naipadala",
       "transaction_label": "Transaksyon",
       "dispatched_label": "Naipadala (Dispatched)",
