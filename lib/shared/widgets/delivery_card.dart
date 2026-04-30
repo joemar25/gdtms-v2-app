@@ -819,44 +819,50 @@ class DeliveryCard extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              barcode.isEmpty ? 'UNKNOWN' : barcode,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style:
-                                  DSTypography.body(
-                                    color: isDark
-                                        ? DSColors.labelPrimaryDark
-                                        : DSColors.labelPrimary,
-                                  ).copyWith(
-                                    fontFamily: 'monospace',
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: DSTypography.sizeMd,
-                                    letterSpacing: DSTypography.lsExtraLoose,
-                                  ),
-                            ),
-                            DSSpacing.hXs,
-                            Text(
-                              isPrivacyMode
-                                  ? product
-                                  : [
-                                      address,
-                                      product,
-                                    ].where((e) => e.isNotEmpty).join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: DSTypography.caption(color: subtextColor)
-                                  .copyWith(
-                                    fontSize: DSTypography.sizeXs,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: DSTypography.lsLoose,
-                                  ),
-                            ),
-                          ],
+                        child: Align(
+                          alignment: (isPrivacyMode && !showChevron)
+                              ? Alignment.center
+                              : Alignment.centerLeft,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                barcode.isEmpty ? 'UNKNOWN' : barcode,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    DSTypography.body(
+                                      color: isDark
+                                          ? DSColors.labelPrimaryDark
+                                          : DSColors.labelPrimary,
+                                    ).copyWith(
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: DSTypography.sizeMd,
+                                      letterSpacing: DSTypography.lsExtraLoose,
+                                    ),
+                              ),
+                              DSSpacing.hXs,
+                              Text(
+                                isPrivacyMode
+                                    ? product
+                                    : [
+                                        address,
+                                        product,
+                                      ].where((e) => e.isNotEmpty).join(' · '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: DSTypography.caption(color: subtextColor)
+                                    .copyWith(
+                                      fontSize: DSTypography.sizeXs,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: DSTypography.lsLoose,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       DSSpacing.wSm,

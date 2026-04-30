@@ -19,4 +19,7 @@ export 'widgets/atoms/ds_input.dart';
 export 'widgets/molecules/ds_card.dart';
 export 'widgets/molecules/ds_section_header.dart';
 export 'widgets/molecules/ds_info_tile.dart';
-export '../shared/widgets/secure_view.dart';
+export 'widgets/molecules/ds_detail_tile.dart';
+export 'widgets/molecules/ds_switch_tile.dart';
+export 'widgets/molecules/ds_hero_card.dart';
+export 'widgets/molecules/ds_secure_view.dart';

@@ -20,6 +20,16 @@ abstract final class AppAssets {
   static const String legalPrivacy = 'assets/legal/privacy.md';
 }
 
+/// SharedPreferences keys used for app settings and persistence.
+abstract final class AppKeys {
+  static const String themeMode = 'theme_mode';
+  static const String darkMode = 'dark_mode'; // legacy
+  static const String compactMode = 'compact_mode';
+  static const String autoAcceptDispatch = 'auto_accept_dispatch';
+  static const String followSystemTheme = 'follow_system_theme';
+  static const String syncRetentionDays = 'sync_retention_days';
+}
+
 const int kDashboardPerPage = 5;
 const int kDeliveriesPerPage = 5;
 const int kCompletedPerPage = 5;

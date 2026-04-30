@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fsi_courier_app/shared/widgets/secure_view.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/core/config.dart';
 
 void main() {

@@ -226,12 +226,15 @@ class DSTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return DSColors.white;
-          return null;
+          if (isDark) return DSColors.labelTertiaryDark;
+          return DSColors.white;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return activePrimary;
-          return isDark ? DSColors.separatorDark : DSColors.separatorLight;
+          if (isDark) return DSColors.white.withValues(alpha: 0.1);
+          return DSColors.separatorLight;
         }),
+        trackOutlineColor: WidgetStateProperty.all(DSColors.transparent),
       ),
     );
   }

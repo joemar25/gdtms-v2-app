@@ -1,7 +1,8 @@
 // DOCS: docs/shared/widgets.md
 import 'package:flutter/material.dart';
 import 'package:screen_protector/screen_protector.dart';
-import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
+import 'package:fsi_courier_app/design_system/tokens/ds_styles.dart';
 import 'package:fsi_courier_app/core/config.dart';
 
 /// A singleton manager to handle reference counting for screenshot protection.

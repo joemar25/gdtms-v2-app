@@ -2,6 +2,7 @@
 // DOCS: docs/entry-points.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -63,15 +64,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
 
-    final backgroundColor = isDark
-        ? DSColors.scaffoldDark
-        : DSColors.white;
-    final backgroundEndColor = isDark
-        ? DSColors.cardDark
-        : DSColors.white;
+    final backgroundColor = isDark ? DSColors.scaffoldDark : DSColors.white;
+    final backgroundEndColor = isDark ? DSColors.cardDark : DSColors.white;
     final textColor = isDark ? DSColors.white : DSColors.labelPrimary;
     final subtitleColor = (isDark ? DSColors.white : DSColors.labelPrimary)
         .withValues(alpha: DSStyles.alphaMuted);
+
+    // Apply system UI overlay style to match the splash theme immediately.
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: DSColors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: backgroundEndColor,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
+      ),
+    );
 
     return Scaffold(
       body: Stack(
@@ -115,11 +124,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   DSSpacing.hXl,
 
                   // App Name
-                    Text(
+                  Text(
                     'splash.title'.tr(),
-                    style: DSTypography.display(
-                      color: textColor,
-                    ).copyWith(
+                    style: DSTypography.display(color: textColor).copyWith(
                       fontSize: DSTypography.sizeHero,
                       letterSpacing: DSTypography.lsExtraLoose * 5,
                     ),

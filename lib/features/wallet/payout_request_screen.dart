@@ -337,108 +337,116 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     final appBarBg = isDark ? DSColors.cardDark : DSColors.cardLight;
 
     if (!isOnline) {
-      return Scaffold(
-        backgroundColor: scaffoldBg,
-        appBar: AppHeaderBar(
-          title: widget.isConsolidation
-              ? 'wallet.request.appbar_title_consolidate'.tr()
-              : 'wallet.request.appbar_title'.tr(),
-          backgroundColor: appBarBg,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.wifi_off_rounded,
-                size: DSIconSize.xl,
-                color: DSColors.error,
-              ),
-              DSSpacing.hMd,
-              Text(
-                'wallet.request.offline_title'.tr(),
-                style: DSTypography.heading().copyWith(
-                  fontSize: DSTypography.sizeMd,
-                  fontWeight: FontWeight.w800,
+      return SecureView(
+        child: Scaffold(
+          backgroundColor: scaffoldBg,
+          appBar: AppHeaderBar(
+            title: widget.isConsolidation
+                ? 'wallet.request.appbar_title_consolidate'.tr()
+                : 'wallet.request.appbar_title'.tr(),
+            backgroundColor: appBarBg,
+          ),
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.wifi_off_rounded,
+                  size: DSIconSize.xl,
+                  color: DSColors.error,
                 ),
-              ),
-              DSSpacing.hSm,
-              Text(
-                'wallet.request.offline_body'.tr(),
-                textAlign: TextAlign.center,
-                style: DSTypography.caption(
-                  color: DSColors.accent,
-                ).copyWith(fontSize: DSTypography.sizeMd),
-              ),
-            ],
+                DSSpacing.hMd,
+                Text(
+                  'wallet.request.offline_title'.tr(),
+                  style: DSTypography.heading().copyWith(
+                    fontSize: DSTypography.sizeMd,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                DSSpacing.hSm,
+                Text(
+                  'wallet.request.offline_body'.tr(),
+                  textAlign: TextAlign.center,
+                  style: DSTypography.caption(
+                    color: DSColors.accent,
+                  ).copyWith(fontSize: DSTypography.sizeMd),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: scaffoldBg,
-      appBar: AppHeaderBar(
-        title: kAppDebugMode
-            ? 'wallet.request.appbar_title_debug'.tr()
-            : 'wallet.request.appbar_title'.tr(),
-        backgroundColor: appBarBg,
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            DSSpacing.md,
-            DSSpacing.sm,
-            DSSpacing.md,
-            DSSpacing.md,
-          ),
-          child: FilledButton.icon(
-            icon: _submitting
-                ? const SizedBox(
-                    width: DSIconSize.lg,
-                    height: DSIconSize.lg,
-                    child: CircularProgressIndicator(
-                      strokeWidth: DSStyles.strokeWidth,
-                      color: DSColors.white,
+    return SecureView(
+      child: Scaffold(
+        backgroundColor: scaffoldBg,
+        appBar: AppHeaderBar(
+          title: kAppDebugMode
+              ? 'wallet.request.appbar_title_debug'.tr()
+              : 'wallet.request.appbar_title'.tr(),
+          backgroundColor: appBarBg,
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              DSSpacing.md,
+              DSSpacing.sm,
+              DSSpacing.md,
+              DSSpacing.md,
+            ),
+            child: FilledButton.icon(
+              icon: _submitting
+                  ? const SizedBox(
+                      width: DSIconSize.lg,
+                      height: DSIconSize.lg,
+                      child: CircularProgressIndicator(
+                        strokeWidth: DSStyles.strokeWidth,
+                        color: DSColors.white,
+                      ),
+                    )
+                  : Icon(
+                      isWithinPayoutRequestWindow()
+                          ? Icons.payments_rounded
+                          : Icons.lock_clock_rounded,
                     ),
-                  )
-                : Icon(
-                    isWithinPayoutRequestWindow()
-                        ? Icons.payments_rounded
-                        : Icons.lock_clock_rounded,
-                  ),
-            label: Text(
-              widget.isConsolidation
-                  ? 'wallet.request.confirm_button_consolidate'.tr()
-                  : 'wallet.request.confirm_button'.tr(),
-              style: DSTypography.label().copyWith(fontWeight: FontWeight.w700),
+              label: Text(
+                widget.isConsolidation
+                    ? 'wallet.request.confirm_button_consolidate'.tr()
+                    : 'wallet.request.confirm_button'.tr(),
+                style: DSTypography.label().copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: DSColors.primary,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: DSStyles.cardRadius,
+                ),
+              ),
+              onPressed:
+                  (_submitting ||
+                      _loading ||
+                      _previewData == null ||
+                      (_previewData!['eligible_delivery_count'] as int? ?? 0) ==
+                          0 ||
+                      _previewData!['has_existing_request_today'] == true ||
+                      !isWithinPayoutRequestWindow())
+                  ? null
+                  : _submit,
             ),
-            style: FilledButton.styleFrom(
-              backgroundColor: DSColors.primary,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-            ),
-            onPressed:
-                (_submitting ||
-                    _loading ||
-                    _previewData == null ||
-                    (_previewData!['eligible_delivery_count'] as int? ?? 0) ==
-                        0 ||
-                    _previewData!['has_existing_request_today'] == true ||
-                    !isWithinPayoutRequestWindow())
-                ? null
-                : _submit,
           ),
         ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _fetchPreview,
-        color: DSColors.primary,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _previewData == null
-            ? _buildErrorState()
-            : _buildContent(),
+        body: RefreshIndicator(
+          onRefresh: _fetchPreview,
+          color: DSColors.primary,
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _previewData == null
+              ? _buildErrorState()
+              : _buildContent(),
+        ),
       ),
     );
   }

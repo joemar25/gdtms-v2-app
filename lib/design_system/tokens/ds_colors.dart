@@ -31,18 +31,22 @@ class DSColors {
   static const success = Color(0xFF10B981); // Emerald 500
   static const successText = Color(0xFF047857); // Emerald 700
   static const successSurface = Color(0xFFD1FAE5); // Emerald 100
+  static const successDark = Color(0xFF34D399); // Emerald 400
 
   static const error = Color(0xFFF43F5E); // Rose 500
   static const errorText = Color(0xFFBE123C); // Rose 700
   static const errorSurface = Color(0xFFFFE4E6); // Rose 100
+  static const errorDark = Color(0xFFFB7185); // Rose 400
 
   static const warning = Color(0xFFF59E0B); // Amber 500
   static const warningText = Color(0xFF92400E); // Amber 800
   static const warningSurface = Color(0xFFFEF3C7); // Amber 100
+  static const warningDark = Color(0xFFFBBF24); // Amber 400
 
   static const pending = Color(0xFFF97316); // Orange 500
   static const pendingText = Color(0xFF7C2D12); // Orange 900
   static const pendingSurface = Color(0xFFFFEDD5); // Orange 100
+  static const pendingDark = Color(0xFFFB923C); // Orange 400
 
   // ── Text & Content (Slate Neutrals) ───────────────────────────────────────
   static const labelPrimary = Color(0xFF0F172A); // Slate 900
@@ -75,24 +79,24 @@ class DSColors {
   static const socialTelegram = Color(0xFF229ED9);
 
   // ── Status Helper ─────────────────────────────────────────────────────────
-  static Color statusColor(String status) {
+  static Color statusColor(String status, {bool isDark = false}) {
     switch (status.toLowerCase()) {
       case 'delivered':
       case 'success':
-        return success;
+        return isDark ? successDark : success;
       case 'failed_delivery':
       case 'failed':
-        return error;
+        return isDark ? errorDark : error;
       case 'rts':
       case 'return_to_sender':
-        return accent;
+        return accent; // Accent is already balanced
       case 'osa':
       case 'out_of_service_area':
-        return warning;
+        return isDark ? warningDark : warning;
       case 'for_delivery':
-        return pending;
+        return isDark ? pendingDark : pending;
       default:
-        return labelSecondary;
+        return isDark ? labelSecondaryDark : labelSecondary;
     }
   }
 }

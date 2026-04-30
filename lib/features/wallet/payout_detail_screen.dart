@@ -132,73 +132,74 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         ? formatDate('${_data['requested_at']}', includeTime: true)
         : null;
 
-    return Scaffold(
-      appBar: AppHeaderBar(
-        title: reference,
-        actions: [
-          if (transactionHistory.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.history_rounded),
-              onPressed: () => showPayoutHistorySheet(
-                context: context,
-                history: _data['transaction_history'] ?? [],
-              ),
-              tooltip: 'wallet.detail.view_history'.tr(),
-            ),
-        ],
-        showNotificationBell: false,
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _notFound != null
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.search_off_rounded,
-                    size: DSIconSize.xl,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? DSColors.labelTertiaryDark
-                        : DSColors.labelTertiary,
-                  ),
-                  DSSpacing.hMd,
-                  Text(
-                    _notFound!,
-                    style: DSTypography.body(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? DSColors.labelSecondaryDark
-                          : DSColors.labelSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  DSSpacing.md,
-                  DSSpacing.sm,
-                  DSSpacing.md,
-                  DSSpacing.xl,
+    return SecureView(
+      child: Scaffold(
+        appBar: AppHeaderBar(
+          title: reference,
+          actions: [
+            if (transactionHistory.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.history_rounded),
+                onPressed: () => showPayoutHistorySheet(
+                  context: context,
+                  history: _data['transaction_history'] ?? [],
                 ),
-                children: [
-                  PayoutHeroFlipCard(
-                    amount: amount,
-                    status: status,
-                    reference: reference,
-                    periodLabel: periodLabel,
-                    requestedAt: requestedAt,
-                    totalItems: totalItems,
-                    breakdown: breakdown,
-                  ).dsHeroEntry(),
-
-                  DSSpacing.hMd,
-                  ..._buildDateStripSection(),
-                ],
+                tooltip: 'wallet.detail.view_history'.tr(),
               ),
-            ),
+          ],
+          showNotificationBell: false,
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _notFound != null
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.search_off_rounded,
+                      size: DSIconSize.xl,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? DSColors.labelTertiaryDark
+                          : DSColors.labelTertiary,
+                    ),
+                    DSSpacing.hMd,
+                    Text(
+                      _notFound!,
+                      style: DSTypography.body(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    DSSpacing.md,
+                    DSSpacing.sm,
+                    DSSpacing.md,
+                    DSSpacing.xl,
+                  ),
+                  children: [
+                    PayoutHeroFlipCard(
+                      amount: amount,
+                      status: status,
+                      reference: reference,
+                      periodLabel: periodLabel,
+                      requestedAt: requestedAt,
+                      totalItems: totalItems,
+                      breakdown: breakdown,
+                    ).dsHeroEntry(),
+                    DSSpacing.hMd,
+                    ..._buildDateStripSection(),
+                  ],
+                ),
+              ),
+      ),
     );
   }
 

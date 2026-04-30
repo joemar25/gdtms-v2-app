@@ -291,7 +291,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   branchName: branchName,
                   isDark: isDark,
                   isOnline: isOnline,
-                ).dsCardEntry(duration: DSAnimations.dNormal),
+                ).dsHeroEntry(),
                 DSSpacing.hSm,
 
                 // ── Account Section ────────────────────────────────────────
@@ -302,21 +302,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _ModernCard(
                   isDark: isDark,
                   children: [
-                    _ActionTile(
+                    DSDetailTile(
                       icon: Icons.lock_reset_rounded,
                       iconColor: DSColors.primary,
-                      label: 'profile.account.change_password'.tr(),
+                      title: 'profile.account.change_password'.tr(),
                       subtitle: 'profile.account.change_password_sub'.tr(),
-                      isDark: isDark,
                       onTap: () => context.push('/change-password'),
                     ),
                     _CardDivider(isDark: isDark),
-                    _ActionTile(
+                    DSDetailTile(
                       icon: Icons.logout_rounded,
                       iconColor: DSColors.error,
-                      label: 'profile.account.sign_out'.tr(),
+                      title: 'profile.account.sign_out'.tr(),
                       subtitle: 'profile.account.sign_out_sub'.tr(),
-                      isDark: isDark,
                       isDestructive: true,
                       onTap: () async {
                         final confirmed = await ConfirmationDialog.show(
@@ -372,13 +370,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onChanged: _showSettingsUpdated,
                     ),
                     _CardDivider(isDark: isDark),
-                    _ModernSwitchTile(
+                    DSSwitchTile(
                       icon: Icons.flash_on_rounded,
                       iconColor: DSColors.warning,
-                      label: 'profile.preferences.auto_accept'.tr(),
+                      title: 'profile.preferences.auto_accept'.tr(),
                       subtitle: 'profile.preferences.auto_accept_sub'.tr(),
                       value: _autoAccept,
-                      isDark: isDark,
                       onChanged: isOnline
                           ? (v) async {
                               if (v) {
@@ -391,7 +388,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       'profile.preferences.auto_accept_confirm_message'
                                           .tr(),
                                   confirmLabel: 'dashboard.exit_confirm_confirm'
-                                      .tr(), // reuse generic Enable/Confirm
+                                      .tr(),
                                   cancelLabel: 'dashboard.exit_confirm_cancel'
                                       .tr(),
                                   isDestructive: false,
@@ -408,13 +405,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
 
                     _CardDivider(isDark: isDark),
-                    _ModernSwitchTile(
+                    DSSwitchTile(
                       icon: Icons.density_small_rounded,
                       iconColor: DSColors.primary,
-                      label: 'profile.preferences.compact_mode'.tr(),
+                      title: 'profile.preferences.compact_mode'.tr(),
                       subtitle: 'profile.preferences.compact_mode_sub'.tr(),
                       value: isCompact,
-                      isDark: isDark,
                       onChanged: (v) async {
                         ref.read(compactModeProvider.notifier).setValue(v);
                         await ref.read(appSettingsProvider).setCompactMode(v);
@@ -489,78 +485,78 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   isDark: isDark,
                   children: [
                     if (kAppDebugMode) ...[
-                      _DetailTile(
+                      DSDetailTile(
                         icon: Icons.cloud_outlined,
                         iconColor: DSColors.success,
-                        label: 'profile.device.backend'.tr(),
-                        value: _backendLabel,
-                        isDark: isDark,
+                        subtitle: 'profile.device.backend'.tr(),
+                        title: _backendLabel,
+                        isSubtitleTop: true,
                       ),
                       _CardDivider(isDark: isDark),
-                      _DetailTile(
+                      DSDetailTile(
                         icon: Icons.smartphone_outlined,
                         iconColor: DSColors.primary,
-                        label: 'profile.device.model'.tr(),
-                        value: _specsLoaded ? _deviceModel : '…',
-                        isDark: isDark,
+                        subtitle: 'profile.device.model'.tr(),
+                        title: _specsLoaded ? _deviceModel : '…',
+                        isSubtitleTop: true,
                       ),
                       _CardDivider(isDark: isDark),
-                      _DetailTile(
+                      DSDetailTile(
                         icon: Platform.isAndroid
                             ? Icons.android_outlined
                             : Icons.phone_iphone_outlined,
                         iconColor: DSColors.success,
-                        label: 'profile.device.os'.tr(),
-                        value: _specsLoaded ? _osVersion : '…',
-                        isDark: isDark,
+                        subtitle: 'profile.device.os'.tr(),
+                        title: _specsLoaded ? _osVersion : '…',
+                        isSubtitleTop: true,
                       ),
                       _CardDivider(isDark: isDark),
-                      _DetailTile(
+                      DSDetailTile(
                         icon: Icons.fingerprint_outlined,
                         iconColor: DSColors.pending,
-                        label: 'profile.device.id'.tr(),
-                        value: _specsLoaded ? _deviceId : '…',
-                        isDark: isDark,
+                        subtitle: 'profile.device.id'.tr(),
+                        title: _specsLoaded ? _deviceId : '…',
+                        isSubtitleTop: true,
                       ),
                       _CardDivider(isDark: isDark),
                     ],
-                    _DetailTile(
+                    DSDetailTile(
                       icon: Icons.info_outline_rounded,
                       iconColor: DSColors.primary,
-                      label: 'profile.device.app_version'.tr(),
-                      value: AppVersionService.displayVersion,
-                      isDark: isDark,
+                      subtitle: 'profile.device.app_version'.tr(),
+                      title: AppVersionService.displayVersion,
+                      isSubtitleTop: true,
                     ),
                     if (kAppDebugMode) ...[
                       _CardDivider(isDark: isDark),
-                      _DetailTile(
+                      DSDetailTile(
                         icon: Icons.code_rounded,
                         iconColor: DSColors.warning,
-                        label: 'profile.device.sdk_version'.tr(),
-                        value: _specsLoaded ? _sdkVersion : '…',
-                        isDark: isDark,
+                        subtitle: 'profile.device.sdk_version'.tr(),
+                        title: _specsLoaded ? _sdkVersion : '…',
+                        isSubtitleTop: true,
                       ),
                     ],
                     _CardDivider(isDark: isDark),
-                    _DetailTile(
+                    DSDetailTile(
                       icon: Icons.sd_storage_outlined,
                       iconColor: _storageIconColor,
-                      label: 'profile.device.storage'.tr(),
-                      value: _specsLoaded
+                      subtitle: 'profile.device.storage'.tr(),
+                      title: _specsLoaded
                           ? (_freeStorageGb >= 0
                                 ? 'profile.device.storage_free'.tr(
                                     args: [_freeStorageGb.toStringAsFixed(1)],
                                   )
                                 : 'profile.device.storage_unavailable'.tr())
                           : '…',
-                      valueColor: _specsLoaded && _freeStorageGb >= 0
+                      titleColor: _specsLoaded && _freeStorageGb >= 0
                           ? (_freeStorageGb < 0.5
                                 ? DSColors.error
                                 : _freeStorageGb < 2.0
                                 ? DSColors.warning
                                 : null)
                           : null,
-                      isDark: isDark,
+                      isSubtitleTop: true,
                     ),
                   ],
                 ).dsCardEntry(delay: DSAnimations.stagger(4)),
@@ -574,21 +570,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _ModernCard(
                   isDark: isDark,
                   children: [
-                    _ActionTile(
+                    DSDetailTile(
                       icon: Icons.description_outlined,
                       iconColor: DSColors.primary,
-                      label: 'profile.legal.terms'.tr(),
+                      title: 'profile.legal.terms'.tr(),
                       subtitle: 'profile.legal.terms_sub'.tr(),
-                      isDark: isDark,
                       onTap: () => context.push('/terms?mode=view'),
                     ),
                     _CardDivider(isDark: isDark),
-                    _ActionTile(
+                    DSDetailTile(
                       icon: Icons.shield_outlined,
                       iconColor: DSColors.success,
-                      label: 'profile.legal.privacy'.tr(),
+                      title: 'profile.legal.privacy'.tr(),
                       subtitle: 'profile.legal.privacy_sub'.tr(),
-                      isDark: isDark,
                       onTap: () => context.push('/privacy'),
                     ),
                   ],
@@ -603,14 +597,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _ModernCard(
                   isDark: isDark,
                   children: [
-                    _ActionTile(
+                    DSDetailTile(
                       icon: Icons.bug_report_outlined,
                       iconColor: DSColors.warning,
-                      label: 'profile.diagnostics.report_issue'.tr(),
+                      title: 'profile.diagnostics.report_issue'.tr(),
                       subtitle: isOnline
                           ? 'profile.diagnostics.report_issue_sub'.tr()
                           : 'profile.diagnostics.offline_warning'.tr(),
-                      isDark: isDark,
                       onTap: isOnline ? () => context.push('/report') : null,
                     ),
                     _CardDivider(isDark: isDark),
@@ -691,31 +684,8 @@ class _ProfileHeroCard extends StatelessWidget {
     final email = courier['email']?.toString() ?? 'profile.info.no_email'.tr();
     final courierCode = courier['courier_code']?.toString() ?? '-';
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [DSColors.cardElevatedDark, DSColors.cardDark]
-              : [DSColors.primary, DSColors.primaryPressed],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: DSStyles.cardRadius,
-        border: Border.all(
-          color: DSColors.white.withValues(alpha: 0.1),
-          width: 0.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: (isDark ? DSColors.black : DSColors.primary).withValues(
-              alpha: isDark ? DSStyles.alphaMuted : DSStyles.alphaSubtle,
-            ),
-            blurRadius: DSSpacing.lg,
-            offset: const Offset(0, DSSpacing.md),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(DSSpacing.lg),
+    return DSHeroCard(
+      padding: EdgeInsets.all(DSSpacing.md),
       child: Column(
         children: [
           Row(
@@ -1025,452 +995,6 @@ class _CardDivider extends StatelessWidget {
   }
 }
 
-// ─── Action Tile ──────────────────────────────────────────────────────────────
-
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.subtitle,
-    required this.isDark,
-    required this.onTap,
-    this.isDestructive = false,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String subtitle;
-  final bool isDark;
-  final VoidCallback? onTap;
-  final bool isDestructive;
-
-  @override
-  Widget build(BuildContext context) {
-    final textColor = isDestructive
-        ? DSColors.error
-        : (isDark ? DSColors.white : DSColors.labelPrimary);
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: DSIconSize.heroSm,
-              height: DSIconSize.heroSm,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
-                borderRadius: DSStyles.pillRadius,
-              ),
-              child: Icon(icon, size: DSIconSize.md, color: iconColor),
-            ),
-            DSSpacing.wMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: DSTypography.body().copyWith(
-                      fontSize: DSTypography.sizeMd,
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
-                    ),
-                  ),
-                  DSSpacing.hXs,
-                  Text(
-                    subtitle,
-                    style: DSTypography.caption().copyWith(
-                      fontSize: DSTypography.sizeSm,
-                      color: isDark
-                          ? DSColors.labelSecondaryDark
-                          : DSColors.labelSecondary,
-                      height: DSStyles.heightNormal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: DSIconSize.md,
-              color: isDark
-                  ? DSColors.labelTertiaryDark
-                  : DSColors.labelTertiary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Modern Switch Tile ───────────────────────────────────────────────────────
-
-class _ModernSwitchTile extends StatelessWidget {
-  const _ModernSwitchTile({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.subtitle,
-    required this.value,
-    required this.isDark,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String subtitle;
-  final bool value;
-  final bool isDark;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: DSSpacing.md,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: DSIconSize.heroSm,
-            height: DSIconSize.heroSm,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
-              borderRadius: DSStyles.pillRadius,
-            ),
-            child: Icon(icon, size: DSIconSize.md, color: iconColor),
-          ),
-          DSSpacing.wMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: DSTypography.body().copyWith(
-                    fontSize: DSTypography.sizeMd,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? DSColors.white : DSColors.labelPrimary,
-                  ),
-                ),
-                DSSpacing.hXs,
-                Text(
-                  subtitle,
-                  style: DSTypography.caption().copyWith(
-                    fontSize: DSTypography.sizeSm,
-                    color: isDark
-                        ? DSColors.labelSecondaryDark
-                        : DSColors.labelSecondary,
-                    height: DSStyles.heightNormal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          DSSpacing.wMd,
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            thumbColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) return DSColors.white;
-              return isDark
-                  ? DSColors.labelTertiaryDark
-                  : DSColors.labelTertiary;
-            }),
-            trackColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return iconColor;
-              }
-              return isDark ? DSColors.separatorDark : DSColors.separatorLight;
-            }),
-            trackOutlineColor: WidgetStateProperty.all(DSColors.transparent),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Sync Retention Tile (Debug only) ────────────────────────────────────────
-
-class _SyncRetentionTile extends StatelessWidget {
-  const _SyncRetentionTile({
-    required this.syncRetentionDays,
-    required this.isDark,
-    required this.onChanged,
-  });
-
-  final int syncRetentionDays;
-  final bool isDark;
-  final ValueChanged<Set<int>> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: DSSpacing.md,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: DSIconSize.heroSm,
-                height: DSIconSize.heroSm,
-                decoration: BoxDecoration(
-                  color: DSColors.success.withValues(
-                    alpha: DSStyles.alphaSubtle,
-                  ),
-                  borderRadius: DSStyles.pillRadius,
-                ),
-                child: Icon(
-                  Icons.history_rounded,
-                  color: DSColors.success,
-                  size: DSIconSize.md,
-                ),
-              ),
-              DSSpacing.wMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sync History',
-                      style: DSTypography.body().copyWith(
-                        fontSize: DSTypography.sizeMd,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? DSColors.white : DSColors.labelPrimary,
-                      ),
-                    ),
-                    DSSpacing.hXs,
-                    Text(
-                      'How long synced updates are kept before auto-removal.',
-                      style: DSTypography.caption().copyWith(
-                        fontSize: DSTypography.sizeSm,
-                        color: isDark
-                            ? DSColors.labelSecondaryDark
-                            : DSColors.labelSecondary,
-                        height: DSStyles.heightNormal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          DSSpacing.hMd,
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<int>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: 0, label: Text('1 min')),
-                ButtonSegment(value: 1, label: Text('1 day')),
-                ButtonSegment(value: 3, label: Text('3 days')),
-                ButtonSegment(value: 5, label: Text('5 days')),
-              ],
-              selected: {syncRetentionDays},
-              style: ButtonStyle(
-                textStyle: WidgetStateProperty.all(
-                  DSTypography.body().copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: DSTypography.sizeMd,
-                  ),
-                ),
-              ),
-              onSelectionChanged: onChanged,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Theme Segmented Tile ─────────────────────────────────────────────────────
-
-class _ThemeSegmentedTile extends StatelessWidget {
-  const _ThemeSegmentedTile({
-    required this.isDark,
-    required this.themeMode,
-    required this.onChanged,
-  });
-
-  final bool isDark;
-  final ThemeMode themeMode;
-  final ValueChanged<Set<ThemeMode>> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.md,
-        vertical: DSSpacing.md,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: DSIconSize.heroSm,
-                height: DSIconSize.heroSm,
-                decoration: BoxDecoration(
-                  color: DSColors.pending.withValues(
-                    alpha: DSStyles.alphaSubtle,
-                  ),
-                  borderRadius: DSStyles.pillRadius,
-                ),
-                child: Icon(
-                  Icons.palette_outlined,
-                  color: DSColors.pending,
-                  size: DSIconSize.md,
-                ),
-              ),
-              DSSpacing.wMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Theme',
-                      style: DSTypography.body().copyWith(
-                        fontSize: DSTypography.sizeMd,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? DSColors.white : DSColors.labelPrimary,
-                      ),
-                    ),
-                    DSSpacing.hXs,
-                    Text(
-                      'Choose light, dark, or system default.',
-                      style: DSTypography.caption().copyWith(
-                        fontSize: DSTypography.sizeSm,
-                        color: isDark
-                            ? DSColors.labelSecondaryDark
-                            : DSColors.labelSecondary,
-                        height: DSStyles.heightNormal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          DSSpacing.hMd,
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<ThemeMode>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-                ButtonSegment(value: ThemeMode.system, label: Text('System')),
-                ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
-              ],
-              selected: {themeMode},
-              style: ButtonStyle(
-                textStyle: WidgetStateProperty.all(
-                  DSTypography.button().copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: DSTypography.sizeMd,
-                  ),
-                ),
-              ),
-              onSelectionChanged: onChanged,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Detail Tile ──────────────────────────────────────────────────────────────
-
-class _DetailTile extends StatelessWidget {
-  const _DetailTile({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.value,
-    required this.isDark,
-    this.valueColor,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-  final bool isDark;
-  final Color? valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: DSSpacing.md, vertical: 13),
-      child: Row(
-        children: [
-          Container(
-            width: DSIconSize.heroSm,
-            height: DSIconSize.heroSm,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
-              borderRadius: DSStyles.pillRadius,
-            ),
-            child: Icon(icon, size: DSIconSize.md, color: iconColor),
-          ),
-          DSSpacing.wMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style:
-                      DSTypography.caption(
-                        color: isDark
-                            ? DSColors.labelSecondaryDark
-                            : DSColors.labelSecondary,
-                      ).copyWith(
-                        fontSize: DSTypography.sizeSm,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: DSTypography.lsLoose,
-                      ),
-                ),
-                DSSpacing.hXs,
-                Text(
-                  value,
-                  style:
-                      DSTypography.body(
-                        color:
-                            valueColor ??
-                            (isDark
-                                ? DSColors.labelPrimaryDark
-                                : DSColors.labelPrimary),
-                      ).copyWith(
-                        fontSize: DSTypography.sizeMd,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ─── Error Logs Tile ──────────────────────────────────────────────────────────
 
 class _ErrorLogsTile extends StatelessWidget {
@@ -1565,7 +1089,122 @@ class _ErrorLogsTile extends StatelessWidget {
     );
   }
 }
+// ─── Sync Retention Tile (Debug only) ────────────────────────────────────────
 
+class _SyncRetentionTile extends StatelessWidget {
+  const _SyncRetentionTile({
+    required this.syncRetentionDays,
+    required this.isDark,
+    required this.onChanged,
+  });
+
+  final int syncRetentionDays;
+  final bool isDark;
+  final ValueChanged<Set<int>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DSDetailTile(
+            padding: EdgeInsets.zero,
+            icon: Icons.history_rounded,
+            iconColor: DSColors.success,
+            title: 'Sync History',
+            subtitle: 'How long synced updates are kept before auto-removal.',
+          ),
+          DSSpacing.hMd,
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 0, label: Text('1 min')),
+                ButtonSegment(value: 1, label: Text('1 day')),
+                ButtonSegment(value: 3, label: Text('3 days')),
+                ButtonSegment(value: 5, label: Text('5 days')),
+              ],
+              selected: {syncRetentionDays},
+              style: ButtonStyle(
+                textStyle: WidgetStateProperty.all(
+                  DSTypography.body().copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: DSTypography.sizeMd,
+                  ),
+                ),
+              ),
+              onSelectionChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Theme Segmented Tile ─────────────────────────────────────────────────────
+
+class _ThemeSegmentedTile extends StatelessWidget {
+  const _ThemeSegmentedTile({
+    required this.isDark,
+    required this.themeMode,
+    required this.onChanged,
+  });
+
+  final bool isDark;
+  final ThemeMode themeMode;
+  final ValueChanged<Set<ThemeMode>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DSDetailTile(
+            padding: EdgeInsets.zero,
+            icon: Icons.palette_outlined,
+            iconColor: DSColors.pending,
+            title: 'Theme',
+            subtitle: 'Choose light, dark, or system default.',
+          ),
+          DSSpacing.hMd,
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ThemeMode>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: ThemeMode.light, label: Text('Light')),
+                ButtonSegment(value: ThemeMode.system, label: Text('System')),
+                ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+              ],
+              selected: {themeMode},
+              style: ButtonStyle(
+                textStyle: WidgetStateProperty.all(
+                  DSTypography.button().copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: DSTypography.sizeMd,
+                  ),
+                ),
+              ),
+              onSelectionChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 // ─── Language Segmented Tile ──────────────────────────────────────────────────
 
 class _LanguageSegmentedTile extends StatelessWidget {
@@ -1587,51 +1226,12 @@ class _LanguageSegmentedTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: DSIconSize.heroSm,
-                height: DSIconSize.heroSm,
-                decoration: BoxDecoration(
-                  color: DSColors.primary.withValues(
-                    alpha: DSStyles.alphaSubtle,
-                  ),
-                  borderRadius: DSStyles.pillRadius,
-                ),
-                child: const Icon(
-                  Icons.language_rounded,
-                  color: DSColors.primary,
-                  size: DSIconSize.md,
-                ),
-              ),
-              DSSpacing.wMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Language',
-                      style: DSTypography.body().copyWith(
-                        fontSize: DSTypography.sizeMd,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? DSColors.white : DSColors.labelPrimary,
-                      ),
-                    ),
-                    DSSpacing.hXs,
-                    Text(
-                      'Choose your preferred language',
-                      style: DSTypography.caption().copyWith(
-                        fontSize: DSTypography.sizeSm,
-                        color: isDark
-                            ? DSColors.labelSecondaryDark
-                            : DSColors.labelSecondary,
-                        height: DSStyles.heightNormal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const DSDetailTile(
+            padding: EdgeInsets.zero,
+            icon: Icons.language_rounded,
+            iconColor: DSColors.primary,
+            title: 'Language',
+            subtitle: 'Choose your preferred language',
           ),
           DSSpacing.hMd,
           SizedBox(

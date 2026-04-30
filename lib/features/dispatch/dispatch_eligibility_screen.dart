@@ -26,8 +26,8 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
@@ -36,16 +36,15 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
-import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
-import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/features/dispatch/widgets/dispatch_info_card.dart';
+import 'package:fsi_courier_app/features/dispatch/widgets/pin_confirm_dialog.dart';
 
 class DispatchEligibilityScreen extends ConsumerStatefulWidget {
   const DispatchEligibilityScreen({
@@ -71,26 +70,26 @@ class DispatchEligibilityScreen extends ConsumerStatefulWidget {
 class _DispatchEligibilityScreenState
     extends ConsumerState<DispatchEligibilityScreen> {
   static const String _otherRejectReason = 'OTHERS (SPECIFY)';
-  static const List<String> _predefinedRejectReasons = [
+  static const List<String> _rejectReasons = [
     'RECIPIENT NOT AVAILABLE',
     'INVALID / INCOMPLETE ADDRESS',
     'DAMAGED DOCUMENTS',
     'DUPLICATE DISPATCH',
     'OUTSIDE ASSIGNED AREA',
     'SAFETY CONCERN',
+    _otherRejectReason,
   ];
 
   bool _loading = false;
-  bool _showSuccess = false;
   String? _error;
 
   // Reject form state
   final _rejectReasonController = TextEditingController();
   bool _showRejectForm = false;
-  String? _rejectError;
-  bool _rejecting = false;
   String? _selectedRejectReason;
+  String? _rejectRemarks;
   int _currentPage = 0;
+  final int _pageSize = 10;
 
   String get _resolvedDispatchCode => widget.dispatchCode.trim();
 
@@ -100,7 +99,6 @@ class _DispatchEligibilityScreenState
   @override
   void initState() {
     super.initState();
-    // No need to fetch - data passed from notifications screen navigation
   }
 
   @override
@@ -119,7 +117,7 @@ class _DispatchEligibilityScreenState
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
-          builder: (ctx) => _PinConfirmDialog(expectedPin: actual),
+          builder: (ctx) => PinConfirmDialog(expectedPin: actual),
         ) ??
         false;
   }
@@ -133,7 +131,7 @@ class _DispatchEligibilityScreenState
     return false;
   }
 
-  Future<void> _acceptDispatch() async {
+  Future<void> _handleAccept() async {
     if (!widget.skipPinDialog) {
       final confirmed = await _showPinDialog();
       if (!confirmed) return;
@@ -168,10 +166,6 @@ class _DispatchEligibilityScreenState
             result.message.toLowerCase().contains('already accepted'));
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
-      // Store the deliveries from the eligibility response into local SQLite.
-      // The eligibility payload already contains the full deliveries list:
-      // [{barcode_value, job_order, name, address, contact, product,
-      //   special_instruction, delivery_status}, ...]
       final rawDeliveries = _eligibilityResponse['deliveries'];
       if (rawDeliveries is List) {
         final deliveries = rawDeliveries
@@ -187,7 +181,6 @@ class _DispatchEligibilityScreenState
       }
       ref.read(deliveryRefreshProvider.notifier).increment();
       setState(() {
-        _showSuccess = true;
         _loading = false;
       });
       return;
@@ -225,31 +218,23 @@ class _DispatchEligibilityScreenState
     String reason;
 
     if (_selectedRejectReason == null) {
-      setState(() => _rejectError = 'Please select a rejection reason.');
       return;
     }
 
     if (_selectedRejectReason == _otherRejectReason) {
       reason = _rejectReasonController.text.trim();
       if (reason.isEmpty) {
-        setState(() => _rejectError = 'Please specify your rejection reason.');
         return;
       }
     } else {
       reason = _selectedRejectReason!;
     }
 
-    if (reason.isEmpty) {
-      setState(() => _rejectError = 'Rejection reason is required.');
-      return;
-    }
-
     final confirmed = await _showRejectConfirmationDialog(reason);
     if (!confirmed) return;
 
     setState(() {
-      _rejecting = true;
-      _rejectError = null;
+      _loading = true;
     });
 
     const uuid = Uuid();
@@ -264,13 +249,14 @@ class _DispatchEligibilityScreenState
             'dispatch_code': _resolvedDispatchCode,
             'client_request_id': requestId,
             'reason': reason,
+            'remarks': _rejectRemarks,
             'device_info': await device.toMap(),
           },
           parser: parseApiMap,
         );
 
     if (!mounted) return;
-    setState(() => _rejecting = false);
+    setState(() => _loading = false);
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
       showSuccessNotification(context, 'Dispatch rejected.');
@@ -355,9 +341,7 @@ class _DispatchEligibilityScreenState
 
   @override
   Widget build(BuildContext context) {
-    // Data is guaranteed to be present (fetched before navigation)
     final eligible = _eligibilityResponse['eligible'] == true;
-    // Response is flat (not nested under 'data')
     final info = _eligibilityResponse;
     final reason =
         _eligibilityResponse['message']?.toString() ??
@@ -369,17 +353,17 @@ class _DispatchEligibilityScreenState
         : dispatchCode.length > last4.length
         ? '${dispatchCode.substring(0, dispatchCode.length - last4.length)}****'
         : '****';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Extract deliveries for use below actions
     final deliveries = info['deliveries'] is List
         ? (info['deliveries'] as List).whereType<Map>().map((e) {
             final d = Map<String, dynamic>.from(e);
-            // Clear status so only barcode and product are shown
             d['delivery_status'] = '';
             return d;
           }).toList()
         : <Map<String, dynamic>>[];
+
+    final totalPages = (deliveries.length / _pageSize).ceil();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
       canPop: GoRouter.of(context).canPop(),
@@ -402,865 +386,309 @@ class _DispatchEligibilityScreenState
         ),
         body: LoadingOverlay(
           isLoading: _loading,
-          child: Stack(
-            children: [
-              ListView(
-                padding: EdgeInsets.all(DSSpacing.md),
-                children: [
-                  // Show error state if API call failed
-                  if (_error != null) ...[
-                    DSSpacing.hXl,
-                    Icon(
-                      Icons.error_rounded,
-                      color: DSColors.warning,
-                      size: 64,
-                    ),
-                    DSSpacing.hMd,
-                    Text(
-                      'ERROR',
-                      textAlign: TextAlign.center,
-                      style: DSTypography.heading().copyWith(
-                        fontWeight: FontWeight.w800,
-                        fontSize: DSTypography.sizeMd,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    DSSpacing.hSm,
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: DSTypography.body(),
-                    ),
-                    DSSpacing.hLg,
-                    FilledButton(
-                      onPressed: _handleBack,
-                      child: const Text('BACK'),
-                    ),
-                  ] else if (!eligible) ...[
-                    DSSpacing.hXl,
-                    Icon(
-                      Icons.cancel_rounded,
-                      color: DSColors.error,
-                      size: DSIconSize.xl,
-                    ),
-                    DSSpacing.hMd,
-                    Text(
-                      'NOT ELIGIBLE',
-                      textAlign: TextAlign.center,
-                      style: DSTypography.heading().copyWith(
-                        fontWeight: FontWeight.w800,
-                        fontSize: DSTypography.sizeMd,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    DSSpacing.hSm,
-                    Text(
-                      reason,
-                      textAlign: TextAlign.center,
-                      style: DSTypography.body(),
-                    ),
-                    DSSpacing.hLg,
-                    FilledButton(
-                      onPressed: _handleBack,
-                      child: const Text('BACK'),
-                    ),
-                  ] else if (_showRejectForm) ...[
-                    // ── Reject Form ─────────────────────────────────────────
-                    _SectionHeader(label: 'REJECT DISPATCH'),
-                    DSSpacing.hSm,
-                    Container(
-                      padding: EdgeInsets.all(DSSpacing.md),
-                      decoration: BoxDecoration(
-                        color: isDark ? DSColors.cardDark : DSColors.cardLight,
-                        borderRadius: DSStyles.cardRadius,
-                        border: Border.all(
-                          color: isDark
-                              ? DSColors.white.withValues(
-                                  alpha: DSStyles.alphaSubtle,
-                                )
-                              : DSColors.error.withValues(
-                                  alpha: DSStyles.alphaSubtle,
-                                ),
-                        ),
-                        boxShadow: isDark
-                            ? null
-                            : [
-                                BoxShadow(
-                                  color: DSColors.black.withValues(
-                                    alpha: DSStyles.alphaSoft,
-                                  ),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(DSSpacing.sm),
-                                decoration: BoxDecoration(
-                                  color: DSColors.error.withValues(
-                                    alpha: DSStyles.alphaSoft,
-                                  ),
-                                  borderRadius: DSStyles.cardRadius,
-                                ),
-                                child: const Icon(
-                                  Icons.gpp_maybe_outlined,
-                                  color: DSColors.error,
-                                  size: DSIconSize.md,
-                                ),
-                              ),
-                              DSSpacing.wSm,
-                              Expanded(
-                                child: Text(
-                                  maskedCode,
-                                  style: DSTypography.heading().copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: DSTypography.sizeMd,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          DSSpacing.hSm,
-                          Text(
-                            'Select a rejection reason.',
-                            style: DSTypography.caption().copyWith(
-                              fontSize: DSTypography.sizeSm,
-                              color: DSColors.labelSecondary,
-                            ),
-                          ),
-                          DSSpacing.hMd,
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedRejectReason,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: 'REJECTION REASON *',
-                              prefixIcon: const Icon(Icons.list_alt_rounded),
-                              filled: true,
-                              fillColor: isDark
-                                  ? DSColors.scaffoldDark
-                                  : DSColors.labelSecondary.withValues(
-                                      alpha: DSStyles.alphaSoft,
-                                    ),
-                              errorText: _rejectError,
-                              border: OutlineInputBorder(
-                                borderRadius: DSStyles.cardRadius,
-                                borderSide: BorderSide(
-                                  color: isDark
-                                      ? DSColors.white
-                                      : DSColors.separatorLight,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: DSStyles.cardRadius,
-                                borderSide: BorderSide(
-                                  color: isDark
-                                      ? DSColors.white
-                                      : DSColors.separatorLight,
-                                ),
-                              ),
-                            ),
-                            hint: const Text('Select reason'),
-                            items:
-                                [
-                                  ..._predefinedRejectReasons,
-                                  _otherRejectReason,
-                                ].map((reason) {
-                                  return DropdownMenuItem<String>(
-                                    value: reason,
-                                    child: Text(reason),
-                                  );
-                                }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedRejectReason = value;
-                                _rejectError = null;
-                                if (value != _otherRejectReason) {
-                                  _rejectReasonController.clear();
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_selectedRejectReason == _otherRejectReason) ...[
-                      DSSpacing.hMd,
-                      TextField(
-                        controller: _rejectReasonController,
-                        maxLength: 100,
-                        maxLines: 3,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: InputDecoration(
-                          labelText: 'SPECIFY REASON *',
-                          hintText: 'STATE YOUR REASON HERE...',
-                          prefixIcon: const Padding(
-                            padding: EdgeInsets.only(bottom: DSSpacing.xl),
-                            child: Icon(Icons.edit_note_rounded),
-                          ),
-                          filled: true,
-                          fillColor: isDark
-                              ? DSColors.scaffoldDark
-                              : DSColors.labelSecondary.withValues(
-                                  alpha: DSStyles.alphaSoft,
-                                ),
-                          border: OutlineInputBorder(
-                            borderRadius: DSStyles.cardRadius,
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? DSColors.white.withValues(
-                                      alpha: DSStyles.alphaMuted,
-                                    )
-                                  : DSColors.separatorLight,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: DSStyles.cardRadius,
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? DSColors.white.withValues(
-                                      alpha: DSStyles.alphaMuted,
-                                    )
-                                  : DSColors.separatorLight,
-                            ),
-                          ),
-                          alignLabelWithHint: true,
-                        ),
-                        onChanged: (_) {
-                          if (_rejectError != null) {
-                            setState(() => _rejectError = null);
-                          }
-                        },
-                      ),
-                    ],
-                    DSSpacing.hMd,
-                    Container(
-                      padding: EdgeInsets.all(DSSpacing.md),
-                      decoration: BoxDecoration(
-                        color: DSColors.warning.withValues(
-                          alpha: DSStyles.alphaSoft,
-                        ),
-                        borderRadius: DSStyles.cardRadius,
-                        border: Border.all(
-                          color: DSColors.warning.withValues(
-                            alpha: DSStyles.alphaMuted,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.shield_outlined,
-                            color: DSColors.warning,
-                            size: DSIconSize.sm,
-                          ),
-                          DSSpacing.wSm,
-                          Expanded(
-                            child: Text(
-                              'You will be asked to confirm once more before submitting rejection.',
-                              style: DSTypography.label().copyWith(
-                                fontSize: DSTypography.sizeSm,
-                                color: isDark
-                                    ? DSColors.warning
-                                    : DSColors.warning,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    DSSpacing.hMd,
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size.fromHeight(48),
-                            ),
-                            onPressed: _rejecting
-                                ? null
-                                : () => setState(() => _showRejectForm = false),
-                            child: const Text('BACK'),
-                          ),
-                        ),
-                        DSSpacing.wMd,
-                        Expanded(
-                          child: FilledButton(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: DSColors.error,
-                              minimumSize: const Size.fromHeight(48),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: DSStyles.cardRadius,
-                              ),
-                            ),
-                            onPressed: _rejecting ? null : _submitReject,
-                            child: _rejecting
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: DSStyles.strokeWidth,
-                                      color: DSColors.white,
-                                    ),
-                                  )
-                                : const Text('SUBMIT REJECTION'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ] else ...[
-                    // ── Dispatch Info Card ───────────────────────────────────
-                    _DispatchInfoCard(maskedCode: maskedCode, info: info),
-
+          child: Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(DSSpacing.md),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     if (_error != null) ...[
+                      Center(
+                        child: Icon(
+                          Icons.error_rounded,
+                          color: DSColors.warning,
+                          size: 64,
+                        ),
+                      ).dsHeroEntry(),
                       DSSpacing.hMd,
-                      Container(
-                        padding: EdgeInsets.all(DSSpacing.md),
-                        decoration: BoxDecoration(
-                          color: DSColors.error.withValues(
-                            alpha: DSStyles.alphaSoft,
-                          ),
-                          borderRadius: DSStyles.cardRadius,
-                          border: Border.all(
-                            color: DSColors.error.withValues(
-                              alpha: DSStyles.alphaMuted,
-                            ),
-                          ),
+                      Text(
+                        'ERROR',
+                        textAlign: TextAlign.center,
+                        style: DSTypography.heading().copyWith(
+                          color: DSColors.warning,
+                          fontWeight: FontWeight.w800,
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: DSColors.error,
-                              size: DSIconSize.sm,
-                            ),
-                            DSSpacing.wSm,
-                            Expanded(
-                              child: Text(
-                                _error!,
-                                style: DSTypography.body().copyWith(
-                                  color: DSColors.error,
-                                  fontSize: DSTypography.sizeMd,
-                                ),
-                              ),
-                            ),
-                          ],
+                      ).dsFadeEntry(delay: DSAnimations.stagger(1)),
+                      DSSpacing.hSm,
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: DSTypography.body(),
+                      ).dsFadeEntry(delay: DSAnimations.stagger(2)),
+                      DSSpacing.hXl,
+                      FilledButton(
+                        onPressed: _handleAccept,
+                        child: const Text('RETRY'),
+                      ).dsCtaEntry(delay: DSAnimations.stagger(3)),
+                    ] else if (!eligible) ...[
+                      Center(
+                        child: Icon(
+                          Icons.cancel_rounded,
+                          color: DSColors.error,
+                          size: DSIconSize.xl,
                         ),
-                      ),
-                    ],
-
-                    if (!widget.skipPinDialog) ...[
-                      DSSpacing.hLg,
-                      Container(
-                        padding: EdgeInsets.all(DSSpacing.md),
-                        decoration: BoxDecoration(
-                          color: DSColors.warning.withValues(
-                            alpha: DSStyles.alphaSoft,
-                          ),
-                          borderRadius: DSStyles.cardRadius,
-                          border: Border.all(
-                            color: DSColors.warning.withValues(
-                              alpha: DSStyles.alphaMuted,
-                            ),
-                          ),
+                      ).dsHeroEntry(),
+                      DSSpacing.hMd,
+                      Text(
+                        'NOT ELIGIBLE',
+                        textAlign: TextAlign.center,
+                        style: DSTypography.heading().copyWith(
+                          color: DSColors.error,
+                          fontWeight: FontWeight.w800,
                         ),
-                        child: Row(
+                      ).dsFadeEntry(delay: DSAnimations.stagger(1)),
+                      DSSpacing.hSm,
+                      Text(
+                        reason,
+                        textAlign: TextAlign.center,
+                        style: DSTypography.body(),
+                      ).dsFadeEntry(delay: DSAnimations.stagger(2)),
+                      DSSpacing.hXl,
+                      OutlinedButton(
+                        onPressed: _handleBack,
+                        child: const Text('BACK'),
+                      ).dsCtaEntry(delay: DSAnimations.stagger(3)),
+                    ] else if (_showRejectForm) ...[
+                      DSSectionHeader(
+                        title: 'REJECT DISPATCH',
+                        padding: EdgeInsets.zero,
+                      ).dsFadeEntry(),
+                      DSSpacing.hSm,
+                      DSCard(
+                        padding: EdgeInsets.zero,
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.lock_outline,
-                              color: DSColors.warning,
-                              size: DSIconSize.sm,
+                            DSHeroCard(
+                              accentColor: DSColors.error,
+                              padding: EdgeInsets.all(DSSpacing.md),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: DSIconSize.heroSm,
+                                    height: DSIconSize.heroSm,
+                                    decoration: BoxDecoration(
+                                      color: DSColors.white.withValues(
+                                        alpha: DSStyles.alphaSubtle,
+                                      ),
+                                      borderRadius: DSStyles.pillRadius,
+                                    ),
+                                    child: const Icon(
+                                      Icons.gpp_maybe_outlined,
+                                      color: DSColors.white,
+                                      size: DSIconSize.md,
+                                    ),
+                                  ),
+                                  DSSpacing.wMd,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'DISPATCH CODE',
+                                          style:
+                                              DSTypography.caption(
+                                                color: DSColors.white
+                                                    .withValues(
+                                                      alpha: DSStyles
+                                                          .alphaDisabled,
+                                                    ),
+                                              ).copyWith(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: DSTypography.sizeXs,
+                                                letterSpacing:
+                                                    DSTypography.lsLoose,
+                                              ),
+                                        ),
+                                        Text(
+                                          maskedCode,
+                                          style: DSTypography.heading()
+                                              .copyWith(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: DSTypography.sizeMd,
+                                                color: DSColors.white,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            DSSpacing.wXs,
-                            Expanded(
-                              child: Text(
-                                'To confirm acceptance, you will need to enter the last 4 digits of the dispatch code.',
-                                style: DSTypography.body().copyWith(
-                                  fontSize: DSTypography.sizeSm,
-                                  color: isDark
-                                      ? DSColors.primary
-                                      : DSColors.warning,
-                                ),
+                            Padding(
+                              padding: EdgeInsets.all(DSSpacing.md),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Please select the reason for rejecting this dispatch. This action is final and cannot be undone.',
+                                    style: DSTypography.caption().copyWith(
+                                      fontSize: DSTypography.sizeSm,
+                                      color: isDark
+                                          ? DSColors.labelSecondaryDark
+                                          : DSColors.labelSecondary,
+                                      height: DSStyles.heightNormal,
+                                    ),
+                                  ),
+                                  DSSpacing.hLg,
+                                  DropdownButtonFormField<String>(
+                                    initialValue: _selectedRejectReason,
+                                    isExpanded: true,
+                                    decoration: InputDecoration(
+                                      labelText: 'REJECTION REASON *',
+                                      prefixIcon: const Icon(
+                                        Icons.help_outline_rounded,
+                                      ),
+                                    ),
+                                    items: _rejectReasons.map((r) {
+                                      return DropdownMenuItem(
+                                        value: r,
+                                        child: Text(
+                                          r,
+                                          style: DSTypography.body().copyWith(
+                                            fontSize: DSTypography.sizeSm,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (v) => setState(
+                                      () => _selectedRejectReason = v,
+                                    ),
+                                  ),
+                                  if (_selectedRejectReason ==
+                                      _otherRejectReason) ...[
+                                    DSSpacing.hMd,
+                                    TextField(
+                                      controller: _rejectReasonController,
+                                      maxLength: 100,
+                                      maxLines: 2,
+                                      decoration: const InputDecoration(
+                                        labelText: 'SPECIFY REASON *',
+                                        alignLabelWithHint: true,
+                                      ),
+                                    ),
+                                  ],
+                                  DSSpacing.hMd,
+                                  TextField(
+                                    onChanged: (v) => _rejectRemarks = v,
+                                    maxLines: 3,
+                                    decoration: const InputDecoration(
+                                      labelText: 'REMARKS',
+                                      hintText: 'Optional notes...',
+                                      alignLabelWithHint: true,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                    DSSpacing.hLg,
-
-                    FilledButton.icon(
-                      icon: const Icon(Icons.check_circle_outline_rounded),
-                      label: const Text('ACCEPT DISPATCH'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: DSColors.primary,
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: DSStyles.cardRadius,
-                        ),
-                      ),
-                      onPressed: _loading ? null : _acceptDispatch,
-                    ),
-                    DSSpacing.hSm,
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.cancel_outlined),
-                      label: const Text('REJECT DISPATCH'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: DSColors.error,
-                        side: const BorderSide(color: DSColors.error),
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: DSStyles.cardRadius,
-                        ),
-                      ),
-                      onPressed: () => setState(() => _showRejectForm = true),
-                    ),
-
-                    // ── Deliveries list below actions ───────────────────────
-                    if (deliveries.isNotEmpty) ...[
+                      ).dsCardEntry(delay: DSAnimations.stagger(1)),
                       DSSpacing.hXl,
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'DELIVERIES (${deliveries.length})',
-                            style: DSTypography.label().copyWith(
-                              fontSize: DSTypography.sizeSm,
-                              fontWeight: FontWeight.w700,
-                              color: DSColors.labelTertiary,
-                              letterSpacing: DSTypography.lsExtraLoose,
-                            ),
-                          ),
-                        ],
-                      ),
+                      FilledButton(
+                        onPressed: _selectedRejectReason == null
+                            ? null
+                            : _submitReject,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: DSColors.error,
+                          minimumSize: const Size(double.infinity, 52),
+                        ),
+                        child: const Text('REJECT DISPATCH'),
+                      ).dsCtaEntry(delay: DSAnimations.stagger(2)),
                       DSSpacing.hSm,
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _showRejectForm = false),
+                        child: const Text('CANCEL'),
+                      ).dsFadeEntry(delay: DSAnimations.stagger(3)),
+                    ] else ...[
+                      DispatchInfoCard(
+                        maskedCode: maskedCode,
+                        info: info,
+                      ).dsCardEntry(),
 
-                      // Local Pagination for Preview
-                      // Using kCompactDeliveriesPerPage (20)
-                      Builder(
-                        builder: (context) {
-                          final pageSize = kCompactDeliveriesPerPage;
-                          final total = deliveries.length;
-                          final totalPages = (total / pageSize).ceil();
-                          final start = _currentPage * pageSize;
-                          final end = (start + pageSize > total)
-                              ? total
-                              : start + pageSize;
-                          final visibleDeliveries = deliveries.sublist(
-                            start,
-                            end,
-                          );
+                      DSSpacing.hXl,
+                      FilledButton.icon(
+                        icon: const Icon(Icons.check_circle_outline_rounded),
+                        label: const Text('ACCEPT DISPATCH'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 52),
+                        ),
+                        onPressed: _handleAccept,
+                      ).dsCtaEntry(delay: DSAnimations.stagger(1)),
 
-                          return GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-                            onHorizontalDragEnd: (details) {
-                              final velocity = details.primaryVelocity ?? 0;
-                              if (velocity < -500 &&
-                                  _currentPage < totalPages - 1) {
-                                HapticFeedback.mediumImpact();
-                                setState(() => _currentPage++);
-                              } else if (velocity > 500 && _currentPage > 0) {
-                                HapticFeedback.mediumImpact();
-                                setState(() => _currentPage--);
-                              }
-                            },
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ...visibleDeliveries.map(
-                                  (d) => DeliveryCard(
-                                    delivery: d,
-                                    compact: true,
-                                    isPrivacyMode:
-                                        true, // Only barcode and product
-                                    showChevron: false,
-                                    enableHoldToReveal: false,
-                                    onTap: null,
+                      DSSpacing.hSm,
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.cancel_outlined),
+                        label: const Text('REJECT DISPATCH'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: DSColors.error,
+                          side: const BorderSide(color: DSColors.error),
+                          minimumSize: const Size(double.infinity, 52),
+                        ),
+                        onPressed: () => setState(() => _showRejectForm = true),
+                      ).dsCtaEntry(delay: DSAnimations.stagger(2)),
+
+                      if (deliveries.isNotEmpty) ...[
+                        DSSpacing.hXl,
+                        DSSectionHeader(
+                          title: 'DELIVERIES (${deliveries.length})',
+                          padding: EdgeInsets.zero,
+                        ).dsFadeEntry(delay: DSAnimations.stagger(3)),
+                        DSSpacing.hSm,
+
+                        ...deliveries
+                            .skip(_currentPage * _pageSize)
+                            .take(_pageSize)
+                            .map(
+                              (d) =>
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: DSSpacing.sm,
+                                    ),
+                                    child: DeliveryCard(
+                                      delivery: d,
+                                      compact: true,
+                                      isPrivacyMode: true,
+                                      showChevron: false,
+                                      enableHoldToReveal: false,
+                                      onTap: null,
+                                    ),
+                                  ).dsCardEntry(
+                                    delay: DSAnimations.stagger(
+                                      4 + deliveries.indexOf(d),
+                                      step: DSAnimations.staggerFine,
+                                    ),
                                   ),
-                                ),
-                                if (totalPages > 1) ...[
-                                  DSSpacing.hMd,
-                                  PaginationBar(
-                                    currentPage: _currentPage,
-                                    totalPages: totalPages,
-                                    firstItem: start + 1,
-                                    lastItem: end,
-                                    totalCount: total,
-                                    onPageChanged: (p) =>
-                                        setState(() => _currentPage = p),
-                                  ),
-                                ],
-                              ],
                             ),
-                          );
-                        },
-                      ),
+
+                        if (totalPages > 1) ...[
+                          DSSpacing.hMd,
+                          PaginationBar(
+                            currentPage: _currentPage,
+                            totalPages: totalPages,
+                            firstItem: _currentPage * _pageSize + 1,
+                            lastItem: math.min(
+                              (_currentPage + 1) * _pageSize,
+                              deliveries.length,
+                            ),
+                            totalCount: deliveries.length,
+                            onPageChanged: (p) =>
+                                setState(() => _currentPage = p),
+                          ).dsFadeEntry(delay: DSAnimations.stagger(5)),
+                        ],
+                      ],
                     ],
                   ],
-                ],
-              ),
-              // Loading state handled by wrapper
-              if (_showSuccess)
-                SuccessOverlay(
-                  onDone: () {
-                    if (!mounted) return;
-                    showAppSnackbar(
-                      context,
-                      'Dispatch accepted successfully!',
-                      type: SnackbarType.success,
-                    );
-                    context.go('/dashboard');
-                  },
                 ),
-            ],
+              ),
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ─── PIN Confirmation Dialog ──────────────────────────────────────────────────
-
-class _PinConfirmDialog extends StatefulWidget {
-  const _PinConfirmDialog({required this.expectedPin});
-  final String expectedPin;
-
-  @override
-  State<_PinConfirmDialog> createState() => _PinConfirmDialogState();
-}
-
-class _PinConfirmDialogState extends State<_PinConfirmDialog> {
-  final List<TextEditingController> _controllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    // Wire up backspace handling for each focus node
-    for (int i = 0; i < 4; i++) {
-      final index = i;
-      _focusNodes[index].onKeyEvent = (node, event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.backspace &&
-            _controllers[index].text.isEmpty &&
-            index > 0) {
-          _focusNodes[index - 1].requestFocus();
-          _controllers[index - 1].clear();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      };
-    }
-    // Auto-focus the first digit when dialog is shown
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNodes[0].requestFocus();
-    });
-  }
-
-  @override
-  void dispose() {
-    for (final c in _controllers) {
-      c.dispose();
-    }
-    for (final f in _focusNodes) {
-      f.dispose();
-    }
-    super.dispose();
-  }
-
-  void _onDigitChanged(int index, String value) {
-    if (value.length == 1 && index < 3) {
-      _focusNodes[index + 1].requestFocus();
-    }
-    // REMOVE the "value.isEmpty" block — onKeyEvent handles backspace now
-    setState(() => _error = null);
-
-    final entered = _controllers.map((c) => c.text).join();
-    if (entered.length == 4 && _controllers.every((c) => c.text.isNotEmpty)) {
-      Future.delayed(const Duration(milliseconds: 100), _confirm);
-    }
-  }
-
-  void _confirm() {
-    final entered = _controllers.map((c) => c.text).join();
-    if (entered.length < 4) {
-      setState(() => _error = 'Please enter all 4 digits.');
-      return;
-    }
-    if (entered != widget.expectedPin) {
-      setState(() {
-        _error = 'Incorrect last 4 digits.';
-        for (final c in _controllers) {
-          c.clear();
-        }
-      });
-      _focusNodes[0].requestFocus();
-      return;
-    }
-    Navigator.of(context).pop(true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-      child: Padding(
-        padding: EdgeInsets.all(DSSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.lock_outline_rounded,
-              size: DSIconSize.xl,
-              color: DSColors.primary,
-            ),
-            DSSpacing.hMd,
-            Text(
-              'CONFIRM ACCEPTANCE',
-              style: DSTypography.heading().copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: DSTypography.sizeMd,
-                letterSpacing: DSTypography.lsLoose,
-              ),
-            ),
-            DSSpacing.hSm,
-            Text(
-              'ENTER LAST 4 DIGITS OF DISPATCH CODE TO CONFIRM',
-              textAlign: TextAlign.center,
-              style: DSTypography.body(color: DSColors.labelSecondary).copyWith(
-                fontSize: DSTypography.sizeSm,
-                letterSpacing: DSTypography.lsLoose,
-              ),
-            ),
-            DSSpacing.hLg,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                4,
-                (i) => Expanded(
-                  child: Container(
-                    height: 58,
-                    margin: EdgeInsets.symmetric(horizontal: DSSpacing.xs),
-                    child: TextFormField(
-                      controller: _controllers[i],
-                      focusNode: _focusNodes[i],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        counterText: '',
-                        border: OutlineInputBorder(
-                          borderRadius: DSStyles.cardRadius,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: DSStyles.cardRadius,
-                          borderSide: const BorderSide(
-                            color: DSColors.primary,
-                            width: DSStyles.strokeWidth,
-                          ),
-                        ),
-                      ),
-                      style: DSTypography.heading().copyWith(
-                        fontSize: DSTypography.sizeLg,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      onChanged: (v) => _onDigitChanged(i, v),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (_error != null) ...[
-              DSSpacing.hSm,
-              Text(
-                _error!,
-                style: DSTypography.body(
-                  color: DSColors.error,
-                ).copyWith(fontSize: DSTypography.sizeSm),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            DSSpacing.hLg,
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('CANCEL'),
-                  ),
-                ),
-                DSSpacing.wMd,
-                Expanded(
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: DSColors.primary,
-                    ),
-                    onPressed: _confirm,
-                    child: const Text('CONFIRM'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Dispatch Info Card ───────────────────────────────────────────────────────
-
-class _DispatchInfoCard extends StatelessWidget {
-  const _DispatchInfoCard({required this.maskedCode, required this.info});
-  final String maskedCode;
-  final Map<String, dynamic> info;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? DSColors.cardDark : DSColors.cardLight;
-
-    final branch = info['branch'] is Map
-        ? info['branch'] as Map
-        : <String, dynamic>{};
-    final branchName = branch['branch_name']?.toString() ?? '-';
-    final volume = info['volume']?.toString() ?? '-';
-    final tat = info['tat']?.toString() ?? '';
-    final transmittalDate = info['transmittal_date']?.toString() ?? '';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Header card ──────────────────────────────────────────────
-        Container(
-          padding: EdgeInsets.all(DSSpacing.md),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: DSStyles.cardRadius,
-            border: Border.all(
-              color: isDark
-                  ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-                  : DSColors.secondarySurfaceLight,
-            ),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            children: [
-              // Status indicator
-              Positioned(
-                left: -16, // account for container padding
-                top: -16,
-                bottom: -16,
-                width: 4,
-                child: Container(color: DSColors.primary),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    maskedCode,
-                    style: DSTypography.heading().copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: DSTypography.sizeMd,
-                      letterSpacing: DSTypography.lsLoose,
-                    ),
-                  ),
-                  DSSpacing.hMd,
-                  _InfoRow(
-                    icon: Icons.store_outlined,
-                    label: 'BRANCH',
-                    value: branchName,
-                  ),
-                  _InfoRow(
-                    icon: Icons.inventory_2_outlined,
-                    label: 'ITEMS',
-                    value: volume,
-                  ),
-                  _InfoRow(
-                    icon: Icons.event_outlined,
-                    label: 'TRANSMITTAL DATE',
-                    value: transmittalDate.isNotEmpty
-                        ? formatDate(transmittalDate)
-                        : '-',
-                  ),
-                  _InfoRow(
-                    icon: Icons.schedule_outlined,
-                    label: 'TAT',
-                    value: tat.isNotEmpty
-                        ? formatDate(tat, includeTime: false)
-                        : '-',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: DSSpacing.xs),
-      child: Row(
-        children: [
-          Icon(icon, size: DSTypography.sizeSm, color: DSColors.labelTertiary),
-          DSSpacing.wXs,
-          Text(
-            '$label: ',
-            style: DSTypography.label(color: DSColors.labelTertiary).copyWith(
-              fontSize: DSTypography.sizeSm,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Text(
-            value,
-            style: DSTypography.body().copyWith(
-              fontSize: DSTypography.sizeMd,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: DSTypography.caption(color: DSColors.labelTertiary).copyWith(
-        fontSize: DSTypography.sizeSm,
-        fontWeight: FontWeight.w700,
-        letterSpacing: DSTypography.lsExtraLoose,
       ),
     );
   }

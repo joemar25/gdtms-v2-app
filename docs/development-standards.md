@@ -1,7 +1,7 @@
 # Development Standards for GDTMS v2 Mobile App
 
 > **Reference Guide for Developers & AI Assistants**  
-> Last Updated: April 28, 2026  
+> Last Updated: April 30, 2026  
 > Focus: Flutter / Dart Mobile Development
 
 **Quick Start:** For day-to-day development, refer to this document. It outlines the core architecture, rules, and best practices for the FSI Courier Mobile App.
@@ -64,14 +64,6 @@ The GDTMS v2 Courier Mobile App is an **enterprise courier management platform**
 6. **DOCUMENT** → Update relevant markdown docs.
 7. **REVIEW** → Self-review against this checklist before committing.
 
-### When Stuck
-
-If you encounter uncertainty:
-
-1. **State what you know**: "I understand X, but I'm unsure about Y"
-2. **Propose options**: "I see two approaches: A (pros/cons) vs B (pros/cons)"
-3. **Ask specific questions**: "Should I use approach A or B, given constraint X?"
-
 ---
 
 ## Code Quality Standards
@@ -114,7 +106,24 @@ Duplicate UI code and hardcoded values are technical debt.
 - **Search Before Creating**: Check `lib/shared/widgets/` for existing molecules/atoms before building a new UI component.
 - **Icons**: Use `DSColors.labelSecondary` or `Theme.of(context).iconTheme.color` for icons. Do not hardcode `Colors.black54` etc.
 
-#### 05 — Single Responsibility
+#### 05 — Mandatory Package Imports
+
+Relative imports (e.g., `import '../../tokens/ds_colors.dart';`) are **prohibited** in this project for cross-directory imports. They lead to refactoring fragility and inconsistent import patterns.
+
+- **Rule**: Always use package-absolute imports for any file within the `lib/` directory when importing from another directory.
+- **Exception**: Relative imports are allowed only when importing files within the **same directory** or a **direct subdirectory** (e.g., `import 'widgets/my_widget.dart';` inside a feature screen), though package imports are still preferred.
+
+```dart
+// ❌ PROHIBITED
+import '../../design_system/design_system.dart';
+import '../../../core/config.dart';
+
+// ✅ MANDATORY
+import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/core/config.dart';
+```
+
+#### 06 — Single Responsibility
 
 - **Screen (`.dart`)**: UI layout, user interaction, connecting to Riverpod.
 - **Provider (`.dart`)**: State management, business logic orchestration.
@@ -127,7 +136,7 @@ Duplicate UI code and hardcoded values are technical debt.
 
 > 🔧 **Mandatory before every commit.** Running `flutter analyze` and `dart format` is not optional — it is a gate check. Zero warnings, zero errors, zero unformatted files. Ship clean or don't ship.
 
-### 06 — Always Run `flutter analyze` Before Every Commit
+### 07 — Always Run `flutter analyze` Before Every Commit
 
 `flutter analyze` runs the Dart static analyzer across the entire codebase. It catches type errors, deprecated API usage, lint violations, and dead code — **before they reach production.**
 
@@ -136,74 +145,10 @@ Duplicate UI code and hardcoded values are technical debt.
 - Run `flutter analyze` before **every commit** without exception.
 - **Zero warnings policy**: the pipeline does not accept a codebase with outstanding analyzer warnings. Warnings today become crashes tomorrow.
 - Do **not** suppress warnings with `// ignore:` unless you can write a full justification comment explaining why suppression is safe. Suppression is a last resort, not a shortcut.
-- Enable strict analysis in `analysis_options.yaml`:
 
-```yaml
-analyzer:
-  strong-mode:
-    implicit-casts: false
-    implicit-dynamic: false
-
-linter:
-  rules:
-    - prefer_const_constructors
-    - prefer_const_declarations
-    - avoid_dynamic_calls
-    - always_declare_return_types
-    - unawaited_futures
-    - avoid_print
-    - unnecessary_null_checks
-    - prefer_typing_uninitialized_variables
-```
-
-#### Pre-Commit Workflow
-
-```bash
-# Step 1: Analyze — must return zero issues
-flutter analyze
-
-# Step 2: Format — must return zero changes
-dart format --set-exit-if-changed .
-
-# Step 3: Tests — must pass
-flutter test
-```
-
-> 🚫 **CI/CD Gate**: Both `flutter analyze` and `dart format --set-exit-if-changed .` are enforced in the CI pipeline. A failing check blocks the merge. There is no bypass.
-
----
-
-### 07 — Always Run `dart format` — Zero Unformatted Files
+### 08 — Always Run `dart format` — Zero Unformatted Files
 
 Inconsistent formatting is noise in code reviews. `dart format` enforces the canonical Dart style guide automatically, keeping diffs clean and readable.
-
-#### Rules
-
-- Run `dart format .` before every commit to auto-format all Dart files.
-- In CI, `dart format --set-exit-if-changed .` is run as a gate — unformatted code **fails the pipeline**.
-- Configure your IDE to **format on save**. This is mandatory for all team members.
-- Line length: the project uses the **default 80-character limit**. Do not override this per-file.
-- **Never hand-format code or fight the formatter.** If a code pattern looks awkward when formatted, the pattern is probably wrong — not the formatter.
-
-#### IDE Setup — VS Code
-
-```json
-// settings.json
-{
-  "editor.formatOnSave": true,
-  "[dart]": {
-    "editor.defaultFormatter": "Dart-Code.dart-code",
-    "editor.formatOnSave": true
-  }
-}
-```
-
-#### IDE Setup — Android Studio / IntelliJ
-
-- **Settings → Languages & Frameworks → Flutter** → Enable "Format code on save"
-- **Settings → Editor → Code Style → Dart** → Set "Right margin (columns)" to `80`
-
-> ✅ **The Golden Combo**: `flutter analyze && dart format --set-exit-if-changed .` must both exit with code `0` before any commit is pushed. Treat a non-zero exit as a build-breaking bug.
 
 ---
 
@@ -213,145 +158,25 @@ Inconsistent formatting is noise in code reviews. `dart format` enforces the can
 
 ---
 
-### 08 — DartDoc for Every Public API (`///` Triple-Slash)
+### 09 — DartDoc for Every Public API (`///` Triple-Slash)
 
 Every public class, method, and property **MUST** have a triple-slash DartDoc comment. This is non-negotiable.
 
-#### Class-Level DartDoc
-
-```dart
-/// Manages the full lifecycle of a single delivery item.
-///
-/// This provider acts as the single source of truth for delivery state.
-/// All mutations go through here — never update the delivery model directly
-/// from a screen widget.
-///
-/// ### Offline Behavior
-/// When the device is offline, state changes are written to the local
-/// SQLite store via [DeliveryDao]. The [SyncService] will replay them
-/// in FIFO order once connectivity is restored.
-///
-/// ### Immutable Finals
-/// A delivery in [DeliveryStatus.delivered] or
-/// [DeliveryStatus.failedVerification] cannot be mutated. Any attempt
-/// throws an [ImmutableDeliveryException].
-///
-/// See also:
-///  - [DeliveryDao] for the underlying SQLite operations.
-///  - [SyncService] for background sync logic.
-class DeliveryProvider extends StateNotifier<DeliveryState> {
-  DeliveryProvider(this._dao, this._syncService)
-      : super(DeliveryState.initial());
-}
-```
-
-#### Method-Level DartDoc
-
-```dart
-/// Marks the delivery as [DeliveryStatus.delivered] and seals it locally.
-///
-/// ### What this does
-/// 1. Validates that the barcode matches the expected delivery manifest.
-/// 2. Captures a timestamped proof-of-delivery (POD) entry.
-/// 3. Writes the sealed state to SQLite (transactional).
-/// 4. Enqueues a sync payload for the Sample backend.
-///
-/// ### Why sealed?
-/// Delivery records are legally binding. Once confirmed, any mutation
-/// would break the audit trail. This is enforced at the domain level,
-/// not just at the UI level.
-///
-/// Throws [BarcodeValidationException] if [barcode] does not match
-/// the delivery manifest.
-/// Throws [ImmutableDeliveryException] if the delivery is already in
-/// a final state.
-///
-/// [barcode] The scanned barcode string from the POD scanner widget.
-Future<void> confirmDelivery(String barcode) async {
-  // implementation
-}
-```
-
----
-
-### 09 — Inline Comments: The WHY, Not the WHAT
+### 10 — Inline Comments: The WHY, Not the WHAT
 
 > ⚠️ **Rule**: If your inline comment describes **WHAT** the code does, delete it. The code does that. Comments explain **WHY**.
 
-```dart
-// ❌ BAD — restates the code, adds zero value
-// Increment the retry count
-retryCount++;
-
-// ✅ GOOD — explains the business constraint behind the decision
-// The Sample API enforces a max of 3 retries per sync window.
-// Beyond this, we surface a hard error to avoid flooding the queue
-// with unresolvable requests during extended outages.
-retryCount++;
-if (retryCount >= kMaxSyncRetries) {
-  throw SyncRetryLimitException(deliveryId: delivery.id);
-}
-```
-
----
-
-### 10 — Section Dividers for Large Files
+### 11 — Section Dividers for Large Files
 
 For files over 200 lines, divide logical sections with clearly labeled block comments. This lets any developer jump to the right section in seconds.
 
-```dart
-// ─────────────────────────────────────────────────
-// MARK: Initialization & Lifecycle
-// ─────────────────────────────────────────────────
-
-// ... init code ...
-
-// ─────────────────────────────────────────────────
-// MARK: Sync Queue Management
-// ─────────────────────────────────────────────────
-
-// ... sync code ...
-
-// ─────────────────────────────────────────────────
-// MARK: Error Handling
-// ─────────────────────────────────────────────────
-```
-
----
-
-### 11 — TODO & FIXME: Track It or Kill It
+### 12 — TODO & FIXME: Track It or Kill It
 
 > 🗂️ **Rule**: A TODO without a ticket number and owner is dead weight. Every TODO must be actionable and traceable.
 
-```dart
-// ❌ BAD — vague, unowned, will never be resolved
-// TODO: fix this later
-
-// ✅ GOOD — owner, ticket, and clear description
-// TODO(mar1): [GDTMS-421] Replace polling with WebSocket push
-// when the Sample v3 API is available (ETA: Q3 2026).
-
-// FIXME(mar2): [GDTMS-438] Race condition on concurrent scans.
-// Repro: scan two barcodes simultaneously in < 200ms.
-// Mitigation: debounce at 300ms in the scan input handler.
-```
-
----
-
-### 12 — Business Logic Comments: Explain the Domain
+### 13 — Business Logic Comments: Explain the Domain
 
 When code implements a non-obvious business rule, write a comment that a new developer could hand to a product manager and have them confirm it is correct.
-
-```dart
-// Business Rule: A courier can only re-attempt a failed delivery
-// up to 3 times per working day. On the 4th failure, the delivery
-// is automatically escalated to the Dispatch team and locked for
-// that courier. — Ref: Ops Policy v2.3, Section 4.1
-if (delivery.failureCount >= kMaxDailyRetries) {
-  await _escalateToDispatch(delivery);
-  return;
-}
-```
 
 ---
 
@@ -375,35 +200,11 @@ if (delivery.failureCount >= kMaxDailyRetries) {
 
 ---
 
-### 13 — No Hardcoded Strings, Ever
+### 14 — No Hardcoded Strings, Ever
 
 This app supports **English (EN)** and **Filipino (FIL)** via the `easy_localization` package. All user-visible text must be stored in the translation JSON files and accessed through `.tr()`.
 
-**This rule applies to:**
-
-- Labels, titles, subtitles, button text
-- Error messages, snackbar notifications
-- Placeholder text, hints, tooltips
-- Dialog content, confirmation messages
-- Empty state messages
-
-```dart
-// ❌ VIOLATION — treated same as hardcoding a color
-Text('Save')
-Text('Something went wrong.')
-Text('Choose your preferred language')
-
-// ✅ CORRECT
-Text('common.save'.tr())
-Text('errors.generic'.tr())
-Text('profile.language_subtitle'.tr())
-```
-
-> 🚫 **CI Gate**: Hardcoded strings are a code review blocker. A PR with raw string literals in the widget tree will not be merged.
-
----
-
-### 14 — Translation File Structure
+### 15 — Translation File Structure
 
 Translation files live in:
 
@@ -413,94 +214,19 @@ assets/translations/
   └── fil.json   ← Filipino
 ```
 
-Keys are **nested by feature/screen** using dot notation:
-
-```json
-{
-  "common": { "save": "Save", "cancel": "Cancel" },
-  "auth": { "login": "Log In" },
-  "profile": { "language": "Language" },
-  "errors": { "network": "No internet connection." }
-}
-```
-
-**Key naming rules:**
-
-- All lowercase, snake_case
-- Prefixed by screen or domain: `profile.edit_title`, `delivery.status_label`
-- English file (`en.json`) is always the **source of truth** — add here first
-- Filipino file (`fil.json`) must mirror every key exactly
-
----
-
-### 15 — Workflow: Adding a New String
+### 16 — Workflow: Adding a New String
 
 Follow this order **every time** a new string is introduced:
 
-```
 1. Add English string to assets/translations/en.json
 2. Add Filipino translation to assets/translations/fil.json
 3. Use the key in the widget via .tr()
-4. Never skip step 2 — missing keys fall back to English silently,
-   which means untranslated text ships to Filipino users unnoticed.
-```
 
-```dart
-// Step 3 — usage
-Text('delivery.confirm_title'.tr())
-
-// With dynamic values (e.g. courier name)
-Text('greeting'.tr(args: [courier.name]))
-// en.json: "greeting": "Hello, {}!"
-// fil.json: "greeting": "Kamusta, {}!"
-```
-
----
-
-### 16 — Currency & Date Formatting
+### 17 — Currency & Date Formatting
 
 **Currency: Philippine Peso (₱) only. This never changes regardless of language.**
 
 All monetary values and dates must go through `AppFormatters` in `lib/shared/helpers/formatters.dart`. Never format currency or dates inline.
-
-```dart
-// ❌ VIOLATION
-Text('₱${amount.toStringAsFixed(2)}')
-Text(DateFormat('MMMM d, y').format(date))
-
-// ✅ CORRECT
-Text(AppFormatters.currency(amount))      // Always ₱1,500.00
-Text(AppFormatters.date(date, context))   // "April 29, 2026" / "Abril 29, 2026"
-```
-
-`AppFormatters.currency()` always uses `₱` and `fil-PH` locale — it does not change between language modes.
-
----
-
-### 17 — Language Preference: Profile Screen
-
-The language toggle lives in **Profile → Preferences** as a `LanguagePreferenceRow` widget. It opens a `LanguageSelectorBottomSheet` with two options:
-
-| Flag | Label    | Sets Locale     |
-| ---- | -------- | --------------- |
-| 🇺🇸   | English  | `Locale('en')`  |
-| 🇵🇭   | Filipino | `Locale('fil')` |
-
-Switching language calls `context.setLocale(Locale('fil'))`. `easy_localization` handles persistence automatically — no manual SharedPreferences code needed. The entire app re-renders instantly.
-
----
-
-### Quick Reference
-
-| Concern         | Rule                                               |
-| --------------- | -------------------------------------------------- |
-| Display text    | Always `.tr()` — never inline strings              |
-| New strings     | Add to `en.json` first, then `fil.json`            |
-| Currency        | `AppFormatters.currency(amount)` — always ₱        |
-| Dates           | `AppFormatters.date(date, context)` — locale-aware |
-| Language switch | `context.setLocale()` — persistence is automatic   |
-| Missing key     | Falls back to English — always fill both files     |
-| Package         | `easy_localization ^3.0.7`                         |
 
 ---
 
@@ -529,17 +255,6 @@ lib/
 └── main.dart
 ```
 
-### Quick Reference
-
-| Concern          | Rule                                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------- |
-| State Management | Use `Riverpod` (`ConsumerWidget`, `ConsumerStatefulWidget`). No `setState` for global data. |
-| Navigation       | Use `go_router` (`context.push`, `context.go`).                                             |
-| Database         | Use `sqflite` with robust DAO classes.                                                      |
-| Styling          | **Never hardcode values**. Strictly use `DSColors`, `DSStyles`, and `DSTypography`.         |
-| API Calls        | Route through `ApiClient` for consistent error handling and token injection.                |
-| Offline          | Always read from Local DB. Background sync queues update the server.                        |
-
 ---
 
 ## Logging & Observability Standards
@@ -548,25 +263,6 @@ lib/
 
 Use a logging package (like `logger`) or custom debug wrappers.
 
-- `debugPrint()` for simple development checks.
-- Structured logging for critical operations (e.g., Sync Service, API Errors).
-
-### 2. Capture Sufficient Context
-
-When logging an error, capture:
-
-- Delivery/Barcode ID
-- Sync attempt count
-- Error stack trace
-
-```dart
-// ✅ GOOD
-logError('Sync failed for delivery', error: e, stackTrace: s, context: {'barcode': delivery.barcode});
-
-// ❌ BAD
-print('Error syncing');
-```
-
 ---
 
 ## Testing Requirements
@@ -574,12 +270,7 @@ print('Error syncing');
 ### Test-First Mindset
 
 - Write unit tests for your data parsing and domain models.
-- Write unit tests for local SQLite DAO logic (using `sqflite_common_ffi` for desktop).
-
-### Widget Testing
-
-- Test critical UI flows using `WidgetTester`.
-- Ensure custom components render correctly with mock Riverpod providers.
+- Write unit tests for local SQLite DAO logic.
 
 ---
 
@@ -593,18 +284,12 @@ print('Error syncing');
 - Adding a new feature module.
 - Changing API payload structures.
 
-### Formatting
-
-- Use Markdown for repository docs.
-- Use `///` DartDoc comments for public classes and methods.
-
 ---
 
 ## Security & Data Protection
 
 - **DO NOT** log passwords, raw auth tokens, or PII.
 - Securely store API tokens using `flutter_secure_storage`.
-- The SQLite database must clear user-specific data on logout to prevent cross-session leakage.
 
 ---
 
@@ -612,13 +297,8 @@ print('Error syncing');
 
 ### Widget Rebuilds
 
-- Use `Consumer` localized to the exact widget tree that needs rebuilding instead of wrapping the entire screen.
-- Use `select` in Riverpod to listen only to specific property changes: `ref.watch(provider.select((s) => s.property))`.
-
-### Lists and Scrolling
-
-- Always use `ListView.builder` or `SliverList` for dynamic lists. Never map a huge list into a `Column`.
-- Ensure images and assets are properly sized.
+- Use `Consumer` localized to the exact widget tree that needs rebuilding.
+- Use `select` in Riverpod to listen only to specific property changes.
 
 ---
 
@@ -626,8 +306,6 @@ print('Error syncing');
 
 - Keep feature modules small and well-scoped under `lib/features/{feature}`.
 - Reuse shared widgets in `lib/shared/widgets/` and design-system tokens from `lib/design_system/`.
-- Prefer `go_router` for navigation with `context.push` / `context.go`; avoid raw `Navigator` chains unless explicitly required.
-- Separate large screens into smaller components and providers when a file grows past a few hundred lines.
 
 ---
 
@@ -636,52 +314,16 @@ print('Error syncing');
 ### API and Network
 
 - Distinguish between `ApiNetworkError` (offline) and `ApiServerError` (500).
-- The app must gracefully degrade when offline, caching requests into the sync queue.
-
-### User Feedback
-
-- Use `showErrorNotification()` and `showInfoNotification()` for uniform snackbars.
-- Never show a raw Exception string directly to the user.
 
 ---
 
 ## Dynamic Design & Overflow Prevention
 
-To ensure a premium feel across all device sizes (including small screens), UI components must be **defensive** against data length and layout constraints.
+To ensure a premium feel across all device sizes, UI components must be **defensive** against data length and layout constraints.
 
 ### Goal: Zero `RenderFlex` Overflows
 
-1. **Flexible Text**: **NEVER** place a `Text` widget inside a `Row` or `Column` without considering its potential length.
-   - **Fix**: Wrap `Text` in `Flexible` or `Expanded` and use `overflow: TextOverflow.ellipsis`.
-2. **Scrollable Containers**: Ensure lists and dense forms are wrapped in `SingleChildScrollView` or `ListView`.
-3. **Adaptive Layouts**: Use `MediaQuery` or `LayoutBuilder` to adjust spacing on smaller devices if the standard 5-tier spacing causes crowding.
-
-**Bad Pattern (Causes Overflow):**
-
-```dart
-Row(
-  children: [
-    Icon(Icons.star),
-    Text("Very Long Label that will eventually overflow the screen on small devices") // ❌ WRONG
-  ],
-)
-```
-
-**Good Pattern (Safe):**
-
-```dart
-Row(
-  children: [
-    Icon(Icons.star),
-    Flexible(
-      child: Text(
-        "Very Long Label...",
-        overflow: TextOverflow.ellipsis, // ✅ CORRECT
-      ),
-    ),
-  ],
-)
-```
+1. **Flexible Text**: **NEVER** place a `Text` widget inside a `Row` or `Column` without considering its potential length. Wrap in `Flexible` or `Expanded`.
 
 ---
 
@@ -691,29 +333,12 @@ To maintain a scalable codebase, we enforce a strict separation between **Defini
 
 ### 🏛️ The Three-Layer Rule
 
-1. **Tokens & Definitions (The "What")**:
-   - Found in: `lib/design_system/tokens/`, `lib/core/constants.dart`.
-   - Rules: Pure data constants. **NO** logic, **NO** context-aware building.
-   - _Example_: `DSColors.primary` is just a `Color` object.
-
-2. **Configurations & Themes (The "How")**:
-   - Found in: `lib/design_system/ds_theme.dart`.
-   - Rules: Maps tokens to the Flutter framework. This is where you configure `ThemeData`, `InputDecorationTheme`, etc.
-   - _Example_: `DSTheme.build()` takes `DSColors` and builds a `ThemeData`.
-
-3. **Implementations & UI (The "Execution")**:
-   - Found in: `lib/features/`, `lib/shared/widgets/`.
-   - Rules: Uses the configurations and tokens to build user-facing features.
-   - _Example_: `DeliveryCard` uses `DSSpacing` and inherits colors from `Theme.of(context)`.
-
-### Why we do this
-
-- **Maintainability**: Changing a color token in one file updates the entire app.
-- **Predictability**: Developers know exactly where to go to change a specific UI behavior vs. a specific raw value.
-- **Safety**: Logic-heavy files stay lean by offloading static configurations to dedicated files.
+1. **Tokens & Definitions (The "What")**: `lib/design_system/tokens/`, `lib/core/constants.dart`.
+2. **Configurations & Themes (The "How")**: `lib/design_system/ds_theme.dart`.
+3. **Implementations & UI (The "Execution")**: `lib/features/`, `lib/shared/widgets/`.
 
 ---
 
 **This is your source of truth for the Courier Mobile App. Consult it before every coding session.**
 
-Last Updated: April 28, 2026
+Last Updated: April 30, 2026

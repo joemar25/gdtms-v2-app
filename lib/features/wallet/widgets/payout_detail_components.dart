@@ -34,12 +34,10 @@ class SectionCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              style: DSTypography.label(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? DSColors.labelSecondaryDark
                     : DSColors.labelSecondary,
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w600,
               ),
             ),
             DSSpacing.hSm,
@@ -84,9 +82,7 @@ class StatusBadgeLight extends StatelessWidget {
       decoration: BoxDecoration(color: bg, borderRadius: DSStyles.cardRadius),
       child: Text(
         status.isEmpty ? '—' : status.replaceAll('_', ' ').toUpperCase(),
-        style: DSTypography.label(
-          color: fg,
-        ).copyWith(fontSize: DSTypography.sizeSm, fontWeight: FontWeight.w600),
+        style: DSTypography.label(color: fg, fontSize: DSTypography.sizeSm),
       ),
     );
   }
@@ -160,19 +156,16 @@ class _PayoutHeroFlipCardState extends State<PayoutHeroFlipCard>
       children: [
         Text(
           label.toUpperCase(),
-          style: DSTypography.label().copyWith(
-            fontSize: DSTypography.sizeXs,
-            fontWeight: FontWeight.w800,
-            letterSpacing: DSTypography.lsExtraLoose,
+          style: DSTypography.label(
             color: DSColors.white.withValues(alpha: DSStyles.alphaDisabled),
           ),
         ),
         DSSpacing.hXs,
         Text(
           value,
-          style: DSTypography.body(color: DSColors.white).copyWith(
+          style: DSTypography.subTitle(
+            color: DSColors.white,
             fontSize: DSTypography.sizeMd,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ],

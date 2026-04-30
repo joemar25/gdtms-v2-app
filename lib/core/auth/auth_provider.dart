@@ -40,13 +40,18 @@ final authProvider = NotifierProvider<AuthNotifier, AuthState>(
   AuthNotifier.new,
 );
 
+/// Provides the theme mode loaded at app startup before runApp.
+/// Defaults to light if not overridden in main.dart.
+final initialThemeModeProvider = Provider<ThemeMode>((ref) => ThemeMode.light);
+
 class AuthNotifier extends Notifier<AuthState> {
   AuthStorage get _authStorage => ref.read(authStorageProvider);
   AppSettings get _settings => ref.read(appSettingsProvider);
 
   @override
   AuthState build() {
-    return const AuthState(isAuthenticated: false, themeMode: ThemeMode.light);
+    final initialTheme = ref.watch(initialThemeModeProvider);
+    return AuthState(isAuthenticated: false, themeMode: initialTheme);
   }
 
   Future<void> initialize() async {

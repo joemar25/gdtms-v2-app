@@ -165,7 +165,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         now.year,
         now.month,
         now.day,
-      ).subtract(const Duration(days: 30));
+      ).subtract(const Duration(days: 7));
 
       historyList = rawList.where((req) {
         final status = req['status']?.toString().toUpperCase() ?? '';
@@ -286,128 +286,131 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             }
           }
         },
-        child: Scaffold(
-          extendBody: true,
-          appBar: AppHeaderBar(
-            title: 'wallet.screen.title'.tr(),
-            pageIcon: Icons.account_balance_wallet_rounded,
-          ),
-          bottomNavigationBar: null,
-          body: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: EdgeInsets.fromLTRB(
-                      DSSpacing.md,
-                      DSSpacing.md,
-                      DSSpacing.md,
-                      DSSpacing.xl,
-                    ),
-                    children: [
-                      // ── Offline banner ─────────────────────────────────────
-                      if (!isOnline)
-                        OfflineBanner(
-                          isMinimal: true,
-                          customMessage: 'wallet.screen.offline_message'.tr(),
-                          margin: EdgeInsets.only(bottom: DSSpacing.md),
-                        ),
+        child: SecureView(
+          child: Scaffold(
+            extendBody: true,
+            appBar: AppHeaderBar(
+              title: 'wallet.screen.title'.tr(),
+              pageIcon: Icons.account_balance_wallet_rounded,
+            ),
+            bottomNavigationBar: null,
+            body: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                        DSSpacing.md,
+                        DSSpacing.md,
+                        DSSpacing.md,
+                        DSSpacing.xl,
+                      ),
+                      children: [
+                        // ── Offline banner ─────────────────────────────────────
+                        if (!isOnline)
+                          OfflineBanner(
+                            isMinimal: true,
+                            customMessage: 'wallet.screen.offline_message'.tr(),
+                            margin: const EdgeInsets.only(bottom: DSSpacing.md),
+                          ),
 
-                      // ── Already Submitted Notice ───────────────────────────
-                      if (isOnline && hasExistingRequestToday)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: DSSpacing.md),
-                          padding: const EdgeInsets.all(DSSpacing.md),
-                          decoration: BoxDecoration(
-                            color: DSColors.warning.withValues(
-                              alpha: DSStyles.alphaSoft,
-                            ),
-                            borderRadius: DSStyles.cardRadius,
-                            border: Border.all(
+                        // ── Already Submitted Notice ───────────────────────────
+                        if (isOnline && hasExistingRequestToday)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: DSSpacing.md),
+                            padding: const EdgeInsets.all(DSSpacing.md),
+                            decoration: BoxDecoration(
                               color: DSColors.warning.withValues(
-                                alpha: DSStyles.alphaMuted,
+                                alpha: DSStyles.alphaSoft,
+                              ),
+                              borderRadius: DSStyles.cardRadius,
+                              border: Border.all(
+                                color: DSColors.warning.withValues(
+                                  alpha: DSStyles.alphaMuted,
+                                ),
                               ),
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline_rounded,
-                                color: DSColors.warning,
-                                size: DSIconSize.md,
-                              ),
-                              DSSpacing.wSm,
-                              Expanded(
-                                child: Text(
-                                  'wallet.screen.existing_request_notice'.tr(),
-                                  style: DSTypography.caption(
-                                    color: DSColors.warning,
-                                  ).copyWith(fontSize: DSTypography.sizeSm),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline_rounded,
+                                  color: DSColors.warning,
+                                  size: DSIconSize.md,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ).dsFadeEntry(),
-
-                      // ── Earnings / Payout Flip Card ────────────────────────
-                      WalletFlipCard(
-                        tentativePayout: tentativePayout,
-                        pendingRequestAmt: pendingRequestAmt,
-                        isLatestPending: isLatestPending,
-                        showPending: isOnline,
-                        paymentMethod: _paymentMethod,
-                        canConsolidate:
-                            isOnline &&
-                            isLatestPending &&
-                            _eligible > 0 &&
-                            !hasExistingRequestToday &&
-                            isInRequestWindow,
-                        canRequest: canRequestPayout && isOnline,
-                        onConsolidate: () =>
-                            context.push('/wallet/request?consolidate=1'),
-                        onRequest: () => context.push('/wallet/request'),
-                      ).dsCardEntry(duration: DSAnimations.dNormal),
-
-                      DSSpacing.hLg,
-
-                      // ── Online-only section ──────────────────────────────
-                      if (isOnline && !isInRequestWindow) ...[
-                        const PayoutWindowBanner(),
-                        DSSpacing.hMd,
-                      ],
-
-                      if (isOnline) DSSpacing.hLg,
-
-                      if (isOnline && _historyList.isNotEmpty) ...[
-                        DSSectionHeader(
-                          title: 'wallet.screen.payout_history'.tr(),
-                          padding: EdgeInsets.zero,
-                        ).dsFadeEntry(delay: DSAnimations.stagger(3)),
-                        DSSpacing.hSm,
-                        ..._historyList.asMap().entries.map(
-                          (entry) =>
-                              PayoutHistoryRow(
-                                data: entry.value,
-                                onTap: () {
-                                  final refVal =
-                                      '${entry.value['reference'] ?? entry.value['payment_reference'] ?? ''}';
-                                  if (refVal.isNotEmpty) {
-                                    context.push('/wallet/$refVal');
-                                  }
-                                },
-                              ).dsCardEntry(
-                                delay: DSAnimations.stagger(
-                                  entry.key + 1,
-                                  step: DSAnimations.staggerNormal,
+                                DSSpacing.wSm,
+                                Expanded(
+                                  child: Text(
+                                    'wallet.screen.existing_request_notice'
+                                        .tr(),
+                                    style: DSTypography.caption(
+                                      color: DSColors.warning,
+                                    ).copyWith(fontSize: DSTypography.sizeSm),
+                                  ),
                                 ),
-                              ),
-                        ),
+                              ],
+                            ),
+                          ).dsFadeEntry(),
+
+                        // ── Earnings / Payout Flip Card ────────────────────────
+                        WalletFlipCard(
+                          tentativePayout: tentativePayout,
+                          pendingRequestAmt: pendingRequestAmt,
+                          isLatestPending: isLatestPending,
+                          showPending: isOnline,
+                          paymentMethod: _paymentMethod,
+                          canConsolidate:
+                              isOnline &&
+                              isLatestPending &&
+                              _eligible > 0 &&
+                              !hasExistingRequestToday &&
+                              isInRequestWindow,
+                          canRequest: canRequestPayout && isOnline,
+                          onConsolidate: () =>
+                              context.push('/wallet/request?consolidate=1'),
+                          onRequest: () => context.push('/wallet/request'),
+                        ).dsCardEntry(duration: DSAnimations.dNormal),
+
                         DSSpacing.hLg,
+
+                        // ── Online-only section ──────────────────────────────
+                        if (isOnline && !isInRequestWindow) ...[
+                          const PayoutWindowBanner(),
+                          DSSpacing.hMd,
+                        ],
+
+                        if (isOnline) DSSpacing.hLg,
+
+                        if (isOnline && _historyList.isNotEmpty) ...[
+                          DSSectionHeader(
+                            title: 'wallet.screen.payout_history'.tr(),
+                            padding: EdgeInsets.zero,
+                          ).dsFadeEntry(delay: DSAnimations.stagger(3)),
+                          DSSpacing.hSm,
+                          ..._historyList.asMap().entries.map(
+                            (entry) =>
+                                PayoutHistoryRow(
+                                  data: entry.value,
+                                  onTap: () {
+                                    final refVal =
+                                        '${entry.value['reference'] ?? entry.value['payment_reference'] ?? ''}';
+                                    if (refVal.isNotEmpty) {
+                                      context.push('/wallet/$refVal');
+                                    }
+                                  },
+                                ).dsCardEntry(
+                                  delay: DSAnimations.stagger(
+                                    entry.key + 1,
+                                    step: DSAnimations.staggerNormal,
+                                  ),
+                                ),
+                          ),
+                          DSSpacing.hLg,
+                        ],
+                        DSSpacing.hXl,
                       ],
-                      DSSpacing.hXl,
-                    ],
+                    ),
                   ),
-                ),
+          ),
         ),
       ),
     );
@@ -440,11 +443,4 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         latestRequest['status']?.toString().toUpperCase() == 'PENDING' &&
         isToday;
   }
-
-  // _showEarningsDetail removed — unused helper
 }
-
-// ─── Payout Window Banner ──────────────────────────────────────────────────────
-//
-// Shown in WalletScreen when the courier is outside the 06:00–12:00 request
-// window. Invisible in debug builds because the window check is bypassed.

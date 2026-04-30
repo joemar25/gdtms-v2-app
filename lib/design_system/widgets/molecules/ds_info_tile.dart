@@ -33,6 +33,8 @@ class DSInfoTile extends StatelessWidget {
     final valueColor = isDark
         ? DSColors.labelPrimaryDark
         : DSColors.labelPrimary;
+    final resolvedAccentColor =
+        accentColor ?? (isDark ? DSColors.primaryDark : DSColors.primary);
 
     return Column(
       children: [
@@ -82,18 +84,18 @@ class DSInfoTile extends StatelessWidget {
                       width: DSIconSize.heroSm,
                       height: DSIconSize.heroSm,
                       decoration: BoxDecoration(
-                        color: DSColors.primary.withValues(
-                          alpha: DSStyles.alphaSubtle,
+                        color: resolvedAccentColor.withValues(
+                          alpha: isDark ? 0.15 : DSStyles.alphaSubtle,
                         ),
-                        shape: BoxShape.circle,
+                        borderRadius: DSStyles.pillRadius,
                       ),
                       child: Icon(
                         icon ??
                             (label.toLowerCase().contains('address')
                                 ? Icons.map_rounded
                                 : Icons.phone_rounded),
-                        size: DSIconSize.xs,
-                        color: DSColors.primary,
+                        size: DSIconSize.md,
+                        color: resolvedAccentColor,
                       ),
                     ),
                   ],
