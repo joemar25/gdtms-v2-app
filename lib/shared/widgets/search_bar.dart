@@ -37,12 +37,16 @@ class AppSearchBar extends StatefulWidget {
 }
 
 class _AppSearchBarState extends State<AppSearchBar> {
+  // ─── MARK: State ───────────────────────────────────────────────────────────
+
   late final TextEditingController _controller;
   Timer? _debounce;
   bool _hasText = false;
 
   @override
   void initState() {
+    // ─── MARK: Lifecycle ───────────────────────────────────────────────────────
+
     super.initState();
     _controller = widget.controller ?? TextEditingController();
     _hasText = _controller.text.isNotEmpty;
@@ -56,6 +60,8 @@ class _AppSearchBarState extends State<AppSearchBar> {
     }
     super.dispose();
   }
+
+  // ─── MARK: Handlers ────────────────────────────────────────────────────────
 
   void _onChanged(String value) {
     setState(() => _hasText = value.isNotEmpty);
@@ -76,6 +82,8 @@ class _AppSearchBarState extends State<AppSearchBar> {
       widget.onChanged('');
     }
   }
+
+  // ─── MARK: Build ───────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -162,14 +170,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
             children: [
               DSSpacing.wXs,
               if (widget.isLoading) ...[
-                SizedBox(
-                  width: DSIconSize.xs,
-                  height: DSIconSize.xs,
-                  child: CircularProgressIndicator(
-                    strokeWidth: DSStyles.borderWidth * 1.5,
-                    color: cs.primary,
-                  ),
-                ),
+                const DSLoading(size: DSIconSize.xs),
                 DSSpacing.wSm,
                 Text(
                   'SEARCHING…',

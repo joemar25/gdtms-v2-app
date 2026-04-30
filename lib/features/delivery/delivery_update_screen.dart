@@ -140,6 +140,15 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   /// True for statuses that require a non-delivery reason + selfie.
   bool get _isNonDelivered => _isFailedDelivery || _isOsa;
 
+  /// Returns true if this is an EXPRESS delivery.
+  /// EXPRESS deliveries have restricted placement types (e.g. no mailbox).
+  bool get _isExpress {
+    final type = (_delivery['mail_type'] ?? _delivery['product'] ?? '')
+        .toString()
+        .toUpperCase();
+    return type == 'EXPRESS';
+  }
+
   void _cycleStatus(int direction) {
     if (_loadingDelivery || _loading) return;
     final statuses = kUpdateStatuses;
@@ -449,7 +458,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         setState(() => _isPickerActive = false);
         return;
       }
-      final apiType = slotType == 'pod' ? 'pod' : 'selfie';
+      final apiType = slotType; // 'pod' | 'selfie' | 'mailpack'
       final dir = await getApplicationDocumentsDirectory();
       final filename = '${widget.barcode}_${_uuid.v4()}_$apiType.jpg';
       final path = '${dir.path}/$filename';
@@ -1024,6 +1033,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       relationship: _relationship,
                                       recipientIsOwner: _recipientIsOwner,
                                       placement: _placement,
+                                      isExpress: _isExpress,
                                       errors: _errors,
                                       isDark: isDark,
                                       onSelectRecipient: (name, rel) {

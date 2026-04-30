@@ -27,6 +27,8 @@ import 'shared/router/router_keys.dart';
 import 'shared/widgets/time_enforcer.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
+// ─── MARK: App Initialization ───────────────────────────────────────────────
+
 // How often to automatically re-sync data in the background while online.
 const _kAutoSyncInterval = Duration(minutes: 3);
 
@@ -330,6 +332,8 @@ const _kPillHiddenRoutes = {
   '/location-required', // also covers camera + notification permission screens
 };
 
+// ─── MARK: UI Components ─────────────────────────────────────────────────────
+
 class _SyncFloatingPill extends ConsumerWidget {
   const _SyncFloatingPill();
 
@@ -433,17 +437,13 @@ class _SyncPillContent extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (isSyncing) ...[
-                        const SizedBox(
-                          width: 13,
-                          height: 13,
-                          child: CircularProgressIndicator(
-                            strokeWidth: DSStyles.strokeWidth,
-                          ),
-                        ),
+                        const DSLoading(size: DSIconSize.xs),
                         DSSpacing.wSm,
                         Flexible(
                           child: Text(
-                            _trimMessage(lastMessage ?? 'Syncing…'),
+                            _trimMessage(
+                              lastMessage ?? 'sync.actions.syncing'.tr(),
+                            ),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(fontWeight: FontWeight.w600),
                             overflow: TextOverflow.ellipsis,

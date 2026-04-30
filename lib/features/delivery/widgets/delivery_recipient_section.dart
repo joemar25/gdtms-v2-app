@@ -24,6 +24,7 @@ class DeliveryRecipientSection extends StatelessWidget {
     required this.relationship,
     required this.recipientIsOwner,
     required this.placement,
+    required this.isExpress,
     required this.errors,
     required this.isDark,
     required this.onSelectRecipient,
@@ -44,6 +45,7 @@ class DeliveryRecipientSection extends StatelessWidget {
   final String? relationship;
   final bool recipientIsOwner;
   final String placement;
+  final bool isExpress;
   final Map<String, String> errors;
   final bool isDark;
 
@@ -74,6 +76,13 @@ class DeliveryRecipientSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const fieldGap = DSSpacing.hMd;
+
+    // Filter out 'MAILBOX' for express deliveries.
+    final filteredPlacementOptions =
+        kPlacementOptions.where((e) {
+          if (isExpress && e['value'] == 'MAILBOX') return false;
+          return true;
+        }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,7 +273,7 @@ class DeliveryRecipientSection extends StatelessWidget {
             labelText: 'delivery_update.header.placement_type'.tr(),
             errorText: errors['placement'],
           ),
-          items: kPlacementOptions
+          items: filteredPlacementOptions
               .map(
                 (e) => DropdownMenuItem(
                   value: e['value'],

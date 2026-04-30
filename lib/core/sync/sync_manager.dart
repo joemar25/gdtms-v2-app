@@ -305,8 +305,6 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                   if (baseType == 'recipient_signature') {
                     payload['recipient_signature'] = url;
                   } else {
-                    // Build the delivery_images entry exactly per API spec:
-                    // { "file": "<url>", "type": "<pod|selfie|recipient>" }
                     uploadedImages.add({'file': url, 'type': baseType});
                   }
                 } else {

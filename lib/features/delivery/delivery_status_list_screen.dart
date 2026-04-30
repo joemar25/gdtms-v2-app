@@ -58,8 +58,8 @@ import 'package:fsi_courier_app/shared/widgets/search_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/ds_segmented_selector.dart';
-import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/features/delivery/delivery_status_list_components.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// A single list screen reused for every delivery status filter
 /// (pending, delivered, failed_delivery, osa, dispatched).
@@ -89,6 +89,8 @@ class DeliveryStatusListScreen extends ConsumerStatefulWidget {
 
 class _DeliveryStatusListScreenState
     extends ConsumerState<DeliveryStatusListScreen> {
+  // ─── MARK: State ───────────────────────────────────────────────────────────
+
   // ── Page state ─────────────────────────────────────────────────────────────
   bool _loading = true;
   int _currentPage = 0;
@@ -166,6 +168,8 @@ class _DeliveryStatusListScreenState
     return group == 'rts' ? _totalRtsCount : _totalRedeliveryCount;
   }
 
+  // ─── MARK: Lifecycle ───────────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
@@ -186,6 +190,8 @@ class _DeliveryStatusListScreenState
     _scrollController.dispose();
     super.dispose();
   }
+
+  // ─── MARK: Data Loading ───────────────────────────────────────────────────
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -295,8 +301,11 @@ class _DeliveryStatusListScreenState
     await _load();
   }
 
+  // ─── MARK: Handlers ────────────────────────────────────────────────────────
+
   Future<void> _onRefresh() async {
     final isOnline = ref.read(isOnlineProvider);
+
     if (isOnline) {
       await DeliveryBootstrapService.instance.syncFromApi(
         ref.read(apiClientProvider),
@@ -306,6 +315,8 @@ class _DeliveryStatusListScreenState
     await _load();
     if (_searchQuery.trim().isNotEmpty) await _runSearch(_searchQuery);
   }
+
+  // ─── MARK: Search Logic ────────────────────────────────────────────────────
 
   Future<void> _runSearch(String query) async {
     final q = query.trim();
@@ -411,6 +422,8 @@ class _DeliveryStatusListScreenState
     'OSA' => 'No OSA mailpacks today.',
     _ => 'No items found.',
   };
+
+  // ─── MARK: UI Building ─────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -569,21 +582,9 @@ class _DeliveryStatusListScreenState
                     color: DSColors.error,
                     onRefresh: _onRefresh,
                     child: _loading
-                        ? Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation(
-                                DSColors.error,
-                              ),
-                            ),
-                          )
+                        ? const Center(child: DSLoading(color: DSColors.error))
                         : (_searchLoading && displayed.isEmpty)
-                        ? Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation(
-                                DSColors.error,
-                              ),
-                            ),
-                          )
+                        ? const Center(child: DSLoading(color: DSColors.error))
                         : displayed.isEmpty
                         ? DeliveryListEmptyState(
                             message: isSearching

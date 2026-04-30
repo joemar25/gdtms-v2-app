@@ -64,6 +64,8 @@ class WalletScreen extends ConsumerStatefulWidget {
 }
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {
+  // ─── MARK: State ───────────────────────────────────────────────────────────
+
   bool _loading = true;
   Map<String, dynamic> _data = {};
   double _eligible = 0.0;
@@ -74,11 +76,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   static const _earningsCacheKey = 'wallet_summary_cache';
   static const _paymentMethodCacheKey = 'wallet_payment_method_cache';
 
+  // ─── MARK: Lifecycle ───────────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
     _load();
   }
+
+  // ─── MARK: Data Loading ───────────────────────────────────────────────────
 
   Future<void> _load() async {
     if (!mounted) return;
@@ -231,6 +237,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     setState(() => _loading = false);
   }
 
+  // ─── MARK: Build ───────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
@@ -295,7 +303,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             ),
             bottomNavigationBar: null,
             body: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: DSLoading())
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView(
@@ -415,6 +423,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       ),
     );
   }
+
+  // ─── MARK: Logic ───────────────────────────────────────────────────────────
 
   void _applyDynamicFlags(Map<String, dynamic> data) {
     final latestRequest = data['latest_request'] as Map<String, dynamic>?;

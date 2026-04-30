@@ -14,6 +14,7 @@ export 'ds_theme.dart';
 
 // Atoms
 export 'widgets/atoms/ds_input.dart';
+export 'widgets/atoms/ds_loading.dart';
 
 // Molecules
 export 'widgets/molecules/ds_card.dart';

@@ -57,8 +57,8 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final headerColor = backgroundColor ??
-        (isDark ? DSColors.cardDark : DSColors.white);
+    final headerColor =
+        backgroundColor ?? (isDark ? DSColors.cardDark : DSColors.white);
     final courier = ref.watch(authProvider).courier ?? {};
     final profileUrlStr = courier['profile_picture_url']?.toString();
     final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
@@ -72,7 +72,8 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
       surfaceTintColor: DSColors.transparent,
       titleSpacing: (leading == null && !context.canPop()) ? 16 : 0,
       centerTitle: centerTitle,
-      leading: leading ??
+      leading:
+          leading ??
           (context.canPop()
               ? IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -136,7 +137,9 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
           bottom: BorderSide(
             color: isDark
                 ? DSColors.separatorDark.withValues(alpha: DSStyles.alphaMuted)
-                : DSColors.separatorLight.withValues(alpha: DSStyles.alphaDisabled),
+                : DSColors.separatorLight.withValues(
+                    alpha: DSStyles.alphaDisabled,
+                  ),
             width: 0.5,
           ),
         ),
@@ -213,9 +216,7 @@ class _Badge extends StatelessWidget {
     return Container(
       height: DSIconSize.sm,
       constraints: const BoxConstraints(minWidth: DSIconSize.sm),
-      padding: EdgeInsets.symmetric(
-        horizontal: isSingle ? 0 : DSSpacing.xs,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: isSingle ? 0 : DSSpacing.xs),
       decoration: BoxDecoration(
         color: DSColors.error,
         borderRadius: BorderRadius.circular(DSStyles.radiusSM),
@@ -365,7 +366,9 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
           bottom: BorderSide(
             color: isDark
                 ? DSColors.separatorDark.withValues(alpha: DSStyles.alphaMuted)
-                : DSColors.separatorLight.withValues(alpha: DSStyles.alphaDisabled),
+                : DSColors.separatorLight.withValues(
+                    alpha: DSStyles.alphaDisabled,
+                  ),
             width: 0.5,
           ),
         ),
@@ -651,8 +654,11 @@ class _HeaderIconButton extends StatelessWidget {
               child: Icon(
                 icon,
                 size: DSIconSize.lg,
-                color: iconColor ??
-                    (isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary),
+                color:
+                    iconColor ??
+                    (isDark
+                        ? DSColors.labelPrimaryDark
+                        : DSColors.labelPrimary),
               ),
             ),
             if (badge != null)

@@ -51,6 +51,8 @@ class _TimeEnforcerState extends ConsumerState<TimeEnforcer>
   Timer? _periodicTimer;
   StreamSubscription<dynamic>? _timeChangeSub;
 
+  // ─── MARK: Lifecycle & Validation ────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
@@ -158,6 +160,8 @@ class _TimeEnforcerState extends ConsumerState<TimeEnforcer>
   }
 }
 
+// ─── MARK: UI Components ─────────────────────────────────────────────────────
+
 // ── Loading screen ────────────────────────────────────────────────────────────
 
 class _LoadingScreen extends StatelessWidget {
@@ -173,10 +177,7 @@ class _LoadingScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(
-              color: DSColors.primary,
-              strokeWidth: DSStyles.strokeWidth,
-            ),
+            const DSLoading(color: DSColors.primary),
             DSSpacing.hMd,
             Text(
               'Verifying device time…',
@@ -327,13 +328,9 @@ class _BlockingOverlay extends StatelessWidget {
                           padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
                         ),
                         child: checking
-                            ? const SizedBox(
-                                width: DSIconSize.lg,
-                                height: DSIconSize.lg,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: DSStyles.strokeWidth,
-                                  color: DSColors.white,
-                                ),
+                            ? const DSLoading(
+                                size: DSIconSize.lg,
+                                color: DSColors.white,
                               )
                             : const Text('Retry'),
                       ),

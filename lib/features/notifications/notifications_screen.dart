@@ -69,6 +69,8 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  // ─── MARK: Lifecycle ───────────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +78,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       ref.read(notificationsProvider.notifier).load();
     });
   }
+
+  // ─── MARK: Handlers ────────────────────────────────────────────────────────
 
   void _handleTap(AppNotification n, bool isOnline) {
     if (!isOnline) return;
@@ -94,6 +98,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       context.push('/deliveries/${n.deliveryReferences.first}/update');
     }
   }
+
+  // ─── MARK: Build ───────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -158,12 +164,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     Widget content;
 
     if (state.loading && state.entries.isEmpty) {
-      content = Center(
-        child: CircularProgressIndicator(
-          color: DSColors.primary,
-          strokeWidth: DSStyles.strokeWidth,
-        ),
-      );
+      content = const Center(child: DSLoading());
     } else if (state.entries.isEmpty) {
       content = _EmptyState(
         onRefresh: () => ref.read(notificationsProvider.notifier).load(),
@@ -234,6 +235,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return content;
   }
+
+  // ─── MARK: Logic ───────────────────────────────────────────────────────────
 
   // ── Group entries ────────────────────────────────────────────────────────
 
@@ -670,14 +673,7 @@ class _LoadMoreButton extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: DSSpacing.lg),
       child: Center(
         child: loading
-            ? const SizedBox(
-                width: DSStyles.strokeWidth,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: DSStyles.strokeWidth,
-                  color: DSColors.primary,
-                ),
-              )
+            ? const DSLoading(size: DSIconSize.sm)
             : OutlinedButton.icon(
                 onPressed: onTap,
                 style: OutlinedButton.styleFrom(

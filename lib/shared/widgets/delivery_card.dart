@@ -7,10 +7,12 @@ import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card_components.dart';
-import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 
+/// A card representing a single delivery assignment with its status,
+/// barcode, recipient details, and action shortcuts.
 class DeliveryCard extends StatelessWidget {
   const DeliveryCard({
     super.key,
@@ -42,6 +44,8 @@ class DeliveryCard extends StatelessWidget {
   /// Pass null to hide it (locked / non-updatable items).
   final VoidCallback? onUpdateTap;
 
+  // ─── MARK: Status Helpers ──────────────────────────────────────────────────
+
   static Color statusColor(String status) {
     return DSColors.statusColor(status);
   }
@@ -55,6 +59,8 @@ class DeliveryCard extends StatelessWidget {
       _ => Icons.help_outline_rounded,
     };
   }
+
+  // ─── MARK: Build ───────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -588,16 +594,7 @@ class DeliveryCard extends StatelessWidget {
                             Row(
                               children: [
                                 if (isChecking) ...[
-                                  SizedBox(
-                                    width: 11,
-                                    height: 11,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: DSStyles.strokeWidth,
-                                      valueColor: AlwaysStoppedAnimation(
-                                        DSColors.error,
-                                      ),
-                                    ),
-                                  ),
+                                  const DSLoading(size: DSIconSize.xs),
                                   DSSpacing.wXs,
                                   Text(
                                     'Checking eligibility…',
@@ -644,11 +641,15 @@ class DeliveryCard extends StatelessWidget {
     );
   }
 
+  // ─── MARK: Handlers ────────────────────────────────────────────────────────
+
   void _showHoldOptions(BuildContext context, bool isDark) {
     HapticFeedback.mediumImpact();
     final barcode = delivery['barcode']?.toString() ?? '';
     showDeliveryAccountDetails(context, delivery, barcode);
   }
+
+  // ─── MARK: Components ──────────────────────────────────────────────────────
 
   // ── Detail section ──────────────────────────────────────────────
   Widget _buildDetailSection(

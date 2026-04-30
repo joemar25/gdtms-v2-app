@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
@@ -30,6 +31,7 @@ class SyncProgressBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final syncState = ref.watch(syncManagerProvider);
     final isOnline = ref.watch(isOnlineProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final pending = syncState.entries
         .where((e) => e.status == 'pending' || e.status == 'processing')
@@ -63,21 +65,15 @@ class SyncProgressBar extends ConsumerWidget {
           if (syncState.isSyncing) ...[
             Row(
               children: [
-                const SizedBox(
-                  width: DSIconSize.sm,
-                  height: DSIconSize.sm,
-                  child: CircularProgressIndicator(
-                    strokeWidth: DSStyles.strokeWidth,
-                  ),
-                ),
+                const DSLoading(size: DSIconSize.xs),
                 DSSpacing.wSm,
                 Expanded(
                   child: Text(
-                    syncState.lastMessage ?? 'Syncing…',
+                    syncState.lastMessage ?? 'sync.actions.syncing'.tr(),
                     style: DSTypography.caption(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? DSColors.labelPrimaryDark
-                          : DSColors.labelPrimary,
+                      color: isDark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
                     ).copyWith(fontSize: DSTypography.sizeSm),
                     overflow: TextOverflow.ellipsis,
                   ),

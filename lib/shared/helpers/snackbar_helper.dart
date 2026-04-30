@@ -39,8 +39,9 @@ void showAppSnackbar(
   );
 }
 
-/// Show a top success notification matching the NotificationWidget card style.
-/// Uses Overlay so the screen behind remains fully scrollable/interactive.
+// ─── MARK: Overlay Notifications ─────────────────────────────────────────────
+
+/// Represents a single notification entry in the global overlay stack.
 class _NotificationEntry {
   final String id;
   final Widget banner;
@@ -48,10 +49,14 @@ class _NotificationEntry {
   _NotificationEntry({required this.id, required this.banner});
 }
 
+/// Global manager for top-aligned overlay notifications.
+/// Supports stacking up to 2 simultaneous notifications with auto-dismiss.
 class AppNotificationManager {
   static final List<_NotificationEntry> _entries = [];
   static OverlayEntry? _overlayEntry;
 
+  /// Entry point to display a new notification banner.
+  /// Automatically manages stack height and auto-dismiss timer.
   static void show(
     BuildContext context,
     Widget Function(String id, VoidCallback onClose) builder,
@@ -161,6 +166,9 @@ class AppNotificationManager {
   }
 }
 
+// ─── MARK: Helper Methods ────────────────────────────────────────────────────
+
+/// Show a top success notification with a check icon.
 void showSuccessNotification(BuildContext? context, String message) {
   final ctx = context ?? appScaffoldMessengerKey.currentContext;
   if (ctx == null || !ctx.mounted) return;
@@ -201,6 +209,9 @@ void showErrorNotification(
   showInfoNotification(context, message, icon: icon, color: DSColors.error);
 }
 
+// ─── MARK: UI Components ─────────────────────────────────────────────────────
+
+/// Banner component for info and error notifications.
 class _InfoBanner extends StatelessWidget {
   const _InfoBanner({
     required this.message,
@@ -266,17 +277,17 @@ class _InfoBanner extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               SizedBox(
-                width: DSStyles.strokeWidth,
-                height: 24,
+                width: 28,
+                height: 28,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 1.0, end: 0.0),
                   duration: const Duration(seconds: 3),
                   builder: (context, value, child) {
                     return CircularProgressIndicator(
                       value: value,
-                      strokeWidth: DSStyles.strokeWidth,
-                      color: DSColors.separatorLight,
-                      backgroundColor: DSColors.transparent,
+                      strokeWidth: 2,
+                      color: color.withValues(alpha: DSStyles.alphaMuted),
+                      backgroundColor: color.withValues(alpha: 0.05),
                     );
                   },
                 ),
@@ -290,7 +301,10 @@ class _InfoBanner extends StatelessWidget {
                   minHeight: DSIconSize.heroSm,
                 ),
                 style: IconButton.styleFrom(
-                  foregroundColor: DSColors.labelSecondary,
+                  foregroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                      ? DSColors.labelTertiaryDark
+                      : DSColors.labelTertiary,
                 ),
               ),
             ],
@@ -301,6 +315,7 @@ class _InfoBanner extends StatelessWidget {
   }
 }
 
+/// Banner component for success notifications.
 class _SuccessBanner extends StatelessWidget {
   const _SuccessBanner({required this.message, required this.onClose});
 
@@ -363,17 +378,19 @@ class _SuccessBanner extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               SizedBox(
-                width: DSStyles.strokeWidth,
-                height: 24,
+                width: 28,
+                height: 28,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 1.0, end: 0.0),
                   duration: const Duration(seconds: 3),
                   builder: (context, value, child) {
                     return CircularProgressIndicator(
                       value: value,
-                      strokeWidth: DSStyles.strokeWidth,
-                      color: DSColors.separatorLight,
-                      backgroundColor: DSColors.transparent,
+                      strokeWidth: 2,
+                      color: DSColors.primary.withValues(
+                        alpha: DSStyles.alphaMuted,
+                      ),
+                      backgroundColor: DSColors.primary.withValues(alpha: 0.05),
                     );
                   },
                 ),
@@ -387,7 +404,10 @@ class _SuccessBanner extends StatelessWidget {
                   minHeight: DSIconSize.heroSm,
                 ),
                 style: IconButton.styleFrom(
-                  foregroundColor: DSColors.labelSecondary,
+                  foregroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                      ? DSColors.labelTertiaryDark
+                      : DSColors.labelTertiary,
                 ),
               ),
             ],
