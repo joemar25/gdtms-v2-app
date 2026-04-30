@@ -65,9 +65,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     final backgroundColor = isDark
         ? DSColors.scaffoldDark
-        : const Color(0xFFF1F5F9);
+        : DSColors.white;
     final backgroundEndColor = isDark
-        ? const Color(0xFF0F172A)
+        ? DSColors.cardDark
         : DSColors.white;
     final textColor = isDark ? DSColors.white : DSColors.labelPrimary;
     final subtitleColor = (isDark ? DSColors.white : DSColors.labelPrimary)
@@ -115,11 +115,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   DSSpacing.hXl,
 
                   // App Name
-                  Text(
+                    Text(
                     'splash.title'.tr(),
                     style: DSTypography.display(
                       color: textColor,
-                    ).copyWith(fontSize: 32, letterSpacing: 4.0),
+                    ).copyWith(
+                      fontSize: DSTypography.sizeHero,
+                      letterSpacing: DSTypography.lsExtraLoose * 5,
+                    ),
                   ).dsFadeEntry(delay: DSAnimations.stagger(2)),
 
                   DSSpacing.hSm,
@@ -208,14 +211,14 @@ class _SplashChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: (isDark ? DSColors.white : DSColors.primary).withValues(
-          alpha: 0.05,
+          alpha: DSStyles.alphaSoft,
         ),
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: (isDark ? DSColors.white : DSColors.primary).withValues(
-            alpha: 0.1,
+            alpha: DSStyles.alphaSubtle,
           ),
-          width: 1,
+          width: DSStyles.borderWidth,
         ),
       ),
       child: Column(

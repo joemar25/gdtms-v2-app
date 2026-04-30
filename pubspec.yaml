@@ -128,7 +128,7 @@ flutter_launcher_icons:
 flutter_native_splash:
   # Solid background only — no image. Colors match ColorStyles scaffold
   # values so there is no flash before the Flutter SplashScreen renders.
-  color: "#F8F9FA"        # light mode  (ColorStyles.scaffoldLight)
-  color_dark: "#0B0D0F"  # dark mode   (ColorStyles.scaffoldDark)
+  color: "#FFFFFF"        # light mode  (DSColors.white)
+  color_dark: "#020617"  # dark mode   (DSColors.scaffoldDark)
   android: true
   ios: true
