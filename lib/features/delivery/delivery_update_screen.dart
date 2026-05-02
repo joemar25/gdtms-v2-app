@@ -893,7 +893,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isOnline = ref.read(isOnlineProvider);
 
     final List<String> notePresets;
     if (_isDelivered) {
@@ -992,17 +991,18 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                   100,
                                 ),
                                 children: [
-                                  // ── Offline Banner ──────────────────────────────
-                                  if (!isOnline)
-                                    OfflineBanner(
-                                      isMinimal: true,
-                                      customMessage:
-                                          'delivery_update.offline_banner.queued_online'
-                                              .tr(),
-                                      margin: EdgeInsets.only(
-                                        bottom: DSSpacing.lg,
-                                      ),
+                                  // ── Connection status banner ─────────────────
+                                  // Self-hides when online; shows 'no internet' or
+                                  // 'server unavailable' as appropriate.
+                                  ConnectionStatusBanner(
+                                    isMinimal: true,
+                                    customOfflineMessage:
+                                        'delivery_update.offline_banner.queued_online'
+                                            .tr(),
+                                    margin: EdgeInsets.only(
+                                      bottom: DSSpacing.lg,
                                     ),
+                                  ),
 
                                   // ── STATUS SELECTION ────────────────────────────
                                   DeliveryStatusSection(

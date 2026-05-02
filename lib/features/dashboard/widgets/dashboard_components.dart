@@ -1,10 +1,13 @@
 // DOCS: docs/development-standards.md
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
+import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/stat_widgets.dart';
+import 'package:fsi_courier_app/features/sync/widgets/sync_now_button.dart';
 import 'package:go_router/go_router.dart';
 
 // ── Layouts ──────────────────────────────────────────────────────────────────
@@ -15,10 +18,12 @@ class DashboardDefault extends StatelessWidget {
     super.key,
     required this.summary,
     required this.isDark,
+    required this.onRefresh,
   });
 
   final Map<String, dynamic> summary;
   final bool isDark;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +52,7 @@ class DashboardDefault extends StatelessWidget {
                 count: '$pendingDispatches',
                 icon: Icons.qr_code_rounded,
                 color: DSColors.error,
+                minHeight: 140,
                 onTap: () => context.push('/dispatches'),
                 subdued: pendingDispatches == 0,
                 details: 'dashboard.stats.dispatch_details'.tr(),
@@ -59,6 +65,7 @@ class DashboardDefault extends StatelessWidget {
                 count: '$pendingDeliveries',
                 icon: Icons.local_shipping_outlined,
                 color: DSColors.primary,
+                minHeight: 140,
                 onTap: () => context.push('/deliveries'),
                 subdued: pendingDeliveries == 0,
                 details: 'dashboard.stats.deliveries_details'.tr(),
@@ -75,6 +82,7 @@ class DashboardDefault extends StatelessWidget {
                 count: '$deliveredToday',
                 icon: Icons.check_circle_outline_rounded,
                 color: DSColors.primary,
+                minHeight: 140,
                 onTap: () => context.push('/delivered'),
                 subdued: deliveredToday == 0,
                 details: 'dashboard.stats.delivered_details'.tr(),
@@ -87,6 +95,7 @@ class DashboardDefault extends StatelessWidget {
                 count: '$failedDelivery',
                 icon: Icons.assignment_return_outlined,
                 color: DSColors.error,
+                minHeight: 140,
                 onTap: () => context.push('/failed-deliveries'),
                 subdued: failedDelivery == 0,
                 details: 'dashboard.stats.attempted_details'.tr(),
@@ -105,6 +114,7 @@ class DashboardDefault extends StatelessWidget {
                 color: isDark
                     ? DSColors.labelSecondaryDark
                     : DSColors.labelSecondary,
+                minHeight: 140,
                 onTap: () => context.push('/osa'),
                 subdued: osa == 0,
                 details: 'dashboard.stats.misrouted_details'.tr(),
@@ -121,6 +131,7 @@ class DashboardDefault extends StatelessWidget {
                     : (isDark
                           ? DSColors.labelSecondaryDark
                           : DSColors.labelSecondary),
+                minHeight: 140,
                 onTap: () => context.push('/sync'),
                 subdued: pendingSync == 0 && syncedTotal == 0,
                 details: pendingSync > 0
@@ -140,6 +151,7 @@ class DashboardDefault extends StatelessWidget {
                 label: 'dashboard.scan.dispatch_label'.tr(),
                 icon: Icons.qr_code_scanner_rounded,
                 color: DSColors.error,
+                minHeight: 140,
                 onTap: () => context.push('/scan', extra: {'mode': 'dispatch'}),
                 details: 'dashboard.scan.dispatch_details'.tr(),
               ).dsCtaEntry(delay: DSAnimations.stagger(6)),
@@ -150,6 +162,7 @@ class DashboardDefault extends StatelessWidget {
                 label: 'dashboard.scan.pod_label'.tr(),
                 icon: Icons.qr_code_scanner_rounded,
                 color: DSColors.primary,
+                minHeight: 140,
                 onTap: () => context.push('/scan', extra: {'mode': 'pod'}),
                 details: 'dashboard.scan.pod_details'.tr(),
               ).dsCtaEntry(delay: DSAnimations.stagger(7)),
@@ -168,10 +181,12 @@ class DashboardNewFeel extends StatelessWidget {
     super.key,
     required this.summary,
     required this.isDark,
+    required this.onRefresh,
   });
 
   final Map<String, dynamic> summary;
   final bool isDark;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +197,11 @@ class DashboardNewFeel extends StatelessWidget {
         DSSpacing.hMd,
         DashboardOverview(summary: summary, isDark: isDark),
         DSSpacing.hLg,
-        DashboardSyncSection(summary: summary, isDark: isDark),
+        DashboardSyncSection(
+          summary: summary,
+          isDark: isDark,
+          onRefresh: onRefresh,
+        ),
         DSSpacing.hLg,
         DashboardQuickActions(isDark: isDark),
         DSSpacing.hMassive,
@@ -206,233 +225,74 @@ class DashboardOverview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(DSSpacing.sm),
-      decoration: BoxDecoration(
-        color: isDark ? DSColors.secondarySurfaceDark : DSColors.successSurface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? DSColors.success : DSColors.successText,
-          width: 2,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'dashboard.stats.overview_title'.tr().toUpperCase(),
+          style: DSTypography.caption(
+            color: isDark
+                ? DSColors.labelSecondaryDark
+                : DSColors.labelSecondary,
+          ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'dashboard.stats.overview_title'.tr().toUpperCase(),
-            style: DSTypography.caption(
-              color: isDark
-                  ? DSColors.labelSecondaryDark
-                  : DSColors.labelSecondary,
-            ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
-          ),
-          DSSpacing.hMd,
-          Row(
-            children: [
-              Expanded(
-                child: DashboardStatCard(
-                  label: 'dashboard.stats.dispatch_label'.tr(),
-                  count: summary['pending_dispatches'] ?? 0,
-                  icon: Icons.local_shipping_rounded,
-                  color: DSColors.accent,
-                  isDark: isDark,
-                  onTap: () => context.push('/dispatches'),
-                ),
-              ),
-              DSSpacing.wMd,
-              Expanded(
-                child: DashboardStatCard(
-                  label: 'dashboard.stats.deliveries_label'.tr(),
-                  count: summary['pending_deliveries'] ?? 0,
-                  icon: Icons.local_shipping_outlined,
-                  color: DSColors.pending,
-                  isDark: isDark,
-                  onTap: () => context.push('/deliveries'),
-                ),
-              ),
-            ],
-          ),
-          DSSpacing.hMd,
-          Row(
-            children: [
-              Expanded(
-                child: DashboardStatCard(
-                  label: 'dashboard.stats.delivered_label'.tr(),
-                  count: summary['delivered_today'] ?? 0,
-                  icon: Icons.check_circle_rounded,
-                  color: DSColors.success,
-                  isDark: isDark,
-                  onTap: () => context.push('/delivered'),
-                ),
-              ),
-              DSSpacing.wMd,
-              Expanded(
-                child: DashboardStatCard(
-                  label: 'dashboard.stats.attempted_label'.tr(),
-                  count: summary['failed_delivery'] ?? 0,
-                  icon: Icons.warning_rounded,
-                  color: DSColors.error,
-                  isDark: isDark,
-                  onTap: () => context.push('/failed-deliveries'),
-                ),
-              ),
-            ],
-          ),
-          DSSpacing.hMd,
-          DashboardWideStatCard(
-            label: 'dashboard.stats.misrouted_label'.tr(),
-            count: summary['osa'] ?? 0,
-            icon: Icons.location_on_rounded,
-            color: DSColors.warning,
-            isDark: isDark,
-            onTap: () => context.push('/osa'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A compact stat card for the new-feel layout.
-class DashboardStatCard extends StatelessWidget {
-  const DashboardStatCard({
-    super.key,
-    required this.label,
-    required this.count,
-    required this.icon,
-    required this.color,
-    required this.isDark,
-    this.onTap,
-  });
-
-  final String label;
-  final int count;
-  final IconData icon;
-  final Color color;
-  final bool isDark;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final displayLabel = label
-        .split(' ')
-        .map(
-          (s) => s.isEmpty
-              ? ''
-              : '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}',
-        )
-        .join(' ');
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(DSSpacing.sm),
-        decoration: BoxDecoration(
-          color: isDark
-              ? color.withValues(alpha: 0.1)
-              : color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
-        ),
-        child: Row(
+        DSSpacing.hMd,
+        Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(DSSpacing.xs),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            DSSpacing.wSm,
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayLabel,
-                    style: DSTypography.caption(
-                      color: color,
-                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 10),
-                  ),
-                  Text(
-                    '$count',
-                    style: DSTypography.heading(
-                      color: color,
-                    ).copyWith(fontWeight: FontWeight.w900, fontSize: 22),
-                  ),
-                ],
+              child: StatCard(
+                label: 'dashboard.stats.dispatch_label'.tr(),
+                count: '${summary['pending_dispatches'] ?? 0}',
+                icon: Icons.local_shipping_rounded,
+                color: DSColors.accent,
+                onTap: () => context.push('/dispatches'),
+              ),
+            ),
+            DSSpacing.wMd,
+            Expanded(
+              child: StatCard(
+                label: 'dashboard.stats.deliveries_label'.tr(),
+                count: '${summary['pending_deliveries'] ?? 0}',
+                icon: Icons.local_shipping_outlined,
+                color: DSColors.pending,
+                onTap: () => context.push('/deliveries'),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// A wide stat card for secondary statistics.
-class DashboardWideStatCard extends StatelessWidget {
-  const DashboardWideStatCard({
-    super.key,
-    required this.label,
-    required this.count,
-    required this.icon,
-    required this.color,
-    required this.isDark,
-    this.onTap,
-  });
-
-  final String label;
-  final int count;
-  final IconData icon;
-  final Color color;
-  final bool isDark;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final displayLabel = label
-        .split(' ')
-        .map(
-          (s) => s.isEmpty
-              ? ''
-              : '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}',
-        )
-        .join(' ');
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(DSSpacing.sm),
-        decoration: BoxDecoration(
-          color: isDark
-              ? color.withValues(alpha: 0.05)
-              : color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.15), width: 1),
-        ),
-        child: Row(
+        DSSpacing.hMd,
+        Row(
           children: [
-            Icon(icon, color: color, size: 20),
-            DSSpacing.wSm,
-            Text(
-              displayLabel,
-              style: DSTypography.caption(
-                color: color,
-              ).copyWith(fontWeight: FontWeight.w600),
+            Expanded(
+              child: StatCard(
+                label: 'dashboard.stats.delivered_label'.tr(),
+                count: '${summary['delivered_today'] ?? 0}',
+                icon: Icons.check_circle_rounded,
+                color: DSColors.success,
+                onTap: () => context.push('/delivered'),
+              ),
             ),
-            const Spacer(),
-            Text(
-              '$count',
-              style: DSTypography.body(
-                color: color,
-              ).copyWith(fontWeight: FontWeight.w900),
+            DSSpacing.wMd,
+            Expanded(
+              child: StatCard(
+                label: 'dashboard.stats.attempted_label'.tr(),
+                count: '${summary['failed_delivery'] ?? 0}',
+                icon: Icons.warning_rounded,
+                color: DSColors.error,
+                onTap: () => context.push('/failed-deliveries'),
+              ),
             ),
           ],
         ),
-      ),
+        DSSpacing.hMd,
+        StatCard(
+          label: 'dashboard.stats.misrouted_label'.tr(),
+          count: '${summary['osa'] ?? 0}',
+          icon: Icons.location_on_rounded,
+          color: DSColors.warning,
+          onTap: () => context.push('/osa'),
+        ),
+      ],
     );
   }
 }
@@ -443,21 +303,24 @@ class DashboardSyncSection extends ConsumerWidget {
     super.key,
     required this.summary,
     required this.isDark,
+    required this.onRefresh,
   });
 
   final Map<String, dynamic> summary;
   final bool isDark;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pendingSync = summary['pending_sync'] ?? 0;
-    final isOnline = ref.watch(isOnlineProvider);
+    final connStatus = ref.watch(connectionStatusProvider);
+    final isOnline = connStatus == ConnectionStatus.online;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${'dashboard.stats.sync_label'.tr().toUpperCase()} & CONNECTIVITY',
+          'dashboard.stats.sync_connectivity_title'.tr().toUpperCase(),
           style: DSTypography.caption(
             color: isDark
                 ? DSColors.labelSecondaryDark
@@ -465,30 +328,35 @@ class DashboardSyncSection extends ConsumerWidget {
           ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
         ),
         DSSpacing.hMd,
+        // Plain Container — no wrapping GestureDetector — so every child
+        // widget owns its own gesture recognizer with zero arena competition.
         Container(
           padding: const EdgeInsets.all(DSSpacing.sm),
           decoration: BoxDecoration(
             color: DSColors.primary,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(DSStyles.radiusMD),
           ),
           child: Row(
             children: [
+              // Sync icon badge
               Container(
                 padding: const EdgeInsets.all(DSSpacing.sm),
                 decoration: BoxDecoration(
                   color: DSColors.white,
-                  borderRadius: BorderRadius.circular(100),
+                  borderRadius: BorderRadius.circular(DSStyles.radiusFull),
                 ),
                 child: const Icon(
                   Icons.sync_rounded,
                   color: DSColors.primary,
-                  size: 20,
+                  size: DSIconSize.md,
                 ),
               ),
               DSSpacing.wSm,
+              // Status text
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       pendingSync == 0
@@ -503,37 +371,87 @@ class DashboardSyncSection extends ConsumerWidget {
                     Row(
                       children: [
                         Container(
-                          width: 8,
-                          height: 8,
+                          width: DSSpacing.sm,
+                          height: DSSpacing.sm,
                           decoration: BoxDecoration(
-                            color: isOnline ? DSColors.white : DSColors.error,
-                            borderRadius: BorderRadius.circular(100),
+                            color: switch (connStatus) {
+                              ConnectionStatus.online => DSColors.white,
+                              ConnectionStatus.apiUnreachable =>
+                                DSColors.warning,
+                              ConnectionStatus.networkOffline => DSColors.error,
+                            },
+                            borderRadius: BorderRadius.circular(
+                              DSStyles.radiusFull,
+                            ),
                           ),
                         ),
                         DSSpacing.wXs,
-                        Text(
-                          isOnline
-                              ? 'dashboard.stats.online'.tr()
-                              : 'dashboard.stats.offline'.tr(),
-                          style: DSTypography.caption(color: DSColors.white),
-                        ),
+                        Text(switch (connStatus) {
+                          ConnectionStatus.online =>
+                            'dashboard.stats.online'.tr(),
+                          ConnectionStatus.apiUnreachable =>
+                            'dashboard.stats.api_unavailable'.tr(),
+                          ConnectionStatus.networkOffline =>
+                            'dashboard.stats.offline'.tr(),
+                        }, style: DSTypography.caption(color: DSColors.white)),
                       ],
                     ),
                   ],
                 ),
               ),
-              TextButton(
-                onPressed: () => context.push('/sync'),
-                style: TextButton.styleFrom(
-                  backgroundColor: DSColors.white,
-                  foregroundColor: DSColors.primary,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: DSSpacing.md),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              // SYNC NOW button — owns its tap; no competing parent.
+              if (isOnline)
+                Consumer(
+                  builder: (ctx, r, _) {
+                    final isSyncing = r.watch(syncManagerProvider).isSyncing;
+                    return TextButton.icon(
+                      onPressed: isSyncing
+                          ? null
+                          : () => showSyncOverlay(ctx, r),
+                      style: TextButton.styleFrom(
+                        backgroundColor: DSColors.white,
+                        foregroundColor: DSColors.primary,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: DSSpacing.md,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            DSStyles.radiusMD,
+                          ),
+                        ),
+                      ),
+                      icon: isSyncing
+                          ? const Icon(Icons.sync_rounded, size: DSIconSize.xs)
+                                .animate(onPlay: (c) => c.repeat())
+                                .rotate(
+                                  duration: const Duration(milliseconds: 1000),
+                                )
+                          : const Icon(Icons.sync_rounded, size: DSIconSize.xs),
+                      label: Text(
+                        isSyncing
+                            ? 'sync.actions.syncing'.tr().toUpperCase()
+                            : 'sync.actions.sync_now'.tr().toUpperCase(),
+                        style: DSTypography.button(
+                          color: isSyncing
+                              ? DSColors.primary.withValues(alpha: 0.5)
+                              : DSColors.primary,
+                          fontSize: DSTypography.sizeSm,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                child: Text('dashboard.actions.sync'.tr().toUpperCase()),
+              // Chevron navigates to sync history — separate tap target.
+              IconButton(
+                onPressed: () => context.push('/sync'),
+                icon: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: DSColors.white,
+                  size: DSIconSize.md,
+                ),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
               ),
             ],
           ),
@@ -566,92 +484,27 @@ class DashboardQuickActions extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: DashboardActionCard(
-                label: 'dashboard.actions.pod_action'.tr(),
-                sublabel: 'dashboard.actions.pod_subtitle'.tr(),
-                icon: Icons.camera_alt_rounded,
-                color: DSColors.primary,
-                isDark: isDark,
-                onTap: () => context.push('/scan', extra: {'mode': 'pod'}),
+              child: ScanButton(
+                label: 'dashboard.actions.dispatch_action'.tr(),
+                details: 'dashboard.actions.dispatch_subtitle'.tr(),
+                icon: Icons.qr_code_scanner_rounded,
+                color: DSColors.accent,
+                onTap: () => context.push('/scan', extra: {'mode': 'dispatch'}),
               ),
             ),
             DSSpacing.wMd,
             Expanded(
-              child: DashboardActionCard(
-                label: 'dashboard.actions.dispatch_action'.tr(),
-                sublabel: 'dashboard.actions.dispatch_subtitle'.tr(),
-                icon: Icons.qr_code_scanner_rounded,
-                color: DSColors.accent,
-                isDark: isDark,
-                onTap: () => context.push('/scan', extra: {'mode': 'dispatch'}),
+              child: ScanButton(
+                label: 'dashboard.actions.pod_action'.tr(),
+                details: 'dashboard.actions.pod_subtitle'.tr(),
+                icon: Icons.camera_alt_rounded,
+                color: DSColors.primary,
+                onTap: () => context.push('/scan', extra: {'mode': 'pod'}),
               ),
             ),
           ],
         ),
       ],
-    );
-  }
-}
-
-/// A card for quick actions on the dashboard.
-class DashboardActionCard extends StatelessWidget {
-  const DashboardActionCard({
-    super.key,
-    required this.label,
-    required this.sublabel,
-    required this.icon,
-    required this.color,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  final String label;
-  final String sublabel;
-  final IconData icon;
-  final Color color;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 140,
-        padding: const EdgeInsets.all(DSSpacing.md),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(DSSpacing.sm),
-              decoration: BoxDecoration(
-                color: DSColors.white,
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const Spacer(),
-            Text(
-              label,
-              style: DSTypography.body(
-                color: DSColors.white,
-              ).copyWith(fontWeight: FontWeight.w900),
-            ),
-            Text(
-              sublabel,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: DSTypography.caption(
-                color: DSColors.white,
-              ).copyWith(fontSize: 10, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

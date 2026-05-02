@@ -726,7 +726,7 @@ class _DeliveryStatusListScreenState
       if (index == slot) {
         return const Padding(
           padding: EdgeInsets.only(bottom: DSSpacing.sm),
-          child: OfflineBanner(isMinimal: true),
+          child: ConnectionStatusBanner(isMinimal: true),
         );
       }
       slot++;

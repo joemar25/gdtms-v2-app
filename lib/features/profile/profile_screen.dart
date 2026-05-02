@@ -229,7 +229,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         : '-';
     final isActive = courier['is_active'] != false;
     final isCompact = ref.watch(compactModeProvider);
-    final isOnline = ref.watch(isOnlineProvider);
+    final connStatus = ref.watch(connectionStatusProvider);
+    final isOnline = connStatus == ConnectionStatus.online;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
@@ -281,8 +282,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               children: [
                 // ── Status banners ─────────────────────────────────────────
-                if (!isOnline) const OfflineBanner(),
-                if (!isOnline) DSSpacing.hMd,
+                // Self-hides when online; no manual guard needed.
+                const ConnectionStatusBanner(
+                  margin: EdgeInsets.only(bottom: DSSpacing.lg),
+                ),
                 if (!isActive) _AccountInactiveBanner(),
                 if (!isActive) DSSpacing.hMd,
 
@@ -616,9 +619,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       icon: Icons.bug_report_outlined,
                       iconColor: DSColors.warning,
                       title: 'profile.diagnostics.report_issue'.tr(),
-                      subtitle: isOnline
-                          ? 'profile.diagnostics.report_issue_sub'.tr()
-                          : 'profile.diagnostics.offline_warning'.tr(),
+                      subtitle: switch (connStatus) {
+                        ConnectionStatus.online =>
+                          'profile.diagnostics.report_issue_sub'.tr(),
+                        ConnectionStatus.apiUnreachable =>
+                          'profile.diagnostics.api_warning'.tr(),
+                        ConnectionStatus.networkOffline =>
+                          'profile.diagnostics.offline_warning'.tr(),
+                      },
                       onTap: isOnline ? () => context.push('/report') : null,
                     ),
                     _CardDivider(isDark: isDark),

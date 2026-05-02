@@ -66,8 +66,8 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
   }
 
   Future<void> _load() async {
-    final isOnline = ref.read(isOnlineProvider);
-    if (!isOnline) {
+    final status = ref.read(connectionStatusProvider);
+    if (status != ConnectionStatus.online) {
       setState(() => _loading = false);
       return;
     }
@@ -152,7 +152,12 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
   Widget build(BuildContext context) {
     ref.listen<bool>(compactModeProvider, (_, _) => _load());
     final isCompact = ref.watch(compactModeProvider);
-    final isOnline = ref.watch(isOnlineProvider);
+    final status = ref.watch(connectionStatusProvider);
+    final isOnline = status == ConnectionStatus.online;
+
+    final offlineMessage = status == ConnectionStatus.apiUnreachable
+        ? 'Server unavailable. Pending dispatches cannot be loaded.'
+        : 'Viewing pending dispatches requires an internet connection.';
 
     return Scaffold(
       appBar: AppHeaderBar(
@@ -166,20 +171,17 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
         ],
       ),
       body: !isOnline
-          ? OfflinePlaceholder(
-              onRetry: _load,
-              message:
-                  'Viewing pending dispatches requires an internet connection.',
-            )
+          ? OfflinePlaceholder(onRetry: _load, message: offlineMessage)
           : _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
               child: _dispatches.isEmpty
-                  ? ListView(
-                      children: const [
-                        SizedBox(
-                          height: DSIconSize.heroSm,
+                  ? CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: const [
+                        SliverFillRemaining(
+                          hasScrollBody: false,
                           child: EmptyState(message: 'No pending dispatches.'),
                         ),
                       ],

@@ -223,7 +223,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               DSSpacing.md,
               0,
             ),
-            child: const OfflineBanner(
+            child: const ConnectionStatusBanner(
               isMinimal: true,
               margin: EdgeInsets.zero,
             ),

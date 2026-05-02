@@ -57,7 +57,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
   @override
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncManagerProvider);
-    final isOnline = ref.watch(isOnlineProvider);
+    final connectionStatus = ref.watch(connectionStatusProvider);
 
     ref.listen<SyncState>(syncManagerProvider, (prev, next) {
       if (prev?.entries.length != next.entries.length) {
@@ -73,11 +73,12 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
       body: SecureView(
         child: Column(
           children: [
-            SyncHeader(isOnline: isOnline),
+            SyncHeader(connectionStatus: connectionStatus),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  if (ref.read(isOnlineProvider)) {
+                  if (ref.read(connectionStatusProvider) ==
+                      ConnectionStatus.online) {
                     await ref.read(syncManagerProvider.notifier).processQueue();
                   }
                   await ref.read(syncManagerProvider.notifier).loadEntries();

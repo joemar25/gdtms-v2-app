@@ -41,6 +41,7 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/helpers/formatters.dart';
+import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
@@ -100,11 +101,13 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final isOnline = ref.read(isOnlineProvider);
-    if (!isOnline) {
+    final connStatus = ref.read(connectionStatusProvider);
+    if (connStatus != ConnectionStatus.online) {
       showErrorNotification(
         context,
-        'Profile updates require an internet connection.',
+        connStatus == ConnectionStatus.apiUnreachable
+            ? 'Cannot save profile — server unavailable.'
+            : 'Profile updates require an internet connection.',
       );
       return;
     }
@@ -209,7 +212,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── Profile Picture ──────────────────────────────────────
+                const ConnectionStatusBanner(
+                  isMinimal: true,
+                  margin: EdgeInsets.only(bottom: DSSpacing.lg),
+                ), // ── Profile Picture ──────────────────────────────────────
                 Center(
                   child: GestureDetector(
                     onTap: _pickImage,

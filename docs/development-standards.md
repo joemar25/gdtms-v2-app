@@ -267,10 +267,97 @@ Use a logging package (like `logger`) or custom debug wrappers.
 
 ## Testing Requirements
 
-### Test-First Mindset
+> 🧪 **Non-Negotiable**: Every feature addition and every meaningful update **must** ship with a corresponding test. No test, no merge. Tests are not optional polish — they are part of the definition of done.
 
-- Write unit tests for your data parsing and domain models.
-- Write unit tests for local SQLite DAO logic.
+---
+
+### 18 — Test Coverage Is Mandatory
+
+Every PR that adds or modifies behavior **must** include at least one new or updated test that exercises that behavior directly. The test must fail before the change and pass after it.
+
+**What always needs a test:**
+
+| Change type | Minimum test required |
+| --- | --- |
+| New provider / notifier | Unit test covering each state transition |
+| New widget with conditional rendering | Widget test for each display branch |
+| Business-logic guard (offline check, time window, etc.) | Unit test for each case (true / false / edge) |
+| New enum with UI mapping | Test that every enum value maps to a distinct UI output |
+| Bug fix | Regression test that reproduces the bug and confirms the fix |
+| Translation key added | Ensure the key is present in both `en.json` and `fil.json` (manual checklist or golden test) |
+
+---
+
+### 19 — Test File Location & Naming
+
+Mirror the `lib/` directory structure exactly under `test/`:
+
+```text
+lib/features/delivery/delivery_update_screen.dart
+  → test/features/delivery/delivery_update_screen_test.dart
+
+lib/shared/widgets/offline_banner.dart
+  → test/shared/widgets/offline_banner_test.dart
+
+lib/core/providers/connectivity_provider.dart
+  → test/core/providers/connectivity_provider_test.dart
+```
+
+- One test file per source file.
+- Test file name = source file name + `_test.dart`.
+- Do **not** create a single catch-all `all_tests.dart`.
+
+---
+
+### 20 — Test Types and When to Use Each
+
+#### Unit Tests (most common)
+
+Use for providers, notifiers, DAOs, helpers, and pure logic functions.
+
+```dart
+test('connectionStatusProvider returns apiUnreachable when network is up but API fails', () {
+  // arrange / act / assert
+});
+```
+
+#### Widget Tests
+
+Use for any widget that has conditional UI branches (e.g., shows different icons or text per state). Pump with `ProviderScope` overrides to inject controlled state.
+
+```dart
+testWidgets('shows cloud_off icon when API is unreachable', (tester) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [connectionStatusProvider.overrideWithValue(ConnectionStatus.apiUnreachable)],
+      child: const MaterialApp(home: ConnectionStatusBanner()),
+    ),
+  );
+  expect(find.byIcon(Icons.cloud_off_rounded), findsOneWidget);
+});
+```
+
+#### Integration Tests
+
+Use sparingly — only for end-to-end flows that span multiple providers and screens (e.g., full sync cycle, login → dashboard bootstrap). Keep integration tests in `integration_test/`.
+
+---
+
+### 21 — Test Quality Rules
+
+- **No magic values** — use named constants or variables in tests. A reader must understand *why* a specific value was chosen.
+- **One assertion per concept** — group related expects in a single test, but don't mix unrelated scenarios.
+- **Descriptive test names** — the name must read as a sentence: `'returns apiUnreachable when network is up but API fails'`, not `'test1'`.
+- **No skipped tests without a ticket** — `skip:` or `@Skip` must include the reason and a ticket reference.
+- **No `expect(true, true)`** — if you cannot assert a meaningful property, the test adds no value.
+
+---
+
+### 22 — Test Maintenance
+
+- When you rename or move a provider / widget, rename the corresponding test file.
+- When you delete a feature, delete its test file.
+- When you change behavior that an existing test covers, **update the test first**, then change the source — this confirms you understand what the test was protecting.
 
 ---
 

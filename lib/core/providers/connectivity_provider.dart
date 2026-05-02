@@ -75,19 +75,45 @@ final apiReachabilityProvider = NotifierProvider<ApiReachabilityNotifier, bool>(
   ApiReachabilityNotifier.new,
 );
 
-/// A simple bool that is `true` when any non-none connectivity exists
-/// AND the API server is reachable.
-final isOnlineProvider = Provider<bool>((ref) {
-  final hasNetwork = ref
+/// True when the device has any active network interface (Wi-Fi, mobile data, etc.).
+///
+/// This is **independent** of API server reachability — the device can be
+/// network-connected while the API is down.
+final isNetworkOnlineProvider = Provider<bool>((ref) {
+  return ref
       .watch(connectivityStreamProvider)
       .when(
         data: (results) => results.any((r) => r != ConnectivityResult.none),
         loading: () => false,
         error: (_, _) => false,
       );
+});
 
-  if (!hasNetwork) return false;
+/// Three-state connection status that distinguishes network failures from API
+/// failures, enabling the UI to show accurate, distinct notifications.
+///
+/// - [ConnectionStatus.online]: device has network AND API is reachable.
+/// - [ConnectionStatus.networkOffline]: device has no internet connection.
+/// - [ConnectionStatus.apiUnreachable]: device is online but the API server
+///   cannot be reached.
+enum ConnectionStatus { online, networkOffline, apiUnreachable }
 
-  // Also check reachability
-  return ref.watch(apiReachabilityProvider);
+/// Provides a granular [ConnectionStatus] derived from both network and API
+/// reachability states.
+final connectionStatusProvider = Provider<ConnectionStatus>((ref) {
+  final hasNetwork = ref.watch(isNetworkOnlineProvider);
+  if (!hasNetwork) return ConnectionStatus.networkOffline;
+  final apiReachable = ref.watch(apiReachabilityProvider);
+  return apiReachable
+      ? ConnectionStatus.online
+      : ConnectionStatus.apiUnreachable;
+});
+
+/// A simple bool that is `true` only when both the device has network AND the
+/// API server is reachable.
+///
+/// Use [isNetworkOnlineProvider] for raw network state, or
+/// [connectionStatusProvider] for the full three-state view.
+final isOnlineProvider = Provider<bool>((ref) {
+  return ref.watch(connectionStatusProvider) == ConnectionStatus.online;
 });

@@ -17,6 +17,7 @@ class StatCard extends StatefulWidget {
     this.subdued = false,
     this.details,
     this.heroTag,
+    this.minHeight,
   });
 
   final String label;
@@ -27,6 +28,7 @@ class StatCard extends StatefulWidget {
   final bool subdued;
   final String? details;
   final String? heroTag;
+  final double? minHeight;
 
   @override
   State<StatCard> createState() => _StatCardState();
@@ -79,83 +81,121 @@ class _StatCardState extends State<StatCard>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
     final effectiveColor = widget.subdued
         ? widget.color.withValues(alpha: DSStyles.alphaDisabled)
         : widget.color;
     final isDisabled = widget.onTap == null;
 
+    final displayLabel = widget.label
+        .split(' ')
+        .map(
+          (s) => s.isEmpty
+              ? ''
+              : '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}',
+        )
+        .join(' ');
+
     final content = Container(
-      padding: EdgeInsets.symmetric(horizontal: 14, vertical: DSSpacing.md),
+      constraints: widget.minHeight != null
+          ? BoxConstraints(minHeight: widget.minHeight!)
+          : null,
+      padding: const EdgeInsets.all(DSSpacing.md),
       decoration: BoxDecoration(
-        color: cardBg,
+        color: isDark ? DSColors.cardDark : DSColors.cardLight,
         borderRadius: DSStyles.cardRadius,
         border: Border.all(
           color: widget.color.withValues(alpha: isDark ? 0.3 : 0.15),
-          width: DSStyles.borderWidth * 1.5,
+          width: DSStyles.strokeWidth,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.color.withValues(alpha: isDark ? 0.2 : 0.08),
+            color: widget.color.withValues(alpha: isDark ? 0.1 : 0.05),
             blurRadius: DSStyles.radiusLG,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(DSSpacing.sm),
+          Container(
+                padding: const EdgeInsets.all(DSSpacing.sm),
                 decoration: BoxDecoration(
-                  color: widget.color.withValues(alpha: DSStyles.alphaSoft),
+                  gradient: LinearGradient(
+                    colors: [
+                      widget.color.withValues(alpha: 0.2),
+                      widget.color.withValues(alpha: 0.1),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: widget.color.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
                 ),
                 child: SlideTransition(
                   position: _iconOffset,
                   child: Icon(
                     widget.icon,
                     color: effectiveColor,
-                    size: DSIconSize.sm,
+                    size: DSIconSize.md,
                   ),
                 ),
+              )
+              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .shimmer(
+                duration: DSAnimations.dHeroX4,
+                color: widget.color.withValues(alpha: 0.5),
               ),
-              const Spacer(),
-            ],
-          ),
-          DSSpacing.hSm,
-          Text(
-            widget.count,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: DSTypography.display(color: effectiveColor),
-          ),
-          DSSpacing.hXs,
-          Text(
-            widget.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: DSTypography.label(
-              color: isDark
-                  ? DSColors.labelSecondaryDark
-                  : DSColors.labelSecondary,
-            ).copyWith(letterSpacing: 1.1),
-          ),
-          if (widget.details != null) ...[
-            DSSpacing.hSm,
-            Text(
-              widget.details!,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: DSTypography.caption(
-                color: isDark
-                    ? DSColors.labelSecondaryDark
-                    : DSColors.labelSecondary,
-              ).copyWith(height: DSStyles.heightNormal),
+          DSSpacing.wSm,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  displayLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      DSTypography.label(
+                        color: isDark
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelSecondary,
+                      ).copyWith(
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                ),
+                Text(
+                  widget.count,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DSTypography.display(color: effectiveColor).copyWith(
+                    height: 1.1,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                  ),
+                ),
+                if (widget.details != null) ...[
+                  DSSpacing.hXs,
+                  Text(
+                    widget.details!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DSTypography.caption(
+                      color: isDark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
+                    ).copyWith(height: DSStyles.heightTight, fontSize: 10),
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -195,6 +235,7 @@ class ScanButton extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.details,
+    this.minHeight,
   });
 
   final String label;
@@ -202,6 +243,7 @@ class ScanButton extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
   final String? details;
+  final double? minHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +253,10 @@ class ScanButton extends StatelessWidget {
       onTap: onTap,
       child:
           Container(
-                padding: EdgeInsets.symmetric(
+                constraints: minHeight != null
+                    ? BoxConstraints(minHeight: minHeight!)
+                    : null,
+                padding: const EdgeInsets.symmetric(
                   vertical: DSSpacing.lg,
                   horizontal: DSSpacing.md,
                 ),
@@ -238,29 +283,35 @@ class ScanButton extends StatelessWidget {
                   ],
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: EdgeInsets.all(DSSpacing.md),
+                      padding: const EdgeInsets.all(DSSpacing.md),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: DSStyles.alphaSubtle),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(icon, color: color, size: DSIconSize.xl),
                     ),
-                    DSSpacing.hSm,
+                    DSSpacing.hMd,
                     Text(
                       label,
+                      textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: DSTypography.label(color: color).copyWith(
                         fontSize: DSTypography.sizeSm,
                         letterSpacing: DSTypography.lsExtraLoose,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                     if (details != null) ...[
                       DSSpacing.hSm,
                       Text(
                         details!,
+                        textAlign: TextAlign.center,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: DSTypography.caption(
@@ -268,7 +319,6 @@ class ScanButton extends StatelessWidget {
                               ? DSColors.labelSecondaryDark
                               : DSColors.labelSecondary,
                         ).copyWith(height: DSStyles.heightTight),
-                        textAlign: TextAlign.center,
                       ),
                     ],
                   ],

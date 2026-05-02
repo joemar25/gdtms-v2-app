@@ -90,7 +90,9 @@
       "pending_sync": "Syncing {count} items",
       "online": "Online",
       "offline": "Offline",
-      "overview_title": "Today's Overview"
+      "api_unavailable": "API Unavailable",
+      "overview_title": "Today's Overview",
+      "sync_connectivity_title": "Sync & Connectivity"
     },
     "actions": {
       "quick_title": "Quick Actions",
@@ -119,6 +121,11 @@
       "morning": "Good morning,",
       "afternoon": "Good afternoon,",
       "evening": "Good evening,"
+    },
+    "hero": {
+      "greeting": "Hello, {name}!",
+      "subtitle": "You have a great day ahead! Let's get these deliveries done.",
+      "primary_action": "START DELIVERING"
     }
   },
   "profile": {
@@ -189,7 +196,8 @@
     "diagnostics": {
       "report_issue": "Report an Issue",
       "report_issue_sub": "Send feedback or bug reports",
-      "offline_warning": "Cannot report issue while offline"
+      "offline_warning": "Cannot report issue while offline",
+      "api_warning": "Cannot report issue — server unavailable"
     },
     "info": {
       "copyright": "© {} Fastrak Services Inc.",
@@ -433,8 +441,10 @@
     "status": {
       "online": "Online",
       "offline": "Offline",
+      "api_unreachable": "API Unavailable",
       "last_sync": "Last sync: {}",
       "up_to_date": "Up to date",
+      "never_synced": "Never synced",
       "retention_days": "Sync history retention: {}",
       "retention_eligible": "History eligible for deletion",
       "retention_remaining": "History will be automatically cleared after {}"
@@ -459,6 +469,11 @@
     "empty": {
       "all_caught_up": "All caught up!",
       "no_pending": "No pending deliveries to sync."
+    },
+    "sheet": {
+      "pending": "Pending",
+      "synced": "Synced",
+      "failed": "Failed"
     }
   },
   "permissions": {

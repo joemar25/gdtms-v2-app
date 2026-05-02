@@ -4,8 +4,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:fsi_courier_app/core/constants.dart';
-import 'package:lottie/lottie.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class SuccessOverlay extends StatefulWidget {
@@ -36,7 +35,13 @@ class _SuccessOverlayState extends State<SuccessOverlay> {
   Widget build(BuildContext context) {
     return Container(
       color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
-      child: Center(child: Lottie.asset(AppAssets.animSuccess, repeat: false)),
+      child: Center(
+        child: const Icon(
+          Icons.check_circle_rounded,
+          color: DSColors.success,
+          size: 120,
+        ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack).fadeIn(),
+      ),
     );
   }
 }

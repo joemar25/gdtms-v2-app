@@ -3,12 +3,13 @@
 
 import 'package:flutter/material.dart';
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:lottie/lottie.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -23,6 +24,8 @@ class InitialSyncScreen extends ConsumerStatefulWidget {
 class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
   String _progressText = 'Preparing your data...';
   bool _done = false;
+  bool _canContinue = false;
+  Completer<void>? _animationCompleter;
 
   @override
   void initState() {
@@ -47,14 +50,26 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
     }
 
     if (!mounted) return;
+    _animationCompleter = Completer<void>();
     setState(() {
       _progressText = 'All set!';
       _done = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 1200));
+    // Wait exactly until the Lottie animation finishes
+    await _animationCompleter!.future;
+    // Add a tiny extra pause for UX
+    await Future.delayed(const Duration(milliseconds: 300));
+
     if (!mounted) return;
 
+    // Show the continue button instead of auto-navigating
+    setState(() {
+      _canContinue = true;
+    });
+  }
+
+  Future<void> _onContinue() async {
     debugPrint('[InitialSync] _runSync complete — marking initial sync done');
     // Persist the flag — the router guard will redirect to dashboard.
     await ref.read(authProvider.notifier).markInitialSyncCompleted();
@@ -77,7 +92,21 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                   width: DSIconSize.heroMd,
                   height: DSIconSize.heroMd,
                   child: _done
-                      ? Lottie.asset(AppAssets.animSuccess, repeat: false)
+                      ? Icon(
+                              Icons.check_circle_rounded,
+                              color: DSColors.success,
+                              size: DSIconSize.heroMd,
+                            )
+                            .animate(
+                              onComplete: (controller) {
+                                if (mounted &&
+                                    _animationCompleter != null &&
+                                    !_animationCompleter!.isCompleted) {
+                                  _animationCompleter!.complete();
+                                }
+                              },
+                            )
+                            .scale(duration: 600.ms, curve: Curves.easeOutBack)
                       : const SpinKitDoubleBounce(
                           color: DSColors.primary,
                           size: DSIconSize.heroMd,
@@ -115,6 +144,18 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                     backgroundColor: colorScheme.primary.withValues(
                       alpha: DSStyles.alphaSubtle,
                     ),
+                  )
+                else if (_canContinue)
+                  FilledButton.icon(
+                    onPressed: _onContinue,
+                    style: FilledButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: DSSpacing.xl,
+                        vertical: DSSpacing.sm,
+                      ),
+                    ),
+                    icon: const Icon(Icons.check_rounded, size: 18),
+                    label: const Text('Continue'),
                   ),
               ],
             ),

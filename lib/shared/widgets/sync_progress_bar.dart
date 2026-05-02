@@ -30,7 +30,7 @@ class SyncProgressBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final syncState = ref.watch(syncManagerProvider);
-    final isOnline = ref.watch(isOnlineProvider);
+    final connStatus = ref.watch(connectionStatusProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final pending = syncState.entries
@@ -92,8 +92,10 @@ class SyncProgressBar extends ConsumerWidget {
             Row(
               children: [
                 Icon(
-                  isOnline
+                  connStatus == ConnectionStatus.online
                       ? Icons.cloud_sync_outlined
+                      : connStatus == ConnectionStatus.networkOffline
+                      ? Icons.wifi_off_rounded
                       : Icons.cloud_off_outlined,
                   size: DSIconSize.xs,
                   color: Theme.of(context).brightness == Brightness.dark

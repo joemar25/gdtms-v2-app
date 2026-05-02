@@ -90,7 +90,9 @@
       "pending_sync": "Nag-si-sync ng {count} item",
       "online": "Online",
       "offline": "Offline",
-      "overview_title": "Pangkalahatang-ideya Ngayon"
+      "api_unavailable": "Hindi Available ang API",
+      "overview_title": "Pangkalahatang-ideya Ngayon",
+      "sync_connectivity_title": "Sync at Koneksyon"
     },
     "actions": {
       "quick_title": "Mabilisang Aksyon",
@@ -117,6 +119,11 @@
       "morning": "Magandang umaga,",
       "afternoon": "Magandang hapon,",
       "evening": "Magandang gabi,"
+    },
+    "hero": {
+      "greeting": "Kamusta, {name}!",
+      "subtitle": "Magandang araw! Simulan na natin ang mga deliveries.",
+      "primary_action": "MAGSIMULA"
     }
   },
   "profile": {
@@ -187,7 +194,8 @@
     "diagnostics": {
       "report_issue": "I-report ang Isyu",
       "report_issue_sub": "Ipadala ang feedback o bug report",
-      "offline_warning": "Hindi makapag-report ng isyu habang offline"
+      "offline_warning": "Hindi makapag-report ng isyu habang offline",
+      "api_warning": "Hindi ma-report ang isyu — hindi available ang server"
     },
     "info": {
       "copyright": "© {} Fastrak Services Inc.",
@@ -420,8 +428,10 @@
     "status": {
       "online": "Online",
       "offline": "Offline",
+      "api_unreachable": "Hindi Ma-access ang API",
       "last_sync": "Huling sync: {}",
       "up_to_date": "Naka-update na",
+      "never_synced": "Hindi pa na-sync",
       "retention_days": "Pagpapanatili ng kasaysayan ng sync: {}",
       "retention_eligible": "Ang kasaysayan ay maaari nang burahin",
       "retention_remaining": "Ang kasaysayan ay awtomatikong buburahin pagkalipas ng {}"
@@ -446,6 +456,11 @@
     "empty": {
       "all_caught_up": "Lahat ay ayos na!",
       "no_pending": "Walang mga nakabinbing pagpapadala na dapat i-sync."
+    },
+    "sheet": {
+      "pending": "Nakabinbin",
+      "synced": "Naka-sync",
+      "failed": "Nabigo"
     }
   },
   "permissions": {

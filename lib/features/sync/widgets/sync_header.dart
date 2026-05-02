@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/sync_progress_bar.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'sync_now_button.dart';
 
 class SyncHeader extends ConsumerStatefulWidget {
-  const SyncHeader({super.key, required this.isOnline});
+  const SyncHeader({super.key, required this.connectionStatus});
 
-  final bool isOnline;
+  final ConnectionStatus connectionStatus;
 
   @override
   ConsumerState<SyncHeader> createState() => _SyncHeaderState();
@@ -110,11 +112,15 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                           height: 6,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: widget.isOnline
-                                ? DSColors.success
-                                : DSColors.error,
+                            color: switch (widget.connectionStatus) {
+                              ConnectionStatus.online => DSColors.success,
+                              ConnectionStatus.apiUnreachable =>
+                                DSColors.warning,
+                              ConnectionStatus.networkOffline => DSColors.error,
+                            },
                             boxShadow: [
-                              if (widget.isOnline)
+                              if (widget.connectionStatus ==
+                                  ConnectionStatus.online)
                                 BoxShadow(
                                   color: DSColors.success.withValues(
                                     alpha: 0.5,
@@ -126,9 +132,14 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                         ),
                         DSSpacing.wSm,
                         Text(
-                          widget.isOnline
-                              ? 'sync.status.online'.tr()
-                              : 'sync.status.offline'.tr(),
+                          switch (widget.connectionStatus) {
+                            ConnectionStatus.online =>
+                              'sync.status.online'.tr(),
+                            ConnectionStatus.apiUnreachable =>
+                              'sync.status.api_unreachable'.tr(),
+                            ConnectionStatus.networkOffline =>
+                              'sync.status.offline'.tr(),
+                          },
                           style: DSTypography.label(
                             color: DSColors.white,
                           ).copyWith(fontSize: 10, letterSpacing: 0.5),
@@ -150,34 +161,9 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
         ),
         DSSectionHeader(
           title: 'sync.list.history_title'.tr(),
-          trailing: widget.isOnline
-              ? TextButton.icon(
-                  onPressed: syncState.isSyncing
-                      ? null
-                      : () => ref
-                            .read(syncManagerProvider.notifier)
-                            .processQueue(),
-                  icon: syncState.isSyncing
-                      ? const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: DSColors.primary,
-                          ),
-                        )
-                      : const Icon(Icons.sync_rounded, size: 14),
-                  label: Text(
-                    syncState.isSyncing
-                        ? 'sync.actions.syncing'.tr()
-                        : 'sync.actions.sync_now'.tr(),
-                    style: DSTypography.button(
-                      color: DSColors.primary,
-                      fontSize: 12,
-                    ),
-                  ),
-                )
-              : null,
+          trailing: SyncNowButton(
+            isOnline: widget.connectionStatus == ConnectionStatus.online,
+          ),
         ),
       ],
     );

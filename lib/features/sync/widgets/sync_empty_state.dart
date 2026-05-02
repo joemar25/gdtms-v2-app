@@ -1,47 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:lottie/lottie.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
-class SyncEmptyState extends StatefulWidget {
+class SyncEmptyState extends StatelessWidget {
   const SyncEmptyState({super.key, required this.isSyncing});
 
   final bool isSyncing;
-
-  @override
-  State<SyncEmptyState> createState() => _SyncEmptyStateState();
-}
-
-class _SyncEmptyStateState extends State<SyncEmptyState>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  bool _loaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onLoaded(LottieComposition composition) {
-    if (_loaded) return;
-    _loaded = true;
-    _controller.duration = composition.duration;
-    _controller.forward().whenComplete(() {
-      if (mounted) {
-        _controller.value = 1.0;
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +23,7 @@ class _SyncEmptyStateState extends State<SyncEmptyState>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (widget.isSyncing) ...[
+                if (isSyncing) ...[
                   const SpinKitDoubleBounce(
                     color: DSColors.primary,
                     size: DSIconSize.heroMd,
@@ -67,13 +34,14 @@ class _SyncEmptyStateState extends State<SyncEmptyState>
                     style: DSTypography.heading(fontSize: DSTypography.sizeMd),
                   ),
                 ] else ...[
-                  Lottie.asset(
-                    AppAssets.animSuccess,
-                    width: DSIconSize.lg,
-                    height: DSIconSize.heroMd * 2.0,
-                    controller: _controller,
-                    onLoaded: _onLoaded,
-                  ),
+                  Icon(
+                        Icons.check_circle_rounded,
+                        color: DSColors.success,
+                        size: DSIconSize.heroMd,
+                      )
+                      .animate()
+                      .scale(duration: 500.ms, curve: Curves.easeOutBack)
+                      .fadeIn(),
                   DSSpacing.hMd,
                   Text(
                     'sync.empty.all_caught_up'.tr(),

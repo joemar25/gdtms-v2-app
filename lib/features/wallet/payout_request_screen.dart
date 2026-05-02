@@ -38,11 +38,11 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/config.dart';
-import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/utils/formatters.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/payout_summary_card.dart';
@@ -329,54 +329,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isOnline = ref.watch(isOnlineProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Standard scaffolding following FSI Design System rules.
     final scaffoldBg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
     final appBarBg = isDark ? DSColors.cardDark : DSColors.cardLight;
-
-    if (!isOnline) {
-      return SecureView(
-        child: Scaffold(
-          backgroundColor: scaffoldBg,
-          appBar: AppHeaderBar(
-            title: widget.isConsolidation
-                ? 'wallet.request.appbar_title_consolidate'.tr()
-                : 'wallet.request.appbar_title'.tr(),
-            backgroundColor: appBarBg,
-          ),
-          body: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.wifi_off_rounded,
-                  size: DSIconSize.xl,
-                  color: DSColors.error,
-                ),
-                DSSpacing.hMd,
-                Text(
-                  'wallet.request.offline_title'.tr(),
-                  style: DSTypography.heading().copyWith(
-                    fontSize: DSTypography.sizeMd,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                DSSpacing.hSm,
-                Text(
-                  'wallet.request.offline_body'.tr(),
-                  textAlign: TextAlign.center,
-                  style: DSTypography.caption(
-                    color: DSColors.accent,
-                  ).copyWith(fontSize: DSTypography.sizeMd),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
 
     return SecureView(
       child: Scaffold(
@@ -438,14 +395,24 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             ),
           ),
         ),
-        body: RefreshIndicator(
-          onRefresh: _fetchPreview,
-          color: DSColors.primary,
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _previewData == null
-              ? _buildErrorState()
-              : _buildContent(),
+        body: Column(
+          children: [
+            const ConnectionStatusBanner(
+              isMinimal: true,
+              margin: EdgeInsets.only(bottom: DSSpacing.sm),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _fetchPreview,
+                color: DSColors.primary,
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _previewData == null
+                    ? _buildErrorState()
+                    : _buildContent(),
+              ),
+            ),
+          ],
         ),
       ),
     );

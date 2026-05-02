@@ -159,8 +159,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               : RefreshIndicator(
                   onRefresh: _onRefresh,
                   child: isNewFeel
-                      ? DashboardNewFeel(summary: _summary, isDark: isDark)
-                      : DashboardDefault(summary: _summary, isDark: isDark),
+                      ? DashboardNewFeel(
+                          summary: _summary,
+                          isDark: isDark,
+                          onRefresh: _onRefresh,
+                        )
+                      : DashboardDefault(
+                          summary: _summary,
+                          isDark: isDark,
+                          onRefresh: _onRefresh,
+                        ),
                 ),
         ),
       ),

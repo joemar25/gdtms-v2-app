@@ -394,7 +394,7 @@ class _SyncPillContent extends ConsumerWidget {
         );
       }),
     );
-    final isOnline = ref.watch(isOnlineProvider);
+    final connStatus = ref.watch(connectionStatusProvider);
 
     final hasActivity = isSyncing || pending > 0 || failed > 0;
     final top = MediaQuery.of(context).padding.top;
@@ -463,8 +463,10 @@ class _SyncPillContent extends ConsumerWidget {
                         ],
                       ] else ...[
                         Icon(
-                          isOnline
+                          connStatus == ConnectionStatus.online
                               ? Icons.cloud_sync_outlined
+                              : connStatus == ConnectionStatus.networkOffline
+                              ? Icons.wifi_off_rounded
                               : Icons.cloud_off_outlined,
                           size: DSIconSize.xs,
                           color: failed > 0

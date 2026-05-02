@@ -314,13 +314,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         DSSpacing.xl,
                       ),
                       children: [
-                        // ── Offline banner ─────────────────────────────────────
-                        if (!isOnline)
-                          OfflineBanner(
-                            isMinimal: true,
-                            customMessage: 'wallet.screen.offline_message'.tr(),
-                            margin: const EdgeInsets.only(bottom: DSSpacing.md),
-                          ),
+                        // ── Connection status banner ─────────────────────────
+                        // Self-hides when online.
+                        ConnectionStatusBanner(
+                          isMinimal: true,
+                          customOfflineMessage: 'wallet.screen.offline_message'
+                              .tr(),
+                          margin: const EdgeInsets.only(bottom: DSSpacing.md),
+                        ),
 
                         // ── Already Submitted Notice ───────────────────────────
                         if (isOnline && hasExistingRequestToday)

@@ -770,36 +770,47 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                               children: [
                                 Consumer(
                                   builder: (_, ref, _) {
-                                    final isOnline = ref.watch(
-                                      isOnlineProvider,
+                                    final connStatus = ref.watch(
+                                      connectionStatusProvider,
                                     );
+                                    final isOnline =
+                                        connStatus == ConnectionStatus.online;
+                                    final isApiError =
+                                        connStatus ==
+                                        ConnectionStatus.apiUnreachable;
+                                    final dimColor = DSColors.white.withValues(
+                                      alpha: DSStyles.alphaDisabled,
+                                    );
+                                    final warnColor = DSColors.warning;
+                                    final iconColor = isOnline
+                                        ? dimColor
+                                        : warnColor;
+                                    final icon = isOnline
+                                        ? Icons.wifi_rounded
+                                        : isApiError
+                                        ? Icons.cloud_off_rounded
+                                        : Icons.wifi_off_rounded;
+                                    final message = isOnline
+                                        ? 'Dispatch scanning requires an internet connection.'
+                                        : isApiError
+                                        ? 'Server unavailable — dispatch scanning cannot connect.'
+                                        : 'You are offline — dispatch scanning unavailable.';
                                     return Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
-                                          isOnline
-                                              ? Icons.wifi_rounded
-                                              : Icons.wifi_off_rounded,
+                                          icon,
                                           size: DSIconSize.xs,
-                                          color: isOnline
-                                              ? DSColors.white.withValues(
-                                                  alpha: DSStyles.alphaDisabled,
-                                                )
-                                              : DSColors.warning,
+                                          color: iconColor,
                                         ),
                                         DSSpacing.wXs,
                                         Text(
-                                          isOnline
-                                              ? 'Dispatch scanning requires an internet connection.'
-                                              : 'You are offline — dispatch scanning unavailable.',
+                                          message,
                                           style:
                                               DSTypography.body(
                                                 color: isOnline
-                                                    ? DSColors.white.withValues(
-                                                        alpha: DSStyles
-                                                            .alphaDisabled,
-                                                      )
-                                                    : DSColors.warning,
+                                                    ? dimColor
+                                                    : warnColor,
                                               ).copyWith(
                                                 fontSize: DSTypography.sizeSm,
                                               ),
