@@ -235,7 +235,7 @@ class DashboardOverview extends StatelessWidget {
                 ? DSColors.labelSecondaryDark
                 : DSColors.labelSecondary,
           ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
-        ),
+        ).dsFadeEntry(delay: DSAnimations.stagger(0)),
         DSSpacing.hMd,
         Row(
           children: [
@@ -246,7 +246,7 @@ class DashboardOverview extends StatelessWidget {
                 icon: Icons.local_shipping_rounded,
                 color: DSColors.accent,
                 onTap: () => context.push('/dispatches'),
-              ),
+              ).dsCardEntry(delay: DSAnimations.stagger(1)),
             ),
             DSSpacing.wMd,
             Expanded(
@@ -256,7 +256,7 @@ class DashboardOverview extends StatelessWidget {
                 icon: Icons.local_shipping_outlined,
                 color: DSColors.pending,
                 onTap: () => context.push('/deliveries'),
-              ),
+              ).dsCardEntry(delay: DSAnimations.stagger(2)),
             ),
           ],
         ),
@@ -270,7 +270,7 @@ class DashboardOverview extends StatelessWidget {
                 icon: Icons.check_circle_rounded,
                 color: DSColors.success,
                 onTap: () => context.push('/delivered'),
-              ),
+              ).dsCardEntry(delay: DSAnimations.stagger(3)),
             ),
             DSSpacing.wMd,
             Expanded(
@@ -280,7 +280,7 @@ class DashboardOverview extends StatelessWidget {
                 icon: Icons.warning_rounded,
                 color: DSColors.error,
                 onTap: () => context.push('/failed-deliveries'),
-              ),
+              ).dsCardEntry(delay: DSAnimations.stagger(4)),
             ),
           ],
         ),
@@ -291,7 +291,7 @@ class DashboardOverview extends StatelessWidget {
           icon: Icons.location_on_rounded,
           color: DSColors.warning,
           onTap: () => context.push('/osa'),
-        ),
+        ).dsCardEntry(delay: DSAnimations.stagger(5)),
       ],
     );
   }
@@ -326,7 +326,7 @@ class DashboardSyncSection extends ConsumerWidget {
                 ? DSColors.labelSecondaryDark
                 : DSColors.labelSecondary,
           ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
-        ),
+        ).dsFadeEntry(delay: DSAnimations.stagger(6)),
         DSSpacing.hMd,
         // Plain Container — no wrapping GestureDetector — so every child
         // widget owns its own gesture recognizer with zero arena competition.
@@ -455,7 +455,7 @@ class DashboardSyncSection extends ConsumerWidget {
               ),
             ],
           ),
-        ),
+        ).dsCardEntry(delay: DSAnimations.stagger(7)),
       ],
     );
   }
@@ -479,7 +479,7 @@ class DashboardQuickActions extends StatelessWidget {
                 ? DSColors.labelSecondaryDark
                 : DSColors.labelSecondary,
           ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
-        ),
+        ).dsFadeEntry(delay: DSAnimations.stagger(8)),
         DSSpacing.hMd,
         Row(
           children: [
@@ -490,7 +490,7 @@ class DashboardQuickActions extends StatelessWidget {
                 icon: Icons.qr_code_scanner_rounded,
                 color: DSColors.accent,
                 onTap: () => context.push('/scan', extra: {'mode': 'dispatch'}),
-              ),
+              ).dsCtaEntry(delay: DSAnimations.stagger(9)),
             ),
             DSSpacing.wMd,
             Expanded(
@@ -500,7 +500,7 @@ class DashboardQuickActions extends StatelessWidget {
                 icon: Icons.camera_alt_rounded,
                 color: DSColors.primary,
                 onTap: () => context.push('/scan', extra: {'mode': 'pod'}),
-              ),
+              ).dsCtaEntry(delay: DSAnimations.stagger(10)),
             ),
           ],
         ),
