@@ -85,7 +85,20 @@
       "sync_label": "SYNC",
       "sync_pending_details": "May nakabinbing pag-update.",
       "sync_all_synced_details": "Lahat naka-sync.",
-      "sync_no_activity_details": "Walang aktibidad."
+      "sync_no_activity_details": "Walang aktibidad.",
+      "synced_all": "Lahat Naka-sync",
+      "pending_sync": "Nag-si-sync ng {count} item",
+      "online": "Online",
+      "offline": "Offline",
+      "overview_title": "Pangkalahatang-ideya Ngayon"
+    },
+    "actions": {
+      "quick_title": "Mabilisang Aksyon",
+      "sync": "I-sync Ngayon",
+      "pod_action": "POD SCAN",
+      "pod_subtitle": "I-scan ang delivery barcode para sa POD",
+      "dispatch_action": "DISPATCH SCAN",
+      "dispatch_subtitle": "I-scan ang dispatch barcode para sa assignment"
     },
     "scan": {
       "dispatch_label": "SCAN DISPATCH",
@@ -148,6 +161,8 @@
       "auto_accept_confirm_message": "Awtomatikong tatanggapin ng setting na ito ang dispatches para sa iyo.",
       "compact_mode": "Compact Mode",
       "compact_mode_sub": "Ipakita ang mas maraming deliveries sa listahan",
+      "dashboard_feel": "Bagong Feel Dashboard",
+      "dashboard_feel_sub": "I-enable ang modernong layout ng dashboard",
       "retention_update_title": "I-update ang Sync Retention",
       "retention_update_message": "Papaltan ng setting na ito kung gaano katagal maiimbak nang lokal ang kasaysayan.",
       "settings_updated": "Na-update ang mga kagustuhan."

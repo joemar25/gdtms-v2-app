@@ -16,6 +16,7 @@ import 'package:fsi_courier_app/core/database/cleanup_service.dart';
 import 'package:fsi_courier_app/core/services/version_check_service.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
+import 'package:fsi_courier_app/core/settings/dashboard_feel_provider.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -47,12 +48,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     try {
       await ref.read(authProvider.notifier).initialize();
       final compactMode = await ref.read(appSettingsProvider).getCompactMode();
-      if (mounted) ref.read(compactModeProvider.notifier).setValue(compactMode);
+      final dashboardFeel = await ref
+          .read(appSettingsProvider)
+          .getDashboardFeel();
+      if (mounted) {
+        ref.read(compactModeProvider.notifier).setValue(compactMode);
+        ref.read(dashboardFeelProvider.notifier).setValue(dashboardFeel);
+      }
       // ignore: discarded_futures
       CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
       // Check for forced app updates (best-effort; failures are logged).
       if (mounted) {
-        await VersionCheckService(ref.read(apiClientProvider)).check(context);
+        // Use a timeout to prevent the splash screen from hanging if the server is slow.
+        await VersionCheckService(ref.read(apiClientProvider))
+            .check(context)
+            .timeout(
+              const Duration(seconds: 5),
+              onTimeout: () => debugPrint('[SPLASH] Version check timed out'),
+            );
       }
     } catch (_) {
       // Keep defaults on error — app proceeds to login.

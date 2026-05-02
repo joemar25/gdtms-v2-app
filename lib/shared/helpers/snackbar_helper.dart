@@ -55,6 +55,24 @@ class AppNotificationManager {
   static final List<_NotificationEntry> _entries = [];
   static OverlayEntry? _overlayEntry;
 
+  static void _dismiss(String id) {
+    _entries.removeWhere((e) => e.id == id);
+
+    if (_entries.isEmpty) {
+      if (_overlayEntry != null) {
+        final entry = _overlayEntry!;
+        _overlayEntry = null; // Null first to prevent re-entry
+        try {
+          entry.remove();
+        } catch (_) {
+          // Already removed
+        }
+      }
+    } else {
+      _overlayEntry?.markNeedsBuild();
+    }
+  }
+
   /// Entry point to display a new notification banner.
   /// Automatically manages stack height and auto-dismiss timer.
   static void show(
@@ -63,14 +81,7 @@ class AppNotificationManager {
   ) {
     final String id = UniqueKey().toString();
 
-    void close() {
-      _entries.removeWhere((e) => e.id == id);
-      _overlayEntry?.markNeedsBuild();
-      if (_entries.isEmpty) {
-        _overlayEntry?.remove();
-        _overlayEntry = null;
-      }
-    }
+    void close() => _dismiss(id);
 
     final banner = builder(id, close);
     _entries.insert(0, _NotificationEntry(id: id, banner: banner));
@@ -118,25 +129,11 @@ class AppNotificationManager {
                             child: Dismissible(
                               key: ValueKey('dismiss_up_${entry.id}'),
                               direction: DismissDirection.up,
-                              onDismissed: (_) {
-                                _entries.removeWhere((e) => e.id == entry.id);
-                                _overlayEntry?.markNeedsBuild();
-                                if (_entries.isEmpty) {
-                                  _overlayEntry?.remove();
-                                  _overlayEntry = null;
-                                }
-                              },
+                              onDismissed: (_) => _dismiss(entry.id),
                               child: Dismissible(
                                 key: ValueKey('dismiss_horiz_${entry.id}'),
                                 direction: DismissDirection.horizontal,
-                                onDismissed: (_) {
-                                  _entries.removeWhere((e) => e.id == entry.id);
-                                  _overlayEntry?.markNeedsBuild();
-                                  if (_entries.isEmpty) {
-                                    _overlayEntry?.remove();
-                                    _overlayEntry = null;
-                                  }
-                                },
+                                onDismissed: (_) => _dismiss(entry.id),
                                 child: entry.banner,
                               ),
                             ),

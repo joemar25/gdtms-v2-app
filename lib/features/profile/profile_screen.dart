@@ -51,6 +51,7 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
+import 'package:fsi_courier_app/core/settings/dashboard_feel_provider.dart';
 import 'package:fsi_courier_app/core/services/push_notification_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -414,6 +415,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onChanged: (v) async {
                         ref.read(compactModeProvider.notifier).setValue(v);
                         await ref.read(appSettingsProvider).setCompactMode(v);
+                        _showSettingsUpdated();
+                      },
+                    ),
+
+                    _CardDivider(isDark: isDark),
+                    DSSwitchTile(
+                      icon: Icons.auto_awesome_rounded,
+                      iconColor: DSColors.pending,
+                      title: 'profile.preferences.dashboard_feel'.tr(),
+                      subtitle: 'profile.preferences.dashboard_feel_sub'.tr(),
+                      value: ref.watch(dashboardFeelProvider),
+                      onChanged: (v) async {
+                        ref.read(dashboardFeelProvider.notifier).setValue(v);
+                        await ref.read(appSettingsProvider).setDashboardFeel(v);
                         _showSettingsUpdated();
                       },
                     ),

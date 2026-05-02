@@ -85,12 +85,27 @@
       "sync_label": "SYNC",
       "sync_pending_details": "Pending updates.",
       "sync_all_synced_details": "All synced.",
-      "sync_no_activity_details": "No activity."
+      "sync_no_activity_details": "No activity.",
+      "synced_all": "All Synced",
+      "pending_sync": "Syncing {count} items",
+      "online": "Online",
+      "offline": "Offline",
+      "overview_title": "Today's Overview"
+    },
+    "actions": {
+      "quick_title": "Quick Actions",
+      "sync": "Sync Now",
+      "pod_action": "POD SCAN",
+      "pod_subtitle": "Scan delivery barcode to update POD status",
+      "dispatch_action": "DISPATCH SCAN",
+      "dispatch_subtitle": "Scan dispatch barcode to accept assignments"
     },
     "scan": {
       "dispatch_label": "SCAN DISPATCH",
+      "dispatch_action": "DISPATCH",
       "dispatch_details": "Scan a dispatch barcode\nto check eligibility.",
       "pod_label": "SCAN POD",
+      "pod_action": "POD",
       "pod_details": "Scan a delivery barcode to\nfind and update POD."
     },
     "search": {
@@ -148,6 +163,8 @@
       "auto_accept_confirm_message": "Auto-accept will automatically accept dispatches on your behalf.",
       "compact_mode": "Compact Mode",
       "compact_mode_sub": "Show more deliveries in list view",
+      "dashboard_feel": "New Feel Dashboard",
+      "dashboard_feel_sub": "Enable a modern, premium dashboard layout",
       "retention_update_title": "Update Sync Retention",
       "retention_update_message": "Changing this setting will update how long history is kept locally.",
       "settings_updated": "Preferences updated."

@@ -40,6 +40,18 @@ class AppSettings {
     await prefs.setBool(AppKeys.compactMode, value);
   }
 
+  /// Returns true if the "New Feel" dashboard layout is enabled.
+  Future<bool> getDashboardFeel() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(AppKeys.dashboardFeel) ?? false;
+  }
+
+  /// Persists the user preference for the dashboard layout style.
+  Future<void> setDashboardFeel(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(AppKeys.dashboardFeel, value);
+  }
+
   Future<bool> getFollowSystemTheme() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(AppKeys.followSystemTheme) ?? false;

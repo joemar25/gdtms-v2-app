@@ -78,11 +78,10 @@ class DeliveryRecipientSection extends StatelessWidget {
     const fieldGap = DSSpacing.hMd;
 
     // Filter out 'MAILBOX' for express deliveries.
-    final filteredPlacementOptions =
-        kPlacementOptions.where((e) {
-          if (isExpress && e['value'] == 'MAILBOX') return false;
-          return true;
-        }).toList();
+    final filteredPlacementOptions = kPlacementOptions.where((e) {
+      if (isExpress && e['value'] == 'MAILBOX') return false;
+      return true;
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
