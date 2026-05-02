@@ -31,9 +31,11 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─── Flat list entry model ────────────────────────────────────────────────────
@@ -600,57 +602,11 @@ class _EmptyState extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             child: SizedBox(
               height: constraints.maxHeight,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: DSIconSize.xs,
-                      height: DSIconSize.xs,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? DSColors.secondarySurfaceDark
-                            : DSColors.secondarySurfaceLight,
-                        borderRadius: DSStyles.cardRadius,
-                      ),
-                      child: Icon(
-                        Icons.notifications_none_rounded,
-                        size: DSIconSize.xl,
-                        color: isDark
-                            ? DSColors.labelTertiaryDark
-                            : DSColors.labelTertiary,
-                      ),
-                    ).dsHeroEntry(),
-                    DSSpacing.hMd,
-                    Text(
-                      'All caught up',
-                      style: DSTypography.heading().copyWith(
-                        fontSize: DSTypography.sizeMd,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? DSColors.labelPrimaryDark
-                            : DSColors.labelPrimary,
-                        letterSpacing: -0.3,
-                      ),
-                    ).dsFadeEntry(
-                      delay: const Duration(milliseconds: 150),
-                      duration: const Duration(milliseconds: 350),
-                    ),
-                    DSSpacing.hSm,
-                    Text(
-                      'No notifications yet. Pull to refresh.',
-                      style: DSTypography.body().copyWith(
-                        fontSize: DSTypography.sizeMd,
-                        color: isDark
-                            ? DSColors.labelTertiaryDark
-                            : DSColors.labelTertiary,
-                      ),
-                    ).dsFadeEntry(
-                      delay: const Duration(milliseconds: 250),
-                      duration: const Duration(milliseconds: 350),
-                    ),
-                  ],
-                ),
+              child: EmptyState(
+                message: 'empty_states.notifications.title'.tr(),
+                subMessage: 'empty_states.notifications.subtitle'.tr(),
+                icon: Icons.notifications_none_rounded,
+                iconColor: DSColors.primary,
               ),
             ),
           ),

@@ -2,14 +2,13 @@
 // DOCS: docs/features/error-logs.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
-
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
-
 import 'package:fsi_courier_app/core/database/error_log_dao.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
+import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class ErrorLogsScreen extends StatefulWidget {
@@ -588,39 +587,11 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.check_circle_outline_rounded,
-            size: DSIconSize.heroSm,
-            color: DSColors.success,
-          ),
-          DSSpacing.hMd,
-          Text(
-            'No logs to show',
-            style: DSTypography.heading().copyWith(
-              fontSize: DSTypography.sizeMd,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          DSSpacing.hSm,
-          Text(
-            'Errors and warnings will appear here\nwhen they occur.',
-            textAlign: TextAlign.center,
-            style:
-                DSTypography.body(
-                  color: isDark
-                      ? DSColors.labelSecondaryDark
-                      : DSColors.labelSecondary,
-                ).copyWith(
-                  fontSize: DSTypography.sizeMd,
-                  height: DSStyles.heightRelaxed,
-                ),
-          ),
-        ],
-      ),
+    return EmptyState(
+      message: 'empty_states.error_logs.title'.tr(),
+      subMessage: 'empty_states.error_logs.subtitle'.tr(),
+      icon: Icons.check_circle_outline_rounded,
+      iconColor: DSColors.success,
     );
   }
 }

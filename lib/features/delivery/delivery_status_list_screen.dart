@@ -35,6 +35,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter/services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -412,15 +413,15 @@ class _DeliveryStatusListScreenState
   }
 
   String _emptyMessage() => switch (widget.status.toUpperCase()) {
-    'FOR_DELIVERY' => 'No active deliveries.',
-    'DELIVERED' => 'No delivered items today.',
-    'DISPATCHED' => 'No dispatched items.',
+    'FOR_DELIVERY' => 'empty_states.delivery.for_delivery'.tr(),
+    'DELIVERED' => 'empty_states.delivery.delivered'.tr(),
+    'DISPATCHED' => 'empty_states.delivery.dispatched'.tr(),
     'FAILED_DELIVERY' =>
       _failedSubFilter == 'rts'
-          ? 'No items for return today.'
-          : 'No items available for redelivery.',
-    'OSA' => 'No OSA mailpacks today.',
-    _ => 'No items found.',
+          ? 'empty_states.delivery.failed_rts'.tr()
+          : 'empty_states.delivery.failed_redelivery'.tr(),
+    'OSA' => 'empty_states.delivery.osa'.tr(),
+    _ => 'empty_states.delivery.generic'.tr(),
   };
 
   // ─── MARK: UI Building ─────────────────────────────────────────────────────
@@ -588,7 +589,9 @@ class _DeliveryStatusListScreenState
                         : displayed.isEmpty
                         ? DeliveryListEmptyState(
                             message: isSearching
-                                ? 'No results for "$_searchQuery".'
+                                ? 'empty_states.no_results'.tr(
+                                    namedArgs: {'query': _searchQuery},
+                                  )
                                 : _emptyMessage(),
                             status: widget.status,
                             isSearching: isSearching,
@@ -735,7 +738,7 @@ class _DeliveryStatusListScreenState
     if (ds == DeliveryStatus.osa && index == slot) {
       return DeliveryStatusInfoBanner(
         icon: Icons.inventory_2_rounded,
-        message: 'OSA items can\'t be opened. Return to FSI for verification.',
+        message: 'empty_states.delivery.info_osa'.tr(),
         statusColor: DeliveryCard.statusColor('OSA'),
         isDark: isDark,
       );
@@ -743,7 +746,7 @@ class _DeliveryStatusListScreenState
     if (ds == DeliveryStatus.delivered && index == slot) {
       return DeliveryStatusInfoBanner(
         icon: Icons.check_circle_rounded,
-        message: 'Delivered items are final and can\'t be reopened.',
+        message: 'empty_states.delivery.info_delivered'.tr(),
         statusColor: DeliveryCard.statusColor('DELIVERED'),
         isDark: isDark,
       );

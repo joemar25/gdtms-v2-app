@@ -500,5 +500,43 @@
       "label": "Notifications",
       "reason": "dispatch assignments and delivery alerts"
     }
+  },
+  "empty_states": {
+    "no_results": "No results for \"{query}\".",
+    "pull_to_refresh": "Pull down to refresh",
+    "dispatch": {
+      "title": "No pending dispatches",
+      "subtitle": "You're all caught up! Pull down to refresh if you're expecting a new batch."
+    },
+    "delivery": {
+      "for_delivery": "No pending deliveries.",
+      "delivered": "No delivered items today.",
+      "dispatched": "No dispatched items.",
+      "failed_redelivery": "No items available for redelivery.",
+      "failed_rts": "No items for return today.",
+      "osa": "No OSA mailpacks today.",
+      "generic": "No items found.",
+      "info_osa": "OSA items can't be opened. Return to FSI for verification.",
+      "info_delivered": "Delivered items are final and can't be reopened.",
+      "help": {
+        "title": "Failed Delivery & Payments",
+        "subtitle": "How things work in the system",
+        "item_redelivery_title": "Re-delivery of Failed Attempts",
+        "item_redelivery_desc": "Failed deliveries may be attempted again if still eligible and not yet verified on-site. After 3 unsuccessful attempts, the item may be marked for return.",
+        "item_return_title": "Return to FSI",
+        "item_return_desc": "If a delivery is returned to FSI, it will be reviewed by the site team for validation.",
+        "item_payment_title": "Payment Processing",
+        "item_payment_desc": "Validated items may be included in a payment request, subject to review and existing payment processes. Inclusion is not guaranteed.",
+        "footer_note": "This ensures your payments are tracked accurately without manual intervention."
+      }
+    },
+    "notifications": {
+      "title": "All caught up",
+      "subtitle": "No notifications yet. Pull to refresh."
+    },
+    "error_logs": {
+      "title": "No logs to show",
+      "subtitle": "Errors and warnings will appear here when they occur."
+    }
   }
 }

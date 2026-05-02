@@ -487,5 +487,43 @@
       "label": "Mga Abiso",
       "reason": "mga assignment sa dispatch at alerto sa delivery"
     }
+  },
+  "empty_states": {
+    "no_results": "Walang resulta para sa \"{query}\".",
+    "pull_to_refresh": "I-swipe pababa para i-refresh",
+    "dispatch": {
+      "title": "Walang nakabinbing dispatch",
+      "subtitle": "Tapos na ang lahat! I-swipe pababa para i-refresh kung may inaasahang bagong batch."
+    },
+    "delivery": {
+      "for_delivery": "Walang nakabinbing delivery.",
+      "delivered": "Walang naidala ngayong araw.",
+      "dispatched": "Walang naipadalang item.",
+      "failed_redelivery": "Walang item para sa redelivery.",
+      "failed_rts": "Walang item para sa return ngayong araw.",
+      "osa": "Walang OSA mailpack ngayong araw.",
+      "generic": "Walang nakitang item.",
+      "info_osa": "Hindi mabubuksan ang mga OSA. Ibalik sa FSI para sa beripikasyon.",
+      "info_delivered": "Ang mga naidala na ay pinal na at hindi na mabubuksan muli.",
+      "help": {
+        "title": "Failed Delivery at Pagbabayad",
+        "subtitle": "Paano gumagana ang system",
+        "item_redelivery_title": "Muling Paghahatid ng mga Nabigo",
+        "item_redelivery_desc": "Maaaring subukan muli ang mga nabigong delivery kung karapat-dapat pa at hindi pa nabe-verify. Pagkatapos ng 3 beses, maaari na itong ibalik.",
+        "item_return_title": "Ibalik sa FSI",
+        "item_return_desc": "Kung ang delivery ay ibinalik sa FSI, susuriin ito ng site team para sa balidasyon.",
+        "item_payment_title": "Proseso ng Pagbabayad",
+        "item_payment_desc": "Ang mga nalamang tama ay maaaring isama sa payout request, depende sa pagsusuri. Hindi garantisado ang pagsasama.",
+        "footer_note": "Sinisiguro nito na ang iyong mga bayad ay nasusubaybayan nang tama."
+      }
+    },
+    "notifications": {
+      "title": "Tapos na ang lahat",
+      "subtitle": "Wala pang abiso. I-swipe pababa para i-refresh."
+    },
+    "error_logs": {
+      "title": "Walang log na ipapakita",
+      "subtitle": "Lalabas dito ang mga error at warning kapag nangyari ang mga ito."
+    }
   }
 }

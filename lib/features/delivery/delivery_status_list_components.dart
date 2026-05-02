@@ -14,12 +14,13 @@
 //   • [DeliveryListEmptyState]      — empty / no-results placeholder
 //   • [DeliveryStatusInfoBanner]    — immutable-status info strip (OSA / Delivered)
 //   • [FailedDeliveryHelpSheet]     — bottom sheet explaining FD workflow & payments
-//   • [_FailedDeliveryHelpItem]     — single row inside [FailedDeliveryHelpSheet]
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
+import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 
 // ─────────────────────────────────────────────────
 // MARK: Empty State
@@ -50,60 +51,17 @@ class DeliveryListEmptyState extends StatelessWidget {
     final iconData = isSearching
         ? Icons.search_off_rounded
         : DeliveryCard.statusIcon(status);
-    final subtextColor = isDark
-        ? DSColors.labelTertiaryDark
-        : DSColors.labelTertiary;
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.6,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: DSIconSize.heroMd,
-                  height: DSIconSize.heroMd,
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: DSStyles.alphaSoft),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: statusColor.withValues(
-                        alpha: DSStyles.alphaSubtle,
-                      ),
-                      width: DSStyles.strokeWidth,
-                    ),
-                  ),
-                  child: Icon(
-                    iconData,
-                    size: DSIconSize.xl,
-                    color: statusColor.withValues(alpha: DSStyles.alphaMuted),
-                  ),
-                ),
-                DSSpacing.hMd,
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: DSTypography.label().copyWith(
-                    fontSize: DSTypography.sizeMd,
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? DSColors.labelPrimaryDark
-                        : DSColors.labelPrimary,
-                  ),
-                ),
-                DSSpacing.hSm,
-                Text(
-                  'Pull down to refresh',
-                  style: DSTypography.caption().copyWith(
-                    fontSize: DSTypography.sizeSm,
-                    color: subtextColor,
-                  ),
-                ),
-              ],
-            ),
+          child: EmptyState(
+            message: message,
+            subMessage: 'empty_states.pull_to_refresh'.tr(),
+            icon: iconData,
+            iconColor: statusColor,
           ),
         ),
       ],
@@ -240,7 +198,7 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Failed Delivery & Payments',
+                        'empty_states.delivery.help.title'.tr(),
                         style: DSTypography.heading().copyWith(
                           fontSize: DSTypography.sizeMd,
                           fontWeight: FontWeight.w700,
@@ -251,7 +209,7 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'How things work in the system',
+                        'empty_states.delivery.help.subtitle'.tr(),
                         style: DSTypography.caption().copyWith(
                           fontSize: DSTypography.sizeMd,
                           color: isDark
@@ -297,9 +255,10 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                 children: [
                   _FailedDeliveryHelpItem(
                     icon: Icons.replay_outlined,
-                    title: 'Re-delivery of Failed Attempts',
+                    title: 'empty_states.delivery.help.item_redelivery_title'
+                        .tr(),
                     description:
-                        'Failed deliveries may be attempted again if still eligible and not yet verified on-site. After 3 unsuccessful attempts, the item may be marked for return.',
+                        'empty_states.delivery.help.item_redelivery_desc'.tr(),
                     isDark: isDark,
                   ),
                   const Padding(
@@ -308,9 +267,9 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                   ),
                   _FailedDeliveryHelpItem(
                     icon: Icons.inventory_2_outlined,
-                    title: 'Return to FSI',
-                    description:
-                        'If a delivery is returned to FSI, it will be reviewed by the site team for validation.',
+                    title: 'empty_states.delivery.help.item_return_title'.tr(),
+                    description: 'empty_states.delivery.help.item_return_desc'
+                        .tr(),
                     isDark: isDark,
                   ),
                   const Padding(
@@ -319,9 +278,9 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                   ),
                   _FailedDeliveryHelpItem(
                     icon: Icons.account_balance_wallet_outlined,
-                    title: 'Payment Processing',
-                    description:
-                        'Validated items may be included in a payment request, subject to review and existing payment processes. Inclusion is not guaranteed.',
+                    title: 'empty_states.delivery.help.item_payment_title'.tr(),
+                    description: 'empty_states.delivery.help.item_payment_desc'
+                        .tr(),
                     isDark: isDark,
                   ),
                 ],
@@ -356,7 +315,7 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                   DSSpacing.wMd,
                   Expanded(
                     child: Text(
-                      'This ensures your payments are tracked accurately without manual intervention.',
+                      'empty_states.delivery.help.footer_note'.tr(),
                       style: DSTypography.body().copyWith(
                         fontSize: DSTypography.sizeSm,
                         color: failedDeliveryColor.withValues(

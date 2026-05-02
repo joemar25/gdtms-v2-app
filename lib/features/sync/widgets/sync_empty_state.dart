@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 
 class SyncEmptyState extends StatelessWidget {
   const SyncEmptyState({super.key, required this.isSyncing});
@@ -34,26 +34,11 @@ class SyncEmptyState extends StatelessWidget {
                     style: DSTypography.heading(fontSize: DSTypography.sizeMd),
                   ),
                 ] else ...[
-                  Icon(
-                        Icons.check_circle_rounded,
-                        color: DSColors.success,
-                        size: DSIconSize.heroMd,
-                      )
-                      .animate()
-                      .scale(duration: 500.ms, curve: Curves.easeOutBack)
-                      .fadeIn(),
-                  DSSpacing.hMd,
-                  Text(
-                    'sync.empty.all_caught_up'.tr(),
-                    style: DSTypography.heading(
-                      fontSize: DSTypography.sizeMd,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  DSSpacing.hSm,
-                  Text(
-                    'sync.empty.no_pending'.tr(),
-                    style: DSTypography.body(color: DSColors.labelTertiary),
+                  EmptyState(
+                    message: 'sync.empty.all_caught_up'.tr(),
+                    subMessage: 'sync.empty.no_pending'.tr(),
+                    icon: Icons.check_circle_rounded,
+                    iconColor: DSColors.success,
                   ),
                 ],
               ],

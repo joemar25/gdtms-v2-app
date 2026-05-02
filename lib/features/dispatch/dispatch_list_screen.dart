@@ -25,6 +25,7 @@
 //   Pops back to: DashboardScreen after successful dispatch confirmation
 // =============================================================================
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -179,10 +180,15 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
               child: _dispatches.isEmpty
                   ? CustomScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: const [
+                      slivers: [
                         SliverFillRemaining(
                           hasScrollBody: false,
-                          child: EmptyState(message: 'No pending dispatches.'),
+                          child: EmptyState(
+                            message: 'empty_states.dispatch.title'.tr(),
+                            subMessage: 'empty_states.dispatch.subtitle'.tr(),
+                            icon: Icons.local_shipping_rounded,
+                            iconColor: DSColors.primary,
+                          ),
                         ),
                       ],
                     )
