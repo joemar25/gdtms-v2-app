@@ -93,13 +93,7 @@ class ReportService {
         data: payload.toJson(),
         parser: (data) {
           if (data is Map) {
-            // Handle {report_id: ...} and {data: {report_id: ...}} wrappers.
-            final inner = data['data'];
-            final map = inner is Map ? inner : data;
-            return map['report_id']?.toString() ??
-                map['reference']?.toString() ??
-                map['id']?.toString() ??
-                '';
+            return data['report_id']?.toString() ?? '';
           }
           return '';
         },
