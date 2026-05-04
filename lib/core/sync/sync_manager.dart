@@ -228,7 +228,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
             );
             final uploadedImages = <Map<String, dynamic>>[];
             final api = ref.read(apiClientProvider);
-            final uploadPath = '/deliveries/${entry.barcode}/media';
+            final uploadPath = 'deliveries/${entry.barcode}/media';
 
             debugPrint(
               '[SYNC] media queue for ${entry.barcode}: ${pendingMedia.keys.join(', ')}',
@@ -242,10 +242,13 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               // selfie_2 -> selfie) while preserving compound types like
               // recipient_signature. split('_').first would wrongly reduce
               // recipient_signature -> recipient.
-              final baseType = kv.key.toString().replaceAll(
+              final rawType = kv.key.toString().replaceAll(
                 RegExp(r'_\d+$'),
                 '',
               );
+              final baseType = rawType == 'recipient_signature'
+                  ? 'signature'
+                  : rawType;
               final filePath = kv.value.toString();
 
               final file = File(filePath);
@@ -274,6 +277,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               ApiResult<Map<String, dynamic>> result = await api
                   .uploadMedia<Map<String, dynamic>>(
                     uploadPath,
+                    barcode: entry.barcode,
                     bytes: bytes,
                     filename: filename,
                     type: baseType,
@@ -405,7 +409,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
         final result = await retry<ApiResult<Map<String, dynamic>>>(
           () async {
-            final path = '/deliveries/${entry.barcode}';
+            final path = 'deliveries/${entry.barcode}';
             final res = await ref
                 .read(apiClientProvider)
                 .patch<Map<String, dynamic>>(
@@ -661,14 +665,23 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     await processQueue();
   }
 
-  /// Clears all failed entries and refreshes the list.
+  /// Clears all failed entries (and their media files) then refreshes the list.
   Future<void> clearFailed() async {
     final auth = ref.read(authProvider);
     if (auth.courier == null) return;
-    await ref
-        .read(syncOperationsDaoProvider)
-        .deleteAllFailed(auth.courier!['id'].toString());
-    await loadEntries(); // Reload list
+    final courierId = auth.courier!['id'].toString();
+    final db = await AppDatabase.getInstance();
+    final rows = await db.query(
+      'sync_operations',
+      columns: ['media_paths_json'],
+      where: "courier_id = ? AND status = 'failed'",
+      whereArgs: [courierId],
+    );
+    for (final row in rows) {
+      await _deleteMediaFiles(row['media_paths_json'] as String?);
+    }
+    await ref.read(syncOperationsDaoProvider).deleteAllFailed(courierId);
+    await loadEntries();
   }
 
   /// Dismisses a conflict operation.
@@ -679,14 +692,34 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     await loadEntries();
   }
 
-  /// Permanently deletes a single operation.
+  /// Permanently deletes a single operation and its associated media files.
   Future<void> deleteSingle(String id) async {
     final db = await AppDatabase.getInstance();
+    final rows = await db.query(
+      'sync_operations',
+      columns: ['media_paths_json'],
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (rows.isNotEmpty) {
+      await _deleteMediaFiles(rows.first['media_paths_json'] as String?);
+    }
     await db.delete('sync_operations', where: 'id = ?', whereArgs: [id]);
     await loadEntries();
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
+
+  Future<void> _deleteMediaFiles(String? mediaPathsJson) async {
+    if (mediaPathsJson == null) return;
+    try {
+      final map = jsonDecode(mediaPathsJson) as Map<String, dynamic>;
+      for (final path in map.values) {
+        final f = File(path as String);
+        if (await f.exists()) await f.delete();
+      }
+    } catch (_) {}
+  }
 
   String _errorMessage(ApiResult<Map<String, dynamic>> result) {
     return switch (result) {
@@ -713,13 +746,9 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           .read(appSettingsProvider)
           .getSyncRetentionDays();
       const deliveryMs = kLocalDataRetentionDays * Duration.millisecondsPerDay;
-      const paidDeliveryMs =
-          kPaidDeliveryRetentionDays * Duration.millisecondsPerDay;
       await Future.wait([
         ref.read(syncOperationsDaoProvider).deleteOldSynced(retentionDays),
-        ref
-            .read(localDeliveryDaoProvider)
-            .deleteOldSynced(deliveryMs, paidRetentionMs: paidDeliveryMs),
+        ref.read(localDeliveryDaoProvider).deleteOldSynced(deliveryMs),
       ]);
     } catch (_) {
       // Cleanup failures are non-critical — silently ignored.

@@ -8,14 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
-import 'package:fsi_courier_app/core/services/error_log_service.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'api_result.dart';
 export 'api_result.dart';
-import 's3_upload_service.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(
@@ -29,7 +28,7 @@ class ApiClient {
     : _authStorage = authStorage {
     _dio = Dio(
       BaseOptions(
-        baseUrl: apiBaseUrl,
+        baseUrl: apiBaseUrl.endsWith('/') ? apiBaseUrl : '$apiBaseUrl/',
         connectTimeout: kApiConnectTimeout,
         receiveTimeout: kApiReceiveTimeout,
         sendTimeout: kApiSendTimeout,
@@ -231,17 +230,21 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     required T Function(dynamic) parser,
   }) async {
+    final relativePath = path.startsWith('/') ? path.substring(1) : path;
     final qStr = queryParameters != null ? ' $queryParameters' : '';
-    debugPrint('[API] GET $path$qStr');
+    debugPrint('[API] GET $relativePath$qStr');
     try {
       final response = await _dio.get<dynamic>(
-        path,
+        relativePath,
         queryParameters: queryParameters,
       );
-      debugPrint('[API] GET $path → ${response.statusCode}');
+      debugPrint('[API] GET $relativePath → ${response.statusCode}');
       return _mapResponse<T>(response, parser);
     } catch (e) {
-      debugPrint('[API] GET $path ERROR: $e');
+      if (e is DioException && e.response != null) {
+        debugPrint('[API] GET $relativePath ERROR DATA: ${e.response?.data}');
+      }
+      debugPrint('[API] GET $relativePath ERROR: $e');
       return _mapError<T>(e);
     }
   }
@@ -251,10 +254,14 @@ class ApiClient {
     Map<String, dynamic>? data,
     required T Function(dynamic) parser,
   }) async {
+    final relativePath = path.startsWith('/') ? path.substring(1) : path;
     try {
-      final response = await _dio.post<dynamic>(path, data: data);
+      final response = await _dio.post<dynamic>(relativePath, data: data);
       return _mapResponse<T>(response, parser);
     } catch (e) {
+      if (e is DioException && e.response != null) {
+        debugPrint('[API] POST $relativePath ERROR DATA: ${e.response?.data}');
+      }
       return _mapError<T>(e);
     }
   }
@@ -265,19 +272,23 @@ class ApiClient {
     Map<String, dynamic>? extraHeaders,
     required T Function(dynamic) parser,
   }) async {
+    final relativePath = path.startsWith('/') ? path.substring(1) : path;
     try {
-      debugPrint('[API] PATCH ${_dio.options.baseUrl}$path');
+      debugPrint('[API] PATCH ${_dio.options.baseUrl}$relativePath');
       final options = extraHeaders != null
           ? Options(headers: extraHeaders)
           : null;
       final response = await _dio.patch<dynamic>(
-        path,
+        relativePath,
         data: data,
         options: options,
       );
-      debugPrint('[API] PATCH $path → ${response.statusCode}');
+      debugPrint('[API] PATCH $relativePath → ${response.statusCode}');
       return _mapResponse<T>(response, parser);
     } catch (e) {
+      if (e is DioException && e.response != null) {
+        debugPrint('[API] PATCH $relativePath ERROR DATA: ${e.response?.data}');
+      }
       debugPrint('[API] PATCH error: $e');
       return _mapError<T>(e);
     }
@@ -299,8 +310,15 @@ class ApiClient {
   /// [bytes]    — raw file bytes.
   /// [filename] — e.g. `'pod.jpg'` / `'signature.png'` (derives mime_type).
   /// [type]     — upload type: `pod` | `selfie` | `recipient_signature` | `other`.
+  /// Uploads a file using server-provided pre-signed parameters (v3.3+).
+  ///
+  /// Steps:
+  /// 1. Call GET /media/upload-params to get the target URL and fields.
+  /// 2. POST to the target URL with fields + file (direct-to-storage).
+  /// 3. Return the storage URL to the caller.
   Future<ApiResult<T>> uploadMedia<T>(
     String path, {
+    String? barcode,
     required Uint8List bytes,
     required String filename,
     required String type,
@@ -308,90 +326,82 @@ class ApiClient {
   }) async {
     final mimeType = filename.endsWith('.png') ? 'image/png' : 'image/jpeg';
 
-    // When kUseS3Upload=true AND credentials are present, try S3 first.
-    // If S3 fails for any reason, fall through to the API upload endpoint.
-    // Only mark as fully failed when both paths are exhausted.
-    final needsS3 =
-        kUseS3Upload &&
-        awsAccessKeyId.isNotEmpty &&
-        awsSecretAccessKey.isNotEmpty;
+    // Step 1: Fetch upload parameters from the API.
+    final uploadType = type.toUpperCase();
 
-    // ── S3 direct upload (primary, when enabled) ────────────────────────────
-    if (needsS3) {
-      // Derive barcode/ID from path.
-      final segments = path.split('/').where((s) => s.isNotEmpty).toList();
-      final String folder;
-      final String identifier;
+    debugPrint(
+      '[UPLOAD] Fetching params for type=$uploadType (barcode=$barcode)',
+    );
+    final paramsResult = await get<Map<String, dynamic>>(
+      'media/upload-params',
+      queryParameters: {
+        'type': uploadType,
+        if (barcode != null) 'barcode': barcode,
+      },
+      parser: parseApiMap,
+    );
 
-      if (segments.first == 'me') {
-        folder = 'couriers';
-        // For profile, we can use 'profile' as the identifier or try to get courier ID.
-        // Since we don't have easy access to courier ID here without async,
-        // we'll use 'me' and let the S3 prefix be couriers/me/profile_picture.
-        // Alternatively, the caller could provide the ID in the path if we changed the API structure.
-        // For now, let's stick to a descriptive path.
-        identifier = 'me';
-      } else {
-        folder = 'deliveries';
-        identifier = segments.length >= 2 ? segments[1] : 'unknown';
+    if (paramsResult is ApiSuccess<Map<String, dynamic>>) {
+      final data = paramsResult.data;
+      final uploadUrl = (data['upload_url'] ?? data['url'])?.toString();
+      final fields = data['fields'];
+      final uploadMethod = (data['method'] ?? 'POST').toString().toUpperCase();
+
+      if (uploadUrl != null && fields is Map<String, dynamic>) {
+        debugPrint('[UPLOAD] Direct upload to: $uploadUrl');
+        try {
+          final formDataMap = <String, dynamic>{...fields};
+          formDataMap['file'] = MultipartFile.fromBytes(
+            bytes,
+            filename: filename,
+            contentType: MediaType.parse(mimeType),
+          );
+
+          final uploadResponse = await Dio().request<dynamic>(
+            uploadUrl,
+            data: FormData.fromMap(formDataMap),
+            options: Options(method: uploadMethod),
+          );
+
+          if (uploadResponse.statusCode != null &&
+              uploadResponse.statusCode! >= 200 &&
+              uploadResponse.statusCode! < 300) {
+            // S3 standard POST returns 204 No Content or 200 OK.
+            // The object URL is usually the base URL + the 'key' field.
+            final key = fields['key']?.toString();
+            final finalUrl = uploadUrl.endsWith('/')
+                ? '$uploadUrl$key'
+                : '$uploadUrl/$key';
+
+            debugPrint('[UPLOAD] Success: $finalUrl');
+            return ApiSuccess<T>(
+              parser({
+                'data': {'url': finalUrl},
+              }),
+            );
+          }
+          debugPrint(
+            '[UPLOAD] Direct upload failed: ${uploadResponse.statusCode}',
+          );
+          if (kStorageStrictMode) {
+            return ApiServerError<T>(
+              'Direct upload failed (HTTP ${uploadResponse.statusCode}) and strict mode is enabled.',
+            );
+          }
+        } catch (e) {
+          debugPrint('[UPLOAD] Direct upload exception: $e');
+          if (kStorageStrictMode) {
+            return ApiServerError<T>(
+              'Direct upload failed (Exception: $e) and strict mode is enabled.',
+            );
+          }
+        }
       }
-
-      final ext = filename.endsWith('.png') ? 'png' : 'jpg';
-      final s3Key = segments.first == 'me'
-          ? '$folder/$identifier/profile/profile_picture_${DateTime.now().millisecondsSinceEpoch}.$ext'
-          : '$folder/$identifier/images/${type}_${DateTime.now().millisecondsSinceEpoch}.$ext';
-
-      debugPrint(
-        '[UPLOAD] S3 upload: type=$type s3Key=$s3Key (${bytes.length}b)',
-      );
-      final s3Result = await S3UploadService.upload(
-        bytes: bytes,
-        mimeType: mimeType,
-        s3Key: s3Key,
-      );
-      if (s3Result.url != null) {
-        debugPrint('[UPLOAD] S3 success: ${s3Result.url}');
-        return ApiSuccess<T>(
-          parser({
-            'data': {'url': s3Result.url},
-          }),
-        );
-      }
-      // S3 failed.
-      final s3Err = s3Result.error ?? 'unknown';
-      if (kS3StrictMode) {
-        // Strict mode: no API fallback — surface S3 failure immediately.
-        debugPrint(
-          '[UPLOAD] S3 failed ($type) — strict mode, not falling back. $s3Err',
-        );
-        await ErrorLogService.log(
-          context: 'api',
-          message: 'S3 upload failed (strict mode, no API fallback) ($type)',
-          detail: 'key=$s3Key\n$s3Err',
-          barcode: identifier,
-        );
-        return ApiServerError<T>('S3 upload failed: $s3Err');
-      }
-      debugPrint(
-        '[UPLOAD] S3 failed ($type) — $s3Err. Falling back to API upload…',
-      );
-      await ErrorLogService.warning(
-        context: 'api',
-        message: 'S3 upload failed, falling back to API ($type)',
-        detail: 'key=$s3Key\n$s3Err',
-        barcode: identifier,
-      );
-      // Do NOT return — fall through to API upload below.
     }
 
-    // ── API upload (fallback when S3 fails, or primary when kUseS3Upload=false)
-    // Endpoint: POST /deliveries/:barcode/media
-    // Expects multipart/form-data with fields: file (binary), type (string).
-    debugPrint('[UPLOAD] API upload: type=$type path=$path (${bytes.length}b)');
-    final segments = path.split('/').where((s) => s.isNotEmpty).toList();
-    final barcode = segments.first != 'me' && segments.length >= 2
-        ? segments[1]
-        : null;
+    // Step 2: Fallback to Legacy API upload if direct upload is unavailable or fails.
+    final relativePath = path.startsWith('/') ? path.substring(1) : path;
+    debugPrint('[UPLOAD] Falling back to API upload: $relativePath');
     try {
       final formData = FormData.fromMap({
         'file': MultipartFile.fromBytes(
@@ -399,20 +409,34 @@ class ApiClient {
           filename: filename,
           contentType: MediaType.parse(mimeType),
         ),
-        'type': type,
+        'type': uploadType,
       });
-      final response = await _dio.post<dynamic>(path, data: formData);
-      debugPrint('[UPLOAD] API upload $type → ${response.statusCode}');
+      // Use a fresh Dio instance with auth token but without the global
+      // Content-Type: application/json header, which breaks multipart parsing.
+      final token = await _authStorage.getToken();
+      final fallbackDio = Dio(
+        BaseOptions(
+          baseUrl: _dio.options.baseUrl,
+          connectTimeout: _dio.options.connectTimeout,
+          receiveTimeout: _dio.options.receiveTimeout,
+          sendTimeout: _dio.options.sendTimeout,
+          headers: {
+            'Accept': 'application/json',
+            if (token != null && token.isNotEmpty)
+              'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      final response = await fallbackDio.post<dynamic>(
+        relativePath,
+        data: formData,
+      );
       return _mapResponse<T>(response, parser);
     } catch (e) {
-      // Both S3 (if attempted) and API failed — log as a full error.
-      debugPrint('[UPLOAD] API upload exception: $e');
-      await ErrorLogService.log(
-        context: 'api',
-        message: 'All upload attempts failed ($type)',
-        detail: e.toString(),
-        barcode: barcode,
-      );
+      if (e is DioException && e.response != null) {
+        debugPrint('[UPLOAD] API fallback ERROR DATA: ${e.response?.data}');
+      }
+      debugPrint('[UPLOAD] API fallback failed: $e');
       return _mapError<T>(e);
     }
   }

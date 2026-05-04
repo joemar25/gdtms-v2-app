@@ -39,7 +39,7 @@ raw strings against status values in app code — use the enum.
 | ---------------- | ---------------- | --------------- | ------------------------------------------------------- |
 | `pending`        | `PENDING`        | Pending         | Also parsed from `FOR_DELIVERY`                         |
 | `delivered`      | `DELIVERED`      | Delivered       |                                                         |
-| `failedDelivery` | `RTS`            | Failed Delivery | TODO: change to `FAILED_DELIVERY` when backend ships    |
+| `failedDelivery` | `FAILED_DELIVERY` | Failed Delivery | Previously `RTS` before v3.0 |
 | `osa`            | `OSA`            | Misrouted       | Out for Shipment Again — package misrouted, being resent |
 | `unknown`        | *(empty string)* | —               | Fallback for any unrecognised API value                 |
 
@@ -66,13 +66,18 @@ Maps to the `local_deliveries` SQLite table. Key fields:
 | Field                                    | Notes                                                                          |
 | ---------------------------------------- | ------------------------------------------------------------------------------ |
 | `barcode`                                | Primary key                                                                    |
-| `courierId`                              | Owning courier                                                                 |
-| `deliveryStatus`                         | Raw API string stored as-is (e.g. `RTS`, `DELIVERED`). Parse via `DeliveryStatus.fromString()` |
+| `trackingNumber`                         | Human-readable reference (previously `job_order`)                              |
+| `recipientName`, `deliveryAddress`       | Display fields                                                                 |
+| `deliveryStatus`                         | Raw API string stored as-is (e.g. `FAILED_DELIVERY`, `DELIVERED`). Parse via `DeliveryStatus.fromString()` |
 | `statusEnum`                             | Computed getter — returns the `DeliveryStatus` enum for `deliveryStatus`       |
+| `mailType`                               | Package category (previously `product`)                                        |
+| `dispatchCode`                           | Reference to the dispatch manifest                                             |
+| `updatedAt`                              | Timestamp of last server-known update                                          |
+| `serverUpdatedAt`                        | Raw server timestamp (ms)                                                      |
+| `syncStatus`                             | `clean`, `dirty`, or `conflict`                                                |
+| `isArchived`                             | Boolean — if true, record is hidden from active list                           |
 | `rtsVerificationStatus`                  | Raw DB string. Parse via `RtsVerificationStatus.fromString()`                  |
 | `rtsVerifEnum`                           | Computed getter — returns the `RtsVerificationStatus` enum                     |
-| `recipientName`, `deliveryAddress`       | Display fields                                                                 |
-| `updatedAt`                              | Timestamp of last server-known update                                          |
 
 `LocalDeliveryDao` handles all reads/writes. Do not query the table directly from screens.
 
@@ -101,7 +106,7 @@ Transient model — not stored in SQLite directly. Used to pass photo data throu
 | Field    | Notes                                                |
 | -------- | ---------------------------------------------------- |
 | `path`   | Local file path after capture/pick                   |
-| `type`   | `pod`, `signature`, `other`                          |
+| `type`   | `pod`, `selfie`, `signature`, `mailpack`, `other`    |
 | `base64` | Populated when queuing offline; cleared after upload |
 
 ---

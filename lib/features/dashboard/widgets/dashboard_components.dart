@@ -52,7 +52,7 @@ class DashboardDefault extends StatelessWidget {
                 count: '$pendingDispatches',
                 icon: Icons.qr_code_rounded,
                 color: DSColors.error,
-                minHeight: 140,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/dispatches'),
                 subdued: pendingDispatches == 0,
                 details: 'dashboard.stats.dispatch_details'.tr(),
@@ -65,7 +65,7 @@ class DashboardDefault extends StatelessWidget {
                 count: '$pendingDeliveries',
                 icon: Icons.local_shipping_outlined,
                 color: DSColors.primary,
-                minHeight: 140,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/deliveries'),
                 subdued: pendingDeliveries == 0,
                 details: 'dashboard.stats.deliveries_details'.tr(),
@@ -82,7 +82,7 @@ class DashboardDefault extends StatelessWidget {
                 count: '$deliveredToday',
                 icon: Icons.check_circle_outline_rounded,
                 color: DSColors.primary,
-                minHeight: 140,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/delivered'),
                 subdued: deliveredToday == 0,
                 details: 'dashboard.stats.delivered_details'.tr(),
@@ -95,7 +95,7 @@ class DashboardDefault extends StatelessWidget {
                 count: '$failedDelivery',
                 icon: Icons.assignment_return_outlined,
                 color: DSColors.error,
-                minHeight: 140,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/failed-deliveries'),
                 subdued: failedDelivery == 0,
                 details: 'dashboard.stats.attempted_details'.tr(),
@@ -114,7 +114,7 @@ class DashboardDefault extends StatelessWidget {
                 color: isDark
                     ? DSColors.labelSecondaryDark
                     : DSColors.labelSecondary,
-                minHeight: 140,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/osa'),
                 subdued: osa == 0,
                 details: 'dashboard.stats.misrouted_details'.tr(),
@@ -131,7 +131,7 @@ class DashboardDefault extends StatelessWidget {
                     : (isDark
                           ? DSColors.labelSecondaryDark
                           : DSColors.labelSecondary),
-                minHeight: 140,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/sync'),
                 subdued: pendingSync == 0 && syncedTotal == 0,
                 details: pendingSync > 0
@@ -143,7 +143,7 @@ class DashboardDefault extends StatelessWidget {
             ),
           ],
         ),
-        DSSpacing.hLg,
+        DSSpacing.hSm,
         Row(
           children: [
             Expanded(
@@ -151,7 +151,7 @@ class DashboardDefault extends StatelessWidget {
                 label: 'dashboard.scan.dispatch_label'.tr(),
                 icon: Icons.qr_code_scanner_rounded,
                 color: DSColors.error,
-                minHeight: 140,
+                minHeight: DSStyles.scanButtonHeight,
                 onTap: () => context.push('/scan', extra: {'mode': 'dispatch'}),
                 details: 'dashboard.scan.dispatch_details'.tr(),
               ).dsCtaEntry(delay: DSAnimations.stagger(6)),
@@ -162,14 +162,14 @@ class DashboardDefault extends StatelessWidget {
                 label: 'dashboard.scan.pod_label'.tr(),
                 icon: Icons.qr_code_scanner_rounded,
                 color: DSColors.primary,
-                minHeight: 140,
+                minHeight: DSStyles.scanButtonHeight,
                 onTap: () => context.push('/scan', extra: {'mode': 'pod'}),
                 details: 'dashboard.scan.pod_details'.tr(),
               ).dsCtaEntry(delay: DSAnimations.stagger(7)),
             ),
           ],
         ),
-        DSSpacing.hLg,
+        DSSpacing.hSm,
       ],
     );
   }
@@ -194,15 +194,15 @@ class DashboardNewFeel extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: DSSpacing.md),
       children: [
-        DSSpacing.hMd,
+        DSSpacing.hSm,
         DashboardOverview(summary: summary, isDark: isDark),
-        DSSpacing.hLg,
+        DSSpacing.hSm,
         DashboardSyncSection(
           summary: summary,
           isDark: isDark,
           onRefresh: onRefresh,
         ),
-        DSSpacing.hLg,
+        DSSpacing.hSm,
         DashboardQuickActions(isDark: isDark),
         DSSpacing.hMassive,
       ],
@@ -236,7 +236,7 @@ class DashboardOverview extends StatelessWidget {
                 : DSColors.labelSecondary,
           ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
         ).dsFadeEntry(delay: DSAnimations.stagger(0)),
-        DSSpacing.hMd,
+        DSSpacing.hSm,
         Row(
           children: [
             Expanded(
@@ -245,22 +245,24 @@ class DashboardOverview extends StatelessWidget {
                 count: '${summary['pending_dispatches'] ?? 0}',
                 icon: Icons.local_shipping_rounded,
                 color: DSColors.accent,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/dispatches'),
               ).dsCardEntry(delay: DSAnimations.stagger(1)),
             ),
-            DSSpacing.wMd,
+            DSSpacing.wSm,
             Expanded(
               child: StatCard(
                 label: 'dashboard.stats.deliveries_label'.tr(),
                 count: '${summary['pending_deliveries'] ?? 0}',
                 icon: Icons.local_shipping_outlined,
                 color: DSColors.pending,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/deliveries'),
               ).dsCardEntry(delay: DSAnimations.stagger(2)),
             ),
           ],
         ),
-        DSSpacing.hMd,
+        DSSpacing.hSm,
         Row(
           children: [
             Expanded(
@@ -269,27 +271,30 @@ class DashboardOverview extends StatelessWidget {
                 count: '${summary['delivered_today'] ?? 0}',
                 icon: Icons.check_circle_rounded,
                 color: DSColors.success,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/delivered'),
               ).dsCardEntry(delay: DSAnimations.stagger(3)),
             ),
-            DSSpacing.wMd,
+            DSSpacing.wSm,
             Expanded(
               child: StatCard(
                 label: 'dashboard.stats.attempted_label'.tr(),
                 count: '${summary['failed_delivery'] ?? 0}',
                 icon: Icons.warning_rounded,
                 color: DSColors.error,
+                minHeight: DSStyles.statCardHeight,
                 onTap: () => context.push('/failed-deliveries'),
               ).dsCardEntry(delay: DSAnimations.stagger(4)),
             ),
           ],
         ),
-        DSSpacing.hMd,
+        DSSpacing.hSm,
         StatCard(
           label: 'dashboard.stats.misrouted_label'.tr(),
           count: '${summary['osa'] ?? 0}',
           icon: Icons.location_on_rounded,
           color: DSColors.warning,
+          minHeight: DSStyles.statCardHeight,
           onTap: () => context.push('/osa'),
         ).dsCardEntry(delay: DSAnimations.stagger(5)),
       ],
@@ -480,7 +485,7 @@ class DashboardQuickActions extends StatelessWidget {
                 : DSColors.labelSecondary,
           ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
         ).dsFadeEntry(delay: DSAnimations.stagger(8)),
-        DSSpacing.hMd,
+        DSSpacing.hSm,
         Row(
           children: [
             Expanded(
@@ -489,16 +494,18 @@ class DashboardQuickActions extends StatelessWidget {
                 details: 'dashboard.actions.dispatch_subtitle'.tr(),
                 icon: Icons.qr_code_scanner_rounded,
                 color: DSColors.accent,
+                minHeight: DSStyles.scanButtonHeight,
                 onTap: () => context.push('/scan', extra: {'mode': 'dispatch'}),
               ).dsCtaEntry(delay: DSAnimations.stagger(9)),
             ),
-            DSSpacing.wMd,
+            DSSpacing.wSm,
             Expanded(
               child: ScanButton(
                 label: 'dashboard.actions.pod_action'.tr(),
                 details: 'dashboard.actions.pod_subtitle'.tr(),
                 icon: Icons.camera_alt_rounded,
                 color: DSColors.primary,
+                minHeight: DSStyles.scanButtonHeight,
                 onTap: () => context.push('/scan', extra: {'mode': 'pod'}),
               ).dsCtaEntry(delay: DSAnimations.stagger(10)),
             ),

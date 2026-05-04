@@ -60,6 +60,7 @@ import 'package:fsi_courier_app/core/services/review_prompt_service.dart';
 import 'package:fsi_courier_app/core/services/time_validation_service.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
@@ -143,9 +144,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   /// Returns true if this is an EXPRESS delivery.
   /// EXPRESS deliveries have restricted placement types (e.g. no mailbox).
   bool get _isExpress {
-    final type = (_delivery['mail_type'] ?? _delivery['product'] ?? '')
-        .toString()
-        .toUpperCase();
+    final type = (_delivery['mail_type'] ?? '').toString().toUpperCase();
     return type == 'EXPRESS';
   }
 
@@ -232,7 +231,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       if (!mounted) return;
 
       if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
-        _delivery = mapFromKey(data, 'data');
+        final item = mapFromKey(data, 'data');
+        // Standardise via model to ensure v3.6 canonical keys
+        _delivery = LocalDelivery.fromApiItem(item).toDeliveryMap();
         final currentStatus =
             _delivery['delivery_status']?.toString().toUpperCase() ??
             'DELIVERED';

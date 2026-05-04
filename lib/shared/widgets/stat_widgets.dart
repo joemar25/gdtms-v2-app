@@ -99,7 +99,11 @@ class _StatCardState extends State<StatCard>
       constraints: widget.minHeight != null
           ? BoxConstraints(minHeight: widget.minHeight!)
           : null,
-      padding: const EdgeInsets.all(DSSpacing.md),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(
+        horizontal: DSSpacing.md,
+        vertical: DSSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: isDark ? DSColors.cardDark : DSColors.cardLight,
         borderRadius: DSStyles.cardRadius,

@@ -114,11 +114,23 @@ class DeliveryBootstrapService {
           '[SYNC] delta sync — skipping Phase 2 cleanup (Rule 4 inapplicable)',
         );
       }
-
-      await AuthStorage().setLastSyncTime(startTime);
     } catch (e) {
       debugPrint('[SYNC] cleanup error: $e');
     }
+
+    // ── Phase 3: Immediate purge of verified records ─────────────────────────
+    onProgress?.call('Finalizing cleanup...');
+    try {
+      final purgedCount = await LocalDeliveryDao.instance
+          .purgeVerifiedRecords();
+      if (purgedCount > 0) {
+        debugPrint('[SYNC] purged $purgedCount verified records from local DB');
+      }
+    } catch (e) {
+      debugPrint('[SYNC] verified purge error: $e');
+    }
+
+    await AuthStorage().setLastSyncTime(startTime);
     debugPrint('[SYNC] syncFromApiWithProgress — complete');
   }
 
@@ -184,6 +196,19 @@ class DeliveryBootstrapService {
       }
     }
 
+    // ── Phase 3: Immediate purge of verified records ─────────────────────────
+    // Logic: verified records are terminal and non-actionable; they must not
+    // exist in the local database.
+    try {
+      final purgedCount = await LocalDeliveryDao.instance
+          .purgeVerifiedRecords();
+      if (purgedCount > 0) {
+        debugPrint('[SYNC] purged $purgedCount verified records from local DB');
+      }
+    } catch (e) {
+      debugPrint('[SYNC] verified purge error: $e');
+    }
+
     await AuthStorage().setLastSyncTime(startTime);
     debugPrint('[SYNC] syncFromApi — complete');
   }
@@ -210,65 +235,57 @@ class DeliveryBootstrapService {
       );
       if (localPendingBarcodes.isEmpty) return;
 
-      // Step 2: Fetch server's pending list (all pages).
-      final serverPendingBarcodes = await _fetchAllBarcodesForStatus(
-        client,
-        'FOR_DELIVERY',
-      );
-
-      // Step 3: Find locally-pending items missing from server's pending list.
-      final missingFromPending = localPendingBarcodes
-          .where((b) => !serverPendingBarcodes.contains(b))
-          .toList();
-
-      debugPrint(
-        '[SYNC] server pending: ${serverPendingBarcodes.length}, missing from pending: ${missingFromPending.length}',
-      );
-      if (missingFromPending.isEmpty) return;
-
-      // For each missing barcode, fetch its individual detail from the server.
-      // Use small concurrency batches to avoid hammering the API.
-      const batchSize = 5;
-      for (var i = 0; i < missingFromPending.length; i += batchSize) {
-        final chunk = missingFromPending.skip(i).take(batchSize);
-        await Future.wait(
-          chunk.map((barcode) => _reconcileOneBarcode(client, barcode)),
-        );
-      }
-    } catch (_) {
-      // Priority reconciliation is best-effort.
-    }
-  }
-
-  /// Fetches the server detail for a single [barcode] and updates the local
-  /// record if the server has a different (terminal) status.
-  Future<void> _reconcileOneBarcode(ApiClient client, String barcode) async {
-    try {
-      final result = await client.get<Map<String, dynamic>>(
-        '/deliveries/$barcode',
+      // Step 2: Use the new v3.3 batch verification endpoint.
+      final result = await client.post<Map<String, dynamic>>(
+        '/deliveries/verify-status',
+        data: {'barcodes': localPendingBarcodes.toList()},
         parser: parseApiMap,
       );
 
-      if (result is! ApiSuccess<Map<String, dynamic>>) return;
-
-      final data = result.data;
-      // The detail endpoint wraps the item under 'data'.
-      final item = data['data'];
-      if (item is! Map<String, dynamic>) return;
-
-      final serverStatus = item['delivery_status']?.toString() ?? '';
-      if (serverStatus.isEmpty ||
-          DeliveryStatus.fromString(serverStatus) == DeliveryStatus.pending) {
+      if (result is! ApiSuccess<Map<String, dynamic>>) {
+        debugPrint('[SYNC] batch verification failed: $result');
         return;
       }
 
-      // Server has a non-pending status — update the local record.
-      await LocalDeliveryDao.instance.insertAllFromApiItems([
-        item,
-      ], serverStatus: serverStatus);
-    } catch (_) {
-      // Per-barcode errors are silently ignored.
+      final data = result.data['data'];
+      if (data is! List) return;
+
+      final serverUpdates = <Map<String, dynamic>>[];
+      for (final update in data) {
+        if (update is! Map<String, dynamic>) continue;
+
+        final barcode = _str(update, 'barcode') ?? '';
+        final serverStatus = _str(update, 'status') ?? '';
+
+        if (barcode.isEmpty || serverStatus.isEmpty) continue;
+
+        // If the status is no longer PENDING (FOR_DELIVERY), it needs reconciliation.
+        if (DeliveryStatus.fromString(serverStatus) != DeliveryStatus.pending) {
+          serverUpdates.add({
+            'barcode': barcode,
+            'delivery_status': serverStatus,
+            'updated_at': _str(update, 'updated_at'),
+          });
+        }
+      }
+
+      if (serverUpdates.isNotEmpty) {
+        debugPrint(
+          '[SYNC] batch verification found ${serverUpdates.length} updates',
+        );
+        // insertAllFromApiItems handles terminal status protection and timestamps.
+        await LocalDeliveryDao.instance.insertAllFromApiItems(serverUpdates);
+      }
+    } catch (e) {
+      debugPrint('[SYNC] priority reconciliation error: $e');
     }
+  }
+
+  static String? _str(Map<String, dynamic> json, String key) {
+    final v = json[key];
+    if (v == null) return null;
+    final s = v.toString().trim();
+    return s.isEmpty ? null : s;
   }
 
   /// Fetches all barcodes for [status] across all pages without upserting.
@@ -295,12 +312,7 @@ class DeliveryBootstrapService {
         if (rawList is List) {
           for (final item in rawList) {
             if (item is! Map) continue;
-            final b =
-                (item['barcode_value']?.toString() ??
-                        item['barcode']?.toString() ??
-                        item['tracking_number']?.toString() ??
-                        '')
-                    .trim();
+            final b = (item['barcode']?.toString() ?? '').trim();
             if (b.isNotEmpty) allBarcodes.add(b);
           }
         }
@@ -369,12 +381,7 @@ class DeliveryBootstrapService {
             serverStatus: status,
           );
           for (final item in items) {
-            final b =
-                (item['barcode_value']?.toString() ??
-                        item['barcode']?.toString() ??
-                        item['tracking_number']?.toString() ??
-                        '')
-                    .trim();
+            final b = (item['barcode']?.toString() ?? '').trim();
             if (b.isNotEmpty) allBarcodes.add(b);
           }
         }
@@ -452,12 +459,7 @@ class DeliveryBootstrapService {
           // Wait, insertAllFromApiItems takes an optional serverStatus. If omitted, it reads from item!
           await LocalDeliveryDao.instance.insertAllFromApiItems(items);
           for (final item in items) {
-            final b =
-                (item['barcode_value']?.toString() ??
-                        item['barcode']?.toString() ??
-                        item['tracking_number']?.toString() ??
-                        '')
-                    .trim();
+            final b = (item['barcode']?.toString() ?? '').trim();
             if (b.isNotEmpty) allBarcodes.add(b);
           }
         }

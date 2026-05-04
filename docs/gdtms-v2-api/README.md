@@ -28,7 +28,7 @@
 
 **Collection file**: `docs/gdtms-v2-api/Courier-Mobile-API.postman_collection.json`
 
-**Current version**: v2.3 (April 2026)
+**Current version**: v3.6 (May 2026)
 
 **Auth**: Laravel Sanctum — Bearer token in `Authorization` header.
 
@@ -56,34 +56,34 @@ no longer the source of truth — that is documentation debt that causes future 
 
 ## Changelog
 
-### v2.3 (April 2026)
+### v3.6 (May 2026)
 
-- **NEW** `GET /app/version` — returns `{ min_version, force_update }`. No auth required.
-- **NEW** `POST /courier/reports` — submit bug reports with device info and severity. Requires auth.
+- **NEW** Response Enhancements: `piece_count` and `piece_index` as explicit integers.
+- **NEW** `allowed_statuses` array for dynamic UI button visibility.
+- **NEW** `recipient_metadata` including `latitude` and `longitude`.
+- **PENDING** `failed_delivery_reasons` as localized {id, label} objects.
 
-### v2.2 (April 2026)
+### v3.5 (May 2026)
 
-- **NEW** `GET /me/payment-method` — active bank account for payouts. Includes auto-provisioning message.
-- **NEW** Dynamic payout validation — any active bank accepted (removed GCash/BDO-only restriction).
-- **NEW** Auto-provisioning fallback — if no active bank exists on payout submit, a default GCash (00000000) account is created automatically.
+- **NEW** `POST /api/mbl/deliveries/bulk-update` — sync entire local queue in one request.
+- **NEW** `data_checksum` (SHA256) for sync integrity validation.
+- **UPDATED** Canonical Field Mapping: Standardized on `barcode`, `tracking_number`, `recipient_name`, `recipient_address`.
 
-### v2.1 (April 2026)
+### v3.4 (May 2026)
 
-- **NEW** `GET /me` and `PATCH /me` — courier profile read/update.
-- **NEW** `POST /me/media` — profile picture upload (non-S3 clients).
-- **NEW** `delivered_date` field on `PATCH /deliveries/:barcode` — honors device timestamp for offline sync; falls back to `NOW()` when absent.
-- **NEW** `X-Request-ID` idempotency header on `PATCH /deliveries/:barcode` — prevents duplicate processing on retry.
-- **NEW** `transaction_at` echoed in PATCH response — mobile confirms what was stored.
-- **NEW** `updated_since` query param on `GET /deliveries` — delta sync (1 call instead of 4).
-- **NEW** `updated_at` on every delivery list item — use as next `updated_since` value.
+- **NEW** `GET /api/mbl/sync` — unified paginated sync stream for all statuses.
+- **NEW** `GET /api/mbl/app-config` — remote constants for storage, retention, and media types.
+- **NEW** `GET /api/mbl/deliveries/search` — server-side search across name, phone, and address.
 
-### v2.0 (March 2026)
+### v3.3 (May 2026)
 
-- **NEW** `is_paid` boolean on each delivery item.
-- **NEW** `paid` query param on deliveries and dashboard-summary endpoints.
-- **NEW** Slim List View vs Rich Detail View for deliveries.
-- **UPDATED** Payout API response cleanup (removed redundant timestamps, added history snapshot).
-- **UPDATED** Image fields (`media`, `signature`, `rts attempt images`) removed from all GET/PATCH delivery responses. Images are read-only on the web portal via signed URLs.
+- **NEW** Standardized 409 Conflict codes: `MAX_ATTEMPTS_REACHED`, `DELIVERY_IMMUTABLE`, `DUPLICATE_REQUEST`.
+- **PENDING** `POST /api/mbl/deliveries/verify-status` — batch verification for Phase 0 sync.
+- **PENDING** `GET /api/mbl/media/upload-params` — pre-signed URLs for direct storage uploads.
+
+### v3.2 (May 2026)
+
+- **REMOVED** Payment tracking logic (`is_paid`, `paid` filter) from the mobile API surface.
 
 ---
 
@@ -159,6 +159,12 @@ All paths are relative to `{{baseURL}}/api/mbl`.
 | GET | `/deliveries/:barcode` | Full delivery detail (rich view). |
 | POST | `/deliveries/:barcode/media` | Upload delivery media (non-S3 clients). |
 | PATCH | `/deliveries/:barcode` | Update delivery status (POD). |
+| GET | `/sync` | **v3.4** Unified sync stream for all delivery statuses. |
+| GET | `/search` | **v3.4** Server-side search by name/phone/address. |
+| GET | `/app-config` | **v3.4** Remote configuration constants. |
+| POST | `/deliveries/bulk-update` | **v3.5** Bulk status updates for queue clearing. |
+| POST | `/deliveries/verify-status` | **v3.3 (PENDING)** Batch status verification. |
+| GET | `/media/upload-params` | **v3.3 (PENDING)** Pre-signed URL generation for direct uploads. |
 
 **GET /deliveries query params**
 
@@ -166,21 +172,23 @@ All paths are relative to `{{baseURL}}/api/mbl`.
 |-------|--------|-------|
 | `status` | `delivered`, `pending`, `failed`, etc. | Filter by status |
 | `active` | `true` / `false` | Active deliveries only |
-| `paid` | `true`, `false`, `all` | Payment filter |
 | `updated_since` | ISO 8601 datetime | Delta sync — returns only records changed after this timestamp |
 
 **PATCH /deliveries/:barcode request body**
 
 ```json
 {
-  "status": "delivered",
+  "delivery_status": "DELIVERED",
   "delivered_date": "2026-04-13T10:00:00+08:00",
-  "recipient_name": "...",
+  "recipient": "MA ELIZA SANTOS",
+  "relationship": "sister",
+  "placement_type": "received",
   "notes": "...",
   "latitude": 14.5995,
   "longitude": 120.9842,
-  "media_urls": ["https://..."],
-  "signature_url": "https://..."
+  "delivery_images": [
+    { "file": "https://...", "type": "POD" }
+  ]
 }
 ```
 

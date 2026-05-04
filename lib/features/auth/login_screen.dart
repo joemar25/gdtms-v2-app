@@ -2,6 +2,7 @@
 // DOCS: docs/features/auth.md — update that file when you edit this one.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -243,6 +244,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // ── Theme Toggle (Top Right) ──────────────────────────────────
+            Positioned(
+              top: MediaQuery.of(context).padding.top + DSSpacing.sm,
+              right: DSSpacing.sm,
+              child: Material(
+                color: DSColors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    final nextMode = isDark ? ThemeMode.light : ThemeMode.dark;
+                    ref.read(authProvider.notifier).setThemeMode(nextMode);
+                  },
+                  borderRadius: BorderRadius.circular(100),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(DSSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? DSColors.white.withValues(alpha: 0.12)
+                          : DSColors.primary.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark
+                            ? DSColors.white.withValues(alpha: 0.1)
+                            : DSColors.primary.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Icon(
+                      isDark
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
+                      size: DSIconSize.md,
+                      color: isDark ? DSColors.white : DSColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ).dsFadeEntry(delay: const Duration(milliseconds: 600)),
+
             SafeArea(
               child: Center(
                 child: SingleChildScrollView(

@@ -302,13 +302,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             return <String, dynamic>{
               ...d,
               'delivery_status': status,
-              'barcode_value': d['barcode_value'] ?? d['barcode'],
-              'sequence_number': d['sequence_number'] ?? d['sequence'],
-              'product': d['product'] ?? d['mail_type'],
-              'transaction_at':
-                  d['transaction_at'] ??
-                  d['delivered_date'] ??
-                  d['payout_date'],
+              'barcode': d['barcode'],
+              'job_order': d['job_order'],
+              'sequence_number': d['sequence_number'],
+              'mail_type': d['mail_type'],
+              'transaction_at': d['transaction_at'],
               'rts_verification_status':
                   d['rts_verification_status'] ??
                   d['failed_delivery_verification_status'] ??

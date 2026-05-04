@@ -1260,15 +1260,9 @@ class _SearchResultsSheet extends StatelessWidget {
                 ),
                 itemBuilder: (_, i) {
                   final d = results[i];
-                  final barcode =
-                      d['barcode_value']?.toString() ??
-                      d['barcode']?.toString() ??
-                      '';
-                  final name =
-                      d['name']?.toString() ??
-                      d['recipient_name']?.toString() ??
-                      '';
-                  final address = d['address']?.toString() ?? '';
+                  final barcode = (d['barcode'] ?? '').toString();
+                  final name = (d['recipient_name'] ?? '').toString();
+                  final address = (d['recipient_address'] ?? '').toString();
                   final status =
                       d['delivery_status']?.toString() ?? 'FOR_DELIVERY';
 

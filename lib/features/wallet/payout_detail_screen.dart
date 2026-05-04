@@ -6,7 +6,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
@@ -46,31 +45,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     _load();
   }
 
-  void _markLocalDeliveriesAsPaid(Map<String, dynamic> data) {
-    final rawBreakdown = data['daily_breakdown'];
-    final List<dynamic> raw;
-    if (rawBreakdown is List) {
-      raw = rawBreakdown;
-    } else if (rawBreakdown is Map<String, dynamic>) {
-      final inner = rawBreakdown['data'];
-      raw = inner is List ? inner : const [];
-    } else {
-      return;
-    }
-    final barcodes = <String>[];
-    for (final day in raw.whereType<Map<String, dynamic>>()) {
-      final deliveries = day['deliveries'];
-      if (deliveries is! List) continue;
-      for (final d in deliveries.whereType<Map<String, dynamic>>()) {
-        final barcode = (d['barcode_value'] ?? d['barcode'])?.toString() ?? '';
-        if (barcode.isNotEmpty) barcodes.add(barcode);
-      }
-    }
-    if (barcodes.isNotEmpty) {
-      LocalDeliveryDao.instance.markAsPaid(barcodes);
-    }
-  }
-
   Future<void> _load() async {
     final result = await ref
         .read(apiClientProvider)
@@ -82,9 +56,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
     if (!mounted) return;
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       _data = mapFromKey(data, 'data');
-      if ((_data['status'] as String?)?.toUpperCase() == 'PAID') {
-        _markLocalDeliveriesAsPaid(_data);
-      }
       _accumulatedBreakdown = _normalisedBreakdown();
       _breakdownPage = 1;
       final rawBreakdown = _data['daily_breakdown'];
@@ -215,42 +186,46 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
       return [];
     }
 
-    final List<Map<String, dynamic>>
-    normalised = raw.whereType<Map<String, dynamic>>().map((day) {
-      final deliveries =
-          (day['deliveries'] as List?)?.whereType<Map<String, dynamic>>().map((
-            d,
-          ) {
-            final status = (d['delivery_status'] ?? 'DELIVERED')
-                .toString()
-                .toUpperCase();
-            final defaultFailedDeliveryVerif = status == 'FAILED_DELIVERY'
-                ? 'verified_with_pay'
-                : 'unvalidated';
-            return <String, dynamic>{
-              ...d,
-              'delivery_status': status,
-              'barcode_value': d['barcode_value'] ?? d['barcode'],
-              'sequence_number': d['sequence_number'] ?? d['sequence'],
-              'product': d['product'] ?? d['mail_type'],
-              'transaction_at':
-                  d['transaction_at'] ?? d['delivered_date'] ?? d['paid_at'],
-              'rts_verification_status':
-                  d['rts_verification_status'] ??
-                  d['failed_delivery_verification_status'] ??
-                  d['verification_status'] ??
-                  d['failed_delivery_verification'] ??
-                  d['status_verification'] ??
-                  defaultFailedDeliveryVerif,
-            };
-          }).toList() ??
-          [];
-      return <String, dynamic>{
-        ...day,
-        'deliveries': deliveries,
-        'delivery_count': deliveries.length,
-      };
-    }).toList();
+    final List<Map<String, dynamic>> normalised = raw
+        .whereType<Map<String, dynamic>>()
+        .map((day) {
+          final deliveries =
+              (day['deliveries'] as List?)
+                  ?.whereType<Map<String, dynamic>>()
+                  .map((d) {
+                    final status = (d['delivery_status'] ?? 'DELIVERED')
+                        .toString()
+                        .toUpperCase();
+                    final defaultFailedDeliveryVerif =
+                        status == 'FAILED_DELIVERY'
+                        ? 'verified_with_pay'
+                        : 'unvalidated';
+                    return <String, dynamic>{
+                      ...d,
+                      'delivery_status': status,
+                      'barcode': d['barcode'],
+                      'job_order': d['job_order'],
+                      'sequence_number': d['sequence_number'],
+                      'mail_type': d['mail_type'],
+                      'transaction_at': d['transaction_at'],
+                      'rts_verification_status':
+                          d['rts_verification_status'] ??
+                          d['failed_delivery_verification_status'] ??
+                          d['verification_status'] ??
+                          d['failed_delivery_verification'] ??
+                          d['status_verification'] ??
+                          defaultFailedDeliveryVerif,
+                    };
+                  })
+                  .toList() ??
+              [];
+          return <String, dynamic>{
+            ...day,
+            'deliveries': deliveries,
+            'delivery_count': deliveries.length,
+          };
+        })
+        .toList();
 
     // Sort by date descending (latest first)
     normalised.sort((a, b) {

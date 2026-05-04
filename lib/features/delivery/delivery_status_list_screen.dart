@@ -342,10 +342,7 @@ class _DeliveryStatusListScreenState
 
   Map<String, dynamic> _toCardMap(LocalDelivery row) {
     final base = row.toDeliveryMap();
-    if (!base.containsKey('barcode_value') || base['barcode_value'] == null) {
-      base['barcode_value'] = row.barcode;
-    }
-    if (row.paidAt != null) base['_paid_at'] = row.paidAt;
+
     base['_rts_verification_status'] = row.rtsVerificationStatus;
     base['_sync_status'] = row.syncStatus;
     base['_in_sync_queue'] = _queuedBarcodes.contains(row.barcode);

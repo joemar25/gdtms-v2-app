@@ -70,18 +70,11 @@ class DeliveryCard extends StatelessWidget {
     final rawStatus = delivery['delivery_status']?.toString() ?? '';
     final status = rawStatus.toUpperCase().trim();
     final ds = DeliveryStatus.fromString(status);
-    final product = (delivery['product'] ?? delivery['mail_type'] ?? '')
-        .toString();
     final mailType = (delivery['mail_type'] ?? '').toString();
+    final product = mailType;
 
-    final address = (delivery['address'] ?? delivery['delivery_address'] ?? '')
-        .toString();
-    final name =
-        (delivery['name'] ??
-                delivery['recipient'] ??
-                delivery['recipient_name'] ??
-                '')
-            .toString();
+    final address = (delivery['recipient_address'] ?? '').toString();
+    final name = (delivery['recipient_name'] ?? '').toString();
 
     final attemptsCount = getAttemptsCountFromMap(delivery);
 
@@ -106,7 +99,6 @@ class DeliveryCard extends StatelessWidget {
     final isFailedNoPay =
         ds == DeliveryStatus.failedDelivery &&
         rv == FailedDeliveryVerificationStatus.verifiedNoPay;
-    final isPaid = delivery['_paid_at'] != null;
     final isLocked = checkIsLockedFromMap(delivery);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -162,7 +154,6 @@ class DeliveryCard extends StatelessWidget {
         barcode: barcode,
         name: name,
         isDirty: isDirty,
-        isPaid: isPaid,
         isFailedWithPay: isFailedWithPay,
         isFailedNoPay: isFailedNoPay,
         isLocked: isLocked,
@@ -541,8 +532,7 @@ class DeliveryCard extends StatelessWidget {
                           ],
 
                           // ── Sync / Paid pills row ────────────────────────────
-                          if (!isPrivacyMode &&
-                              (isDirty || isPaid || inSyncQueue)) ...[
+                          if (!isPrivacyMode && (isDirty || inSyncQueue)) ...[
                             DSSpacing.hMd,
                             Wrap(
                               spacing: DSSpacing.sm,
@@ -559,18 +549,6 @@ class DeliveryCard extends StatelessWidget {
                                       alpha: DSStyles.alphaMuted,
                                     ),
                                     fg: DSColors.warning,
-                                  ),
-                                if (isPaid)
-                                  DeliveryMiniPill(
-                                    label: 'PAID',
-                                    icon: Icons.check_circle_outline_rounded,
-                                    bg: DSColors.success.withValues(
-                                      alpha: DSStyles.alphaSubtle,
-                                    ),
-                                    border: DSColors.success.withValues(
-                                      alpha: DSStyles.alphaMuted,
-                                    ),
-                                    fg: DSColors.success,
                                   ),
                                 if (inSyncQueue)
                                   DeliveryMiniPill(
@@ -622,7 +600,13 @@ class DeliveryCard extends StatelessWidget {
 
                           // ── Detail section (Auto-visible if not compact) ───────
                           if (isExpanded && !isPrivacyMode)
-                            _buildDetailSection(delivery, isDark, subtextColor),
+                            _buildDetailSection(
+                              delivery,
+                              isDark,
+                              subtextColor,
+                              ds: ds,
+                              rv: rv,
+                            ),
                         ],
                       ),
                     ),
@@ -655,13 +639,17 @@ class DeliveryCard extends StatelessWidget {
   Widget _buildDetailSection(
     Map<String, dynamic> delivery,
     bool isDark,
-    Color subtextColor,
-  ) {
+    Color subtextColor, {
+    required DeliveryStatus ds,
+    required FailedDeliveryVerificationStatus rv,
+  }) {
     final seqNum = delivery['sequence_number']?.toString() ?? '';
     final product = delivery['product']?.toString() ?? '';
     final mailType = delivery['mail_type']?.toString() ?? '';
     final specialInstr = delivery['special_instruction']?.toString() ?? '';
     final transactionAt = delivery['transaction_at']?.toString() ?? '';
+    final deliveredAtMs = delivery['_delivered_at'] as int?;
+    final deliveredDate = delivery['delivered_date']?.toString() ?? '';
 
     final rawStatus = delivery['delivery_status']?.toString() ?? '';
     final status = rawStatus.toUpperCase().trim();
@@ -693,6 +681,7 @@ class DeliveryCard extends StatelessWidget {
         DSSpacing.hMd,
 
         Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (seqNum.isNotEmpty)
               Expanded(
@@ -703,9 +692,22 @@ class DeliveryCard extends StatelessWidget {
                   subtextColor: subtextColor,
                 ),
               ),
-            if (transactionAt.isNotEmpty &&
-                product.toLowerCase() != 'delivery' &&
-                ds != DeliveryStatus.pending)
+            if (ds == DeliveryStatus.delivered)
+              if (deliveredAtMs != null || deliveredDate.isNotEmpty)
+                Expanded(
+                  child: DeliveryDetailCell(
+                    label: 'TRANSACTION',
+                    value: deliveredAtMs != null
+                        ? formatEpoch(deliveredAtMs)
+                        : formatDate(deliveredDate, includeTime: true),
+                    isDark: isDark,
+                    subtextColor: subtextColor,
+                    valueColor: DSColors.success,
+                  ),
+                )
+              else
+                const SizedBox.shrink()
+            else if (transactionAt.isNotEmpty && ds != DeliveryStatus.pending)
               Expanded(
                 child: DeliveryDetailCell(
                   label: 'TRANSACTION',
@@ -714,8 +716,26 @@ class DeliveryCard extends StatelessWidget {
                   subtextColor: subtextColor,
                 ),
               ),
+            // If transaction is missing, the status pill "takes its place"
+            if (ds == DeliveryStatus.failedDelivery && transactionAt.isEmpty)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [_buildVerificationPill(rv), DSSpacing.hXs],
+                ),
+              ),
           ],
         ),
+
+        // If transaction is PRESENT, we still show the pill below it to avoid crowding.
+        if (ds == DeliveryStatus.failedDelivery && transactionAt.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(top: DSSpacing.sm),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [_buildVerificationPill(rv)],
+            ),
+          ),
 
         if (showProductMailType &&
             (product.isNotEmpty || mailType.isNotEmpty)) ...[
@@ -753,7 +773,6 @@ class DeliveryCard extends StatelessWidget {
     required String barcode,
     required String name,
     required bool isDirty,
-    required bool isPaid,
     required bool isFailedWithPay,
     required bool isFailedNoPay,
     required bool isLocked,
@@ -881,11 +900,6 @@ class DeliveryCard extends StatelessWidget {
                                 label: 'SYNC',
                                 color: DSColors.primary,
                               ),
-                            if (isPaid)
-                              DeliveryTinyPill(
-                                label: 'PAID',
-                                color: DSColors.success,
-                              ),
                             if (attemptsCount > 0)
                               DeliveryTinyPill(
                                 label: ds == DeliveryStatus.delivered
@@ -894,6 +908,15 @@ class DeliveryCard extends StatelessWidget {
                                 color: attemptsCount >= 3
                                     ? DSColors.error
                                     : DSColors.pending,
+                              ),
+                            if (ds == DeliveryStatus.failedDelivery)
+                              DeliveryTinyPill(
+                                label: (isFailedWithPay || isFailedNoPay)
+                                    ? 'ITEM RETURNED'
+                                    : 'IN POSSESSION',
+                                color: (isFailedWithPay || isFailedNoPay)
+                                    ? DSColors.success
+                                    : DSColors.warning,
                               ),
                           ],
                         ),
@@ -931,6 +954,28 @@ class DeliveryCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildVerificationPill(FailedDeliveryVerificationStatus rv) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: DSSpacing.xs, vertical: 2),
+      decoration: BoxDecoration(
+        color: (rv.isVerified ? DSColors.success : DSColors.warning).withValues(
+          alpha: DSStyles.alphaSubtle,
+        ),
+        borderRadius: DSStyles.pillRadius,
+        border: Border.all(
+          color: (rv.isVerified ? DSColors.success : DSColors.warning)
+              .withValues(alpha: DSStyles.alphaMuted),
+        ),
+      ),
+      child: Text(
+        rv.isVerified ? 'ITEM RETURNED' : 'IN POSSESSION',
+        style: DSTypography.label(
+          color: rv.isVerified ? DSColors.success : DSColors.warning,
+        ).copyWith(fontSize: 9),
       ),
     );
   }

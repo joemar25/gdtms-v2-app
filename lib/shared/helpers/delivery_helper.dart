@@ -45,51 +45,17 @@ int getAttemptsCountFromMap(Map<String, dynamic> delivery) {
     return null;
   }
 
-  // 1) Prefer explicit integer count keys (support snake_case and camelCase).
-  final countKeys = <String>[
-    'failed_delivery_count',
-    'failedDeliveryCount',
-    'failed_delivery_attempt_count',
-    'failedAttemptCount',
-    'failed_attempts_count',
-    'failed_attempt_count',
-    'rts_count',
-    'rtsCount',
-    'attempt_count',
-    'attempts_count',
-    'attempts',
-  ];
-  for (final k in countKeys) {
-    final v = delivery[k];
-    final parsed = parseInt(v);
-    if (parsed != null) return parsed;
-  }
+  // Prefer explicit integer count keys.
+  final v =
+      delivery['failed_delivery_count'] ?? delivery['failedDeliveryCount'];
+  final parsed = parseInt(v);
+  if (parsed != null) return parsed;
 
-  // 2) Fall back to attempt lists (detail endpoint arrays).
-  final listKeys = <String>[
-    'failed_delivery_attempts',
-    'failedDeliveryAttempts',
-    'rts_attempts',
-    'rtsAttempts',
-    'failed_attempts',
-    '_failed_delivery_attempts',
-    '_rts_attempts',
-    'attempts',
-  ];
-  for (final k in listKeys) {
-    final l = delivery[k];
-    if (l is List) return l.length;
-  }
-
-  // 3) Nested object fallback (e.g. delivery['failed_delivery'] = { count, attempts }).
-  final fd = delivery['failed_delivery'];
-  if (fd is Map<String, dynamic>) {
-    final v = fd['count'] ?? fd['attempt_count'] ?? fd['attempts'];
-    final parsed = parseInt(v);
-    if (parsed != null) return parsed;
-    final l = fd['attempts'];
-    if (l is List) return l.length;
-  }
+  // Fallback to attempt lists if count is missing.
+  final l =
+      delivery['failed_delivery_attempts'] ??
+      delivery['failedDeliveryAttempts'];
+  if (l is List) return l.length;
 
   return 0;
 }

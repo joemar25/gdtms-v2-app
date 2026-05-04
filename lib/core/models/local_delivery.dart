@@ -15,7 +15,7 @@ class LocalDelivery {
   const LocalDelivery({
     this.id,
     required this.barcode,
-    this.trackingNumber,
+    this.jobOrder,
     this.recipientName,
     this.deliveryAddress,
     required this.deliveryStatus,
@@ -24,31 +24,37 @@ class LocalDelivery {
     required this.rawJson,
     required this.createdAt,
     required this.updatedAt,
-    this.paidAt,
     this.deliveredAt,
     this.completedAt,
     this.serverUpdatedAt,
     this.syncStatus = 'clean',
     this.isArchived = false,
     this.rtsVerificationStatus = 'unvalidated',
+    this.pieceCount = 1,
+    this.pieceIndex = 1,
+    this.allowedStatuses = const [],
+    this.dataChecksum,
   });
 
   final int? id;
   final String barcode;
-  final String? trackingNumber;
+  final String? jobOrder;
   final String? recipientName;
   final String? deliveryAddress;
   final String deliveryStatus;
   final String? mailType;
   final String? dispatchCode;
 
+  /// v3.6 fields
+  final int pieceCount;
+  final int pieceIndex;
+  final List<String> allowedStatuses;
+  final String? dataChecksum;
+
   /// Full server JSON blob — decoded via [toDeliveryMap] for UI widgets.
   final String rawJson;
   final int createdAt;
   final int updatedAt;
-
-  /// Millisecond timestamp when this delivery was part of a paid payout.
-  final int? paidAt;
 
   /// Millisecond timestamp when this delivery transitioned to [delivered] status.
   final int? deliveredAt;
@@ -96,27 +102,15 @@ class LocalDelivery {
   }) {
     final now = DateTime.now().millisecondsSinceEpoch;
     // barcode_value is the primary identifier returned by the eligibility API.
-    final barcode =
-        _str(json, 'barcode_value') ??
-        _str(json, 'barcode') ??
-        _str(json, 'tracking_number') ??
-        '';
-
     return LocalDelivery(
-      barcode: barcode,
-      // tracking_number is not present in the eligibility payload; job_order
-      // serves as a human-readable reference until the detail API is called.
-      trackingNumber: _str(json, 'tracking_number') ?? _str(json, 'job_order'),
-      // 'name' is the recipient name in the eligibility response.
-      recipientName: _str(json, 'name'),
-      // 'address' is the delivery address in the eligibility response.
-      deliveryAddress: _str(json, 'address'),
-      // API boundary: parse and normalise via DeliveryStatus (maps to failedDelivery).
+      barcode: _str(json, 'barcode') ?? '',
+      jobOrder: _str(json, 'job_order'),
+      recipientName: _str(json, 'recipient_name'),
+      deliveryAddress: _str(json, 'recipient_address'),
       deliveryStatus: DeliveryStatus.fromString(
         _str(json, 'delivery_status') ?? 'FOR_DELIVERY',
       ).toDbString(),
-      // 'product' carries the mail/product type in the eligibility response.
-      mailType: _str(json, 'product') ?? _str(json, 'mail_type'),
+      mailType: _str(json, 'mail_type'),
       dispatchCode: dispatchCode,
       rawJson: jsonEncode(json),
       createdAt: now,
@@ -131,6 +125,11 @@ class LocalDelivery {
           _str(json, 'failed_delivery_verification_status') ??
           _str(json, 'rts_verification_status') ??
           'unvalidated',
+      pieceCount: json['piece_count'] as int? ?? 1,
+      pieceIndex: json['piece_index'] as int? ?? 1,
+      allowedStatuses:
+          (json['allowed_statuses'] as List?)?.cast<String>() ?? const [],
+      dataChecksum: _str(json, 'data_checksum'),
     );
   }
 
@@ -152,10 +151,15 @@ class LocalDelivery {
   }) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final barcode =
-        _str(json, 'barcode_value') ??
         _str(json, 'barcode') ??
+        _str(json, 'barcode_value') ??
         _str(json, 'tracking_number') ??
         '';
+
+    final jobOrder = _str(json, 'job_order');
+    final recipientName = _str(json, 'recipient_name');
+    final recipientAddress = _str(json, 'recipient_address');
+    final mailType = _str(json, 'mail_type');
 
     // serverStatus is the endpoint bucket we fetched from ('FOR_DELIVERY', 'DELIVERED',
     // 'FAILED_DELIVERY', 'OSA'). We previously used it as the primary status, which caused
@@ -210,25 +214,15 @@ class LocalDelivery {
 
     return LocalDelivery(
       barcode: barcode,
-      trackingNumber: _str(json, 'tracking_number') ?? _str(json, 'job_order'),
-      recipientName: _str(json, 'recipient_name') ?? _str(json, 'name'),
-      deliveryAddress: _str(json, 'delivery_address') ?? _str(json, 'address'),
+      jobOrder: jobOrder,
+      recipientName: recipientName,
+      deliveryAddress: recipientAddress,
       deliveryStatus: status,
-      mailType: _str(json, 'mail_type') ?? _str(json, 'product'),
+      mailType: mailType,
       dispatchCode: dispatchCode,
       rawJson: jsonEncode(json),
       createdAt: now,
       updatedAt: now,
-      // mar-note: paid_at sentinel values:
-      //   NULL / 0  → not yet paid; shows in dashboard + delivery list.
-      //   1 (sentinel) → server reports is_paid=true but no local payout yet;
-      //                   EXCLUDED from dashboard/list counts; PAID badge shown.
-      //   >1 (real ms) → locally confirmed paid via payout request;
-      //                   EXCLUDED from all dashboard/list/search views;
-      //                   deleted after kPaidDeliveryRetentionDays (1 day).
-      // Any COALESCE(paid_at,0) > 0 means the record is considered paid and
-      // must not appear in visible-delivered counts or scan results.
-      paidAt: (json['is_paid'] as bool? ?? false) ? 1 : null,
       deliveredAt: deliveredAt,
       completedAt: completedAt,
       serverUpdatedAt: _dateMs(json, 'updated_at'),
@@ -238,6 +232,11 @@ class LocalDelivery {
           _str(json, 'failed_delivery_verification_status') ??
           _str(json, 'rts_verification_status') ??
           'unvalidated',
+      pieceCount: json['piece_count'] as int? ?? 1,
+      pieceIndex: json['piece_index'] as int? ?? 1,
+      allowedStatuses:
+          (json['allowed_statuses'] as List?)?.cast<String>() ?? const [],
+      dataChecksum: _str(json, 'data_checksum'),
     );
   }
 
@@ -246,7 +245,7 @@ class LocalDelivery {
     return LocalDelivery(
       id: row['id'] as int?,
       barcode: row['barcode'] as String,
-      trackingNumber: row['tracking_number'] as String?,
+      jobOrder: row['tracking_number'] as String?,
       recipientName: row['recipient_name'] as String?,
       deliveryAddress: row['delivery_address'] as String?,
       deliveryStatus: row['delivery_status'] as String? ?? 'FOR_DELIVERY',
@@ -255,7 +254,6 @@ class LocalDelivery {
       rawJson: row['raw_json'] as String,
       createdAt: row['created_at'] as int,
       updatedAt: row['updated_at'] as int,
-      paidAt: row['paid_at'] as int?,
       deliveredAt: row['delivered_at'] as int?,
       completedAt: row['completed_at'] as int?,
       serverUpdatedAt: row['server_updated_at'] as int?,
@@ -263,6 +261,13 @@ class LocalDelivery {
       isArchived: (row['is_archived'] as int? ?? 0) == 1,
       rtsVerificationStatus:
           row['rts_verification_status'] as String? ?? 'unvalidated',
+      pieceCount: row['piece_count'] as int? ?? 1,
+      pieceIndex: row['piece_index'] as int? ?? 1,
+      allowedStatuses: (row['allowed_statuses'] as String?) != null
+          ? (jsonDecode(row['allowed_statuses'] as String) as List)
+                .cast<String>()
+          : const [],
+      dataChecksum: row['data_checksum'] as String?,
     );
   }
 
@@ -271,7 +276,7 @@ class LocalDelivery {
   Map<String, dynamic> toDb() => {
     if (id != null) 'id': id,
     'barcode': barcode,
-    'tracking_number': trackingNumber,
+    'tracking_number': jobOrder,
     'recipient_name': recipientName,
     'delivery_address': deliveryAddress,
     'delivery_status': deliveryStatus,
@@ -280,13 +285,16 @@ class LocalDelivery {
     'raw_json': rawJson,
     'created_at': createdAt,
     'updated_at': updatedAt,
-    if (paidAt != null) 'paid_at': paidAt,
     if (deliveredAt != null) 'delivered_at': deliveredAt,
     'completed_at': completedAt,
     if (serverUpdatedAt != null) 'server_updated_at': serverUpdatedAt,
     'sync_status': syncStatus,
     'is_archived': isArchived ? 1 : 0,
     'rts_verification_status': rtsVerificationStatus,
+    'piece_count': pieceCount,
+    'piece_index': pieceIndex,
+    'allowed_statuses': jsonEncode(allowedStatuses),
+    'data_checksum': dataChecksum,
   };
 
   /// Decodes [rawJson] back into the delivery map consumed by UI widgets
@@ -297,16 +305,30 @@ class LocalDelivery {
   Map<String, dynamic> toDeliveryMap() {
     try {
       final decoded = jsonDecode(rawJson);
-      if (decoded is Map<String, dynamic>) {
-        decoded['_sync_status'] = syncStatus;
-        decoded['_paid_at'] = paidAt;
-        decoded['_rts_verification_status'] = rtsVerificationStatus;
-        decoded['_is_archived'] = isArchived;
-        decoded['_completed_at'] = completedAt;
-        decoded['_delivered_at'] = deliveredAt;
-        return decoded;
-      }
-      return {};
+      final Map<String, dynamic> map = (decoded is Map<String, dynamic>)
+          ? decoded
+          : {};
+
+      // Inject internal state prefixed with '_'
+      map['_sync_status'] = syncStatus;
+      map['_rts_verification_status'] = rtsVerificationStatus;
+      map['_is_archived'] = isArchived;
+      map['_completed_at'] = completedAt;
+      map['_delivered_at'] = deliveredAt;
+
+      // ENFORCE CANONICAL KEYS (Standardise for UI consumption)
+      // We explicitly set these to ensure v3.6 compliance across all UI components.
+      map['barcode'] = barcode;
+      map['job_order'] = jobOrder;
+      map['recipient_name'] = recipientName;
+      map['recipient_address'] = deliveryAddress;
+      map['mail_type'] = mailType;
+      map['piece_count'] = pieceCount;
+      map['piece_index'] = pieceIndex;
+      map['allowed_statuses'] = allowedStatuses;
+      map['data_checksum'] = dataChecksum;
+
+      return map;
     } catch (_) {
       return {};
     }
@@ -318,18 +340,21 @@ class LocalDelivery {
     String? deliveryStatus,
     String? rawJson,
     int? updatedAt,
-    int? paidAt,
     int? deliveredAt,
     int? completedAt,
     int? serverUpdatedAt,
     String? syncStatus,
     bool? isArchived,
     String? rtsVerificationStatus,
+    int? pieceCount,
+    int? pieceIndex,
+    List<String>? allowedStatuses,
+    String? dataChecksum,
   }) {
     return LocalDelivery(
       id: id,
       barcode: barcode,
-      trackingNumber: trackingNumber,
+      jobOrder: jobOrder,
       recipientName: recipientName,
       deliveryAddress: deliveryAddress,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
@@ -338,7 +363,6 @@ class LocalDelivery {
       rawJson: rawJson ?? this.rawJson,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      paidAt: paidAt ?? this.paidAt,
       deliveredAt: deliveredAt ?? this.deliveredAt,
       completedAt: completedAt ?? this.completedAt,
       serverUpdatedAt: serverUpdatedAt ?? this.serverUpdatedAt,
@@ -346,6 +370,10 @@ class LocalDelivery {
       isArchived: isArchived ?? this.isArchived,
       rtsVerificationStatus:
           rtsVerificationStatus ?? this.rtsVerificationStatus,
+      pieceCount: pieceCount ?? this.pieceCount,
+      pieceIndex: pieceIndex ?? this.pieceIndex,
+      allowedStatuses: allowedStatuses ?? this.allowedStatuses,
+      dataChecksum: dataChecksum ?? this.dataChecksum,
     );
   }
 

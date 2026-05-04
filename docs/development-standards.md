@@ -1,7 +1,7 @@
 # Development Standards for GDTMS v2 Mobile App
 
 > **Reference Guide for Developers & AI Assistants**  
-> Last Updated: April 30, 2026  
+> Last Updated: May 4, 2026  
 > Focus: Flutter / Dart Mobile Development
 
 **Quick Start:** For day-to-day development, refer to this document. It outlines the core architecture, rules, and best practices for the FSI Courier Mobile App.

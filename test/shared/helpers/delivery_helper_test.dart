@@ -73,7 +73,7 @@ void main() {
       });
 
       test('handles string numeric values', () {
-        final data = {'attempts': '5'};
+        final data = {'failed_delivery_count': '5'};
         expect(getAttemptsCountFromMap(data), 5);
       });
 

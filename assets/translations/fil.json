@@ -430,6 +430,7 @@
       "offline": "Offline",
       "api_unreachable": "Hindi Ma-access ang API",
       "last_sync": "Huling sync: {}",
+      "pending_changes": "{count} nakabinbing pagbabago",
       "up_to_date": "Naka-update na",
       "never_synced": "Hindi pa na-sync",
       "retention_days": "Pagpapanatili ng kasaysayan ng sync: {}",

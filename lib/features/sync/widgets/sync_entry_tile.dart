@@ -1,4 +1,7 @@
 // DOCS: docs/features/sync-history.md
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
@@ -221,7 +224,6 @@ class SyncEntryTile extends StatelessWidget {
                               _Chip(mailType.toUpperCase()),
                             if (dispatchCode != null && dispatchCode.isNotEmpty)
                               _Chip(dispatchCode),
-                            if (delivery?.paidAt != null) const _ArchivedChip(),
                           ],
                         ),
                         DSSpacing.hSm,
@@ -280,6 +282,10 @@ class SyncEntryTile extends StatelessWidget {
                               ),
                             ],
                           ),
+                        ],
+                        if (entry.status != 'synced' &&
+                            entry.mediaPathsJson != null) ...[
+                          _MediaGallery(mediaPathsJson: entry.mediaPathsJson),
                         ],
                         if (onRetry != null ||
                             onDismiss != null ||
@@ -577,6 +583,128 @@ class _MetaRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MediaGallery extends StatelessWidget {
+  const _MediaGallery({required this.mediaPathsJson});
+  final String? mediaPathsJson;
+
+  static const _typeLabels = {
+    'pod': 'POD',
+    'selfie': 'Selfie',
+    'recipient_signature': 'Signature',
+    'photo': 'Photo',
+  };
+
+  Map<String, String> get _paths {
+    if (mediaPathsJson == null) return {};
+    try {
+      final raw = jsonDecode(mediaPathsJson!) as Map<String, dynamic>;
+      return raw.map((k, v) => MapEntry(k, v as String));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  String _labelFor(String key) {
+    if (_typeLabels.containsKey(key)) return _typeLabels[key]!;
+    if (key.startsWith('photo')) {
+      final idx = key.replaceAll(RegExp(r'[^0-9]'), '');
+      return idx.isEmpty ? 'Photo' : 'Photo ${int.parse(idx) + 1}';
+    }
+    return key.toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final paths = _paths;
+    if (paths.isEmpty) return const SizedBox.shrink();
+    final dimColor = Theme.of(context).colorScheme.onSurfaceVariant;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DSSpacing.hSm,
+        Row(
+          children: [
+            Icon(
+              Icons.photo_library_outlined,
+              size: DSIconSize.xs,
+              color: dimColor,
+            ),
+            DSSpacing.wXs,
+            Text(
+              'Photos — Awaiting Sync',
+              style: DSTypography.caption(
+                color: dimColor,
+                fontWeight: FontWeight.w600,
+                fontSize: DSTypography.sizeXs,
+              ),
+            ),
+          ],
+        ),
+        DSSpacing.hXs,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: paths.entries.map((e) {
+              return Padding(
+                padding: EdgeInsets.only(right: DSSpacing.sm),
+                child: _MediaThumb(path: e.value, label: _labelFor(e.key)),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MediaThumb extends StatelessWidget {
+  const _MediaThumb({required this.path, required this.label});
+  final String path;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dimColor = Theme.of(context).colorScheme.onSurfaceVariant;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+          child: SizedBox(
+            width: 64,
+            height: 64,
+            child: Image.file(
+              File(path),
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: isDark
+                    ? DSColors.cardDark
+                    : DSColors.secondarySurfaceLight,
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  size: 24,
+                  color: dimColor.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: DSTypography.caption(
+            color: dimColor,
+            fontSize: DSTypography.sizeXs,
+          ),
+        ),
+      ],
     );
   }
 }

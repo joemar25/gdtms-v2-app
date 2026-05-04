@@ -443,6 +443,7 @@
       "offline": "Offline",
       "api_unreachable": "API Unavailable",
       "last_sync": "Last sync: {}",
+      "pending_changes": "{count} pending changes",
       "up_to_date": "Up to date",
       "never_synced": "Never synced",
       "retention_days": "Sync history retention: {}",

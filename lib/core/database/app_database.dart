@@ -43,7 +43,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     final db = await openDatabase(
       path,
-      version: 14,
+      version: 16,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -85,13 +85,16 @@ class AppDatabase {
         raw_json         TEXT    NOT NULL,
         created_at       INTEGER NOT NULL,
         updated_at       INTEGER NOT NULL,
-        paid_at          INTEGER,
         delivered_at     INTEGER,
         completed_at     INTEGER,
         server_updated_at INTEGER,
         sync_status      TEXT    NOT NULL DEFAULT 'clean',
         is_archived      INTEGER NOT NULL DEFAULT 0,
-        rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'
+        rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated',
+        piece_count      INTEGER NOT NULL DEFAULT 1,
+        piece_index      INTEGER NOT NULL DEFAULT 1,
+        allowed_statuses TEXT,
+        data_checksum    TEXT
       )
     ''');
 
@@ -307,6 +310,42 @@ class AppDatabase {
           "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
         );
       }
+    }
+    if (oldVersion < 15) {
+      // v15: drop paid_at column from local_deliveries.
+      // The backend API removed is_paid, and the mobile app no longer tracks
+      // payment status locally.
+      try {
+        await db.execute('ALTER TABLE local_deliveries DROP COLUMN paid_at');
+      } catch (e) {
+        // SQLite versions < 3.35.0 (Android < 12) do not support DROP COLUMN.
+        // If it fails, we simply leave the column orphaned; the model and
+        // DAO already ignore it, so it is safe to persist.
+        debugPrint('[DB] Migration warning (drop column): $e');
+      }
+    }
+    if (oldVersion < 16) {
+      // v16: Add v3.6 compliance fields for piece counts, transitions, and checksums.
+      Future<void> addColumn(String col) async {
+        try {
+          await db.execute(col);
+        } catch (e) {
+          debugPrint('[DB] Migration info (add column): $e');
+        }
+      }
+
+      await addColumn(
+        "ALTER TABLE local_deliveries ADD COLUMN piece_count INTEGER NOT NULL DEFAULT 1",
+      );
+      await addColumn(
+        "ALTER TABLE local_deliveries ADD COLUMN piece_index INTEGER NOT NULL DEFAULT 1",
+      );
+      await addColumn(
+        "ALTER TABLE local_deliveries ADD COLUMN allowed_statuses TEXT",
+      );
+      await addColumn(
+        "ALTER TABLE local_deliveries ADD COLUMN data_checksum TEXT",
+      );
     }
   }
 

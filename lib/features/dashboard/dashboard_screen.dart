@@ -66,7 +66,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final api = ref.read(apiClientProvider);
         final summaryResult = await api.get<Map<String, dynamic>>(
           '/dashboard-summary',
-          queryParameters: {'paid': 'all'},
           parser: parseApiMap,
         );
         if (summaryResult case ApiSuccess<Map<String, dynamic>>(:final data)) {

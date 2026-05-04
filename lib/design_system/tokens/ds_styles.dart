@@ -126,4 +126,8 @@ class DSStyles {
       ),
     ];
   }
+
+  // ── Component Heights ─────────────────────────────────────────────────────
+  static const double statCardHeight = 100.0;
+  static const double scanButtonHeight = 150.0;
 }

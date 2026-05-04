@@ -87,7 +87,7 @@ class DeliveryRecipientSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DeliveryRecipientCards(
-          recipientName: delivery['name']?.toString() ?? '',
+          recipientName: delivery['recipient_name']?.toString() ?? '',
           authorizedRep: delivery['authorized_rep']?.toString() ?? '',
           onSelectRecipient: onSelectRecipient,
         ),
