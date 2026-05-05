@@ -138,8 +138,13 @@ class DeliveryCard extends StatelessWidget {
       }
     }
 
+    // STRICT RULE: If the card is locked (finalized/verified), hide the info button
+    // for privacy and to prevent further modifications. This is mandatory.
     final canViewInfo =
-        !isPrivacyMode && !isChecking && ds != DeliveryStatus.unknown;
+        !isPrivacyMode &&
+        !isChecking &&
+        !isLocked &&
+        ds != DeliveryStatus.unknown;
 
     if (compact) {
       return _buildCompactCard(
@@ -156,6 +161,7 @@ class DeliveryCard extends StatelessWidget {
         isVisible: isVisible,
         inSyncQueue: inSyncQueue,
         product: product,
+        mailType: mailType,
         address: address,
         attemptsCount: attemptsCount,
       );
@@ -258,90 +264,38 @@ class DeliveryCard extends StatelessWidget {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    if (onTap != null &&
-                                        !isPrivacyMode &&
-                                        !isChecking &&
-                                        !isLocked &&
-                                        !inSyncQueue &&
-                                        (ds == DeliveryStatus.pending ||
-                                            (ds ==
-                                                    DeliveryStatus
-                                                        .failedDelivery &&
-                                                attemptsCount < 3)) &&
-                                        (product.isNotEmpty ||
-                                            mailType.isNotEmpty))
-                                      Flexible(
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: DSSpacing.sm,
-                                            vertical: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: DSColors.primary.withValues(
-                                              alpha: DSStyles.alphaSoft,
-                                            ),
-                                            borderRadius: DSStyles.pillRadius,
-                                          ),
-                                          child: Text(
-                                            product.isNotEmpty
-                                                ? product
-                                                : mailType,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style:
-                                                DSTypography.label(
-                                                  color: DSColors.primary,
-                                                ).copyWith(
-                                                  fontSize: DSTypography.sizeSm,
-                                                  letterSpacing:
-                                                      DSTypography.lsLoose,
-                                                ),
-                                          ),
-                                        ),
-                                      )
-                                    else if (!isPrivacyMode &&
-                                        isLocked &&
-                                        product.isNotEmpty)
-                                      Flexible(
-                                        child: Text(
-                                          product,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style:
-                                              DSTypography.caption(
-                                                color: subtextColor,
-                                              ).copyWith(
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                      ),
                                     if (attemptsCount > 0)
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                          left: DSSpacing.xs,
-                                        ),
-                                        child: DeliveryMiniPill(
-                                          label: ds == DeliveryStatus.delivered
-                                              ? 'FAILED ATTEMPTS: $attemptsCount'
-                                              : 'ATTEMPTS: $attemptsCount',
-                                          icon: Icons.autorenew_rounded,
-                                          bg:
-                                              (attemptsCount >= 3
-                                                      ? DSColors.error
-                                                      : DSColors.warning)
-                                                  .withValues(
-                                                    alpha: DSStyles.alphaSubtle,
-                                                  ),
-                                          border:
-                                              (attemptsCount >= 3
-                                                      ? DSColors.error
-                                                      : DSColors.warning)
-                                                  .withValues(
-                                                    alpha: DSStyles.alphaMuted,
-                                                  ),
-                                          fg: attemptsCount >= 3
-                                              ? DSColors.error
-                                              : DSColors.warning,
+                                      Flexible(
+                                        child: Padding(
+                                          padding: EdgeInsets.only(
+                                            left: DSSpacing.xs,
+                                          ),
+                                          child: DeliveryMiniPill(
+                                            label:
+                                                ds == DeliveryStatus.delivered
+                                                ? 'FAILED ATTEMPTS: $attemptsCount'
+                                                : 'ATTEMPTS: $attemptsCount',
+                                            icon: Icons.autorenew_rounded,
+                                            bg:
+                                                (attemptsCount >= 3
+                                                        ? DSColors.error
+                                                        : DSColors.warning)
+                                                    .withValues(
+                                                      alpha:
+                                                          DSStyles.alphaSubtle,
+                                                    ),
+                                            border:
+                                                (attemptsCount >= 3
+                                                        ? DSColors.error
+                                                        : DSColors.warning)
+                                                    .withValues(
+                                                      alpha:
+                                                          DSStyles.alphaMuted,
+                                                    ),
+                                            fg: attemptsCount >= 3
+                                                ? DSColors.error
+                                                : DSColors.warning,
+                                          ),
                                         ),
                                       ),
                                     if (canViewInfo)
@@ -349,30 +303,24 @@ class DeliveryCard extends StatelessWidget {
                                         padding: EdgeInsets.only(
                                           left: DSSpacing.xs,
                                         ),
-                                        child: Material(
-                                          color: DSColors.primary.withValues(
-                                            alpha: DSStyles.alphaSoft,
-                                          ),
+                                        child: InkWell(
+                                          onTap: () {
+                                            HapticFeedback.lightImpact();
+                                            showDeliveryAccountDetails(
+                                              context,
+                                              delivery,
+                                              barcode,
+                                            );
+                                          },
                                           borderRadius: DSStyles.pillRadius,
-                                          child: InkWell(
-                                            borderRadius: DSStyles.pillRadius,
-                                            onTap: () {
-                                              HapticFeedback.lightImpact();
-                                              showDeliveryAccountDetails(
-                                                context,
-                                                delivery,
-                                                barcode,
-                                              );
-                                            },
-                                            child: Container(
-                                              width: 44,
-                                              height: 44,
-                                              alignment: Alignment.center,
-                                              child: Icon(
-                                                Icons.info_rounded,
-                                                size: DSIconSize.lg,
-                                                color: DSColors.primary,
-                                              ),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(
+                                              DSSpacing.xs,
+                                            ),
+                                            child: Icon(
+                                              Icons.info_outline_rounded,
+                                              size: DSIconSize.md,
+                                              color: DSColors.primary,
                                             ),
                                           ),
                                         ),
@@ -400,21 +348,34 @@ class DeliveryCard extends StatelessWidget {
                           DSSpacing.hMd,
 
                           // ── Row 2: Barcode (large) ────────────────────────────
-                          Text(
-                            barcode.isEmpty ? 'UNKNOWN' : barcode,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                DSTypography.title(
-                                  color: isDark
-                                      ? DSColors.white
-                                      : DSColors.labelPrimary,
-                                ).copyWith(
-                                  fontFamily: 'monospace',
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: DSTypography.sizeMd,
-                                  letterSpacing: DSTypography.lsExtraLoose,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.qr_code_scanner_rounded,
+                                size: DSIconSize.xs,
+                                color: subtextColor,
+                              ),
+                              DSSpacing.wXs,
+                              Flexible(
+                                child: Text(
+                                  barcode.isEmpty ? 'UNKNOWN' : barcode,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style:
+                                      DSTypography.title(
+                                        color: isDark
+                                            ? DSColors.white
+                                            : DSColors.labelPrimary,
+                                      ).copyWith(
+                                        fontFamily: 'monospace',
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: DSTypography.sizeMd,
+                                        letterSpacing:
+                                            DSTypography.lsExtraLoose,
+                                      ),
                                 ),
+                              ),
+                            ],
                           ),
 
                           // ── Row 3: Recipient name ────────────────────────────
@@ -477,35 +438,6 @@ class DeliveryCard extends StatelessWidget {
                                     style: DSTypography.caption(
                                       color: subtextColor,
                                     ).copyWith(height: DSStyles.heightNormal),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-
-                          // ── Row 5: Privacy Mode Product Label ──────────────────
-                          if (isPrivacyMode && product.isNotEmpty) ...[
-                            DSSpacing.hXs,
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.inventory_2_outlined,
-                                  size: DSIconSize.xs,
-                                  color: subtextColor,
-                                ),
-                                DSSpacing.wXs,
-                                Flexible(
-                                  child: Text(
-                                    product.toUpperCase(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style:
-                                        DSTypography.caption(
-                                          color: subtextColor,
-                                        ).copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: DSTypography.lsLoose,
-                                        ),
                                   ),
                                 ),
                               ],
@@ -642,19 +574,16 @@ class DeliveryCard extends StatelessWidget {
     required DeliveryStatus ds,
     required FailedDeliveryVerificationStatus rv,
   }) {
-    final seqNum = delivery['sequence_number']?.toString() ?? '';
     final product = delivery['product']?.toString() ?? '';
-    final mailType = delivery['mail_type']?.toString() ?? '';
     final specialInstr = delivery['special_instruction']?.toString() ?? '';
     final transactionAt = delivery['transaction_at']?.toString() ?? '';
     final deliveredAtMs = delivery['_delivered_at'] as int?;
     final deliveredDate = delivery['delivered_date']?.toString() ?? '';
+    final isLocked = checkIsLockedFromMap(delivery);
 
     final hasDetails =
-        seqNum.isNotEmpty ||
         (transactionAt.isNotEmpty && ds != DeliveryStatus.pending) ||
         product.isNotEmpty ||
-        mailType.isNotEmpty ||
         specialInstr.isNotEmpty;
 
     if (!hasDetails) return const SizedBox.shrink();
@@ -666,22 +595,13 @@ class DeliveryCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DSSpacing.hMd,
+        DSSpacing.hSm,
         Divider(height: DSStyles.borderWidth, color: dividerColor),
-        DSSpacing.hMd,
+        DSSpacing.hSm,
 
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            if (seqNum.isNotEmpty)
-              Expanded(
-                child: DeliveryDetailCell(
-                  label: 'SEQUENCE',
-                  value: seqNum,
-                  isDark: isDark,
-                  subtextColor: subtextColor,
-                ),
-              ),
             if (ds == DeliveryStatus.delivered)
               if (deliveredAtMs != null || deliveredDate.isNotEmpty)
                 Expanded(
@@ -706,35 +626,26 @@ class DeliveryCard extends StatelessWidget {
                   subtextColor: subtextColor,
                 ),
               ),
-            // If transaction is missing, the status pill "takes its place"
-            if (ds == DeliveryStatus.failedDelivery && transactionAt.isEmpty)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [_buildVerificationPill(rv), DSSpacing.hXs],
-                ),
-              ),
           ],
         ),
 
-        // If transaction is PRESENT, we still show the pill below it to avoid crowding.
-        if (ds == DeliveryStatus.failedDelivery && transactionAt.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.only(top: DSSpacing.sm),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [_buildVerificationPill(rv)],
-            ),
-          ),
-
         // Show PRODUCT below SEQUENCE/TRANSACTION row if available
         if (product.isNotEmpty) ...[
-          DSSpacing.hMd,
-          DeliveryDetailCell(
-            label: 'PRODUCT',
-            value: product,
-            isDark: isDark,
-            subtextColor: subtextColor,
+          DSSpacing.hSm,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: DeliveryDetailCell(
+                  label: 'PRODUCT',
+                  value: product,
+                  isDark: isDark,
+                  subtextColor: subtextColor,
+                ),
+              ),
+              if (ds == DeliveryStatus.failedDelivery && !isLocked)
+                _buildVerificationPill(rv),
+            ],
           ),
         ],
 
@@ -765,6 +676,7 @@ class DeliveryCard extends StatelessWidget {
     required bool isVisible,
     required bool inSyncQueue,
     required String product,
+    required String mailType,
     required String address,
     required int attemptsCount,
   }) {
@@ -834,38 +746,96 @@ class DeliveryCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                barcode.isEmpty ? 'UNKNOWN' : barcode,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style:
-                                    DSTypography.body(
-                                      color: isDark
-                                          ? DSColors.labelPrimaryDark
-                                          : DSColors.labelPrimary,
-                                    ).copyWith(
-                                      fontFamily: 'monospace',
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: DSTypography.sizeMd,
-                                      letterSpacing: DSTypography.lsExtraLoose,
+                              if (!isPrivacyMode && name.isNotEmpty) ...[
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.person_outline_rounded,
+                                      size: DSIconSize.xs,
+                                      color: subtextColor,
                                     ),
+                                    DSSpacing.wXs,
+                                    Flexible(
+                                      child: Text(
+                                        name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style:
+                                            DSTypography.body(
+                                              color: isDark
+                                                  ? DSColors.labelPrimaryDark
+                                                  : DSColors.labelPrimary,
+                                            ).copyWith(
+                                              fontSize: DSTypography.sizeSm,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                DSSpacing.hXs,
+                              ],
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.qr_code_scanner_rounded,
+                                    size: DSIconSize.xs,
+                                    color: subtextColor,
+                                  ),
+                                  DSSpacing.wXs,
+                                  Flexible(
+                                    child: Text(
+                                      barcode.isEmpty ? 'UNKNOWN' : barcode,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style:
+                                          DSTypography.body(
+                                            color: isDark
+                                                ? DSColors.labelPrimaryDark
+                                                : DSColors.labelPrimary,
+                                          ).copyWith(
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: DSTypography.sizeSm,
+                                            letterSpacing: DSTypography.lsLoose,
+                                          ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               DSSpacing.hXs,
-                              Text(
-                                isPrivacyMode
-                                    ? product
-                                    : [
-                                        address,
-                                        product,
-                                      ].where((e) => e.isNotEmpty).join(' · '),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: DSTypography.caption(color: subtextColor)
-                                    .copyWith(
-                                      fontSize: DSTypography.sizeXs,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: DSTypography.lsLoose,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.only(top: 2),
+                                    child: Icon(
+                                      Icons.location_on_outlined,
+                                      size: DSIconSize.xs,
+                                      color: subtextColor,
                                     ),
+                                  ),
+                                  DSSpacing.wXs,
+                                  Flexible(
+                                    child: Text(
+                                      isPrivacyMode
+                                          ? (product.isNotEmpty
+                                                ? product
+                                                : 'DELIVERY ITEM')
+                                          : address,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style:
+                                          DSTypography.caption(
+                                            color: subtextColor,
+                                          ).copyWith(
+                                            fontSize: DSTypography.sizeXs,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: DSTypography.lsLoose,
+                                          ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -895,7 +865,8 @@ class DeliveryCard extends StatelessWidget {
                                     ? DSColors.error
                                     : DSColors.pending,
                               ),
-                            if (ds == DeliveryStatus.failedDelivery)
+                            if (ds == DeliveryStatus.failedDelivery &&
+                                !isLocked)
                               DeliveryTinyPill(
                                 label: (isFailedWithPay || isFailedNoPay)
                                     ? 'ITEM RETURNED'

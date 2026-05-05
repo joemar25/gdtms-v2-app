@@ -9,6 +9,8 @@ class DeliveryOtherInfoSection extends StatelessWidget {
   const DeliveryOtherInfoSection({
     super.key,
     required this.product,
+    this.mailType,
+    this.sequenceNumber,
     this.specialInstruction,
     this.transmittalDate,
     this.tat,
@@ -19,6 +21,8 @@ class DeliveryOtherInfoSection extends StatelessWidget {
   });
 
   final String product;
+  final String? mailType;
+  final String? sequenceNumber;
   final String? specialInstruction;
   final String? transmittalDate;
   final String? tat;
@@ -38,6 +42,18 @@ class DeliveryOtherInfoSection extends StatelessWidget {
         (
           label: 'delivery_card.details.product'.tr(),
           value: product,
+          isItalic: false,
+        ),
+      if (mailType != null && mailType!.isNotEmpty)
+        (
+          label: 'delivery_card.details.mail_type'.tr(),
+          value: mailType!,
+          isItalic: false,
+        ),
+      if (sequenceNumber != null && sequenceNumber!.isNotEmpty)
+        (
+          label: 'delivery_card.details.sequence'.tr(),
+          value: sequenceNumber!,
           isItalic: false,
         ),
       if (specialInstruction != null && specialInstruction!.isNotEmpty)
@@ -66,7 +82,7 @@ class DeliveryOtherInfoSection extends StatelessWidget {
           final item = entry.value;
           return Padding(
             padding: EdgeInsets.only(
-              bottom: i < items.length - 1 ? DSSpacing.md : 0,
+              bottom: i < items.length - 1 ? DSSpacing.sm : 0,
             ),
             child: DeliveryDetailCell(
               label: item.label,

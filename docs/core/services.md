@@ -25,15 +25,16 @@ Singleton or stateless service classes that perform a focused task.
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `app_version_service.dart` | Reads app version from platform metadata once at boot |
-| `error_log_service.dart` | Writes to `error_logs` table; used across the app for error capture |
-| `location_ping_service.dart` | Periodically POSTs the courier's GPS coordinates to the server |
-| `profile_service.dart` | Fetches and updates courier profile from/to the server |
-| `report_service.dart` | Submits bug/issue reports to the server |
-| `review_prompt_service.dart` | Decides when to show the in-app review prompt |
-| `version_check_service.dart` | Compares app version to server's minimum supported version |
+| File                         | Purpose                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `app_version_service.dart`   | Reads app version from platform metadata once at boot                     |
+| `error_log_service.dart`     | Writes to `error_logs` table; used across the app for error capture       |
+| `location_ping_service.dart` | Periodically POSTs the courier's GPS coordinates to the server            |
+| `profile_service.dart`       | Fetches and updates courier profile from/to the server                    |
+| `report_service.dart`        | Submits bug/issue reports to the server                                   |
+| `review_prompt_service.dart` | Decides when to show the in-app review prompt                             |
+| `update_service.dart`        | Handles APK downloads, checksums, and version manifest fetching           |
+| `version_check_service.dart` | Compares app version to server's minimum supported version (legacy/store) |
 
 ---
 
@@ -89,8 +90,20 @@ Call this wherever a catch block needs to record something reviewable in the err
 
 ---
 
+## `update_service.dart`
+
+The core engine for the [Update System](file:///docs/core/update-system.md).
+
+- `checkForUpdate()`: Fetches `mobile-version.json` and parses into `UpdateInfo`.
+- `downloadUpdate(url, onProgress)`: Downloads APK to a temporary directory with progress tracking.
+- `verifyChecksum(path, sha256)`: Ensures file integrity before installation.
+- `installUpdate(path)`: Triggers `open_filex` (Android) or opens App Store (iOS).
+
+---
+
 ## `version_check_service.dart`
 
 - `check()` — GET `/app/version`.
 - Compares server `min_version` with `AppVersionService.version`.
 - If behind: shows a non-dismissible update banner on dashboard.
+- **Note**: This is largely superseded by the newer `UpdateService` which supports direct APK sideloading.

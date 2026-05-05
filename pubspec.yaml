@@ -48,6 +48,8 @@ dependencies:
   flutter_spinkit: ^5.2.1
   firebase_messaging: ^16.2.0
   screen_protector: ^1.5.1
+  open_filex: ^4.3.4
+  flutter_native_splash: ^2.4.1
 
 dev_dependencies:
   flutter_test:
@@ -55,7 +57,6 @@ dev_dependencies:
   mockito: ^5.4.5
   build_runner: ^2.4.15
   flutter_lints: ^6.0.0
-  flutter_native_splash: ^2.4.1
   flutter_launcher_icons: ^0.14.4
   rename: ^3.1.0
   mocktail: ^1.0.5
@@ -124,8 +125,9 @@ flutter_launcher_icons:
   image_path: "assets/android-chrome-512x512.png"
 
 flutter_native_splash:
-  # Solid background only — no image. Colors match ColorStyles scaffold
-  # values so there is no flash before the Flutter SplashScreen renders.
   color: "#FFFFFF"
+  color_dark: "#020617"
+  image: "assets/android-chrome-512x512.png"
   android: true
   ios: true
+  fullscreen: true

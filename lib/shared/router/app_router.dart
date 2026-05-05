@@ -19,6 +19,7 @@ import 'package:fsi_courier_app/features/dispatch/dispatch_eligibility_screen.da
 import 'package:fsi_courier_app/features/dispatch/dispatch_list_screen.dart';
 import 'package:fsi_courier_app/features/profile/profile_screen.dart';
 import 'package:fsi_courier_app/features/profile/profile_edit_screen.dart';
+import 'package:fsi_courier_app/features/profile/update_screen.dart';
 import 'package:fsi_courier_app/features/scan/scan_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_detail_screen.dart';
 import 'package:fsi_courier_app/features/wallet/payout_request_screen.dart';
@@ -164,11 +165,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final path = state.uri.path;
       final isAuthRoute =
           path == '/login' || path == '/reset-password' || path == '/splash';
+      final isUpdateRoute = path == '/update';
       final isLegalRoute = path == '/terms' || path == '/privacy';
 
       // Allow unauthenticated users to access auth routes
       if (!auth.isAuthenticated) {
-        if (!isAuthRoute) {
+        if (!isAuthRoute && !isUpdateRoute) {
           return '/login';
         }
         return null;
@@ -184,7 +186,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // ── GLOBAL PERMISSIONS GUARD (location → camera → notifications) ──
-      final isUpdateRoute = path.contains('/update');
       if (path != '/splash' && !isUpdateRoute && !isLegalRoute) {
         final allReady = locationState.isReady && permsState.isReady;
         if (!allReady) {
@@ -252,6 +253,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
           child: const ResetPasswordScreen(authenticatedMode: false),
+          extra: state.extra,
+        ),
+      ),
+      GoRoute(
+        path: '/update',
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const UpdateScreen(),
           extra: state.extra,
         ),
       ),

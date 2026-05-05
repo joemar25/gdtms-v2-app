@@ -7,7 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_other_info.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
@@ -220,9 +219,11 @@ Future<void> showDeliveryAccountDetails(
       delivery['auth_rep_number']?.toString() ??
       '';
   final product = delivery['product']?.toString() ?? '';
+  final mailType = delivery['mail_type']?.toString() ?? '';
   final specialInstruction = delivery['special_instruction']?.toString() ?? '';
   final transmittalDate = delivery['transmittal_date']?.toString() ?? '';
   final tat = delivery['tat']?.toString() ?? '';
+  final sequenceNumber = delivery['sequence_number']?.toString() ?? '';
 
   final hasShownAuthRepInContact = contact.split('/').any((n) {
     final cn = n.trim();
@@ -276,9 +277,7 @@ Future<void> showDeliveryAccountDetails(
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: DSColors.black.withValues(
-                      alpha: isDark ? 0.4 : 0.1,
-                    ),
+                    color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
                     blurRadius: DSStyles.radiusXL,
                     offset: const Offset(0, -5),
                   ),
@@ -324,8 +323,7 @@ Future<void> showDeliveryAccountDetails(
                             DSInfoTile(
                               label: 'Recipient Name',
                               value: name,
-                              onLongPress: () =>
-                                  copyToClipboard(name, 'Name'),
+                              onLongPress: () => copyToClipboard(name, 'Name'),
                             ),
                           if (effectiveAuthRepName.isNotEmpty)
                             DSInfoTile(
@@ -356,8 +354,8 @@ Future<void> showDeliveryAccountDetails(
                                   cleanContact.contains(authRepNumber);
                               final nextEntry =
                                   contact.split('/').length > idx + 1
-                                      ? contact.split('/')[idx + 1].trim()
-                                      : null;
+                                  ? contact.split('/')[idx + 1].trim()
+                                  : null;
                               final nextIsAuthRep =
                                   nextEntry != null &&
                                   authRepNumber.isNotEmpty &&
@@ -395,9 +393,7 @@ Future<void> showDeliveryAccountDetails(
                                 value: cleanContact,
                                 onTap: () => onPhoneTap(
                                   cleanContact,
-                                  isAuthRepNum
-                                      ? effectiveAuthRepName
-                                      : name,
+                                  isAuthRepNum ? effectiveAuthRepName : name,
                                 ),
                                 onLongPress: () => copyToClipboard(
                                   cleanContact,
@@ -445,6 +441,8 @@ Future<void> showDeliveryAccountDetails(
 
                     DeliveryOtherInfoSection(
                       product: product,
+                      mailType: mailType,
+                      sequenceNumber: sequenceNumber,
                       specialInstruction: specialInstruction.isNotEmpty
                           ? specialInstruction
                           : null,

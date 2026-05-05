@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider paths for open_filex APK installation on Android 7+.
+  The app_update subdirectory under the system temp dir is where
+  UpdateService saves the downloaded APK before launching the installer.
+-->
+<paths>
+    <cache-path name="app_update" path="app_update/"/>
+    <external-cache-path name="app_update_ext" path="app_update/"/>
+</paths>

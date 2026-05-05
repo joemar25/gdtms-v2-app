@@ -20,8 +20,9 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
-      expect(find.text('delivery_card.details.product'), findsOneWidget);
+      expect(find.text('PRODUCT'), findsOneWidget);
       expect(find.text('SBC STANDARD'), findsAtLeast(1));
     });
 
@@ -42,14 +43,15 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
-      expect(find.text('delivery_card.details.product'), findsOneWidget);
+      expect(find.text('PRODUCT'), findsOneWidget);
       expect(find.text('SBC STANDARD'), findsAtLeast(1));
-      // MAIL TYPE should be hidden because 'STANDARD' is in 'SBC STANDARD'
-      expect(find.text('delivery_card.details.mail_type'), findsNothing);
+      // v3.7: mail_type is no longer displayed as a separate label row.
+      expect(find.text('MAIL TYPE'), findsNothing);
     });
 
-    testWidgets('shows both if they are not redundant', (
+    testWidgets('shows PRODUCT label regardless of mail_type value', (
       WidgetTester tester,
     ) async {
       final delivery = {
@@ -66,44 +68,42 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
-      expect(find.text('delivery_card.details.product'), findsOneWidget);
+      expect(find.text('PRODUCT'), findsOneWidget);
       expect(find.text('ELITE'), findsAtLeast(1));
-      expect(find.text('delivery_card.details.mail_type'), findsOneWidget);
-      expect(find.text('EXPRESS'), findsOneWidget);
+      // v3.7: mail_type is not displayed as a separate label row.
+      expect(find.text('MAIL TYPE'), findsNothing);
     });
 
-    testWidgets(
-      'shows info icon and product even if delivery is locked/delivered',
-      (WidgetTester tester) async {
-        final delivery = {
-          'barcode': 'TEST123456',
-          'product': 'PREMIUM',
-          'delivery_status': 'DELIVERED',
-          '_delivered_at': DateTime.now()
-              .subtract(const Duration(days: 2))
-              .millisecondsSinceEpoch,
-        };
+    testWidgets('hides info icon when delivery is locked/delivered for privacy', (
+      WidgetTester tester,
+    ) async {
+      final delivery = {
+        'barcode': 'TEST123456',
+        'product': 'PREMIUM',
+        'delivery_status': 'DELIVERED',
+        '_delivered_at': DateTime.now()
+            .subtract(const Duration(days: 2))
+            .millisecondsSinceEpoch,
+      };
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: DeliveryCard(delivery: delivery, onTap: () {}),
-            ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeliveryCard(delivery: delivery, onTap: () {}),
           ),
-        );
+        ),
+      );
+      await tester.pump();
 
-        // Info icon (info_rounded) should be present
-        expect(find.byIcon(Icons.info_rounded), findsOneWidget);
+      // STRICT RULE: Info icon must be HIDDEN for locked/finalized items.
+      expect(find.byIcon(Icons.info_outline_rounded), findsNothing);
+      expect(find.byIcon(Icons.info_rounded), findsNothing);
 
-        // Expand to see details
-        await tester.tap(find.byType(DeliveryCard));
-        await tester.pumpAndSettle();
-
-        // Product should be visible in details
-        expect(find.text('delivery_card.details.product'), findsOneWidget);
-        expect(find.text('PREMIUM'), findsAtLeast(1));
-      },
-    );
+      // Product label and value should still be visible in the expanded detail section.
+      expect(find.text('PRODUCT'), findsOneWidget);
+      expect(find.text('PREMIUM'), findsAtLeast(1));
+    });
   });
 }

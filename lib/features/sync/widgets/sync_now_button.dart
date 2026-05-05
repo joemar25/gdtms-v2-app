@@ -156,6 +156,9 @@ class _SyncOverlayState extends ConsumerState<SyncOverlay>
   late final AnimationController _rotateController;
 
   bool _minVisualSyncing = true;
+  int _countdown = 3;
+  bool _isNavigating = false;
+  bool _countdownStarted = false;
 
   @override
   void initState() {
@@ -180,6 +183,27 @@ class _SyncOverlayState extends ConsumerState<SyncOverlay>
     super.dispose();
   }
 
+  Future<void> _startCountdown() async {
+    for (int i = 3; i > 0; i--) {
+      if (!mounted || _isNavigating) break;
+      setState(() => _countdown = i);
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    if (!mounted || _isNavigating) return;
+    _isNavigating = true;
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+  }
+
+  void _onOk() {
+    if (_isNavigating) return;
+    _isNavigating = true;
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncManagerProvider);
@@ -189,6 +213,11 @@ class _SyncOverlayState extends ConsumerState<SyncOverlay>
     final double? progress = syncState.total > 0
         ? (syncState.processed / syncState.total).clamp(0.0, 1.0)
         : null;
+
+    if (!isSyncing && !_countdownStarted) {
+      _countdownStarted = true;
+      _startCountdown();
+    }
 
     return PopScope(
           canPop: !isSyncing,
@@ -277,11 +306,7 @@ class _SyncOverlayState extends ConsumerState<SyncOverlay>
                   if (!isSyncing) ...[
                     DSSpacing.hLg,
                     FilledButton.icon(
-                      onPressed: () {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        }
-                      },
+                      onPressed: _onOk,
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.white24,
                         foregroundColor: Colors.white,
@@ -291,7 +316,7 @@ class _SyncOverlayState extends ConsumerState<SyncOverlay>
                         ),
                       ),
                       icon: const Icon(Icons.check_rounded, size: 18),
-                      label: Text('common.ok'.tr()),
+                      label: Text('${'common.ok'.tr()} ($_countdown)'),
                     ),
                   ],
                 ],

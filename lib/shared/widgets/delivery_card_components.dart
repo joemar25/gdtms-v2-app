@@ -119,11 +119,15 @@ class DeliveryStatusBadge extends StatelessWidget {
         children: [
           Icon(icon, size: DSIconSize.xs, color: fg),
           DSSpacing.wXs,
-          Text(
-            label,
-            style: DSTypography.label(color: fg).copyWith(
-              fontSize: DSTypography.sizeXs,
-              letterSpacing: DSTypography.lsExtraLoose,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: DSTypography.label(color: fg).copyWith(
+                fontSize: DSTypography.sizeXs,
+                letterSpacing: DSTypography.lsExtraLoose,
+              ),
             ),
           ),
         ],
@@ -166,11 +170,15 @@ class DeliveryMiniPill extends StatelessWidget {
         children: [
           Icon(icon, size: DSIconSize.xs, color: fg),
           DSSpacing.wXs,
-          Text(
-            label,
-            style: DSTypography.label(color: fg).copyWith(
-              fontSize: DSTypography.sizeXs,
-              letterSpacing: DSTypography.lsLoose,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: DSTypography.label(color: fg).copyWith(
+                fontSize: DSTypography.sizeXs,
+                letterSpacing: DSTypography.lsLoose,
+              ),
             ),
           ),
         ],

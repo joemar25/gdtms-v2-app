@@ -328,6 +328,178 @@
       ]
     },
     {
+      "name": "App Versioning (Public)",
+      "item": [
+        {
+          "name": "GET Mobile Version",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Has version fields\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property(\"latest_version\");",
+                  "    pm.expect(json).to.have.property(\"minimum_version\");",
+                  "    pm.expect(json).to.have.property(\"force_update\");",
+                  "});",
+                  "pm.test(\"Cache-Control header set\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"max-age=300\");",
+                  "});",
+                  "pm.test(\"CORS header set\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Access-Control-Allow-Origin\")).to.eql(\"*\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/mobile-version.json",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "mbl", "mobile-version.json"]
+            },
+            "description": "Public endpoint - no auth required. Returns current mobile app version metadata. Called on every app launch. Cache-Control: public, max-age=300. CORS: *."
+          },
+          "response": [
+            {
+              "name": "200 - Version Data",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "public, max-age=300"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ],
+              "body": "{\n    \"latest_version\": \"2.1.0\",\n    \"minimum_version\": \"1.5.0\",\n    \"android_download_url\": \"https://your-cdn.com/releases/app-v2.1.0.apk\",\n    \"ios_store_url\": \"https://apps.apple.com/app/idXXXXXXXXX\",\n    \"release_notes\": \"- New dashboard\\n- Bug fixes\",\n    \"file_size_mb\": 28.4,\n    \"checksum_sha256\": \"abc123def456abc123def456abc123def456abc123def456abc123def456abcd\",\n    \"force_update\": false\n}"
+            },
+            {
+              "name": "500 - No Version Configured",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"error\": \"Version information is temporarily unavailable.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Admin Update Version",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns updated data\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.message).to.eql(\"Mobile version updated successfully.\");",
+                  "    pm.expect(json.data).to.have.property(\"latest_version\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latest_version\": \"2.1.0\",\n    \"minimum_version\": \"1.5.0\",\n    \"android_download_url\": \"https://your-cdn.com/releases/app-v2.1.0.apk\",\n    \"ios_store_url\": \"https://apps.apple.com/app/idXXXXXXXXX\",\n    \"release_notes\": \"- New dashboard\\n- Bug fixes\",\n    \"file_size_mb\": 28.4,\n    \"checksum_sha256\": \"abc123def456abc123def456abc123def456abc123def456abc123def456abcd\",\n    \"force_update\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/admin/mobile-version",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "admin", "mobile-version"]
+            },
+            "description": "Internal admin endpoint. Requires authenticated web session. Creates the first record or overwrites the existing one. Call after each release to push version metadata without a code deploy."
+          },
+          "response": [
+            {
+              "name": "200 - Updated",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"message\": \"Mobile version updated successfully.\",\n    \"data\": {\n        \"id\": 1,\n        \"latest_version\": \"2.1.0\",\n        \"minimum_version\": \"1.5.0\",\n        \"android_download_url\": \"https://your-cdn.com/releases/app-v2.1.0.apk\",\n        \"ios_store_url\": \"https://apps.apple.com/app/idXXXXXXXXX\",\n        \"release_notes\": \"- New dashboard\\n- Bug fixes\",\n        \"file_size_mb\": 28.4,\n        \"checksum_sha256\": \"abc123def456abc123def456abc123def456abc123def456abc123def456abcd\",\n        \"force_update\": false,\n        \"created_at\": \"2026-05-05T00:00:00.000000Z\",\n        \"updated_at\": \"2026-05-05T00:00:00.000000Z\"\n    }\n}"
+            },
+            {
+              "name": "401 - Unauthenticated",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"message\": \"Unauthenticated.\"\n}"
+            },
+            {
+              "name": "422 - Validation Error",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"message\": \"The latest_version field is required.\",\n    \"errors\": {\n        \"latest_version\": [\n            \"The latest_version field is required.\"\n        ],\n        \"minimum_version\": [\n            \"The minimum_version field is required.\"\n        ]\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Dispatches (Authenticated)",
       "item": [
         {

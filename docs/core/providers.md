@@ -26,6 +26,7 @@ Global Riverpod providers that are not feature-specific.
 | `location_provider.dart` | `locationProvider` | `StateNotifierProvider<LocationNotifier, LocationState>` |
 | `notifications_provider.dart` | `notificationsProvider` | `StateNotifierProvider` |
 | `sync_provider.dart` | `syncManagerProvider` | `StateNotifierProvider<SyncManagerNotifier, SyncState>` |
+| `update_provider.dart` | `updateProvider` | `NotifierProvider<UpdateNotifier, UpdateState>` |
 
 ---
 
@@ -71,6 +72,13 @@ Manages local notification state. Currently reserved; `flutter_local_notificatio
 
 ---
 
-## `sync_provider.dart` — `syncManagerProvider`
+## `update_provider.dart` — `updateProvider`
 
-Re-exports `SyncManagerNotifier` (see `docs/core/sync.md`). Screens that show sync progress watch `syncManagerProvider` for `SyncState`.
+Manages the lifecycle of in-app updates. See [Update System](file:///docs/core/update-system.md) for a detailed breakdown of the update workflow.
+
+| Property | Description |
+|----------|-------------|
+| `updateInfo` | Metadata about the available update (version, notes, etc.) |
+| `showBanner` | True if an update is available and hasn't been dismissed/downloaded |
+| `downloadStatus` | `idle`, `downloading`, `completed`, or `error` |
+| `downloadProgress`| Progress value from 0.0 to 1.0 |

@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
@@ -31,6 +33,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void initState() {
     super.initState();
     _initAndNavigate();
+    // Remove the native splash once the first frame is rendered.
+    // This creates a seamless handoff from native to Flutter.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
+    });
   }
 
   Future<void> _initAndNavigate() async {
@@ -96,10 +103,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     );
 
     return Scaffold(
+      backgroundColor: backgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Background Gradient ────────────────────────────────────────────
+          // ── Background Gradient (Fades in) ──────────────────────────────
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -108,7 +116,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 end: Alignment.bottomCenter,
               ),
             ),
-          ),
+          ).animate().fadeIn(duration: DSAnimations.dSlow),
 
           // ── Center Brand ───────────────────────────────────────────────────
           SafeArea(
@@ -116,34 +124,45 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo Container (Actual App Brand)
+                  // Logo Container (Netflix-style zoom entry)
                   Container(
-                    width: DSIconSize.heroLg,
-                    height: DSIconSize.heroLg,
-                    padding: const EdgeInsets.all(DSSpacing.md),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? DSColors.cardElevatedDark
-                          : DSColors.white,
-                      borderRadius: DSStyles.sheetRadius,
-                      boxShadow: DSStyles.shadowXL(context),
-                    ),
-                    child: Image.asset(
-                      'assets/android-chrome-512x512.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ).dsHeroEntry(),
+                        width: DSIconSize.heroLg,
+                        height: DSIconSize.heroLg,
+                        padding: const EdgeInsets.all(DSSpacing.md),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? DSColors.cardElevatedDark
+                              : DSColors.white,
+                          borderRadius: DSStyles.sheetRadius,
+                          boxShadow: DSStyles.shadowXL(context),
+                        ),
+                        child: Image.asset(
+                          'assets/android-chrome-512x512.png',
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                      .animate()
+                      .scale(
+                        begin: const Offset(0.8, 0.8),
+                        end: const Offset(1.0, 1.0),
+                        duration: DSAnimations.dSlow,
+                        curve: Curves.easeOutBack,
+                      )
+                      .fadeIn(duration: DSAnimations.dNormal),
 
                   DSSpacing.hXl,
 
-                  // App Name
+                  // App Name (Staggered entrance)
                   Text(
-                    'splash.title'.tr(),
-                    style: DSTypography.display(color: textColor).copyWith(
-                      fontSize: DSTypography.sizeHero,
-                      letterSpacing: DSTypography.lsExtraLoose * 5,
-                    ),
-                  ).dsFadeEntry(delay: DSAnimations.stagger(2)),
+                        'splash.title'.tr(),
+                        style: DSTypography.display(color: textColor).copyWith(
+                          fontSize: DSTypography.sizeHero,
+                          letterSpacing: DSTypography.lsExtraLoose * 5,
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(delay: 400.ms, duration: 600.ms)
+                      .slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
 
                   DSSpacing.hSm,
 
@@ -151,12 +170,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   Text(
                     'splash.tagline'.tr(),
                     style: DSTypography.label(color: subtitleColor),
-                  ).dsFadeEntry(delay: DSAnimations.stagger(4)),
+                  ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
 
                   DSSpacing.hXl,
                   DSSpacing.hLg,
 
-                  // Feature chips (Refined to prevent overflow)
+                  // Feature chips
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: DSSpacing.md,
@@ -167,17 +186,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       alignment: WrapAlignment.center,
                       children: [
                         _SplashChip(
-                          icon: LucideIcons.truck,
-                          label: 'splash.feature.accept'.tr(),
-                        ).dsCardEntry(delay: DSAnimations.stagger(6)),
+                              icon: LucideIcons.truck,
+                              label: 'splash.feature.accept'.tr(),
+                            )
+                            .animate()
+                            .fadeIn(delay: 800.ms)
+                            .scale(begin: const Offset(0.9, 0.9)),
                         _SplashChip(
-                          icon: LucideIcons.package,
-                          label: 'splash.feature.deliver'.tr(),
-                        ).dsCardEntry(delay: DSAnimations.stagger(8)),
+                              icon: LucideIcons.package,
+                              label: 'splash.feature.deliver'.tr(),
+                            )
+                            .animate()
+                            .fadeIn(delay: 950.ms)
+                            .scale(begin: const Offset(0.9, 0.9)),
                         _SplashChip(
-                          icon: LucideIcons.wallet,
-                          label: 'splash.feature.payout'.tr(),
-                        ).dsCardEntry(delay: DSAnimations.stagger(10)),
+                              icon: LucideIcons.wallet,
+                              label: 'splash.feature.payout'.tr(),
+                            )
+                            .animate()
+                            .fadeIn(delay: 1100.ms)
+                            .scale(begin: const Offset(0.9, 0.9)),
                       ],
                     ),
                   ),
@@ -196,14 +224,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 const SpinKitThreeBounce(
                   color: DSColors.primary,
                   size: DSIconSize.md,
-                ).dsFadeEntry(delay: DSAnimations.stagger(12)),
+                ).animate().fadeIn(delay: 1300.ms),
                 DSSpacing.hLg,
                 Text(
                   'splash.footer_brand'.tr(),
                   style: DSTypography.caption(
                     color: subtitleColor,
                   ).copyWith(fontWeight: FontWeight.w600, letterSpacing: 1.2),
-                ).dsFadeEntry(delay: DSAnimations.stagger(15)),
+                ).animate().fadeIn(delay: 1500.ms),
               ],
             ),
           ),

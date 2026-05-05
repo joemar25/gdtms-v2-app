@@ -60,6 +60,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/core/providers/update_provider.dart';
+import 'package:fsi_courier_app/shared/widgets/update_card_widget.dart';
 
 // Design tokens managed via DesignSystem
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -98,6 +100,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _loadDeviceSpecs(),
       _loadErrorLogCount(),
       _loadProfile(),
+      ref.read(updateProvider.notifier).checkForUpdate(),
     ]);
   }
 
@@ -296,6 +299,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   isDark: isDark,
                   isOnline: isOnline,
                 ).dsHeroEntry(),
+                DSSpacing.hSm,
+
+                // ── App Update Section ─────────────────────────────────────
+                AppUpdateCard(isDark: isDark),
                 DSSpacing.hSm,
 
                 // ── Account Section ────────────────────────────────────────

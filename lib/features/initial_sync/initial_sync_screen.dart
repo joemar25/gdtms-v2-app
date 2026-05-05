@@ -25,6 +25,8 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
   String _progressText = 'Preparing your data...';
   bool _done = false;
   bool _canContinue = false;
+  bool _isNavigating = false;
+  int _countdown = 3;
   Completer<void>? _animationCompleter;
 
   @override
@@ -56,20 +58,33 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
       _done = true;
     });
 
-    // Wait exactly until the Lottie animation finishes
+    // Wait exactly until the checkmark animation finishes
     await _animationCompleter!.future;
-    // Add a tiny extra pause for UX
-    await Future.delayed(const Duration(milliseconds: 300));
 
     if (!mounted) return;
 
-    // Show the continue button instead of auto-navigating
+    // Show the continue button so user can skip the wait
     setState(() {
       _canContinue = true;
     });
+
+    // Auto continue about 3 seconds after it was complete
+    for (int i = 3; i > 0; i--) {
+      if (!mounted || _isNavigating) break;
+      setState(() => _countdown = i);
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    if (!mounted) return;
+
+    // If the user hasn't already clicked continue, do it for them.
+    await _onContinue();
   }
 
   Future<void> _onContinue() async {
+    if (_isNavigating) return;
+    _isNavigating = true;
+
     debugPrint('[InitialSync] _runSync complete — marking initial sync done');
     // Persist the flag — the router guard will redirect to dashboard.
     await ref.read(authProvider.notifier).markInitialSyncCompleted();
@@ -155,7 +170,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                       ),
                     ),
                     icon: const Icon(Icons.check_rounded, size: 18),
-                    label: const Text('Continue'),
+                    label: Text('Continue ($_countdown)'),
                   ),
               ],
             ),

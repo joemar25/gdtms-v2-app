@@ -23,6 +23,8 @@ import 'core/services/push_notification_service.dart';
 import 'core/sync/delivery_bootstrap_service.dart';
 import 'core/database/cleanup_service.dart';
 import 'shared/router/app_router.dart';
+import 'core/providers/update_provider.dart';
+import 'shared/widgets/update_banner_widget.dart';
 import 'shared/router/router_keys.dart';
 import 'shared/widgets/time_enforcer.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -93,6 +95,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
   bool _isSyncing = false;
   DateTime? _lastSyncAt;
   OverlayEntry? _syncPillEntry;
+  OverlayEntry? _updateBannerEntry;
 
   // Minimum gap between syncs to prevent overlapping calls.
   static const _kSyncDebounce = Duration(seconds: 30);
@@ -105,7 +108,20 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkOnStartup();
       _insertSyncPill();
+      _insertUpdateBanner();
+      // Delay version check so it never blocks the splash/login flow.
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) ref.read(updateProvider.notifier).checkForUpdate();
+      });
     });
+  }
+
+  void _insertUpdateBanner() {
+    if (_updateBannerEntry != null) return;
+    _updateBannerEntry = OverlayEntry(
+      builder: (_) => const RepaintBoundary(child: UpdateBannerOverlay()),
+    );
+    rootNavigatorKey.currentState?.overlay?.insert(_updateBannerEntry!);
   }
 
   void _insertSyncPill() {
@@ -125,6 +141,14 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
         debugPrint('[APP] Sync pill removal error: $e');
       }
       _syncPillEntry = null;
+    }
+    if (_updateBannerEntry != null) {
+      try {
+        _updateBannerEntry?.remove();
+      } catch (e) {
+        debugPrint('[APP] Update banner removal error: $e');
+      }
+      _updateBannerEntry = null;
     }
     _periodicTimer?.cancel();
     _locationPing.stop();
@@ -314,7 +338,49 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       }
     });
 
+    // Mandatory update: show a blocking dialog when the update is required.
+    ref.listen<UpdateState>(updateProvider, (previous, current) {
+      if (previous?.updateInfo == null &&
+          current.updateInfo != null &&
+          current.updateInfo!.isMandatory) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _showMandatoryUpdateDialog(
+            context,
+            current.updateInfo!.latestVersion,
+          );
+        });
+      }
+    });
+
     return widget.child;
+  }
+
+  void _showMandatoryUpdateDialog(BuildContext context, String version) {
+    final router = ref.read(appRouterProvider);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: const Text('Required Update'),
+          content: Text(
+            'Version $version is required to continue using the app. '
+            'Please update now.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).pop();
+                router.go('/update');
+              },
+              child: const Text('Update Now'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

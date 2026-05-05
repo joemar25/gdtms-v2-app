@@ -544,6 +544,7 @@
     "details": {
       "product": "PRODUCT",
       "mail_type": "MAIL TYPE",
+      "sequence": "SEQUENCE",
       "special_instructions": "SPECIAL INSTRUCTIONS",
       "transmittal_date": "TRANSMITTAL DATE",
       "tat": "TAT",

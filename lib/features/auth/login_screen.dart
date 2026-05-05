@@ -494,6 +494,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ],
                         ),
+                        DSSpacing.hXl,
+
+                        // ── Version Number ────────────────────────────────
+                        Text(
+                          AppVersionService.displayVersion,
+                          textAlign: TextAlign.center,
+                          style: DSTypography.caption(
+                            color: subtitleColor.withValues(alpha: 0.5),
+                          ),
+                        ).dsFadeEntry(delay: DSAnimations.stagger(9)),
                       ],
                     ),
                   ),

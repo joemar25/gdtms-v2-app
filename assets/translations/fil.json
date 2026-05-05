@@ -526,5 +526,16 @@
       "title": "Walang log na ipapakita",
       "subtitle": "Lalabas dito ang mga error at warning kapag nangyari ang mga ito."
     }
+  },
+  "delivery_card": {
+    "details": {
+      "product": "PRODUCT",
+      "mail_type": "URI NG SULAT",
+      "sequence": "SEQUENCE",
+      "special_instructions": "ESPESYAL NA TAGUBILIN",
+      "transmittal_date": "PETSA NG TRANSMITTAL",
+      "tat": "TAT",
+      "other_information": "Iba pang Impormasyon"
+    }
   }
 }

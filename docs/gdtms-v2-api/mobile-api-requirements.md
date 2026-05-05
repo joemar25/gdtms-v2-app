@@ -27,6 +27,7 @@ The mobile app now handles all S3 uploads **client-side** using AWS Signature V4
 - [x] **Model Layer**: `product` and `mail_type` handled as distinct canonical fields in `LocalDelivery`.
 - [x] **UI Components**: Centralized `DeliveryOtherInfoSection` implemented for `DeliveryCard` and `showDeliveryAccountDetails`.
 - [x] **Media Pipeline**: Fully transitioned to direct S3 uploads.
+- [x] **Delivery Card Refinement**: Standardized iconography for identifiers (Person, Barcode, Location) and strict privacy enforcement for locked items finalized.
 
 ---
 
