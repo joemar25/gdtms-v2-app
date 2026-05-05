@@ -20,6 +20,7 @@ class LocalDelivery {
     this.deliveryAddress,
     required this.deliveryStatus,
     this.mailType,
+    this.product,
     this.dispatchCode,
     required this.rawJson,
     required this.createdAt,
@@ -43,6 +44,7 @@ class LocalDelivery {
   final String? deliveryAddress;
   final String deliveryStatus;
   final String? mailType;
+  final String? product;
   final String? dispatchCode;
 
   /// v3.6 fields
@@ -94,25 +96,33 @@ class LocalDelivery {
 
   /// Constructs from a delivery object embedded in the eligibility response.
   ///
-  /// Field mapping from API:  barcode_value, job_order, name, address,
-  /// contact, product, special_instruction, delivery_status.
+  /// Field mapping from API: barcode, job_order, name, address, contact,
+  /// product, mail_type, special_instruction, delivery_status.
   factory LocalDelivery.fromJson(
     Map<String, dynamic> json, {
     required String dispatchCode,
+    String? tat,
+    String? transmittalDate,
   }) {
     final now = DateTime.now().millisecondsSinceEpoch;
-    // barcode_value is the primary identifier returned by the eligibility API.
+
+    final Map<String, dynamic> mergedJson = {
+      ...json,
+      'tat': ?tat,
+      'transmittal_date': ?transmittalDate,
+    };
+
     return LocalDelivery(
-      barcode: _str(json, 'barcode') ?? '',
+      barcode: _str(json, 'barcode') ?? _str(json, 'barcode_value') ?? '',
       jobOrder: _str(json, 'job_order'),
-      recipientName: _str(json, 'recipient_name'),
-      deliveryAddress: _str(json, 'recipient_address'),
+      recipientName: _str(json, 'recipient_name') ?? _str(json, 'name'),
+      deliveryAddress: _str(json, 'recipient_address') ?? _str(json, 'address'),
       deliveryStatus: DeliveryStatus.fromString(
         _str(json, 'delivery_status') ?? 'FOR_DELIVERY',
       ).toDbString(),
       mailType: _str(json, 'mail_type'),
       dispatchCode: dispatchCode,
-      rawJson: jsonEncode(json),
+      rawJson: jsonEncode(mergedJson),
       createdAt: now,
       updatedAt: now,
       completedAt:
@@ -157,9 +167,11 @@ class LocalDelivery {
         '';
 
     final jobOrder = _str(json, 'job_order');
-    final recipientName = _str(json, 'recipient_name');
-    final recipientAddress = _str(json, 'recipient_address');
+    final recipientName = _str(json, 'recipient_name') ?? _str(json, 'name');
+    final recipientAddress =
+        _str(json, 'recipient_address') ?? _str(json, 'address');
     final mailType = _str(json, 'mail_type');
+    final product = _str(json, 'product');
 
     // serverStatus is the endpoint bucket we fetched from ('FOR_DELIVERY', 'DELIVERED',
     // 'FAILED_DELIVERY', 'OSA'). We previously used it as the primary status, which caused
@@ -219,6 +231,7 @@ class LocalDelivery {
       deliveryAddress: recipientAddress,
       deliveryStatus: status,
       mailType: mailType,
+      product: product,
       dispatchCode: dispatchCode,
       rawJson: jsonEncode(json),
       createdAt: now,
@@ -250,6 +263,7 @@ class LocalDelivery {
       deliveryAddress: row['delivery_address'] as String?,
       deliveryStatus: row['delivery_status'] as String? ?? 'FOR_DELIVERY',
       mailType: row['mail_type'] as String?,
+      product: row['product'] as String?,
       dispatchCode: row['dispatch_code'] as String?,
       rawJson: row['raw_json'] as String,
       createdAt: row['created_at'] as int,
@@ -281,6 +295,7 @@ class LocalDelivery {
     'delivery_address': deliveryAddress,
     'delivery_status': deliveryStatus,
     'mail_type': mailType,
+    'product': product,
     'dispatch_code': dispatchCode,
     'raw_json': rawJson,
     'created_at': createdAt,
@@ -323,8 +338,7 @@ class LocalDelivery {
       map['recipient_name'] = recipientName;
       map['recipient_address'] = deliveryAddress;
       map['mail_type'] = mailType;
-      map['piece_count'] = pieceCount;
-      map['piece_index'] = pieceIndex;
+      map['product'] = product ?? map['product'];
       map['allowed_statuses'] = allowedStatuses;
       map['data_checksum'] = dataChecksum;
 
@@ -338,6 +352,8 @@ class LocalDelivery {
 
   LocalDelivery copyWith({
     String? deliveryStatus,
+    String? product,
+    String? mailType,
     String? rawJson,
     int? updatedAt,
     int? deliveredAt,
@@ -358,7 +374,8 @@ class LocalDelivery {
       recipientName: recipientName,
       deliveryAddress: deliveryAddress,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
-      mailType: mailType,
+      mailType: mailType ?? this.mailType,
+      product: product ?? this.product,
       dispatchCode: dispatchCode,
       rawJson: rawJson ?? this.rawJson,
       createdAt: createdAt,

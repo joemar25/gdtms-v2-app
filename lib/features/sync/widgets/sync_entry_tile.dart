@@ -94,6 +94,7 @@ class SyncEntryTile extends StatelessWidget {
 
     final recipientName = delivery?.recipientName;
     final mailType = delivery?.mailType;
+    final product = delivery?.product;
     final dispatchCode = delivery?.dispatchCode;
     final payloadStatus = _payloadStatus;
     final dates = _dates;
@@ -220,7 +221,14 @@ class SyncEntryTile extends StatelessWidget {
                           children: [
                             if (payloadStatus.isNotEmpty)
                               _StatusBadge(status: payloadStatus),
-                            if (mailType != null && mailType.isNotEmpty)
+                            if (product != null && product.isNotEmpty)
+                              _Chip(product.toUpperCase()),
+                            if (mailType != null &&
+                                mailType.isNotEmpty &&
+                                (product == null ||
+                                    !product.toUpperCase().contains(
+                                      mailType.toUpperCase(),
+                                    )))
                               _Chip(mailType.toUpperCase()),
                             if (dispatchCode != null && dispatchCode.isNotEmpty)
                               _Chip(dispatchCode),
@@ -504,34 +512,6 @@ class _Chip extends StatelessWidget {
               : DSColors.labelSecondary,
           fontSize: DSTypography.sizeSm,
           fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-class _ArchivedChip extends StatelessWidget {
-  const _ArchivedChip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: DSSpacing.sm,
-        vertical: DSSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: DSColors.accentSurface,
-        borderRadius: DSStyles.pillRadius,
-        border: Border.all(
-          color: DSColors.accent.withValues(alpha: DSStyles.alphaMuted),
-        ),
-      ),
-      child: Text(
-        'sync.list.archived_label'.tr(),
-        style: DSTypography.label(
-          color: DSColors.accent,
-          fontSize: DSTypography.sizeSm,
         ),
       ),
     );

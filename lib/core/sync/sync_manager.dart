@@ -228,7 +228,6 @@ class SyncManagerNotifier extends Notifier<SyncState> {
             );
             final uploadedImages = <Map<String, dynamic>>[];
             final api = ref.read(apiClientProvider);
-            final uploadPath = 'deliveries/${entry.barcode}/media';
 
             debugPrint(
               '[SYNC] media queue for ${entry.barcode}: ${pendingMedia.keys.join(', ')}',
@@ -236,7 +235,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
             int uploadedCount = 0;
             int failedCount = 0;
-
+            final uploadErrors = <String>[];
             for (final kv in pendingMedia.entries) {
               // Strip only trailing numeric suffixes (e.g., pod_1 -> pod,
               // selfie_2 -> selfie) while preserving compound types like
@@ -276,7 +275,6 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
               ApiResult<Map<String, dynamic>> result = await api
                   .uploadMedia<Map<String, dynamic>>(
-                    uploadPath,
                     barcode: entry.barcode,
                     bytes: bytes,
                     filename: filename,
@@ -327,11 +325,21 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                 }
               } else {
                 failedCount++;
-                debugPrint('[SYNC] $baseType upload failed: $result');
+                // Extract a human-readable message from the ApiResult type.
+                final errMsg = switch (result) {
+                  ApiServerError(:final message) => 'S3/server error: $message',
+                  ApiNetworkError(:final message) => 'Network error: $message',
+                  ApiValidationError(:final message) =>
+                    'Validation error: ${message ?? result.errors.values.expand((e) => e).join(', ')}',
+                  ApiBadRequest(:final message) => 'Bad request: $message',
+                  _ => 'Upload failed (${result.runtimeType})',
+                };
+                uploadErrors.add('$baseType \u2014 $errMsg');
+                debugPrint('[SYNC] $baseType upload failed: $errMsg');
                 await ErrorLogService.warning(
                   context: 'sync',
                   message: 'Upload failed for ${entry.barcode} ($baseType)',
-                  detail: result.toString(),
+                  detail: errMsg,
                   barcode: entry.barcode,
                 );
               }
@@ -368,8 +376,9 @@ class SyncManagerNotifier extends Notifier<SyncState> {
             // if a photo was temporarily unavailable.
             if (pendingMedia.isNotEmpty && !anyUploaded) {
               final newRetryCount = entry.retryCount + 1;
-              const mediaError =
-                  'Media upload failed — no proof photos could be uploaded.';
+              final mediaError = uploadErrors.isNotEmpty
+                  ? uploadErrors.join(' | ')
+                  : 'Media upload failed \u2014 no proof photos could be uploaded.';
               debugPrint(
                 '[SYNC] ALL media uploads failed for ${entry.barcode} '
                 '(${pendingMedia.length} files) — marking failed, will retry.',

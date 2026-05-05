@@ -39,7 +39,6 @@ class ProfileService {
 
     try {
       final result = await api.uploadMedia<Map<String, dynamic>>(
-        '/me/media',
         bytes: bytes,
         filename: filename,
         // Must be exactly this value for backend validation.

@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 ///   To expose locally: run `php artisan serve --host=0.0.0.0` and
 ///   `npm run dev --host=0.0.0.0`, then use your IPv4 address from `ipconfig`.
 /// - Note: This will not work for web builds.
+/// - Combination: flutter analyze; flutter test; dart format .
 /// - Run :  flutter run --dart-define-from-file=dart_defines.json
 /// - Prod:  flutter build apk --dart-define-from-file=dart_defines.json
 
@@ -33,16 +34,26 @@ const String apiBaseUrl = String.fromEnvironment(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Media Upload Configuration
+//  AWS S3 Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// When true, direct storage upload failures are treated as fatal — no API fallback.
-///
-/// Enable at build/run time:
-///   flutter run --dart-define=STORAGE_STRICT_MODE=true
-const bool kStorageStrictMode = bool.fromEnvironment(
-  'STORAGE_STRICT_MODE',
-  defaultValue: false,
+/// AWS credentials and bucket info for direct S3 uploads.
+/// Set via --dart-define or dart_defines.json.
+const String kAwsAccessKeyId = String.fromEnvironment(
+  'AWS_ACCESS_KEY_ID',
+  defaultValue: '',
+);
+const String kAwsSecretAccessKey = String.fromEnvironment(
+  'AWS_SECRET_ACCESS_KEY',
+  defaultValue: '',
+);
+const String kAwsRegion = String.fromEnvironment(
+  'AWS_REGION',
+  defaultValue: 'ap-southeast-1',
+);
+const String kAwsBucket = String.fromEnvironment(
+  'AWS_BUCKET',
+  defaultValue: '',
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -173,9 +173,15 @@ class _DispatchEligibilityScreenState
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
         if (deliveries.isNotEmpty) {
+          final tat = _eligibilityResponse['tat']?.toString();
+          final transmittalDate = _eligibilityResponse['transmittal_date']
+              ?.toString();
+
           await LocalDeliveryDao.instance.insertAll(
             deliveries,
             dispatchCode: _resolvedDispatchCode,
+            tat: tat,
+            transmittalDate: transmittalDate,
           );
         }
       }

@@ -23,13 +23,8 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
   Widget build(BuildContext context) {
     final lastSyncTime = ref.watch(lastSyncTimeProvider);
     final syncState = ref.watch(syncManagerProvider);
-    final hasPending = syncState.entries.any(
-      (e) =>
-          e.status == 'pending' ||
-          e.status == 'error' ||
-          e.status == 'failed' ||
-          e.status == 'processing',
-    );
+    final pendingCount = ref.watch(pendingSyncCountProvider);
+    final hasPending = pendingCount > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +51,9 @@ class _SyncHeaderState extends ConsumerState<SyncHeader> {
                           syncState.isSyncing
                               ? 'sync.actions.syncing'.tr()
                               : hasPending
-                              ? 'sync.status.pending_changes'.tr()
+                              ? 'sync.status.pending_changes'.tr(
+                                  namedArgs: {'count': '$pendingCount'},
+                                )
                               : 'sync.status.up_to_date'.tr(),
                           style: DSTypography.heading(
                             color: DSColors.white,

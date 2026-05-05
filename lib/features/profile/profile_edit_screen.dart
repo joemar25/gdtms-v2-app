@@ -129,7 +129,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       if (_profileImage != null) {
         final bytes = await _profileImage!.readAsBytes();
         final uploadResult = await api.uploadMedia<Map<String, dynamic>>(
-          '/me/media',
           bytes: bytes,
           filename: 'profile_picture.jpg',
           type: 'profile_picture',

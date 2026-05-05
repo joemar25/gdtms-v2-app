@@ -288,50 +288,6 @@ class DeliveryBootstrapService {
     return s.isEmpty ? null : s;
   }
 
-  /// Fetches all barcodes for [status] across all pages without upserting.
-  /// Used purely to compare against local state during priority reconciliation.
-  Future<Set<String>> _fetchAllBarcodesForStatus(
-    ApiClient client,
-    String status,
-  ) async {
-    final allBarcodes = <String>{};
-    int page = 1;
-    int lastPage = 1;
-
-    do {
-      try {
-        final result = await client.get<Map<String, dynamic>>(
-          '/deliveries',
-          queryParameters: {'status': status, 'per_page': 100, 'page': page},
-          parser: parseApiMap,
-        );
-        if (result is! ApiSuccess<Map<String, dynamic>>) break;
-
-        final data = result.data;
-        final rawList = data['data'];
-        if (rawList is List) {
-          for (final item in rawList) {
-            if (item is! Map) continue;
-            final b = (item['barcode']?.toString() ?? '').trim();
-            if (b.isNotEmpty) allBarcodes.add(b);
-          }
-        }
-
-        final meta = data['pagination'] ?? data['meta'];
-        if (meta is Map<String, dynamic>) {
-          lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
-        } else {
-          break;
-        }
-        page++;
-      } catch (_) {
-        break;
-      }
-    } while (page <= lastPage);
-
-    return allBarcodes;
-  }
-
   /// Fetches all pages for [status], upserts them, and returns all barcodes.
   Future<Set<String>> _syncStatus(ApiClient client, String status) async {
     final allBarcodes = <String>{};

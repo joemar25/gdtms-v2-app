@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/shared/widgets/delivery_other_info.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
@@ -190,7 +191,10 @@ Future<void> showDeliveryAccountDetails(
 ) async {
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
-  final name = delivery['name']?.toString() ?? '';
+  final name =
+      delivery['recipient_name']?.toString() ??
+      delivery['name']?.toString() ??
+      '';
   final authRepName =
       (delivery['authorized_rep']?.toString() ??
               delivery['recipient']?.toString() ??
@@ -203,24 +207,22 @@ Future<void> showDeliveryAccountDetails(
       ? authRepName
       : '';
   final address =
-      delivery['address']?.toString() ??
+      delivery['recipient_address']?.toString() ??
       delivery['delivery_address']?.toString() ??
+      delivery['address']?.toString() ??
       '';
-  final contact = delivery['contact']?.toString() ?? '';
-  final accountNumber = delivery['account_number']?.toString() ?? '';
+  final contact =
+      delivery['recipient_phone']?.toString() ??
+      delivery['contact']?.toString() ??
+      '';
   final authRepNumber =
       delivery['contact_rep']?.toString() ??
       delivery['auth_rep_number']?.toString() ??
       '';
-  final product = (delivery['product']?.toString() ?? '').toDisplayStatus();
+  final product = delivery['product']?.toString() ?? '';
   final specialInstruction = delivery['special_instruction']?.toString() ?? '';
   final transmittalDate = delivery['transmittal_date']?.toString() ?? '';
   final tat = delivery['tat']?.toString() ?? '';
-
-  final slashIdx = barcode.lastIndexOf('/');
-  final pieceCount = (slashIdx >= 0 && slashIdx < barcode.length - 1)
-      ? int.tryParse(barcode.substring(slashIdx + 1).trim()) ?? 0
-      : 0;
 
   final hasShownAuthRepInContact = contact.split('/').any((n) {
     final cn = n.trim();
@@ -260,238 +262,204 @@ Future<void> showDeliveryAccountDetails(
     backgroundColor: DSColors.transparent,
     builder: (ctx) {
       return SecureView(
-        child: Container(
-          decoration: BoxDecoration(
-            color: isDark ? DSColors.cardDark : DSColors.cardLight,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: [
-              BoxShadow(
-                color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
-                blurRadius: DSStyles.radiusXL,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          padding: EdgeInsets.fromLTRB(
-            DSSpacing.lg,
-            DSSpacing.sm,
-            DSSpacing.lg,
-            DSSpacing.xl,
-          ),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: DSIconSize.heroSm,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? DSColors.separatorDark
-                          : DSColors.separatorLight,
-                      borderRadius: DSStyles.cardRadius,
-                    ),
-                  ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.55,
+          minChildSize: 0.35,
+          maxChildSize: 0.92,
+          expand: false,
+          builder: (_, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? DSColors.cardDark : DSColors.cardLight,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
                 ),
-                DSSpacing.hMd,
-                DSSectionHeader(
-                  title: 'Account Details',
-                  padding: EdgeInsets.zero,
-                  trailing: const SecureBadge(),
-                ),
-
-                DSCard(
-                  margin: EdgeInsets.only(top: DSSpacing.sm),
-                  child: Column(
-                    children: [
-                      if (name.isNotEmpty)
-                        DSInfoTile(
-                          label: 'Recipient Name',
-                          value: name,
-                          onLongPress: () => copyToClipboard(name, 'Name'),
-                        ),
-                      if (effectiveAuthRepName.isNotEmpty)
-                        DSInfoTile(
-                          label: 'Auth Rep Name',
-                          value: effectiveAuthRepName,
-                          onLongPress: () => copyToClipboard(
-                            effectiveAuthRepName,
-                            'Auth rep name',
-                          ),
-                        ),
-                      if (address.isNotEmpty)
-                        DSInfoTile(
-                          label: 'Delivery Address',
-                          value: address,
-                          onTap: () => launchMaps(address),
-                          onLongPress: () =>
-                              copyToClipboard(address, 'Address'),
-                        ),
-                      if (contact.isNotEmpty)
-                        ...contact.split('/').asMap().entries.map((entry) {
-                          final idx = entry.key;
-                          final cleanContact = entry.value.trim();
-                          if (cleanContact.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-                          final isAuthRepNum =
-                              authRepNumber.isNotEmpty &&
-                              cleanContact.contains(authRepNumber);
-                          final nextEntry = contact.split('/').length > idx + 1
-                              ? contact.split('/')[idx + 1].trim()
-                              : null;
-                          final nextIsAuthRep =
-                              nextEntry != null &&
-                              authRepNumber.isNotEmpty &&
-                              nextEntry.contains(authRepNumber);
-
-                          final hasExtraTile =
-                              authRepNumber.isNotEmpty &&
-                              !contact.contains(authRepNumber);
-
-                          // Show divider only if switching parties (Recipient -> Auth Rep)
-                          // OR if it's the last item in the list and there's an extra tile below
-                          // that belongs to a different party.
-                          final showDivider =
-                              (nextEntry != null &&
-                                  isAuthRepNum != nextIsAuthRep) ||
-                              (nextEntry == null &&
-                                  hasExtraTile &&
-                                  !isAuthRepNum);
-
-                          final previousEntry = idx > 0
-                              ? contact.split('/')[idx - 1].trim()
-                              : null;
-                          final previousIsAuthRep =
-                              previousEntry != null &&
-                              authRepNumber.isNotEmpty &&
-                              previousEntry.contains(authRepNumber);
-
-                          final isFirstOfParty =
-                              idx == 0 || (isAuthRepNum != previousIsAuthRep);
-
-                          return DSInfoTile(
-                            label: isFirstOfParty
-                                ? (isAuthRepNum
-                                      ? 'Auth Rep Contact'
-                                      : 'Recipient Number')
-                                : '',
-                            value: cleanContact,
-                            onTap: () => onPhoneTap(
-                              cleanContact,
-                              isAuthRepNum ? effectiveAuthRepName : name,
-                            ),
-                            onLongPress: () =>
-                                copyToClipboard(cleanContact, 'Contact number'),
-                            showDivider: showDivider,
-                            padding: isFirstOfParty
-                                ? null
-                                : EdgeInsets.only(
-                                    top: 0,
-                                    bottom: DSSpacing.md,
-                                    left: DSSpacing.md,
-                                    right: DSSpacing.md,
-                                  ),
-                          );
-                        }),
-                      if (authRepNumber.isNotEmpty &&
-                          !contact.contains(authRepNumber))
-                        DSInfoTile(
-                          label: hasShownAuthRepInContact
-                              ? ''
-                              : 'Auth Rep Contact',
-                          value: authRepNumber,
-                          onTap: () =>
-                              onPhoneTap(authRepNumber, effectiveAuthRepName),
-                          onLongPress: () =>
-                              copyToClipboard(authRepNumber, 'Auth rep number'),
-                          showDivider: false,
-                          padding: hasShownAuthRepInContact
-                              ? EdgeInsets.only(
-                                  top: 0,
-                                  bottom: DSSpacing.md,
-                                  left: DSSpacing.md,
-                                  right: DSSpacing.md,
-                                )
-                              : null,
-                        ),
-                    ],
-                  ),
-                ),
-                DSSpacing.hMd,
-
-                if (accountNumber.isNotEmpty ||
-                    authRepNumber.isNotEmpty ||
-                    pieceCount > 0)
-                  DSCard(
-                    child: Column(
-                      children: [
-                        if (accountNumber.isNotEmpty)
-                          DSInfoTile(
-                            label: 'Account Number',
-                            value: accountNumber,
-                            onLongPress: () => copyToClipboard(
-                              accountNumber,
-                              'Account number',
-                            ),
-                          ),
-                        if (pieceCount > 0)
-                          DSInfoTile(
-                            label: 'Bundle Size',
-                            value:
-                                '$pieceCount piece${pieceCount > 1 ? 's' : ''}',
-                            showDivider: false,
-                          ),
-                      ],
+                boxShadow: [
+                  BoxShadow(
+                    color: DSColors.black.withValues(
+                      alpha: isDark ? 0.4 : 0.1,
                     ),
-                  ),
-
-                if (product.isNotEmpty ||
-                    specialInstruction.isNotEmpty ||
-                    transmittalDate.isNotEmpty ||
-                    tat.isNotEmpty) ...[
-                  DSSpacing.hMd,
-                  const DSSectionHeader(
-                    title: 'Other Information',
-                    padding: EdgeInsets.zero,
-                  ),
-                  DSCard(
-                    margin: EdgeInsets.only(top: DSSpacing.sm),
-                    child: Column(
-                      children: [
-                        if (product.isNotEmpty)
-                          DSInfoTile(label: 'Product', value: product),
-                        if (specialInstruction.isNotEmpty)
-                          DSInfoTile(
-                            label: 'Instructions',
-                            value: specialInstruction,
-                            onLongPress: () => copyToClipboard(
-                              specialInstruction,
-                              'Instructions',
-                            ),
-                          ),
-                        if (transmittalDate.isNotEmpty)
-                          DSInfoTile(
-                            label: 'Transmittal Date',
-                            value: formatDate(transmittalDate),
-                          ),
-                        if (tat.isNotEmpty)
-                          DSInfoTile(
-                            label: 'TAT',
-                            value: formatDate(tat),
-                            showDivider: false,
-                          ),
-                      ],
-                    ),
+                    blurRadius: DSStyles.radiusXL,
+                    offset: const Offset(0, -5),
                   ),
                 ],
-                DSSpacing.hLg,
-              ],
-            ),
-          ),
+              ),
+              padding: EdgeInsets.fromLTRB(
+                DSSpacing.lg,
+                DSSpacing.sm,
+                DSSpacing.lg,
+                DSSpacing.xl,
+              ),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: DSIconSize.heroSm,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? DSColors.separatorDark
+                              : DSColors.separatorLight,
+                          borderRadius: DSStyles.cardRadius,
+                        ),
+                      ),
+                    ),
+                    DSSpacing.hMd,
+                    DSSectionHeader(
+                      title: 'Account Details',
+                      padding: EdgeInsets.zero,
+                      trailing: const SecureBadge(),
+                    ),
+
+                    DSCard(
+                      margin: EdgeInsets.only(top: DSSpacing.sm),
+                      child: Column(
+                        children: [
+                          if (name.isNotEmpty)
+                            DSInfoTile(
+                              label: 'Recipient Name',
+                              value: name,
+                              onLongPress: () =>
+                                  copyToClipboard(name, 'Name'),
+                            ),
+                          if (effectiveAuthRepName.isNotEmpty)
+                            DSInfoTile(
+                              label: 'Auth Rep Name',
+                              value: effectiveAuthRepName,
+                              onLongPress: () => copyToClipboard(
+                                effectiveAuthRepName,
+                                'Auth rep name',
+                              ),
+                            ),
+                          if (address.isNotEmpty)
+                            DSInfoTile(
+                              label: 'Delivery Address',
+                              value: address,
+                              onTap: () => launchMaps(address),
+                              onLongPress: () =>
+                                  copyToClipboard(address, 'Address'),
+                            ),
+                          if (contact.isNotEmpty)
+                            ...contact.split('/').asMap().entries.map((entry) {
+                              final idx = entry.key;
+                              final cleanContact = entry.value.trim();
+                              if (cleanContact.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
+                              final isAuthRepNum =
+                                  authRepNumber.isNotEmpty &&
+                                  cleanContact.contains(authRepNumber);
+                              final nextEntry =
+                                  contact.split('/').length > idx + 1
+                                      ? contact.split('/')[idx + 1].trim()
+                                      : null;
+                              final nextIsAuthRep =
+                                  nextEntry != null &&
+                                  authRepNumber.isNotEmpty &&
+                                  nextEntry.contains(authRepNumber);
+
+                              final hasExtraTile =
+                                  authRepNumber.isNotEmpty &&
+                                  !contact.contains(authRepNumber);
+
+                              final showDivider =
+                                  (nextEntry != null &&
+                                      isAuthRepNum != nextIsAuthRep) ||
+                                  (nextEntry == null &&
+                                      hasExtraTile &&
+                                      !isAuthRepNum);
+
+                              final previousEntry = idx > 0
+                                  ? contact.split('/')[idx - 1].trim()
+                                  : null;
+                              final previousIsAuthRep =
+                                  previousEntry != null &&
+                                  authRepNumber.isNotEmpty &&
+                                  previousEntry.contains(authRepNumber);
+
+                              final isFirstOfParty =
+                                  idx == 0 ||
+                                  (isAuthRepNum != previousIsAuthRep);
+
+                              return DSInfoTile(
+                                label: isFirstOfParty
+                                    ? (isAuthRepNum
+                                          ? 'Auth Rep Contact'
+                                          : 'Recipient Number')
+                                    : '',
+                                value: cleanContact,
+                                onTap: () => onPhoneTap(
+                                  cleanContact,
+                                  isAuthRepNum
+                                      ? effectiveAuthRepName
+                                      : name,
+                                ),
+                                onLongPress: () => copyToClipboard(
+                                  cleanContact,
+                                  'Contact number',
+                                ),
+                                showDivider: showDivider,
+                                padding: isFirstOfParty
+                                    ? null
+                                    : EdgeInsets.only(
+                                        top: 0,
+                                        bottom: DSSpacing.md,
+                                        left: DSSpacing.md,
+                                        right: DSSpacing.md,
+                                      ),
+                              );
+                            }),
+                          if (authRepNumber.isNotEmpty &&
+                              !contact.contains(authRepNumber))
+                            DSInfoTile(
+                              label: hasShownAuthRepInContact
+                                  ? ''
+                                  : 'Auth Rep Contact',
+                              value: authRepNumber,
+                              onTap: () => onPhoneTap(
+                                authRepNumber,
+                                effectiveAuthRepName,
+                              ),
+                              onLongPress: () => copyToClipboard(
+                                authRepNumber,
+                                'Auth rep number',
+                              ),
+                              showDivider: false,
+                              padding: hasShownAuthRepInContact
+                                  ? EdgeInsets.only(
+                                      top: 0,
+                                      bottom: DSSpacing.md,
+                                      left: DSSpacing.md,
+                                      right: DSSpacing.md,
+                                    )
+                                  : null,
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    DeliveryOtherInfoSection(
+                      product: product,
+                      specialInstruction: specialInstruction.isNotEmpty
+                          ? specialInstruction
+                          : null,
+                      transmittalDate: transmittalDate.isNotEmpty
+                          ? formatDate(transmittalDate)
+                          : null,
+                      tat: tat.isNotEmpty ? formatDate(tat) : null,
+                      isDark: isDark,
+                    ),
+                    DSSpacing.hLg,
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       );
     },

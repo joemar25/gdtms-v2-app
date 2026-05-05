@@ -539,5 +539,15 @@
       "title": "No logs to show",
       "subtitle": "Errors and warnings will appear here when they occur."
     }
+  },
+  "delivery_card": {
+    "details": {
+      "product": "PRODUCT",
+      "mail_type": "MAIL TYPE",
+      "special_instructions": "SPECIAL INSTRUCTIONS",
+      "transmittal_date": "TRANSMITTAL DATE",
+      "tat": "TAT",
+      "other_information": "Other Information"
+    }
   }
 }

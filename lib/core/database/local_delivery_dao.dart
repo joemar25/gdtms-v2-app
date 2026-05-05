@@ -29,11 +29,18 @@ class LocalDeliveryDao {
   Future<void> insertAll(
     List<Map<String, dynamic>> deliveries, {
     required String dispatchCode,
+    String? tat,
+    String? transmittalDate,
   }) async {
     final db = await _db;
     final batch = db.batch();
     for (final json in deliveries) {
-      final delivery = LocalDelivery.fromJson(json, dispatchCode: dispatchCode);
+      final delivery = LocalDelivery.fromJson(
+        json,
+        dispatchCode: dispatchCode,
+        tat: tat,
+        transmittalDate: transmittalDate,
+      );
       if (delivery.barcode.isEmpty) continue;
 
       if (delivery.failedDeliveryVerifEnum.isVerified) {
@@ -104,6 +111,8 @@ class LocalDeliveryDao {
 
     final values = <String, dynamic>{
       'delivery_status': status,
+      'mail_type': json['mail_type']?.toString() ?? existing?.mailType,
+      'product': json['product']?.toString() ?? existing?.product,
       'recipient_name':
           json['recipient_name']?.toString() ?? existing?.recipientName,
       'delivery_address':
@@ -275,6 +284,8 @@ class LocalDeliveryDao {
           'local_deliveries',
           {
             'delivery_status': delivery.deliveryStatus,
+            'mail_type': delivery.mailType,
+            'product': delivery.product,
             'raw_json': delivery.rawJson,
             'updated_at': delivery.updatedAt,
             if (delivery.deliveredAt != null)

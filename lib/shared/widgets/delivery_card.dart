@@ -8,8 +8,9 @@ import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
-import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card_components.dart';
+import 'package:fsi_courier_app/shared/widgets/delivery_other_info.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// A card representing a single delivery assignment with its status,
 /// barcode, recipient details, and action shortcuts.
@@ -71,7 +72,7 @@ class DeliveryCard extends StatelessWidget {
     final status = rawStatus.toUpperCase().trim();
     final ds = DeliveryStatus.fromString(status);
     final mailType = (delivery['mail_type'] ?? '').toString();
-    final product = mailType;
+    final product = (delivery['product'] ?? '').toString();
 
     final address = (delivery['recipient_address'] ?? '').toString();
     final name = (delivery['recipient_name'] ?? '').toString();
@@ -137,13 +138,8 @@ class DeliveryCard extends StatelessWidget {
       }
     }
 
-    final canViewDeliveryDetails =
-        !isPrivacyMode &&
-        !isChecking &&
-        !isLocked &&
-        isVisible &&
-        !inSyncQueue &&
-        ds != DeliveryStatus.unknown;
+    final canViewInfo =
+        !isPrivacyMode && !isChecking && ds != DeliveryStatus.unknown;
 
     if (compact) {
       return _buildCompactCard(
@@ -272,7 +268,8 @@ class DeliveryCard extends StatelessWidget {
                                                     DeliveryStatus
                                                         .failedDelivery &&
                                                 attemptsCount < 3)) &&
-                                        mailType.isNotEmpty)
+                                        (product.isNotEmpty ||
+                                            mailType.isNotEmpty))
                                       Flexible(
                                         child: Container(
                                           padding: EdgeInsets.symmetric(
@@ -286,7 +283,9 @@ class DeliveryCard extends StatelessWidget {
                                             borderRadius: DSStyles.pillRadius,
                                           ),
                                           child: Text(
-                                            mailType,
+                                            product.isNotEmpty
+                                                ? product
+                                                : mailType,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style:
@@ -345,7 +344,7 @@ class DeliveryCard extends StatelessWidget {
                                               : DSColors.warning,
                                         ),
                                       ),
-                                    if (canViewDeliveryDetails)
+                                    if (canViewInfo)
                                       Padding(
                                         padding: EdgeInsets.only(
                                           left: DSSpacing.xs,
@@ -651,20 +650,11 @@ class DeliveryCard extends StatelessWidget {
     final deliveredAtMs = delivery['_delivered_at'] as int?;
     final deliveredDate = delivery['delivered_date']?.toString() ?? '';
 
-    final rawStatus = delivery['delivery_status']?.toString() ?? '';
-    final status = rawStatus.toUpperCase().trim();
-    final ds = DeliveryStatus.fromString(status);
-    final attemptsCount = getAttemptsCountFromMap(delivery);
-
-    final showProductMailType =
-        !((ds == DeliveryStatus.delivered ||
-                (ds == DeliveryStatus.failedDelivery && attemptsCount >= 3)) &&
-            mailType.isNotEmpty);
-
     final hasDetails =
         seqNum.isNotEmpty ||
         (transactionAt.isNotEmpty && ds != DeliveryStatus.pending) ||
-        (showProductMailType && (product.isNotEmpty || mailType.isNotEmpty)) ||
+        product.isNotEmpty ||
+        mailType.isNotEmpty ||
         specialInstr.isNotEmpty;
 
     if (!hasDetails) return const SizedBox.shrink();
@@ -737,28 +727,24 @@ class DeliveryCard extends StatelessWidget {
             ),
           ),
 
-        if (showProductMailType &&
-            (product.isNotEmpty || mailType.isNotEmpty)) ...[
+        // Show PRODUCT below SEQUENCE/TRANSACTION row if available
+        if (product.isNotEmpty) ...[
           DSSpacing.hMd,
           DeliveryDetailCell(
-            label: 'PRODUCT / MAIL TYPE',
-            value: [product, mailType].where((e) => e.isNotEmpty).join(' · '),
+            label: 'PRODUCT',
+            value: product,
             isDark: isDark,
             subtextColor: subtextColor,
           ),
         ],
 
-        if (specialInstr.isNotEmpty) ...[
-          DSSpacing.hMd,
-          DeliveryDetailCell(
-            label: 'SPECIAL INSTRUCTIONS',
-            value: specialInstr,
-            isDark: isDark,
-            subtextColor: subtextColor,
-            valueColor: DSColors.primary,
-            isItalic: true,
-          ),
-        ],
+        DeliveryOtherInfoSection(
+          product: '', // Product is shown separately in the detail row above
+          isDark: isDark,
+          subtextColor: subtextColor,
+          showTitle: false,
+          isExpandedCard: true,
+        ),
         DSSpacing.hXs,
       ],
     );

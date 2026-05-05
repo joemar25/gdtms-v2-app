@@ -402,4 +402,6 @@ flutter pub run flutter_launcher_icons:main
 dart run flutter_native_splash:create
 flutter run --dart-define-from-file=dart_defines.json
 
+update app section in profile for update - and update available for click will go to profile to update the app (available only if on stable network)
+
 -->

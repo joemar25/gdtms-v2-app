@@ -43,7 +43,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     final db = await openDatabase(
       path,
-      version: 16,
+      version: 18,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -81,6 +81,7 @@ class AppDatabase {
         delivery_address TEXT,
         delivery_status  TEXT    NOT NULL DEFAULT 'FOR_DELIVERY',
         mail_type        TEXT,
+        product          TEXT,
         dispatch_code    TEXT,
         raw_json         TEXT    NOT NULL,
         created_at       INTEGER NOT NULL,
@@ -147,11 +148,21 @@ class AppDatabase {
     int oldVersion,
     int newVersion,
   ) async {
+    Future<void> addColumn(String sql) async {
+      try {
+        await db.execute(sql);
+      } catch (e) {
+        // Log info only — "duplicate column" is common during dev hot-restarts
+        // or interrupted migrations, and should not be a fatal error.
+        debugPrint('[DB] Migration info (add column): $e');
+      }
+    }
+
     if (oldVersion < 2) {
       // v2: add courier_id to delivery_update_queue for per-courier isolation.
       // Existing rows get NULL, which the DAO treats as belonging to the
       // current user (safe because logout already cleared foreign-user rows).
-      await db.execute(
+      await addColumn(
         'ALTER TABLE delivery_update_queue ADD COLUMN courier_id TEXT',
       );
     }
@@ -161,7 +172,7 @@ class AppDatabase {
       // timestamp when the payout was marked paid. The cleanup service uses
       // this to enforce a 1-day retention (kPaidDeliveryRetentionDays) for
       // paid records — shorter than the standard retention — for privacy.
-      await db.execute(
+      await addColumn(
         'ALTER TABLE local_deliveries ADD COLUMN paid_at INTEGER',
       );
     }
@@ -170,105 +181,115 @@ class AppDatabase {
       // Set when a delivery transitions to the 'delivered' status so the
       // dashboard offline count and the delivered list use the same
       // today-only filter, matching the server's delivered_today figure.
-      await db.execute(
+      await addColumn(
         'ALTER TABLE local_deliveries ADD COLUMN delivered_at INTEGER',
       );
       // Backfill existing delivered records using updated_at as a proxy.
-      await db.execute(
-        "UPDATE local_deliveries SET delivered_at = updated_at "
-        "WHERE delivery_status = 'delivered' AND delivered_at IS NULL",
-      );
+      try {
+        await db.execute(
+          "UPDATE local_deliveries SET delivered_at = updated_at "
+          "WHERE delivery_status = 'delivered' AND delivered_at IS NULL",
+        );
+      } catch (e) {
+        debugPrint('[DB] Migration warning (backfill delivered_at): $e');
+      }
     }
     if (oldVersion < 6) {
       // v6: add completed_at to local_deliveries.
       // This timestamp is used for all terminal statuses (delivered, failed-delivery, osa)
       // so that the today-only filter can be applied consistently across
       // all of them.
-      final cols = await db.rawQuery('PRAGMA table_info(local_deliveries)');
-      final hasCompletedAt = cols.any((c) => c['name'] == 'completed_at');
-      if (!hasCompletedAt) {
-        await db.execute(
-          'ALTER TABLE local_deliveries ADD COLUMN completed_at INTEGER',
-        );
-      }
-      // Backfill completed_at from delivered_at or updated_at.
-      await db.execute(
-        "UPDATE local_deliveries SET completed_at = COALESCE(delivered_at, updated_at) "
-        "WHERE delivery_status IN ('delivered', 'FAILED_DELIVERY', 'osa')",
+      await addColumn(
+        'ALTER TABLE local_deliveries ADD COLUMN completed_at INTEGER',
       );
+      // Backfill completed_at from delivered_at or updated_at.
+      try {
+        await db.execute(
+          "UPDATE local_deliveries SET completed_at = COALESCE(delivered_at, updated_at) "
+          "WHERE delivery_status IN ('delivered', 'FAILED_DELIVERY', 'osa')",
+        );
+      } catch (e) {
+        debugPrint('[DB] Migration warning (backfill completed_at): $e');
+      }
     }
     if (oldVersion < 7) {
       // v7: Add mobile-only offline sync architecture components
-      await db.execute('''
-        CREATE TABLE sync_operations (
-          id               TEXT PRIMARY KEY,
-          courier_id       TEXT,
-          barcode          TEXT NOT NULL,
-          operation_type   TEXT NOT NULL,
-          payload_json     TEXT NOT NULL,
-          media_paths_json TEXT,
-          status           TEXT NOT NULL DEFAULT 'pending',
-          retry_count      INTEGER NOT NULL DEFAULT 0,
-          last_error       TEXT,
-          created_at       INTEGER NOT NULL,
-          last_attempt_at  INTEGER
-        )
-      ''');
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS sync_operations (
+            id               TEXT PRIMARY KEY,
+            courier_id       TEXT,
+            barcode          TEXT NOT NULL,
+            operation_type   TEXT NOT NULL,
+            payload_json     TEXT NOT NULL,
+            media_paths_json TEXT,
+            status           TEXT NOT NULL DEFAULT 'pending',
+            retry_count      INTEGER NOT NULL DEFAULT 0,
+            last_error       TEXT,
+            created_at       INTEGER NOT NULL,
+            last_attempt_at  INTEGER
+          )
+        ''');
+      } catch (e) {
+        debugPrint('[DB] Migration info (create sync_operations): $e');
+      }
 
-      await db.execute(
+      await addColumn(
         "ALTER TABLE local_deliveries ADD COLUMN server_updated_at INTEGER",
       );
-      await db.execute(
+      await addColumn(
         "ALTER TABLE local_deliveries ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'clean'",
       );
-      await db.execute(
+      await addColumn(
         "ALTER TABLE local_deliveries ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
       );
     }
     if (oldVersion < 8) {
       // v8: add rts_verification_status (legacy) to local_deliveries.
-      // Tracks failed delivery verification state. Note: this handles duplicate cases
-      // caused by hot-reload interruptions during previous DB upgrade runs.
-      final cols = await db.rawQuery('PRAGMA table_info(local_deliveries)');
-      final hasRtsStatus = cols.any(
-        (c) => c['name'] == 'rts_verification_status',
+      await addColumn(
+        "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
       );
-      if (!hasRtsStatus) {
-        await db.execute(
-          "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
-        );
-      }
     }
     if (oldVersion < 9) {
       // v9: add error_logs table for on-device diagnostic logging.
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS error_logs (
-          id         INTEGER PRIMARY KEY AUTOINCREMENT,
-          level      TEXT    NOT NULL DEFAULT 'error',
-          context    TEXT    NOT NULL,
-          message    TEXT    NOT NULL,
-          detail     TEXT,
-          barcode    TEXT,
-          created_at INTEGER NOT NULL
-        )
-      ''');
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS error_logs (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            level      TEXT    NOT NULL DEFAULT 'error',
+            context    TEXT    NOT NULL,
+            message    TEXT    NOT NULL,
+            detail     TEXT,
+            barcode    TEXT,
+            created_at INTEGER NOT NULL
+          )
+        ''');
+      } catch (e) {
+        debugPrint('[DB] Migration info (create error_logs): $e');
+      }
     }
     if (oldVersion < 10) {
       // v10: add index on sync_operations(courier_id, status) to speed up
       // the sync-lock barcode query that runs on every delivery list load.
-      await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_sync_courier '
-        'ON sync_operations(courier_id, status)',
-      );
+      try {
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_sync_courier '
+          'ON sync_operations(courier_id, status)',
+        );
+      } catch (e) {
+        debugPrint('[DB] Migration info (create index): $e');
+      }
     }
     if (oldVersion < 11) {
       // v11: rename legacy 'RTS' delivery_status values to 'FAILED_DELIVERY'
-      // to align with the v2.8 API contract. The backend returns FAILED_DELIVERY
-      // in all read responses; dual-value IN clauses in the DAO are removed.
-      await db.execute(
-        "UPDATE local_deliveries SET delivery_status = 'FAILED_DELIVERY' "
-        "WHERE delivery_status = 'RTS'",
-      );
+      try {
+        await db.execute(
+          "UPDATE local_deliveries SET delivery_status = 'FAILED_DELIVERY' "
+          "WHERE delivery_status = 'RTS'",
+        );
+      } catch (e) {
+        debugPrint('[DB] Migration warning (rename RTS): $e');
+      }
     }
     if (oldVersion < 12) {
       // v12: Keep rts_verification_status as per requirement.
@@ -276,15 +297,17 @@ class AppDatabase {
     }
     if (oldVersion < 14) {
       // v14: Normalise legacy 'PENDING' delivery_status values to 'FOR_DELIVERY'
-      // (new canonical status; both map to DeliveryStatus.pending enum).
-      await db.execute(
-        "UPDATE local_deliveries SET delivery_status = 'FOR_DELIVERY' "
-        "WHERE delivery_status = 'PENDING'",
-      );
+      try {
+        await db.execute(
+          "UPDATE local_deliveries SET delivery_status = 'FOR_DELIVERY' "
+          "WHERE delivery_status = 'PENDING'",
+        );
+      } catch (e) {
+        debugPrint('[DB] Migration warning (normalize PENDING): $e');
+      }
     }
     if (oldVersion < 13) {
       // v13: Restore rts_verification_status if it was renamed to failed_delivery_verification_status
-      // in previous experimental builds.
       final cols = await db.rawQuery('PRAGMA table_info(local_deliveries)');
       final hasModern = cols.any(
         (c) => c['name'] == 'failed_delivery_verification_status',
@@ -292,48 +315,32 @@ class AppDatabase {
       final hasLegacy = cols.any((c) => c['name'] == 'rts_verification_status');
 
       if (hasModern && !hasLegacy) {
-        // SQLite 3.25.0+ supports RENAME COLUMN. Android 10+ has SQLite 3.28.
         try {
           await db.execute(
             'ALTER TABLE local_deliveries RENAME COLUMN failed_delivery_verification_status TO rts_verification_status',
           );
         } catch (e) {
           debugPrint('[DB] Migration failed (rename): $e');
-          // If rename fails, fallback to adding it if missing.
-          await db.execute(
+          await addColumn(
             "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
           );
         }
       } else if (!hasLegacy) {
-        // Ensure it exists if neither the modern nor the legacy column was found.
-        await db.execute(
+        await addColumn(
           "ALTER TABLE local_deliveries ADD COLUMN rts_verification_status TEXT NOT NULL DEFAULT 'unvalidated'",
         );
       }
     }
     if (oldVersion < 15) {
       // v15: drop paid_at column from local_deliveries.
-      // The backend API removed is_paid, and the mobile app no longer tracks
-      // payment status locally.
       try {
         await db.execute('ALTER TABLE local_deliveries DROP COLUMN paid_at');
       } catch (e) {
-        // SQLite versions < 3.35.0 (Android < 12) do not support DROP COLUMN.
-        // If it fails, we simply leave the column orphaned; the model and
-        // DAO already ignore it, so it is safe to persist.
         debugPrint('[DB] Migration warning (drop column): $e');
       }
     }
     if (oldVersion < 16) {
       // v16: Add v3.6 compliance fields for piece counts, transitions, and checksums.
-      Future<void> addColumn(String col) async {
-        try {
-          await db.execute(col);
-        } catch (e) {
-          debugPrint('[DB] Migration info (add column): $e');
-        }
-      }
-
       await addColumn(
         "ALTER TABLE local_deliveries ADD COLUMN piece_count INTEGER NOT NULL DEFAULT 1",
       );
@@ -346,6 +353,13 @@ class AppDatabase {
       await addColumn(
         "ALTER TABLE local_deliveries ADD COLUMN data_checksum TEXT",
       );
+    }
+    if (oldVersion < 17) {
+      // v17: Add product column to local_deliveries.
+      await addColumn("ALTER TABLE local_deliveries ADD COLUMN product TEXT");
+    }
+    if (oldVersion < 18) {
+      // v18: Preservation of version numbering (previously account_number).
     }
   }
 

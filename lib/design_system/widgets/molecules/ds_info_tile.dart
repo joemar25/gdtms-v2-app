@@ -70,7 +70,7 @@ class DSInfoTile extends StatelessWidget {
                         Text(
                           value,
                           style: DSTypography.body(color: valueColor).copyWith(
-                            fontSize: DSIconSize.sm,
+                            fontSize: DSTypography.sizeMd,
                             fontWeight: FontWeight.w600,
                             height: DSStyles.heightNormal,
                           ),

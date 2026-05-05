@@ -5,9 +5,6 @@
   "API_BASE_DEMO": "",
   "API_BASE_URL": "http://YOUR_API_BASE_URL/api/mbl",
 
-  "USE_S3_UPLOAD": false,
-  "S3_STRICT_MODE": false,
-  
   "AWS_ACCESS_KEY_ID": "",
   "AWS_SECRET_ACCESS_KEY": "",
   "AWS_REGION": "ap-southeast-1",
