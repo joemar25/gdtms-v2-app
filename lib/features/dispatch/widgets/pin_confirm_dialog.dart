@@ -87,7 +87,7 @@ class _PinConfirmDialogState extends State<PinConfirmDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
       child: Padding(
-        padding: EdgeInsets.all(DSSpacing.xl),
+        padding: EdgeInsets.all(DSSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -119,36 +119,36 @@ class _PinConfirmDialogState extends State<PinConfirmDialog> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 4,
-                (i) => Expanded(
-                  child: Container(
-                    height: 58,
-                    margin: EdgeInsets.symmetric(horizontal: DSSpacing.xs),
-                    child: TextFormField(
-                      controller: _controllers[i],
-                      focusNode: _focusNodes[i],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        counterText: '',
-                        border: OutlineInputBorder(
-                          borderRadius: DSStyles.cardRadius,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: DSStyles.cardRadius,
-                          borderSide: const BorderSide(
-                            color: DSColors.primary,
-                            width: DSStyles.strokeWidth,
-                          ),
+                (i) => Container(
+                  width: 48,
+                  height: 48,
+                  margin: const EdgeInsets.symmetric(horizontal: 2.0),
+                  child: TextFormField(
+                    controller: _controllers[i],
+                    focusNode: _focusNodes[i],
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    maxLength: 1,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      counterText: '',
+                      contentPadding: EdgeInsets.zero,
+                      border: OutlineInputBorder(
+                        borderRadius: DSStyles.cardRadius,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: DSStyles.cardRadius,
+                        borderSide: const BorderSide(
+                          color: DSColors.primary,
+                          width: DSStyles.strokeWidth,
                         ),
                       ),
-                      style: DSTypography.heading().copyWith(
-                        fontSize: DSTypography.sizeLg,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      onChanged: (v) => _onDigitChanged(i, v),
                     ),
+                    style: DSTypography.heading().copyWith(
+                      fontSize: 24.0,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    onChanged: (v) => _onDigitChanged(i, v),
                   ),
                 ),
               ),

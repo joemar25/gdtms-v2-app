@@ -42,7 +42,6 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -53,7 +52,6 @@ import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/payout_history_row.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/wallet_flip_card.dart';
-import 'package:fsi_courier_app/features/wallet/widgets/payout_window_banner.dart';
 // confirmation_dialog not used in this file
 
 class WalletScreen extends ConsumerStatefulWidget {
@@ -259,12 +257,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final hasExistingRequestToday = _data['has_existing_request_today'] == true;
     final canRequestPayout = !isLatestPending && !hasExistingRequestToday;
 
-    // ── Payout request time-window guard ────────────────────────────────────
-    // In production, couriers may only request between 06:00 AM and 12:00 PM.
-    // In debug builds the restriction is lifted (isWithinPayoutRequestWindow
-    // always returns true) so developers can test at any hour.
-    final isInRequestWindow = isWithinPayoutRequestWindow();
-
     ref.listen<int>(walletRefreshProvider, (_, _) => _load());
     ref.listen<int>(deliveryRefreshProvider, (_, _) => _load());
 
@@ -371,8 +363,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                               isOnline &&
                               isLatestPending &&
                               _eligible > 0 &&
-                              !hasExistingRequestToday &&
-                              isInRequestWindow,
+                              !hasExistingRequestToday,
                           canRequest: canRequestPayout && isOnline,
                           onConsolidate: () =>
                               context.push('/wallet/request?consolidate=1'),
@@ -382,11 +373,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         DSSpacing.hLg,
 
                         // ── Online-only section ──────────────────────────────
-                        if (isOnline && !isInRequestWindow) ...[
-                          const PayoutWindowBanner(),
-                          DSSpacing.hMd,
-                        ],
-
                         if (isOnline) DSSpacing.hLg,
 
                         if (isOnline && _historyList.isNotEmpty) ...[

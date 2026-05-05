@@ -24,24 +24,11 @@ const String appName = 'FSI Courier';
 /// Android/iOS package identifier.
 const String packageId = 'com.fsi.courier';
 
-/// Application version string (e.g. "1.0.0").
-/// Sync this with pubspec.yaml for consistency.
-const String kAppVersion = String.fromEnvironment(
-  'APP_VERSION',
-  defaultValue: '1.0.0',
-);
-
-/// Application build number (e.g. "1").
-const String kAppBuildNumber = String.fromEnvironment(
-  'APP_BUILD_NUMBER',
-  defaultValue: '1',
-);
-
 /// Base URL for API requests.
 const String apiBaseUrl = String.fromEnvironment(
   // 'API_BASE_URL_PROD',
-  // 'API_BASE_URL_DEMO',
-  'API_BASE_URL',
+  'API_BASE_URL_DEMO',
+  // 'API_BASE_URL',
   defaultValue: 'http://YOUR_API_BASE_URL/api/mbl',
 );
 
@@ -156,29 +143,6 @@ const bool kEnableGlobalSearch = bool.fromEnvironment(
 
 /// True only in debug builds; always false in release/profile.
 const bool kAppDebugMode = kDebugMode;
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Payout Request Time Window
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// The earliest hour (inclusive, local time) at which a courier may submit a
-/// payout request. Currently 06:00 AM.
-const int kPayoutWindowStartHour = 6;
-
-/// The latest hour (exclusive, local time) at which a courier may submit a
-/// payout request. Currently 12:00 PM (noon).
-const int kPayoutWindowEndHour = 12;
-
-/// Returns `true` when a payout request is currently allowed.
-///
-/// The window is **06:00 AM – 11:59 AM** local time (i.e. `hour >= 6 && hour < 12`).
-/// In debug builds ([kAppDebugMode] == true) this restriction is lifted and the
-/// function always returns `true`, allowing developers to test at any time.
-bool isWithinPayoutRequestWindow() {
-  if (kAppDebugMode) return true;
-  final now = DateTime.now();
-  return now.hour >= kPayoutWindowStartHour && now.hour < kPayoutWindowEndHour;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  End of config.dart

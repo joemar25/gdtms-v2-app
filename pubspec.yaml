@@ -1,7 +1,27 @@
 name: fsi_courier_app
 description: "FSI courier's application for deliveries."
 publish_to: 'none'
-version: 1.0.0
+
+# ─── Versioning ───────────────────────────────────────────────────────────────
+# Format : <major>.<minor>.<patch>+<build>
+#
+#   major — breaking change or full redesign          e.g. 2.0.0+N
+#   minor — new feature, backward-compatible          e.g. 1.1.0+N
+#   patch — bug fix or small improvement              e.g. 1.0.4+N
+#   build — store submission counter, never reset     e.g. 1.0.3+2
+#
+# The part before '+' (1.0.3) is the user-visible version shown in the app UI
+# via AppVersionService.version (reads pubspec at runtime via PackageInfo).
+#
+# The part after '+' (the build number) is what the Play Store / App Store use
+# internally. It must be incremented on every store upload — two builds with the
+# same display version but different build numbers are valid (e.g. hotfixes).
+# The store will reject an upload if the build number is not higher than the
+# previous submission.
+#
+# This is the ONLY place to update the version — no dart-define, no config.dart.
+# ──────────────────────────────────────────────────────────────────────────────
+version: 1.0.0+1
 
 environment:
   sdk: ^3.9.0

@@ -36,11 +36,12 @@ InputDecoration deliveryFieldDecoration(
     labelStyle: DSTypography.body().copyWith(
       color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
       fontSize: DSTypography.sizeMd,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w900,
     ),
     hintStyle: DSTypography.body().copyWith(
       color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
       fontSize: DSTypography.sizeMd,
+      fontWeight: FontWeight.w900,
     ),
     errorStyle: DSTypography.caption().copyWith(
       color: DSColors.error,

@@ -80,12 +80,17 @@ class _DSInputState extends State<DSInput> {
         decoration: InputDecoration(
           labelText: widget.label,
           hintText: widget.hintText,
-          labelStyle: DSTypography.caption(
+          hintStyle: DSTypography.body().copyWith(
+            color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
+            fontWeight: FontWeight.w900,
+          ),
+          labelStyle: DSTypography.body().copyWith(
             color: _focusNode.hasFocus
                 ? DSColors.primary
                 : (isDark
                       ? DSColors.labelSecondaryDark
                       : DSColors.labelSecondary),
+            fontWeight: FontWeight.w900,
           ),
           floatingLabelBehavior: FloatingLabelBehavior.auto,
           prefixIcon: widget.prefixIcon != null

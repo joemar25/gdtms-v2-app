@@ -2,21 +2,19 @@
 // DOCS: docs/core/services.md — update that file when you edit this one.
 
 import 'package:package_info_plus/package_info_plus.dart';
-import '../config.dart';
 
 /// Single source of truth for the app's version string.
 ///
-/// Reads from the actual build metadata (pubspec.yaml `version` field) via
-/// [PackageInfo], eliminating the risk of the hardcoded `appVersion` constant
-/// in config.dart drifting out of sync with the installed build.
+/// Reads from pubspec.yaml `version` via [PackageInfo] — the same value the
+/// build system stamps into the APK/IPA and that app stores see.
 ///
 /// **Initialisation** — call [AppVersionService.init()] once in `main()` before
 /// [runApp]. All subsequent calls to [version] and [buildNumber] are synchronous.
 class AppVersionService {
   AppVersionService._();
 
-  static String _version = kAppVersion;
-  static String _buildNumber = kAppBuildNumber;
+  static String _version = '0.0.0';
+  static String _buildNumber = '0';
 
   /// Reads version info from the platform. Safe to call multiple times.
   static Future<void> init() async {

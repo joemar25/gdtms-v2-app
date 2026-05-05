@@ -196,21 +196,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
   }
 
   Future<void> _submit() async {
-    if (!isWithinPayoutRequestWindow()) {
-      final fromLabel = kPayoutWindowStartHour == 0
-          ? '12:00 AM'
-          : '${kPayoutWindowStartHour.toString().padLeft(2, '0')}:00 AM';
-      final toLabel = kPayoutWindowEndHour == 12
-          ? '12:00 PM'
-          : '${kPayoutWindowEndHour.toString().padLeft(2, '0')}:00';
-      setState(() {
-        _error = 'wallet.request.request_window_denied'.tr(
-          namedArgs: {'from': fromLabel, 'to': toLabel},
-        );
-      });
-      return;
-    }
-
     final preview = _previewData;
     if (preview == null) return;
 
@@ -360,11 +345,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                         color: DSColors.white,
                       ),
                     )
-                  : Icon(
-                      isWithinPayoutRequestWindow()
-                          ? Icons.payments_rounded
-                          : Icons.lock_clock_rounded,
-                    ),
+                  : const Icon(Icons.payments_rounded),
               label: Text(
                 widget.isConsolidation
                     ? 'wallet.request.confirm_button_consolidate'.tr()
@@ -386,8 +367,7 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                       _previewData == null ||
                       (_previewData!['eligible_delivery_count'] as int? ?? 0) ==
                           0 ||
-                      _previewData!['has_existing_request_today'] == true ||
-                      !isWithinPayoutRequestWindow())
+                      _previewData!['has_existing_request_today'] == true)
                   ? null
                   : _submit,
             ),
