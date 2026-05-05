@@ -1,6 +1,7 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/location.md — update that file when you edit this one.
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -24,6 +25,8 @@ class PermissionsRequiredScreen extends ConsumerWidget {
     final locationGranted = locationState.isReady;
     final cameraGranted = permsState.cameraStatus.isGranted;
     final notifGranted = permsState.notificationStatus.isGranted;
+    final installGranted =
+        !Platform.isAndroid || permsState.installStatus.isGranted;
 
     return Scaffold(
       body: SafeArea(
@@ -159,6 +162,36 @@ class PermissionsRequiredScreen extends ConsumerWidget {
                 ),
               ),
 
+              // ── Install Unknown Sources (Android Only) ──────────────────────
+              if (Platform.isAndroid) ...[
+                DSSpacing.hMd,
+                _PermissionCard(
+                  icon: installGranted
+                      ? Icons.install_mobile_rounded
+                      : Icons.app_registration_rounded,
+                  label: 'permissions.install.label'.tr(),
+                  description: installGranted
+                      ? 'permissions.status_granted'.tr()
+                      : 'permissions.status_denied'.tr(
+                          namedArgs: {
+                            'reason': 'permissions.install.reason'.tr(),
+                          },
+                        ),
+                  granted: installGranted,
+                  buttonLabel: installGranted
+                      ? 'permissions.button_enabled'.tr()
+                      : 'permissions.button_grant'.tr(),
+                  onTap: installGranted
+                      ? null
+                      : () => permsNotifier.requestInstallPackages(),
+                ).dsCardEntry(
+                  delay: DSAnimations.stagger(
+                    6,
+                    step: DSAnimations.staggerNormal,
+                  ),
+                ),
+              ],
+
               DSSpacing.hXl,
               TextButton(
                 onPressed: () {
@@ -172,7 +205,7 @@ class PermissionsRequiredScreen extends ConsumerWidget {
                 child: Text('permissions.refresh'.tr()),
               ).dsFadeEntry(
                 delay: DSAnimations.stagger(
-                  6,
+                  7,
                   step: DSAnimations.staggerNormal,
                 ),
               ),

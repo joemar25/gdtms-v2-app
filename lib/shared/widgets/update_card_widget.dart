@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/core/services/app_version_service.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:open_filex/open_filex.dart';
 
 class AppUpdateCard extends ConsumerStatefulWidget {
@@ -24,6 +26,39 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
   }
 
   Future<void> _handleInstall() async {
+    // Check install-packages permission before proceeding.
+    // extraPermissionsProvider refreshes on app resume, so this is current.
+    final installGranted = ref
+        .read(extraPermissionsProvider)
+        .installStatus
+        .isGranted;
+
+    if (!installGranted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Allow "Install unknown apps" for FSI Courier in Settings first.',
+          ),
+          backgroundColor: DSColors.warning,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+          margin: EdgeInsets.fromLTRB(
+            DSSpacing.sm,
+            0,
+            DSSpacing.sm,
+            DSSpacing.massive,
+          ),
+          action: SnackBarAction(
+            label: 'Settings',
+            textColor: DSColors.white,
+            onPressed: () =>
+                ref.read(extraPermissionsProvider.notifier).openSettings(),
+          ),
+        ),
+      );
+      return;
+    }
+
     final result = await ref.read(updateProvider.notifier).installUpdate();
     if (!mounted) return;
     if (result == null) return;
@@ -38,30 +73,7 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
             DSSpacing.sm,
             0,
             DSSpacing.sm,
-            DSSpacing.xl * 2.5,
-          ),
-        ),
-      );
-    } else if (result.type == ResultType.permissionDenied) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Permission denied. Enable "Install Unknown Apps" in Settings.',
-          ),
-          backgroundColor: DSColors.error,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.fromLTRB(
-            DSSpacing.sm,
-            0,
-            DSSpacing.sm,
-            DSSpacing.xl * 2.5,
-          ),
-          action: SnackBarAction(
-            label: 'Settings',
-            textColor: DSColors.white,
-            onPressed: () {
-              // open_filex handles the intent; user must navigate manually.
-            },
+            DSSpacing.massive,
           ),
         ),
       );
@@ -82,7 +94,7 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: DSSpacing.md,
-              vertical: DSSpacing.sm,
+              vertical: DSSpacing.sm + 2,
             ),
             child: Row(
               children: [
@@ -136,9 +148,9 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
                 if (info != null) ...[
                   DSSpacing.wSm,
                   Container(
-                    padding: EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: DSSpacing.sm,
-                      vertical: 3,
+                      vertical: DSSpacing.xs,
                     ),
                     decoration: BoxDecoration(
                       color: info.isMandatory
@@ -174,7 +186,7 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
             Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: DSSpacing.md,
-                vertical: DSSpacing.xs,
+                vertical: DSSpacing.sm,
               ),
               child: Row(
                 children: [
@@ -207,7 +219,7 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: DSSpacing.md,
-                    vertical: DSSpacing.xs,
+                    vertical: DSSpacing.sm,
                   ),
                   child: Row(
                     children: [
@@ -283,6 +295,8 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
                 isDark: isDark,
                 onDownload: _handleDownload,
                 onInstall: _handleInstall,
+                onCancel: () =>
+                    ref.read(updateProvider.notifier).cancelDownload(),
                 onRetry: () =>
                     ref.read(updateProvider.notifier).resetDownload(),
               ),
@@ -301,6 +315,7 @@ class _UpdateActionArea extends StatelessWidget {
     required this.onDownload,
     required this.onInstall,
     required this.onRetry,
+    required this.onCancel,
   });
 
   final UpdateState updateState;
@@ -308,6 +323,7 @@ class _UpdateActionArea extends StatelessWidget {
   final VoidCallback onDownload;
   final VoidCallback onInstall;
   final VoidCallback onRetry;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -359,7 +375,7 @@ class _UpdateActionArea extends StatelessWidget {
               ),
             ],
           ),
-          DSSpacing.hXs,
+          DSSpacing.hSm,
           ClipRRect(
             borderRadius: DSStyles.circularRadius,
             child: LinearProgressIndicator(
@@ -369,6 +385,16 @@ class _UpdateActionArea extends StatelessWidget {
                   : DSColors.separatorLight,
               color: DSColors.primary,
               minHeight: 6,
+            ),
+          ),
+          DSSpacing.hSm,
+          TextButton.icon(
+            onPressed: onCancel,
+            icon: const Icon(Icons.close_rounded, size: DSIconSize.sm),
+            label: const Text('Cancel Download'),
+            style: TextButton.styleFrom(
+              foregroundColor: DSColors.error,
+              minimumSize: const Size.fromHeight(40),
             ),
           ),
         ],

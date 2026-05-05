@@ -53,9 +53,15 @@ class UpdateService {
 
       final currentVersion = AppVersionService.version;
       final latestVersion = (json['latest_version'] as String? ?? '').trim();
-      final downloadUrl = (json['download_url'] as String? ?? '').trim();
 
-      if (latestVersion.isEmpty || downloadUrl.isEmpty) return null;
+      final downloadUrl =
+          (Platform.isIOS
+                  ? json['ios_store_url']
+                  : json['android_download_url'])
+              as String? ??
+          '';
+
+      if (latestVersion.isEmpty || downloadUrl.trim().isEmpty) return null;
       if (!UpdateInfo.isNewerVersion(latestVersion, currentVersion)) {
         return null; // already up to date
       }
@@ -76,19 +82,40 @@ class UpdateService {
   /// Throws a descriptive [UpdateDownloadException] on failure.
   Future<String> downloadUpdate(
     String url,
-    void Function(double progress) onProgress,
-  ) async {
+    void Function(double progress) onProgress, {
+    String? expectedChecksum,
+    CancelToken? cancelToken,
+  }) async {
     final normalizedUrl = _normalizeUrl(url);
     final destDir = await _updateDir();
     final destFile = File('${destDir.path}/app-latest.apk');
 
-    // Clean up any leftover partial file from a previous attempt.
+    // Optimization: If file exists and checksum matches, skip download
+    if (expectedChecksum != null &&
+        expectedChecksum.isNotEmpty &&
+        await destFile.exists()) {
+      try {
+        await verifyChecksum(destFile.path, expectedChecksum);
+        debugPrint(
+          '[UpdateService] Valid APK already exists, skipping download.',
+        );
+        onProgress(1.0);
+        return destFile.path;
+      } catch (e) {
+        debugPrint(
+          '[UpdateService] Existing APK invalid or checksum mismatch: $e',
+        );
+      }
+    }
+
+    // Clean up any leftover partial file or old APK before downloading
     await _cleanUpdateDir(destDir);
 
     try {
       await _dio.download(
         normalizedUrl,
         destFile.path,
+        cancelToken: cancelToken,
         onReceiveProgress: (received, total) {
           if (total > 0) onProgress(received / total);
         },
@@ -98,6 +125,13 @@ class UpdateService {
     } on DioException catch (e) {
       // Delete any partial file so retry starts clean.
       await _safeDelete(destFile);
+
+      if (e.type == DioExceptionType.cancel) {
+        throw UpdateDownloadException(
+          'Download cancelled by user.',
+          type: UpdateDownloadErrorType.downloadInterrupted,
+        );
+      }
 
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.sendTimeout ||
@@ -180,8 +214,8 @@ class UpdateService {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   Future<Directory> _updateDir() async {
-    final tmp = await getTemporaryDirectory();
-    final dir = Directory('${tmp.path}/app_update');
+    final base = await getApplicationSupportDirectory();
+    final dir = Directory('${base.path}/app_update');
     if (!dir.existsSync()) await dir.create(recursive: true);
     return dir;
   }

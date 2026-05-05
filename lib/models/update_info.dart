@@ -1,4 +1,5 @@
 // DOCS: docs/development-standards.md
+import 'dart:io';
 
 /// Holds metadata about a remote app update parsed from the version manifest.
 ///
@@ -32,14 +33,25 @@ class UpdateInfo {
   }) {
     final minimumVersion = (json['minimum_version'] as String? ?? '0.0.0')
         .trim();
+
+    // Select platform-specific URL
+    final downloadUrl =
+        (Platform.isIOS ? json['ios_store_url'] : json['android_download_url'])
+            as String? ??
+        '';
+
+    // Mandatory if version is below minimum OR API explicitly forces it
+    final isForceUpdate = json['force_update'] as bool? ?? false;
+    final isBelowMinimum = _isVersionBelow(currentVersion, minimumVersion);
+
     return UpdateInfo(
       latestVersion: (json['latest_version'] as String? ?? '').trim(),
       minimumVersion: minimumVersion,
-      downloadUrl: (json['download_url'] as String? ?? '').trim(),
+      downloadUrl: downloadUrl.trim(),
       releaseNotes: (json['release_notes'] as String? ?? '').trim(),
       fileSizeMb: (json['file_size_mb'] as num? ?? 0).toDouble(),
       checksumSha256: (json['checksum_sha256'] as String? ?? '').trim(),
-      isMandatory: _isVersionBelow(currentVersion, minimumVersion),
+      isMandatory: isForceUpdate || isBelowMinimum,
     );
   }
 

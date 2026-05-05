@@ -3,6 +3,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:dio/dio.dart';
 
 import 'package:fsi_courier_app/models/update_info.dart';
 import 'package:fsi_courier_app/services/update_service.dart';
@@ -82,6 +83,7 @@ final updateServiceProvider = Provider((ref) => UpdateService.instance);
 
 class UpdateNotifier extends Notifier<UpdateState> {
   UpdateService get _service => ref.read(updateServiceProvider);
+  CancelToken? _cancelToken;
 
   @override
   UpdateState build() => const UpdateState();
@@ -102,6 +104,8 @@ class UpdateNotifier extends Notifier<UpdateState> {
     final info = state.updateInfo;
     if (info == null) return;
 
+    _cancelToken = CancelToken();
+
     state = state.copyWith(
       downloadStatus: UpdateDownloadStatus.downloading,
       downloadProgress: 0.0,
@@ -110,12 +114,17 @@ class UpdateNotifier extends Notifier<UpdateState> {
     );
 
     try {
-      final filePath = await _service.downloadUpdate(info.downloadUrl, (p) {
-        state = state.copyWith(
-          downloadStatus: UpdateDownloadStatus.downloading,
-          downloadProgress: p,
-        );
-      });
+      final filePath = await _service.downloadUpdate(
+        info.downloadUrl,
+        (p) {
+          state = state.copyWith(
+            downloadStatus: UpdateDownloadStatus.downloading,
+            downloadProgress: p,
+          );
+        },
+        expectedChecksum: info.checksumSha256,
+        cancelToken: _cancelToken,
+      );
 
       if (info.checksumSha256.isNotEmpty) {
         await _service.verifyChecksum(filePath, info.checksumSha256);
@@ -127,15 +136,31 @@ class UpdateNotifier extends Notifier<UpdateState> {
         downloadedFilePath: filePath,
       );
     } catch (e) {
-      // If download fails (invalid URL, 404, etc), clear the update info
-      // to avoid stuck error states for invalid links, as requested.
-      state = state.copyWith(
-        clearUpdateInfo: true,
-        downloadStatus: UpdateDownloadStatus.idle,
-        clearError: true,
-        clearFilePath: true,
-      );
+      final isCancel =
+          e is UpdateDownloadException && e.message.contains('cancelled');
+
+      if (isCancel) {
+        state = state.copyWith(
+          downloadStatus: UpdateDownloadStatus.idle,
+          clearError: true,
+        );
+      } else {
+        // If download fails (invalid URL, 404, etc), clear the update info
+        // to avoid stuck error states for invalid links, as requested.
+        state = state.copyWith(
+          clearUpdateInfo: true,
+          downloadStatus: UpdateDownloadStatus.idle,
+          clearError: true,
+          clearFilePath: true,
+        );
+      }
+    } finally {
+      _cancelToken = null;
     }
+  }
+
+  void cancelDownload() {
+    _cancelToken?.cancel();
   }
 
   Future<OpenResult?> installUpdate() async {

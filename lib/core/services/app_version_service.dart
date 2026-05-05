@@ -2,6 +2,7 @@
 // DOCS: docs/core/services.md — update that file when you edit this one.
 
 import 'package:package_info_plus/package_info_plus.dart';
+import '../config.dart';
 
 /// Single source of truth for the app's version string.
 ///
@@ -14,8 +15,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 class AppVersionService {
   AppVersionService._();
 
-  static String _version = '1.0.0'; // safe fallback if init() not called
-  static String _buildNumber = '';
+  static String _version = kAppVersion;
+  static String _buildNumber = kAppBuildNumber;
 
   /// Reads version info from the platform. Safe to call multiple times.
   static Future<void> init() async {

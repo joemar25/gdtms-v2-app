@@ -487,6 +487,10 @@
     "notifications": {
       "label": "Mga Abiso",
       "reason": "mga assignment sa dispatch at alerto sa delivery"
+    },
+    "install": {
+      "label": "Update ng App",
+      "reason": "i-install ang mga update ng app nang awtomatiko"
     }
   },
   "empty_states": {

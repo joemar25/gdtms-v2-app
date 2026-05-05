@@ -500,6 +500,10 @@
     "notifications": {
       "label": "Notifications",
       "reason": "dispatch assignments and delivery alerts"
+    },
+    "install": {
+      "label": "App Updates",
+      "reason": "install application updates automatically"
     }
   },
   "empty_states": {

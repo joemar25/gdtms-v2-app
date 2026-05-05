@@ -62,9 +62,14 @@ void main() {
         await container.read(updateProvider.notifier).checkForUpdate();
 
         // Mock download and verification
-        when(() => mockService.downloadUpdate(any(), any())).thenAnswer((
-          invocation,
-        ) async {
+        when(
+          () => mockService.downloadUpdate(
+            any(),
+            any(),
+            expectedChecksum: any(named: 'expectedChecksum'),
+            cancelToken: any(named: 'cancelToken'),
+          ),
+        ).thenAnswer((invocation) async {
           final onProgress =
               invocation.positionalArguments[1] as Function(double);
           onProgress(0.5);
@@ -98,7 +103,12 @@ void main() {
       await container.read(updateProvider.notifier).checkForUpdate();
 
       when(
-        () => mockService.downloadUpdate(any(), any()),
+        () => mockService.downloadUpdate(
+          any(),
+          any(),
+          expectedChecksum: any(named: 'expectedChecksum'),
+          cancelToken: any(named: 'cancelToken'),
+        ),
       ).thenAnswer((_) async => '/mock/path/app.apk');
       when(
         () => mockService.verifyChecksum(any(), any()),
@@ -128,7 +138,14 @@ void main() {
         await container.read(updateProvider.notifier).checkForUpdate();
 
         // Mock download failure
-        when(() => mockService.downloadUpdate(any(), any())).thenThrow(
+        when(
+          () => mockService.downloadUpdate(
+            any(),
+            any(),
+            expectedChecksum: any(named: 'expectedChecksum'),
+            cancelToken: any(named: 'cancelToken'),
+          ),
+        ).thenThrow(
           UpdateDownloadException(
             'Invalid URL',
             type: UpdateDownloadErrorType.unknown,

@@ -299,11 +299,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   isDark: isDark,
                   isOnline: isOnline,
                 ).dsHeroEntry(),
-                DSSpacing.hSm,
+                DSSpacing.hMd,
 
                 // ── App Update Section ─────────────────────────────────────
                 AppUpdateCard(isDark: isDark),
-                DSSpacing.hSm,
+                DSSpacing.hMd,
 
                 // ── Account Section ────────────────────────────────────────
                 const DSSectionHeader(
@@ -759,7 +759,7 @@ class _ProfileHeroCard extends StatelessWidget {
                             ),
                           ),
                   ),
-                ),
+                ).dsHeroEntry(delay: const Duration(milliseconds: 200)),
               ),
               DSSpacing.wMd,
 

@@ -24,6 +24,19 @@ const String appName = 'FSI Courier';
 /// Android/iOS package identifier.
 const String packageId = 'com.fsi.courier';
 
+/// Application version string (e.g. "1.0.0").
+/// Sync this with pubspec.yaml for consistency.
+const String kAppVersion = String.fromEnvironment(
+  'APP_VERSION',
+  defaultValue: '1.0.0',
+);
+
+/// Application build number (e.g. "1").
+const String kAppBuildNumber = String.fromEnvironment(
+  'APP_BUILD_NUMBER',
+  defaultValue: '1',
+);
+
 /// Base URL for API requests.
 const String apiBaseUrl = String.fromEnvironment(
   // 'API_BASE_URL_PROD',

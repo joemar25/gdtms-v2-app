@@ -34,7 +34,7 @@ class UpdateScreen extends StatelessWidget {
           Center(
             child: Icon(
               Icons.system_update_rounded,
-              size: 64,
+              size: DSIconSize.heroMd,
               color: isDark ? DSColors.warningDark : DSColors.warning,
             ),
           ),

@@ -24,11 +24,13 @@ class ExtraPermissionsState {
     this.status = ExtraPermissionStatus.determining,
     this.cameraStatus = PermissionStatus.denied,
     this.notificationStatus = PermissionStatus.denied,
+    this.installStatus = PermissionStatus.provisional,
   });
 
   final ExtraPermissionStatus status;
   final PermissionStatus cameraStatus;
   final PermissionStatus notificationStatus;
+  final PermissionStatus installStatus;
 
   bool get isReady => status == ExtraPermissionStatus.ready;
 
@@ -36,11 +38,13 @@ class ExtraPermissionsState {
     ExtraPermissionStatus? status,
     PermissionStatus? cameraStatus,
     PermissionStatus? notificationStatus,
+    PermissionStatus? installStatus,
   }) {
     return ExtraPermissionsState(
       status: status ?? this.status,
       cameraStatus: cameraStatus ?? this.cameraStatus,
       notificationStatus: notificationStatus ?? this.notificationStatus,
+      installStatus: installStatus ?? this.installStatus,
     );
   }
 }
@@ -71,6 +75,9 @@ class ExtraPermissionsNotifier extends Notifier<ExtraPermissionsState>
     final camera = await Permission.camera.status;
     final notification = await Permission.notification.status;
 
+    // Only relevant for Android
+    final install = await Permission.requestInstallPackages.status;
+
     ExtraPermissionStatus current;
 
     if (camera.isPermanentlyDenied) {
@@ -90,6 +97,7 @@ class ExtraPermissionsNotifier extends Notifier<ExtraPermissionsState>
         status: current,
         cameraStatus: camera,
         notificationStatus: notification,
+        installStatus: install,
       );
     }
   }
@@ -126,6 +134,11 @@ class ExtraPermissionsNotifier extends Notifier<ExtraPermissionsState>
         debugPrint('[PERMS] Failed to init PushNotificationService: $e');
       }
     }
+  }
+
+  Future<void> requestInstallPackages() async {
+    await Permission.requestInstallPackages.request();
+    await _checkStatus();
   }
 
   Future<void> openSettings() async {
