@@ -21,7 +21,7 @@ publish_to: 'none'
 #
 # This is the ONLY place to update the version — no dart-define, no config.dart.
 # ──────────────────────────────────────────────────────────────────────────────
-version: 1.0.0+1
+version: 1.0.2+1
 
 environment:
   sdk: ^3.9.0

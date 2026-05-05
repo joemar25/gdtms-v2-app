@@ -12,6 +12,7 @@ import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
+import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/scan_mode_sheet.dart';
 import 'package:fsi_courier_app/utils/formatters.dart';
@@ -356,6 +357,7 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
         ? null
         : profileUrlStr;
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
+    final hasUpdate = ref.watch(updateProvider.select((s) => s.hasUpdate));
 
     final headerColor = isDark ? DSColors.cardDark : DSColors.white;
 
@@ -409,6 +411,7 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
                   role: role,
                   profileUrl: profileUrl,
                   unreadCount: unreadCount,
+                  hasUpdate: hasUpdate,
                   onSearchTap: _expand,
                 ),
         ),
@@ -519,6 +522,7 @@ class _ProfileRow extends StatelessWidget {
     required this.role,
     required this.profileUrl,
     required this.unreadCount,
+    required this.hasUpdate,
     required this.onSearchTap,
   });
 
@@ -526,6 +530,7 @@ class _ProfileRow extends StatelessWidget {
   final String role;
   final String? profileUrl;
   final int unreadCount;
+  final bool hasUpdate;
   final VoidCallback onSearchTap;
 
   @override
@@ -534,7 +539,7 @@ class _ProfileRow extends StatelessWidget {
     return Row(
       children: [
         // ── Avatar ─────────────────────────────────────────────────
-        _HeaderAvatar(profileUrl: profileUrl),
+        _HeaderAvatar(profileUrl: profileUrl, hasUpdate: hasUpdate),
         DSSpacing.wMd,
 
         // ── Name + role ─────────────────────────────────────────────
@@ -569,47 +574,82 @@ class _ProfileRow extends StatelessWidget {
   }
 }
 
-class _HeaderProfileAvatar extends StatelessWidget {
+class _HeaderProfileAvatar extends ConsumerWidget {
   const _HeaderProfileAvatar({required this.profileUrl});
 
   final String? profileUrl;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasUpdate = ref.watch(updateProvider.select((s) => s.hasUpdate));
+
     return GestureDetector(
       onTap: () => context.go('/profile'),
-      child: Container(
-        width: DSIconSize.xl,
-        height: DSIconSize.xl,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).brightness == Brightness.dark
-              ? DSColors.secondarySurfaceDark
-              : DSColors.secondarySurfaceLight,
-          border: Border.all(
-            color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
-            width: 1.0,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: DSIconSize.xl,
+            height: DSIconSize.xl,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? DSColors.secondarySurfaceDark
+                  : DSColors.secondarySurfaceLight,
+              border: Border.all(
+                color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+                width: 1.0,
+              ),
+            ),
+            child: ClipOval(
+              child: profileUrl != null && profileUrl!.isNotEmpty
+                  ? Image.network(
+                      profileUrl!,
+                      width: DSIconSize.xl,
+                      height: DSIconSize.xl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.person_rounded,
+                        size: DSIconSize.lg,
+                        color: DSColors.labelSecondary,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.person_rounded,
+                      size: DSIconSize.lg,
+                      color: DSColors.labelSecondary,
+                    ),
+            ),
           ),
-        ),
-        child: ClipOval(
-          child: profileUrl != null && profileUrl!.isNotEmpty
-              ? Image.network(
-                  profileUrl!,
-                  width: DSIconSize.xl,
-                  height: DSIconSize.xl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const Icon(
-                    Icons.person_rounded,
-                    size: DSIconSize.lg,
-                    color: DSColors.labelSecondary,
-                  ),
-                )
-              : const Icon(
-                  Icons.person_rounded,
-                  size: DSIconSize.lg,
-                  color: DSColors.labelSecondary,
-                ),
-        ),
+          if (hasUpdate)
+            Positioned(
+              top: -1,
+              right: -1,
+              child:
+                  Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: DSColors.error,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? DSColors.cardDark
+                                : DSColors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                      )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .scale(
+                        begin: const Offset(1, 1),
+                        end: const Offset(1.2, 1.2),
+                        duration: const Duration(milliseconds: 1200),
+                        curve: Curves.easeInOut,
+                      ),
+            ),
+        ],
       ),
     ).animate().fadeIn(duration: DSAnimations.dFast);
   }
@@ -689,53 +729,87 @@ class _HeaderIconButton extends StatelessWidget {
 }
 
 class _HeaderAvatar extends StatelessWidget {
-  const _HeaderAvatar({required this.profileUrl});
+  const _HeaderAvatar({required this.profileUrl, this.hasUpdate = false});
 
   final String? profileUrl;
+  final bool hasUpdate;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => context.go('/profile'),
-      child: Container(
-        width: DSIconSize.heroSm,
-        height: DSIconSize.heroSm,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).brightness == Brightness.dark
-              ? DSColors.secondarySurfaceDark
-              : DSColors.secondarySurfaceLight,
-          border: Border.all(
-            color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
-            width: DSStyles.strokeWidth,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
-              blurRadius: DSStyles.radiusSM,
-              offset: const Offset(0, DSSpacing.xs),
-            ),
-          ],
-        ),
-        child: ClipOval(
-          child: profileUrl != null && profileUrl!.isNotEmpty
-              ? Image.network(
-                  profileUrl!,
-                  width: DSIconSize.heroSm,
-                  height: DSIconSize.heroSm,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const Icon(
-                    Icons.person_rounded,
-                    size: DSIconSize.xl,
-                    color: DSColors.labelSecondary,
-                  ),
-                )
-              : const Icon(
-                  Icons.person_rounded,
-                  size: DSIconSize.xl,
-                  color: DSColors.labelSecondary,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: DSIconSize.heroSm,
+            height: DSIconSize.heroSm,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? DSColors.secondarySurfaceDark
+                  : DSColors.secondarySurfaceLight,
+              border: Border.all(
+                color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+                width: DSStyles.strokeWidth,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
+                  blurRadius: DSStyles.radiusSM,
+                  offset: const Offset(0, DSSpacing.xs),
                 ),
-        ),
+              ],
+            ),
+            child: ClipOval(
+              child: profileUrl != null && profileUrl!.isNotEmpty
+                  ? Image.network(
+                      profileUrl!,
+                      width: DSIconSize.heroSm,
+                      height: DSIconSize.heroSm,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.person_rounded,
+                        size: DSIconSize.xl,
+                        color: DSColors.labelSecondary,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.person_rounded,
+                      size: DSIconSize.xl,
+                      color: DSColors.labelSecondary,
+                    ),
+            ),
+          ),
+          if (hasUpdate)
+            Positioned(
+              top: 0,
+              right: 0,
+              child:
+                  Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: DSColors.error,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? DSColors.cardDark
+                                : DSColors.white,
+                            width: 2.0,
+                          ),
+                        ),
+                      )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .scale(
+                        begin: const Offset(1, 1),
+                        end: const Offset(1.2, 1.2),
+                        duration: const Duration(milliseconds: 1200),
+                        curve: Curves.easeInOut,
+                      ),
+            ),
+        ],
       ),
     );
   }

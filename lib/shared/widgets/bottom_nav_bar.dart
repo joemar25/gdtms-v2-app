@@ -9,13 +9,17 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
-class AppBottomNavBar extends StatelessWidget {
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fsi_courier_app/core/providers/update_provider.dart';
+
+class AppBottomNavBar extends ConsumerWidget {
   const AppBottomNavBar({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = isDark ? DSColors.cardDark : DSColors.cardLight;
     final borderColor = isDark
@@ -25,6 +29,9 @@ class AppBottomNavBar extends StatelessWidget {
     final inactiveColor = isDark
         ? DSColors.labelSecondaryDark
         : DSColors.labelSecondary;
+
+    // Watch update state to show badge on Profile tab
+    final hasUpdate = ref.watch(updateProvider.select((s) => s.hasUpdate));
 
     // Use padding to create the floating effect
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
@@ -151,6 +158,7 @@ class AppBottomNavBar extends StatelessWidget {
                                 label: 'nav.profile'.tr(),
                                 activeColor: DSColors.white,
                                 inactiveColor: inactiveColor,
+                                showBadge: hasUpdate,
                                 onTap: () => _onTap(2),
                               ),
                             ],
@@ -189,6 +197,7 @@ class _NavBarItem extends StatelessWidget {
     required this.activeColor,
     required this.inactiveColor,
     required this.onTap,
+    this.showBadge = false,
   });
 
   final int index;
@@ -199,6 +208,7 @@ class _NavBarItem extends StatelessWidget {
   final Color activeColor;
   final Color inactiveColor;
   final VoidCallback onTap;
+  final bool showBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -213,17 +223,61 @@ class _NavBarItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedScale(
-              scale: isSelected
-                  ? DSAnimations.scaleActive
-                  : DSAnimations.scaleNormal,
-              duration: DSAnimations.dFast,
-              curve: DSAnimations.curveIconPop,
-              child: Icon(
-                isSelected ? activeIcon : icon,
-                color: color,
-                size: isSelected ? DSIconSize.xl : DSIconSize.lg,
-              ),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedScale(
+                  scale: isSelected
+                      ? DSAnimations.scaleActive
+                      : DSAnimations.scaleNormal,
+                  duration: DSAnimations.dFast,
+                  curve: DSAnimations.curveIconPop,
+                  child: Icon(
+                    isSelected ? activeIcon : icon,
+                    color: color,
+                    size: isSelected ? DSIconSize.xl : DSIconSize.lg,
+                  ),
+                ),
+                if (showBadge)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child:
+                        Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: DSColors.error,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? DSColors.primary
+                                      : (Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? DSColors.cardDark
+                                            : DSColors.white),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: DSColors.error.withValues(
+                                      alpha: DSStyles.alphaMuted,
+                                    ),
+                                    blurRadius: 4,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                            )
+                            .animate(onPlay: (c) => c.repeat(reverse: true))
+                            .scale(
+                              begin: const Offset(1, 1),
+                              end: const Offset(1.2, 1.2),
+                              duration: const Duration(milliseconds: 1200),
+                              curve: Curves.easeInOut,
+                            ),
+                  ),
+              ],
             ),
             AnimatedContainer(
               duration: DSAnimations.dFast,
