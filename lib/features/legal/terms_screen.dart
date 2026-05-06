@@ -28,6 +28,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 
 /// The version string stored in prefs when terms are accepted.
 /// Bump this to force re-acceptance on the next Terms update.
@@ -96,23 +97,9 @@ class _TermsScreenState extends State<TermsScreen> {
 
     return Scaffold(
       backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: isDark ? DSColors.cardDark : DSColors.white,
-        elevation: DSStyles.elevationNone,
-        title: Text(
-          widget.viewOnly ? 'Terms & Conditions' : 'Terms & Conditions',
-          style:
-              DSTypography.title(
-                color: isDark ? DSColors.white : DSColors.labelPrimary,
-              ).copyWith(
-                fontSize: DSTypography.sizeMd,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        iconTheme: IconThemeData(
-          color: isDark ? DSColors.white : DSColors.labelPrimary,
-        ),
-        automaticallyImplyLeading: widget.viewOnly,
+      appBar: AppHeaderBar(
+        title: 'Terms & Conditions',
+        leading: widget.viewOnly ? null : const SizedBox.shrink(),
       ),
       body: Column(
         children: [

@@ -932,7 +932,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         );
         if (leave == true && context.mounted) {
           setState(() => _forcePop = true);
-          context.pop();
+          if (context.canPop()) {
+            context.pop();
+          }
         }
       },
       child: Scaffold(
@@ -943,18 +945,22 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           onPressed: _submit,
         ),
         appBar: AppHeaderBar(
-          titleWidget: DeliveryUpdateAppBarTitle(barcode: widget.barcode),
+          titleWidget: DeliveryUpdateAppBarTitle(
+            barcode: widget.barcode,
+            isInverse: true,
+          ),
           actions: [
             const Center(child: SecureBadge()),
             DSSpacing.wXs,
             IconButton(
               icon: const Icon(Icons.info_outline_rounded),
+              color: DSColors.white,
               tooltip: 'delivery_update.header.account_details'.tr(),
               onPressed: () => _showAccountDetailsDialog(context),
             ),
           ],
           showNotificationBell: false,
-          backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
+          backgroundColor: Theme.of(context).primaryColor,
         ),
         body: SecureView(
           child: GestureDetector(

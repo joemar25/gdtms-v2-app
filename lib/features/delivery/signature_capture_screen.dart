@@ -106,8 +106,6 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
           ),
         ),
         actions: [
-          const Center(child: SecureBadge()),
-          DSSpacing.wSm,
           TextButton.icon(
             onPressed: hasStrokes ? _clear : null,
             icon: Icon(

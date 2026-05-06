@@ -313,7 +313,6 @@ Future<void> showDeliveryAccountDetails(
                     DSSectionHeader(
                       title: 'Account Details',
                       padding: EdgeInsets.zero,
-                      trailing: const SecureBadge(),
                     ),
 
                     DSCard(

@@ -75,7 +75,6 @@ Future<void> showPayoutHistorySheet({
               DSSectionHeader(
                 title: 'wallet.detail.request_lifecycle'.tr(),
                 padding: EdgeInsets.zero,
-                trailing: const SecureBadge(),
               ),
 
               DSSpacing.hMd,

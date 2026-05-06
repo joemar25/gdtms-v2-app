@@ -118,7 +118,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             DSSpacing.wSm,
             Text(
               'Notifications',
-              style: DSTypography.heading().copyWith(
+              style: DSTypography.heading(color: DSColors.white).copyWith(
                 fontWeight: FontWeight.w700,
                 letterSpacing: DSTypography.lsSlightlyTight,
               ),
@@ -137,7 +137,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 ref.read(notificationsProvider.notifier).markAllAsRead();
               },
               style: TextButton.styleFrom(
-                foregroundColor: DSColors.primary,
+                foregroundColor: DSColors.white,
                 padding: EdgeInsets.symmetric(
                   horizontal: DSSpacing.md,
                   vertical: DSSpacing.sm,
@@ -568,15 +568,22 @@ class _UnreadPill extends StatelessWidget {
         vertical: DSSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: DSColors.primary,
+        color: DSColors.white,
         borderRadius: DSStyles.circularRadius,
+        boxShadow: [
+          BoxShadow(
+            color: DSColors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
         count > 99 ? '99+' : '$count',
         style: DSTypography.caption().copyWith(
           fontSize: DSTypography.sizeSm,
-          fontWeight: FontWeight.w700,
-          color: DSColors.white,
+          fontWeight: FontWeight.w800,
+          color: DSColors.primary,
           height: DSStyles.heightNormal,
         ),
       ),

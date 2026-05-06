@@ -43,7 +43,10 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
         backgroundColor: isDark
             ? DSColors.scaffoldDark
             : DSColors.scaffoldLight,
-        appBar: AppHeaderBar(title: 'nav.bagsakan'.tr()),
+        appBar: AppHeaderBar(
+          title: 'nav.bagsakan'.tr(),
+          pageIcon: Icons.inventory_2_rounded,
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

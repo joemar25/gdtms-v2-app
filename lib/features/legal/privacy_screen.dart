@@ -20,6 +20,7 @@ import 'package:flutter/services.dart';
 import 'package:fsi_courier_app/features/legal/terms_screen.dart'
     show LegalMarkdownText;
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 
 class PrivacyScreen extends StatefulWidget {
   const PrivacyScreen({super.key});
@@ -50,21 +51,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
 
     return Scaffold(
       backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: isDark ? DSColors.cardDark : DSColors.white,
-        elevation: DSStyles.elevationNone,
-        title: Text(
-          'Privacy Policy',
-          style: DSTypography.heading().copyWith(
-            fontSize: DSTypography.sizeMd,
-            fontWeight: FontWeight.w700,
-            color: isDark ? DSColors.white : DSColors.labelPrimary,
-          ),
-        ),
-        iconTheme: IconThemeData(
-          color: isDark ? DSColors.white : DSColors.labelPrimary,
-        ),
-      ),
+      appBar: const AppHeaderBar(title: 'Privacy Policy'),
       body: _content.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : Container(

@@ -8,13 +8,26 @@ import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.
 
 /// App bar title column (heading + barcode subtitle) for [DeliveryUpdateScreen].
 class DeliveryUpdateAppBarTitle extends StatelessWidget {
-  const DeliveryUpdateAppBarTitle({super.key, required this.barcode});
+  const DeliveryUpdateAppBarTitle({
+    super.key,
+    required this.barcode,
+    this.isInverse = false,
+  });
 
   final String barcode;
+  final bool isInverse;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final primaryColor = isInverse
+        ? DSColors.white
+        : (isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary);
+    final secondaryColor = isInverse
+        ? DSColors.white.withValues(alpha: 0.7)
+        : (isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -27,7 +40,7 @@ class DeliveryUpdateAppBarTitle extends StatelessWidget {
             fontSize: DSTypography.sizeMd,
             fontWeight: FontWeight.w800,
             letterSpacing: DSTypography.lsExtraLoose,
-            color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
+            color: primaryColor,
           ),
         ),
         Text(
@@ -36,9 +49,7 @@ class DeliveryUpdateAppBarTitle extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: DSTypography.caption().copyWith(
             fontSize: DSTypography.sizeSm,
-            color: isDark
-                ? DSColors.labelSecondaryDark
-                : DSColors.labelSecondary,
+            color: secondaryColor,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -73,11 +84,6 @@ class DeliveryTransactionDateField extends StatelessWidget {
         prefixIcon: const Icon(
           Icons.calendar_today_rounded,
           size: DSIconSize.md,
-          color: DSColors.labelTertiary,
-        ),
-        suffixIcon: const Icon(
-          Icons.lock_outline_rounded,
-          size: DSIconSize.sm,
           color: DSColors.labelTertiary,
         ),
       ),

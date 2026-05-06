@@ -21,14 +21,12 @@ class AppBottomNavBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? DSColors.cardDark : DSColors.cardLight;
+    final backgroundColor = DSColors.primary;
     final borderColor = isDark
-        ? DSColors.separatorDark
-        : DSColors.separatorLight;
-    final activeColor = DSColors.primary;
-    final inactiveColor = isDark
-        ? DSColors.labelSecondaryDark
-        : DSColors.labelSecondary;
+        ? DSColors.separatorDark.withValues(alpha: 0.1)
+        : DSColors.white.withValues(alpha: 0.2);
+    final activeColor = DSColors.white;
+    final inactiveColor = DSColors.white.withValues(alpha: 0.6);
 
     // Watch update state to show badge on Profile tab
     final hasUpdate = ref.watch(updateProvider.select((s) => s.hasUpdate));
@@ -66,14 +64,10 @@ class AppBottomNavBar extends ConsumerWidget {
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: backgroundColor.withValues(
-                      alpha: isDark ? DSStyles.alphaSoft : DSStyles.alphaOpaque,
-                    ),
+                    color: backgroundColor,
                     borderRadius: DSStyles.circularRadius,
                     border: Border.all(
-                      color: borderColor.withValues(
-                        alpha: DSStyles.alphaSubtle,
-                      ),
+                      color: borderColor,
                       width: DSStyles.borderWidth,
                     ),
                   ),
@@ -102,10 +96,8 @@ class AppBottomNavBar extends ConsumerWidget {
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: [
-                                        activeColor,
-                                        activeColor.withValues(
-                                          alpha: DSStyles.alphaOpaque,
-                                        ),
+                                        DSColors.white,
+                                        DSColors.white.withValues(alpha: 0.9),
                                       ],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
@@ -113,11 +105,11 @@ class AppBottomNavBar extends ConsumerWidget {
                                     borderRadius: DSStyles.cardRadius,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: activeColor.withValues(
-                                          alpha: DSStyles.alphaMuted,
+                                        color: DSColors.black.withValues(
+                                          alpha: 0.15,
                                         ),
                                         blurRadius: DSStyles.radiusMD,
-                                        offset: const Offset(0, 4),
+                                        offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
@@ -135,7 +127,7 @@ class AppBottomNavBar extends ConsumerWidget {
                                 icon: Icons.home_outlined,
                                 activeIcon: Icons.home_rounded,
                                 label: 'nav.home'.tr(),
-                                activeColor: DSColors.white,
+                                activeColor: DSColors.primary,
                                 inactiveColor: inactiveColor,
                                 onTap: () => _onTap(0),
                               ),
@@ -145,7 +137,7 @@ class AppBottomNavBar extends ConsumerWidget {
                                 icon: Icons.inventory_2_outlined,
                                 activeIcon: Icons.inventory_2_rounded,
                                 label: 'nav.bagsakan'.tr(),
-                                activeColor: DSColors.white,
+                                activeColor: DSColors.primary,
                                 inactiveColor: inactiveColor,
                                 onTap: () => _onTap(1),
                               ),
@@ -156,7 +148,7 @@ class AppBottomNavBar extends ConsumerWidget {
                                 activeIcon:
                                     Icons.account_balance_wallet_rounded,
                                 label: 'nav.wallet'.tr(),
-                                activeColor: DSColors.white,
+                                activeColor: DSColors.primary,
                                 inactiveColor: inactiveColor,
                                 onTap: () => _onTap(2),
                               ),
@@ -166,7 +158,7 @@ class AppBottomNavBar extends ConsumerWidget {
                                 icon: Icons.person_outline_rounded,
                                 activeIcon: Icons.person_rounded,
                                 label: 'nav.profile'.tr(),
-                                activeColor: DSColors.white,
+                                activeColor: DSColors.primary,
                                 inactiveColor: inactiveColor,
                                 showBadge: hasUpdate,
                                 onTap: () => _onTap(3),
@@ -261,7 +253,7 @@ class _NavBarItem extends StatelessWidget {
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: isSelected
-                                      ? DSColors.primary
+                                      ? Theme.of(context).primaryColor
                                       : (Theme.of(context).brightness ==
                                                 Brightness.dark
                                             ? DSColors.cardDark

@@ -84,7 +84,9 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
       case ApiSuccess<String>(:final data):
         final id = data.isNotEmpty ? ' (Ref: $data)' : '';
         showSuccessNotification(context, 'Report submitted successfully.$id');
-        context.pop();
+        if (context.canPop()) {
+          context.pop();
+        }
       case ApiNetworkError<String>():
         showErrorNotification(
           context,

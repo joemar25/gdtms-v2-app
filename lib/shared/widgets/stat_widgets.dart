@@ -81,9 +81,19 @@ class _StatCardState extends State<StatCard>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final effectiveColor = widget.subdued
+    Color effectiveColor = widget.subdued
         ? widget.color.withValues(alpha: DSStyles.alphaDisabled)
         : widget.color;
+
+    // Adjust color for legibility in Dark Mode if it's the primary brand color
+    if (isDark && !widget.subdued) {
+      if (widget.color == DSColors.primary) {
+        effectiveColor = const Color(0xFF4ADE80); // Green 400 for high contrast
+      } else if (widget.color == DSColors.success) {
+        effectiveColor = DSColors.successDark;
+      }
+    }
+
     final isDisabled = widget.onTap == null;
 
     final displayLabel = widget.label

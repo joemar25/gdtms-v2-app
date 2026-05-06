@@ -325,20 +325,6 @@ class DeliveryCard extends StatelessWidget {
                                           ),
                                         ),
                                       ),
-                                    if (showLockIcon &&
-                                        (isLocked || !isVisible))
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                          left: DSSpacing.xs,
-                                        ),
-                                        child: Icon(
-                                          Icons.lock_outline_rounded,
-                                          color: isLocked
-                                              ? subtextColor
-                                              : DSColors.error,
-                                          size: DSIconSize.xs,
-                                        ),
-                                      ),
                                   ],
                                 ),
                               ),
@@ -877,25 +863,7 @@ class DeliveryCard extends StatelessWidget {
                               ),
                           ],
                         ),
-                      if (!isPrivacyMode && isLocked)
-                        Padding(
-                          padding: EdgeInsets.only(left: DSSpacing.sm),
-                          child: Icon(
-                            Icons.lock_outline_rounded,
-                            color: subtextColor,
-                            size: DSIconSize.xs,
-                          ),
-                        )
-                      else if (!isPrivacyMode && !isVisible)
-                        Padding(
-                          padding: EdgeInsets.only(left: DSSpacing.sm),
-                          child: Icon(
-                            Icons.lock_outline_rounded,
-                            color: DSColors.error,
-                            size: DSIconSize.xs,
-                          ),
-                        )
-                      else if (showChevron)
+                      if (showChevron)
                         Padding(
                           padding: EdgeInsets.only(left: DSSpacing.sm),
                           child: Icon(

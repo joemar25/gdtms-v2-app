@@ -110,7 +110,7 @@ class DashboardDefault extends StatelessWidget {
               child: StatCard(
                 label: 'dashboard.stats.misrouted_label'.tr(),
                 count: '$osa',
-                icon: Icons.lock_outline_rounded,
+                icon: Icons.map_rounded,
                 color: isDark
                     ? DSColors.labelSecondaryDark
                     : DSColors.labelSecondary,

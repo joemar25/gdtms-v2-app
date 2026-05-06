@@ -91,11 +91,6 @@ class _PinConfirmDialogState extends State<PinConfirmDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.lock_outline_rounded,
-              size: DSIconSize.xl,
-              color: DSColors.primary,
-            ),
             DSSpacing.hMd,
             Text(
               'CONFIRM ACCEPTANCE',

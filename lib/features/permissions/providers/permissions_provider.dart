@@ -1,6 +1,7 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/core/providers.md — update that file when you edit this one.
 
+import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +17,8 @@ enum ExtraPermissionStatus {
   cameraPermissionPermanentlyDenied,
   notificationPermissionDenied,
   notificationPermissionPermanentlyDenied,
+  installPermissionDenied,
+  installPermissionPermanentlyDenied,
   ready,
 }
 
@@ -82,12 +85,16 @@ class ExtraPermissionsNotifier extends Notifier<ExtraPermissionsState>
 
     if (camera.isPermanentlyDenied) {
       current = ExtraPermissionStatus.cameraPermissionPermanentlyDenied;
-    } else if (camera.isDenied || camera.isRestricted) {
+    } else if (!camera.isGranted) {
       current = ExtraPermissionStatus.cameraPermissionDenied;
     } else if (notification.isPermanentlyDenied) {
       current = ExtraPermissionStatus.notificationPermissionPermanentlyDenied;
-    } else if (notification.isDenied || notification.isRestricted) {
+    } else if (!notification.isGranted) {
       current = ExtraPermissionStatus.notificationPermissionDenied;
+    } else if (Platform.isAndroid && install.isPermanentlyDenied) {
+      current = ExtraPermissionStatus.installPermissionPermanentlyDenied;
+    } else if (Platform.isAndroid && !install.isGranted) {
+      current = ExtraPermissionStatus.installPermissionDenied;
     } else {
       current = ExtraPermissionStatus.ready;
     }

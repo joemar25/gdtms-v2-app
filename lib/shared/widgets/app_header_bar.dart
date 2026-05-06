@@ -34,12 +34,14 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     this.heroTag,
     this.showProfileAvatar = false,
     this.isPersonalized = false,
+    this.leadingWidth,
   });
 
   final String? title;
   final Widget? titleWidget;
   final IconData? pageIcon;
   final Widget? leading;
+  final double? leadingWidth;
   final List<Widget>? actions;
   final List<Widget>? trailingActions;
   final PreferredSizeWidget? bottom;
@@ -56,10 +58,9 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCount = ref.watch(notificationsUnreadCountProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final headerColor =
-        backgroundColor ?? (isDark ? DSColors.cardDark : DSColors.white);
+    final unreadCount = ref.watch(notificationsUnreadCountProvider);
+    final headerColor = backgroundColor ?? Theme.of(context).primaryColor;
     final courier = ref.watch(authProvider).courier ?? {};
     final profileUrlStr = courier['profile_picture_url']?.toString();
     final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
@@ -79,16 +80,16 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
               ? IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded),
                   iconSize: DSIconSize.lg,
-                  color: isDark
-                      ? DSColors.labelPrimaryDark
-                      : DSColors.labelPrimary,
+                  color: DSColors.white,
                   onPressed: () {
-                    HapticFeedback.lightImpact();
-                    context.pop();
+                    if (context.canPop()) {
+                      HapticFeedback.lightImpact();
+                      context.pop();
+                    }
                   },
                 ).animate().fadeIn(duration: DSAnimations.dFast)
               : null),
-      leadingWidth: 56,
+      leadingWidth: leadingWidth ?? 56,
       title:
           titleWidget ??
           (isPersonalized
@@ -97,14 +98,27 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
                   name: _formatName(courier),
                   isDark: isDark,
                 )
-              : Text(
-                  title ?? '',
-                  overflow: TextOverflow.ellipsis,
-                  style: DSTypography.heading(
-                    color: isDark
-                        ? DSColors.labelPrimaryDark
-                        : DSColors.labelPrimary,
-                  ).copyWith(letterSpacing: DSTypography.lsSlightlyTight),
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (pageIcon != null) ...[
+                      Icon(
+                        pageIcon,
+                        size: DSIconSize.md,
+                        color: DSColors.white,
+                      ),
+                      DSSpacing.wSm,
+                    ],
+                    Flexible(
+                      child: Text(
+                        title ?? '',
+                        overflow: TextOverflow.ellipsis,
+                        style: DSTypography.heading(
+                          color: DSColors.white,
+                        ).copyWith(letterSpacing: DSTypography.lsSlightlyTight),
+                      ),
+                    ),
+                  ],
                 ).animate().fadeIn(duration: DSAnimations.dFast)),
       toolbarHeight: 72,
       bottom: bottom,
@@ -137,10 +151,8 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
         border: Border(
           bottom: BorderSide(
             color: isDark
-                ? DSColors.separatorDark.withValues(alpha: DSStyles.alphaMuted)
-                : DSColors.separatorLight.withValues(
-                    alpha: DSStyles.alphaDisabled,
-                  ),
+                ? DSColors.separatorDark.withValues(alpha: 0.1)
+                : DSColors.white.withValues(alpha: 0.15),
             width: 0.5,
           ),
         ),
@@ -184,7 +196,6 @@ class NotificationBell extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasUnread = unreadCount > 0;
     final label = unreadCount > 99 ? '99+' : unreadCount.toString();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Semantics(
       label: 'nav.notifications'.tr(),
@@ -197,7 +208,7 @@ class NotificationBell extends StatelessWidget {
             ? Icons.notifications_rounded
             : Icons.notifications_outlined,
         onTap: onTap,
-        iconColor: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
+        iconColor: DSColors.white,
         badge: hasUnread ? label : null,
         isFlat: true,
       ),
@@ -342,234 +353,120 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
       if (lastName != null && lastName != 'null') lastName,
     ].join(' ').trim();
 
-    final name = nameStr.isEmpty
-        ? 'dashboard.profile.default_name'.tr()
-        : nameStr;
 
-    // mar-note: this is necessary change since not all courier has email and to be considered all as FREELANCE COURIER
-    // final email = courier['email']?.toString();
-    // final role = email != null && email.isNotEmpty
-    //     ? email
-    //     : 'Freelance Courier';
-    final role = 'dashboard.profile.role_freelance'.tr();
+    final headerColor = Theme.of(context).primaryColor;
+
     final profileUrlStr = courier['profile_picture_url']?.toString();
     final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
         ? null
         : profileUrlStr;
-    final unreadCount = ref.watch(notificationsUnreadCountProvider);
     final hasUpdate = ref.watch(updateProvider.select((s) => s.hasUpdate));
 
-    final headerColor = isDark ? DSColors.cardDark : DSColors.white;
+    if (_expanded) {
+      return AppHeaderBar(
+        backgroundColor: headerColor,
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          iconSize: DSIconSize.xl,
+          color: DSColors.white,
+          onPressed: _collapse,
+        ),
+        titleWidget: _SearchField(
+          controller: _searchController,
+          focusNode: _focusNode,
+          onSubmit: _onSubmit,
+        ),
+        trailingActions: [
+          _HeaderIconButton(
+            icon: Icons.camera_alt_rounded,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              showScanModeSheet(context);
+            },
+            iconColor: DSColors.white,
+            isFlat: true,
+          ),
+        ],
+      );
+    }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: headerColor,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark
-                ? DSColors.separatorDark.withValues(alpha: DSStyles.alphaMuted)
-                : DSColors.separatorLight.withValues(
-                    alpha: DSStyles.alphaDisabled,
-                  ),
-            width: 0.5,
-          ),
+    return AppHeaderBar(
+      backgroundColor: headerColor,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: DSSpacing.md),
+        child: Center(
+          child: _HeaderAvatar(profileUrl: profileUrl, hasUpdate: hasUpdate),
         ),
       ),
-      child: AppBar(
-        scrolledUnderElevation: 0,
-        elevation: 0,
-        backgroundColor: DSColors.transparent,
-        surfaceTintColor: DSColors.transparent,
-        automaticallyImplyLeading: false,
-        titleSpacing: 16,
-        toolbarHeight: 72,
-        title: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, anim) => FadeTransition(
-            opacity: anim,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.1),
-                end: Offset.zero,
-              ).animate(anim),
-              child: child,
-            ),
+      leadingWidth: 80,
+      isPersonalized: true,
+      title: AppFormatters.greeting(),
+      actions: [
+        if (kEnableGlobalSearch)
+          _HeaderIconButton(
+            icon: Icons.search_rounded,
+            onTap: _expand,
+            isFlat: true,
           ),
-          child: _expanded
-              ? _SearchRow(
-                  key: const ValueKey('search'),
-                  controller: _searchController,
-                  focusNode: _focusNode,
-                  onCollapse: _collapse,
-                  onSubmit: _onSubmit,
-                )
-              : _ProfileRow(
-                  key: const ValueKey('profile'),
-                  name: name,
-                  role: role,
-                  profileUrl: profileUrl,
-                  unreadCount: unreadCount,
-                  hasUpdate: hasUpdate,
-                  onSearchTap: _expand,
-                ),
-        ),
-      ),
+      ],
+      showNotificationBell: true,
     );
   }
 }
 
-// ── Expanded search row ───────────────────────────────────────────────────────
-
-class _SearchRow extends StatelessWidget {
-  const _SearchRow({
-    super.key,
+class _SearchField extends StatelessWidget {
+  const _SearchField({
     required this.controller,
     required this.focusNode,
-    required this.onCollapse,
     required this.onSubmit,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
-  final VoidCallback onCollapse;
   final ValueChanged<String> onSubmit;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        // ── Back button ────────────────────────────────────────────
-        IconButton(
-          icon: const Icon(Icons.close_rounded),
-          iconSize: DSIconSize.xl,
-          color: cs.onSurface,
-          onPressed: onCollapse,
-        ),
-        DSSpacing.wSm,
-
-        // ── Text field ─────────────────────────────────────────────
-        Expanded(
-          child: SizedBox(
-            height: DSIconSize.heroSm,
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              textInputAction: TextInputAction.search,
-              onSubmitted: onSubmit,
-              style: DSTypography.body().copyWith(
-                fontSize: DSTypography.sizeMd,
-              ),
-              decoration: InputDecoration(
-                hintText: 'dashboard.search.placeholder'.tr(),
-                hintStyle: DSTypography.body(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? DSColors.labelSecondaryDark
-                      : DSColors.labelSecondary,
-                ).copyWith(fontSize: DSTypography.sizeMd),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: DSSpacing.md,
-                  vertical: DSSpacing.md,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(DSStyles.radiusMD),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(DSStyles.radiusMD),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(DSStyles.radiusMD),
-                  borderSide: BorderSide(
-                    color: DSColors.primary.withValues(
-                      alpha: DSStyles.alphaDisabled,
-                    ),
-                  ),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).brightness == Brightness.dark
-                    ? DSColors.scaffoldDark
-                    : DSColors.scaffoldLight,
-              ),
+    return SizedBox(
+      height: DSIconSize.heroSm,
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        textInputAction: TextInputAction.search,
+        onSubmitted: onSubmit,
+        style: DSTypography.body(
+          color: DSColors.white,
+        ).copyWith(fontSize: DSTypography.sizeMd),
+        decoration: InputDecoration(
+          hintText: 'dashboard.search.placeholder'.tr(),
+          hintStyle: DSTypography.body(
+            color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
+          ).copyWith(fontSize: DSTypography.sizeMd),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: DSSpacing.md,
+            vertical: DSSpacing.md,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+            borderSide: BorderSide(
+              color: DSColors.primary.withValues(alpha: DSStyles.alphaDisabled),
             ),
           ),
+          filled: true,
+          fillColor: Theme.of(context).brightness == Brightness.dark
+              ? DSColors.scaffoldDark
+              : DSColors.scaffoldLight,
         ),
-        DSSpacing.wSm,
-
-        // ── Camera (scan) button ───────────────────────────────────
-        _HeaderIconButton(
-          icon: Icons.camera_alt_rounded,
-          onTap: () {
-            HapticFeedback.lightImpact();
-            showScanModeSheet(context);
-          },
-        ),
-      ],
-    );
-  }
-}
-
-// ── Collapsed profile row ─────────────────────────────────────────────────────
-
-class _ProfileRow extends StatelessWidget {
-  const _ProfileRow({
-    super.key,
-    required this.name,
-    required this.role,
-    required this.profileUrl,
-    required this.unreadCount,
-    required this.hasUpdate,
-    required this.onSearchTap,
-  });
-
-  final String name;
-  final String role;
-  final String? profileUrl;
-  final int unreadCount;
-  final bool hasUpdate;
-  final VoidCallback onSearchTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      children: [
-        // ── Avatar ─────────────────────────────────────────────────
-        _HeaderAvatar(profileUrl: profileUrl, hasUpdate: hasUpdate),
-        DSSpacing.wMd,
-
-        // ── Name + role ─────────────────────────────────────────────
-        Expanded(
-          child: _PersonalizedTitle(
-            title: AppFormatters.greeting(),
-            name: name,
-            isDark: isDark,
-          ),
-        ),
-
-        // ── Search icon ──────────────────────────────────────────────
-        if (kEnableGlobalSearch) ...[
-          _HeaderIconButton(
-            icon: Icons.search_rounded,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              onSearchTap();
-            },
-          ),
-          DSSpacing.wSm,
-        ],
-
-        // ── Notification bell ────────────────────────────────────────
-        NotificationBell(
-          unreadCount: unreadCount,
-          onTap: () => context.push('/notifications'),
-        ),
-        DSSpacing.wXs,
-      ],
+      ),
     );
   }
 }
@@ -597,7 +494,7 @@ class _HeaderProfileAvatar extends ConsumerWidget {
                   ? DSColors.secondarySurfaceDark
                   : DSColors.secondarySurfaceLight,
               border: Border.all(
-                color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
                 width: 1.0,
               ),
             ),
@@ -611,13 +508,13 @@ class _HeaderProfileAvatar extends ConsumerWidget {
                       errorBuilder: (_, _, _) => const Icon(
                         Icons.person_rounded,
                         size: DSIconSize.lg,
-                        color: DSColors.labelSecondary,
+                        color: DSColors.white,
                       ),
                     )
                   : const Icon(
                       Icons.person_rounded,
                       size: DSIconSize.lg,
-                      color: DSColors.labelSecondary,
+                      color: DSColors.white,
                     ),
             ),
           ),
@@ -694,11 +591,7 @@ class _HeaderIconButton extends StatelessWidget {
               child: Icon(
                 icon,
                 size: DSIconSize.lg,
-                color:
-                    iconColor ??
-                    (isDark
-                        ? DSColors.labelPrimaryDark
-                        : DSColors.labelPrimary),
+                color: iconColor ?? DSColors.white,
               ),
             ),
             if (badge != null)
@@ -746,11 +639,9 @@ class _HeaderAvatar extends StatelessWidget {
             height: DSIconSize.heroSm,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? DSColors.secondarySurfaceDark
-                  : DSColors.secondarySurfaceLight,
+              color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
               border: Border.all(
-                color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
+                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
                 width: DSStyles.strokeWidth,
               ),
               boxShadow: [
@@ -768,16 +659,16 @@ class _HeaderAvatar extends StatelessWidget {
                       width: DSIconSize.heroSm,
                       height: DSIconSize.heroSm,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const Icon(
+                      errorBuilder: (_, _, _) => Icon(
                         Icons.person_rounded,
                         size: DSIconSize.xl,
-                        color: DSColors.labelSecondary,
+                        color: DSColors.white,
                       ),
                     )
-                  : const Icon(
+                  : Icon(
                       Icons.person_rounded,
                       size: DSIconSize.xl,
-                      color: DSColors.labelSecondary,
+                      color: DSColors.white,
                     ),
             ),
           ),
@@ -830,17 +721,16 @@ class _PersonalizedTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           title,
           style:
               DSTypography.caption(
-                color: isDark
-                    ? DSColors.labelSecondaryDark
-                    : DSColors.labelSecondary,
+                color: DSColors.white.withValues(alpha: 0.55),
               ).copyWith(
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
                 letterSpacing: DSTypography.lsLoose,
               ),
         ).animate().fadeIn(duration: DSAnimations.dFast),
@@ -848,7 +738,7 @@ class _PersonalizedTitle extends StatelessWidget {
         Text(
           name,
           style: DSTypography.heading(
-            color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
+            color: DSColors.white,
           ).copyWith(height: DSStyles.heightTight),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

@@ -314,7 +314,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   isDark: isDark,
                   children: [
                     DSDetailTile(
-                      icon: Icons.lock_reset_rounded,
+                      icon: Icons.password_rounded,
                       iconColor: DSColors.primary,
                       title: 'profile.account.change_password'.tr(),
                       subtitle: 'profile.account.change_password_sub'.tr(),
@@ -604,7 +604,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     _CardDivider(isDark: isDark),
                     DSDetailTile(
-                      icon: Icons.shield_outlined,
+                      icon: Icons.description_outlined,
                       iconColor: DSColors.success,
                       title: 'profile.legal.privacy'.tr(),
                       subtitle: 'profile.legal.privacy_sub'.tr(),
@@ -743,7 +743,7 @@ class _ProfileHeroCard extends StatelessWidget {
                             width: DSSpacing.huge + DSSpacing.md,
                             height: DSSpacing.huge + DSSpacing.md,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, e, s) => const Center(
+                            errorBuilder: (_, e, s) => Center(
                               child: Icon(
                                 Icons.person_rounded,
                                 size: DSIconSize.xl,
@@ -809,7 +809,7 @@ class _ProfileHeroCard extends StatelessWidget {
                             const Icon(
                               Icons.badge_outlined,
                               size: DSIconSize.xs,
-                              color: DSColors.primary,
+                              color: DSColors.white,
                             ),
                             DSSpacing.wXs,
                             Text(
@@ -832,7 +832,7 @@ class _ProfileHeroCard extends StatelessWidget {
               if (isOnline)
                 IconButton(
                   onPressed: () => context.push('/profile/edit'),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.edit_note_rounded,
                     color: DSColors.white,
                     size: DSIconSize.xl,
@@ -850,7 +850,7 @@ class _ProfileHeroCard extends StatelessWidget {
           ),
           DSSpacing.hMd,
           Divider(
-            color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
+            color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
             height: DSStyles.borderWidth,
           ),
           DSSpacing.hMd,

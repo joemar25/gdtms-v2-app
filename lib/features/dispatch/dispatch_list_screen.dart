@@ -166,6 +166,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded),
+            color: DSColors.white,
             tooltip: 'Scan Dispatch',
             onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
           ),

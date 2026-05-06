@@ -67,9 +67,18 @@ class _SecureViewState extends State<SecureView> {
   Widget build(BuildContext context) => widget.child;
 }
 
-/// A premium visual indicator to inform the user that the current view is protected.
+/// A premium visual indicator to inform the user that the current view is protected. (DO NOT USE ANYWHERE - BUT THIS CODE IS JUST FOR DOCUMENTATION)
 class SecureBadge extends StatelessWidget {
-  const SecureBadge({super.key});
+  const SecureBadge({
+    super.key,
+    this.iconColor,
+    this.backgroundColor,
+    this.borderColor,
+  });
+
+  final Color? iconColor;
+  final Color? backgroundColor;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -80,16 +89,20 @@ class SecureBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: DSColors.success.withValues(alpha: DSStyles.alphaSubtle),
+          color:
+              backgroundColor ??
+              DSColors.success.withValues(alpha: DSStyles.alphaSubtle),
           shape: BoxShape.circle,
           border: Border.all(
-            color: DSColors.success.withValues(alpha: DSStyles.alphaMuted),
+            color:
+                borderColor ??
+                DSColors.success.withValues(alpha: DSStyles.alphaMuted),
           ),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.lock_rounded,
           size: 14,
-          color: DSColors.success,
+          color: iconColor ?? DSColors.success,
         ),
       ),
     );

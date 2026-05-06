@@ -108,7 +108,7 @@ class EarningsCard extends StatelessWidget {
                                 Icon(
                                   Icons.info_outline_rounded,
                                   color: DSColors.white.withValues(
-                                    alpha: DSStyles.alphaDisabled,
+                                    alpha: DSStyles.alphaMuted,
                                   ),
                                   size: DSIconSize.xs,
                                 ),
@@ -202,13 +202,15 @@ class EarningsCard extends StatelessWidget {
                               children: [
                                 Container(
                                   padding: EdgeInsets.all(DSSpacing.md),
-                                  decoration: const BoxDecoration(
-                                    color: DSColors.pendingSurface,
+                                  decoration: BoxDecoration(
+                                    color: DSColors.white.withValues(
+                                      alpha: DSStyles.alphaSoft,
+                                    ),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.schedule_rounded,
-                                    color: DSColors.pending,
+                                    color: DSColors.white,
                                     size: DSIconSize.md,
                                   ),
                                 ),

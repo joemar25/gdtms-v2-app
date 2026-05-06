@@ -360,6 +360,7 @@ class _DeliveryStatusListScreenState
         child: Icon(
           _showSearch ? Icons.search_off_rounded : Icons.search_rounded,
           key: ValueKey(_showSearch),
+          color: DSColors.white,
         ),
       ),
       tooltip: 'Search',
@@ -376,36 +377,32 @@ class _DeliveryStatusListScreenState
       },
     );
     final status = widget.status.toUpperCase();
-    final secureBadge = const Padding(
-      padding: EdgeInsets.only(right: DSSpacing.sm),
-      child: Center(child: SecureBadge()),
-    );
-
     return switch (status) {
       'FOR_DELIVERY' => [
-        secureBadge,
         searchBtn,
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
+          color: DSColors.white,
           tooltip: 'Scan POD',
           onPressed: () => context.push('/scan', extra: {'mode': 'pod'}),
         ),
       ],
       'FAILED_DELIVERY' => [
-        secureBadge,
         searchBtn,
         IconButton(
           icon: const Icon(Icons.help_outline_rounded),
+          color: DSColors.white,
           tooltip: 'Failed Delivery Logic',
           onPressed: () => _showFailedDeliveryHelpBottomSheet(context),
         ),
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
+          color: DSColors.white,
           tooltip: 'Scan Dispatch',
           onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
         ),
       ],
-      _ => [secureBadge, searchBtn],
+      _ => [searchBtn],
     };
   }
 

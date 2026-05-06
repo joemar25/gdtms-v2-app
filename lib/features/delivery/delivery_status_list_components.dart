@@ -143,114 +143,64 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final failedDeliveryColor = DeliveryCard.statusColor('FAILED_DELIVERY');
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? DSColors.cardDark : DSColors.white,
-        borderRadius: DSStyles.cardRadius,
-        boxShadow: [
-          BoxShadow(
-            color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
-            blurRadius: DSStyles.radiusXL,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DSSpacing.hMd,
-          // Handle bar
-          Container(
-            width: DSIconSize.heroSm,
-            height: 4,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? DSColors.labelTertiaryDark
-                  : DSColors.labelTertiary,
-              borderRadius: DSStyles.pillRadius,
+    return SecureView(
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? DSColors.cardDark : DSColors.cardLight,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+              blurRadius: DSStyles.radiusXL,
+              offset: const Offset(0, -5),
             ),
-          ),
-          DSSpacing.hLg,
-
-          // Header icon & title
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
-            child: Row(
-              children: [
-                Container(
-                  width: DSIconSize.heroMd,
-                  height: DSIconSize.heroMd,
-                  decoration: BoxDecoration(
-                    color: failedDeliveryColor.withValues(
-                      alpha: DSStyles.alphaSoft,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.assignment_return_rounded,
-                    color: failedDeliveryColor,
-                    size: DSIconSize.xl,
-                  ),
-                ),
-                DSSpacing.wMd,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'empty_states.delivery.help.title'.tr(),
-                        style: DSTypography.heading().copyWith(
-                          fontSize: DSTypography.sizeMd,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? DSColors.labelPrimaryDark
-                              : DSColors.labelPrimary,
-                          letterSpacing: DSTypography.lsSlightlyTight,
-                        ),
-                      ),
-                      Text(
-                        'empty_states.delivery.help.subtitle'.tr(),
-                        style: DSTypography.caption().copyWith(
-                          fontSize: DSTypography.sizeMd,
-                          color: isDark
-                              ? DSColors.labelSecondaryDark
-                              : DSColors.labelSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(
-                    Icons.close_rounded,
-                    color: isDark
-                        ? DSColors.labelSecondaryDark
-                        : DSColors.labelSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          DSSpacing.hLg,
-
-          // Help content
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
-            child: Container(
-              padding: EdgeInsets.all(DSSpacing.lg),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
-                    : DSColors.secondarySurfaceLight,
-                borderRadius: DSStyles.cardRadius,
-                border: Border.all(
+          ],
+        ),
+        padding: EdgeInsets.fromLTRB(
+          DSSpacing.lg,
+          DSSpacing.sm,
+          DSSpacing.lg,
+          MediaQuery.of(context).padding.bottom + DSSpacing.lg,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Handle ───────────────────────────────────────────────────
+            Center(
+              child: Container(
+                width: DSIconSize.heroSm,
+                height: 5,
+                decoration: BoxDecoration(
                   color: isDark
                       ? DSColors.separatorDark
                       : DSColors.separatorLight,
+                  borderRadius: DSStyles.cardRadius,
                 ),
               ),
+            ),
+            DSSpacing.hMd,
+
+            // ── Header ───────────────────────────────────────────────────
+            DSSectionHeader(
+              title: 'empty_states.delivery.help.title'.tr(),
+              padding: EdgeInsets.zero,
+            ),
+            Text(
+              'empty_states.delivery.help.subtitle'.tr(),
+              style: DSTypography.caption().copyWith(
+                fontSize: DSTypography.sizeMd,
+                color: isDark
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
+              ),
+            ),
+
+            DSSpacing.hLg,
+
+            // ── Help Content ─────────────────────────────────────────────
+            DSCard(
+              padding: EdgeInsets.all(DSSpacing.lg),
               child: Column(
                 children: [
                   _FailedDeliveryHelpItem(
@@ -260,6 +210,8 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                     description:
                         'empty_states.delivery.help.item_redelivery_desc'.tr(),
                     isDark: isDark,
+                  ).dsCardEntry(
+                    delay: DSAnimations.stagger(0),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
@@ -271,6 +223,8 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                     description: 'empty_states.delivery.help.item_return_desc'
                         .tr(),
                     isDark: isDark,
+                  ).dsCardEntry(
+                    delay: DSAnimations.stagger(1),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
@@ -282,18 +236,17 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                     description: 'empty_states.delivery.help.item_payment_desc'
                         .tr(),
                     isDark: isDark,
+                  ).dsCardEntry(
+                    delay: DSAnimations.stagger(2),
                   ),
                 ],
               ),
             ),
-          ),
 
-          DSSpacing.hMd,
+            DSSpacing.hMd,
 
-          // Footer note
-          Padding(
-            padding: EdgeInsets.all(DSSpacing.xl),
-            child: Container(
+            // ── Footer note ──────────────────────────────────────────────
+            Container(
               width: double.infinity,
               padding: EdgeInsets.all(DSSpacing.md),
               decoration: BoxDecoration(
@@ -328,10 +281,11 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                   ),
                 ],
               ),
+            ).dsCardEntry(
+              delay: DSAnimations.stagger(3),
             ),
-          ),
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -402,3 +356,4 @@ class _FailedDeliveryHelpItem extends StatelessWidget {
     );
   }
 }
+

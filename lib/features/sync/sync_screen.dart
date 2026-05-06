@@ -68,7 +68,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
     return Scaffold(
       appBar: AppHeaderBar(
         title: 'sync.title'.tr(),
-        actions: const [SecureBadge(), DSSpacing.wSm],
+        actions: const [DSSpacing.wSm],
       ),
       body: SecureView(
         child: Column(

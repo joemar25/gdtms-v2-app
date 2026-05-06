@@ -12,14 +12,14 @@ class DSColors {
   static const white = Color(0xFFFFFFFF);
 
   // ── Brand ─────────────────────────────────────────────────────────────────
-  static const primary = Color(0xFF22C55E); // Green 500
-  static const primaryPressed = Color(0xFF16A34A); // Green 600
+  static const primary = Color(0xFF166534); // Green 800
+  static const primaryPressed = Color(0xFF14532D); // Green 900
   static const primarySurface = Color(0xFFDCFCE7); // Green 100
-  static const primaryDark = Color(0xFF4ADE80); // Green 400
-  static const primaryDarkPressed = Color(0xFF22C55E); // Green 500
+  static const primaryDark = Color(0xFF15803D); // Green 700
+  static const primaryDarkPressed = Color(0xFF166534); // Green 800
 
   static const primaryGradient = LinearGradient(
-    colors: [primary, Color(0xFF15803D)], // Green 500 to Green 700
+    colors: [primary, Color(0xFF14532D)], // Green 800 to Green 900
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -28,10 +28,10 @@ class DSColors {
   static const accentSurface = Color(0xFFE0F2FE); // Light blue surface
 
   // ── Semantic Status ───────────────────────────────────────────────────────
-  static const success = Color(0xFF10B981); // Emerald 500
+  static const success = Color(0xFF059669); // Emerald 600
   static const successText = Color(0xFF047857); // Emerald 700
   static const successSurface = Color(0xFFD1FAE5); // Emerald 100
-  static const successDark = Color(0xFF34D399); // Emerald 400
+  static const successDark = Color(0xFF10B981); // Emerald 500
 
   static const error = Color(0xFFF43F5E); // Rose 500
   static const errorText = Color(0xFFBE123C); // Rose 700
