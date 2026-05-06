@@ -28,6 +28,8 @@ class DeliveryCard extends StatelessWidget {
     this.showLockIcon = true,
     this.isPrivacyMode = false,
     this.onUpdateTap,
+    this.isForAssigning = false,
+    this.onAddToBagsakanTap,
   });
 
   final Map<String, dynamic> delivery;
@@ -44,6 +46,9 @@ class DeliveryCard extends StatelessWidget {
   /// When non-null an "Update" action is rendered inside the card.
   /// Pass null to hide it (locked / non-updatable items).
   final VoidCallback? onUpdateTap;
+
+  final bool isForAssigning;
+  final VoidCallback? onAddToBagsakanTap;
 
   // ─── MARK: Status Helpers ──────────────────────────────────────────────────
 
@@ -206,7 +211,7 @@ class DeliveryCard extends StatelessWidget {
             child: InkWell(
               borderRadius: effectiveRadius,
               onTap: isChecking ? null : onTap,
-              onLongPress: (isChecking || isLocked)
+              onLongPress: (isChecking || isLocked || !enableHoldToReveal)
                   ? null
                   : () => _showHoldOptions(context, isDark),
               splashColor: colorForStatus.withValues(alpha: DSStyles.alphaSoft),
@@ -251,7 +256,7 @@ class DeliveryCard extends StatelessWidget {
                                 DeliveryStatusBadge(
                                   label: isDirty
                                       ? 'UNSYNCED'
-                                      : status.replaceAll('_', ' '),
+                                      : ds.displayName.toUpperCase(),
                                   color: colorForStatus,
                                   icon: isDirty
                                       ? Icons.sync_problem_rounded
@@ -524,6 +529,18 @@ class DeliveryCard extends StatelessWidget {
                               ds: ds,
                               rv: rv,
                             ),
+
+                          if (isForAssigning) ...[
+                            DSSpacing.hMd,
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                label: const Text('ADD TO BAGSAKAN'),
+                                onPressed: onAddToBagsakanTap,
+                                icon: const Icon(Icons.add_rounded),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

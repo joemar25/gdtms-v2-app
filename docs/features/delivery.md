@@ -47,6 +47,10 @@
 
 Controlled by `PaginationBar`. Page size is defined in `constants.dart`. Changing page size must not break existing scroll position.
 
+### Scan Actions
+
+The header in `DeliveryStatusListScreen` for both `FOR_DELIVERY` and `FAILED_DELIVERY` must use **Scan POD** mode. This allows for local SQLite lookups and direct navigation to the `DeliveryUpdateScreen`. Refer to [scan.md](scan.md) for full rulings.
+
 ---
 
 ## `delivery_detail_screen.dart`

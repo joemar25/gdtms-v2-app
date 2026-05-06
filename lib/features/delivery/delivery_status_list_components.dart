@@ -210,9 +210,7 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                     description:
                         'empty_states.delivery.help.item_redelivery_desc'.tr(),
                     isDark: isDark,
-                  ).dsCardEntry(
-                    delay: DSAnimations.stagger(0),
-                  ),
+                  ).dsCardEntry(delay: DSAnimations.stagger(0)),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
                     child: Divider(height: 1),
@@ -223,9 +221,7 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                     description: 'empty_states.delivery.help.item_return_desc'
                         .tr(),
                     isDark: isDark,
-                  ).dsCardEntry(
-                    delay: DSAnimations.stagger(1),
-                  ),
+                  ).dsCardEntry(delay: DSAnimations.stagger(1)),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: DSSpacing.md),
                     child: Divider(height: 1),
@@ -236,9 +232,7 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                     description: 'empty_states.delivery.help.item_payment_desc'
                         .tr(),
                     isDark: isDark,
-                  ).dsCardEntry(
-                    delay: DSAnimations.stagger(2),
-                  ),
+                  ).dsCardEntry(delay: DSAnimations.stagger(2)),
                 ],
               ),
             ),
@@ -281,9 +275,7 @@ class FailedDeliveryHelpSheet extends StatelessWidget {
                   ),
                 ],
               ),
-            ).dsCardEntry(
-              delay: DSAnimations.stagger(3),
-            ),
+            ).dsCardEntry(delay: DSAnimations.stagger(3)),
           ],
         ),
       ),
@@ -356,4 +348,3 @@ class _FailedDeliveryHelpItem extends StatelessWidget {
     );
   }
 }
-

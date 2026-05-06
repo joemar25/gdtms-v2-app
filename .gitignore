@@ -77,3 +77,6 @@ ios/Flutter/flutter_export_environment.sh
 macos/Flutter/ephemeral/
 windows/flutter/ephemeral/
 linux/flutter/ephemeral/
+
+# mar
+test_results.json

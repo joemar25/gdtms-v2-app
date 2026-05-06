@@ -14,10 +14,18 @@ class DeliverySubmitFab extends StatelessWidget {
     super.key,
     required this.isLoading,
     required this.onPressed,
+    this.label,
+    this.icon,
   });
 
   final bool isLoading;
   final VoidCallback? onPressed;
+
+  /// Overrides the default "SUBMIT UPDATE" label.
+  final String? label;
+
+  /// Overrides the default check-circle icon.
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +60,9 @@ class DeliverySubmitFab extends StatelessWidget {
                     color: DSColors.white,
                   ),
                 )
-              : const Icon(Icons.check_circle_outline_rounded),
+              : Icon(icon ?? Icons.check_circle_outline_rounded),
           label: Text(
-            'delivery_update.button.submit_update'.tr(),
+            label ?? 'delivery_update.button.submit_update'.tr(),
             style: DSTypography.button().copyWith(
               letterSpacing: DSTypography.lsExtraLoose,
               fontSize: DSTypography.sizeMd,

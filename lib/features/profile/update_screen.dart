@@ -18,6 +18,7 @@ class UpdateScreen extends StatelessWidget {
         pageIcon: Icons.system_update_rounded,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          color: DSColors.white,
           onPressed: () {
             if (context.canPop()) {
               context.pop();

@@ -39,7 +39,6 @@ import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
-import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
@@ -209,9 +208,6 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                             branch['branch_name']?.toString() ?? '';
                         final volume = item['volume']?.toString() ?? '-';
                         final tat = item['tat']?.toString() ?? '';
-                        final status =
-                            item['status']?.toString().toDisplayStatus() ??
-                            'PENDING';
                         final isChecking = _checkingIndex == i;
 
                         // Add TAT label to reportingDate
@@ -222,7 +218,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                         // Map dispatch data to DeliveryCard format
                         final deliveryMap = {
                           'barcode': maskedCode,
-                          'delivery_status': status,
+                          'delivery_status': '',
                           'metadata': [
                             {
                               'icon': Icons.store_outlined,

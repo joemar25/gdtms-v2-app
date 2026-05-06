@@ -41,8 +41,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
-import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
-import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
+import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
@@ -200,11 +199,13 @@ class _DeliveryStatusListScreenState
 
     // 1. Get total count
     final total = switch (status) {
-      'DELIVERED' => await LocalDeliveryDao.instance.countVisibleDelivered(),
+      'DELIVERED' =>
+        await ref.read(localDeliveryDaoProvider).countVisibleDelivered(),
       'FAILED_DELIVERY' =>
-        await LocalDeliveryDao.instance.countVisibleFailedDelivery(),
-      'OSA' => await LocalDeliveryDao.instance.countVisibleOsa(),
-      _ => await LocalDeliveryDao.instance.countByStatus(widget.status),
+        await ref.read(localDeliveryDaoProvider).countVisibleFailedDelivery(),
+      'OSA' => await ref.read(localDeliveryDaoProvider).countVisibleOsa(),
+      _ =>
+        await ref.read(localDeliveryDaoProvider).countByStatus(widget.status),
     };
 
     // 2. Classify for FAILED_DELIVERY or fetch page for others
@@ -218,7 +219,8 @@ class _DeliveryStatusListScreenState
       // RTS) because items from both groups are interleaved in the DB — a single
       // page may contain zero items of the selected group. Loading all rows
       // upfront (typical count: low tens) is fine for this screen.
-      allFailedRows = await LocalDeliveryDao.instance
+      allFailedRows = await ref
+          .read(localDeliveryDaoProvider)
           .getVisibleFailedDeliveryPaged(limit: total, offset: 0);
       for (final row in allFailedRows) {
         final attempts = getAttemptsCountFromMap(row.toDeliveryMap());
@@ -255,9 +257,9 @@ class _DeliveryStatusListScreenState
 
     // 4. Sync-lock check
     final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
-    _queuedBarcodes = await SyncOperationsDao.instance.getSyncQueuedBarcodes(
-      courierId,
-    );
+    _queuedBarcodes = await ref
+        .read(syncOperationsDaoProvider)
+        .getSyncQueuedBarcodes(courierId);
     if (!mounted) return;
 
     setState(() {
@@ -275,24 +277,22 @@ class _DeliveryStatusListScreenState
   Future<List<LocalDelivery>> _fetchPage({required int offset}) {
     final status = widget.status.toUpperCase();
     return switch (status) {
-      'DELIVERED' => LocalDeliveryDao.instance.getVisibleDeliveredPaged(
-        limit: _kPageSize,
-        offset: offset,
-      ),
+      'DELIVERED' =>
+        ref
+            .read(localDeliveryDaoProvider)
+            .getVisibleDeliveredPaged(limit: _kPageSize, offset: offset),
       'FAILED_DELIVERY' =>
-        LocalDeliveryDao.instance.getVisibleFailedDeliveryPaged(
-          limit: _kPageSize,
-          offset: offset,
-        ),
-      'OSA' => LocalDeliveryDao.instance.getVisibleOsaPaged(
-        limit: _kPageSize,
-        offset: offset,
-      ),
-      _ => LocalDeliveryDao.instance.getByStatusPaged(
-        status,
-        limit: _kPageSize,
-        offset: offset,
-      ),
+        ref
+            .read(localDeliveryDaoProvider)
+            .getVisibleFailedDeliveryPaged(limit: _kPageSize, offset: offset),
+      'OSA' =>
+        ref
+            .read(localDeliveryDaoProvider)
+            .getVisibleOsaPaged(limit: _kPageSize, offset: offset),
+      _ =>
+        ref
+            .read(localDeliveryDaoProvider)
+            .getByStatusPaged(status, limit: _kPageSize, offset: offset),
     };
   }
 
@@ -329,10 +329,9 @@ class _DeliveryStatusListScreenState
       return;
     }
     setState(() => _searchLoading = true);
-    final rows = await LocalDeliveryDao.instance.searchByStatusAndQuery(
-      widget.status,
-      q,
-    );
+    final rows = await ref
+        .read(localDeliveryDaoProvider)
+        .searchByStatusAndQuery(widget.status, q);
     if (!mounted) return;
     setState(() {
       _searchResults = rows.map(_toCardMap).toList();
@@ -398,8 +397,8 @@ class _DeliveryStatusListScreenState
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
           color: DSColors.white,
-          tooltip: 'Scan Dispatch',
-          onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
+          tooltip: 'Scan POD',
+          onPressed: () => context.push('/scan', extra: {'mode': 'pod'}),
         ),
       ],
       _ => [searchBtn],

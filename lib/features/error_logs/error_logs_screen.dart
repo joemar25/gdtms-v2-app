@@ -108,6 +108,7 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
           if (_all.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline_rounded),
+              color: DSColors.white,
               tooltip: 'Clear all',
               onPressed: _clearAll,
             ),

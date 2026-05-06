@@ -442,22 +442,22 @@ class _StatusBadge extends StatelessWidget {
       DeliveryStatus.delivered => (
         DSColors.successSurface,
         DSColors.successText,
-        DeliveryStatus.delivered.displayName,
+        DeliveryStatus.delivered.displayName.toUpperCase(),
       ),
       DeliveryStatus.pending => (
         DSColors.pendingSurface,
         DSColors.pendingText,
-        DeliveryStatus.pending.displayName,
+        DeliveryStatus.pending.displayName.toUpperCase(),
       ),
       DeliveryStatus.failedDelivery => (
         DSColors.errorSurface,
         DSColors.errorText,
-        DeliveryStatus.failedDelivery.displayName,
+        DeliveryStatus.failedDelivery.displayName.toUpperCase(),
       ),
       DeliveryStatus.osa => (
         DSColors.warningSurface,
         DSColors.warningText,
-        DeliveryStatus.osa.displayName,
+        DeliveryStatus.osa.displayName.toUpperCase(),
       ),
       _ => (
         Theme.of(context).brightness == Brightness.dark

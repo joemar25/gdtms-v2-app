@@ -594,9 +594,6 @@ class LocalDeliveryDao {
     return LocalDelivery.fromDb(rows.first);
   }
 
-  /// Searches all deliveries whose [barcode] or [recipient_name] contains
-  /// [query] (case-insensitive substring match). Returns up to [limit] results
-  /// ordered by created_at ASC.
   Future<List<LocalDelivery>> searchByQuery(
     String query, {
     int limit = 30,
@@ -613,6 +610,68 @@ class LocalDeliveryDao {
       limit: limit,
     );
     return rows.map(LocalDelivery.fromDb).toList();
+  }
+
+  /// Searches deliveries by barcode (Filtered for Bagsakan).
+  ///
+  /// ONLY includes Pending items (FOR_DELIVERY / FOR_REDELIVERY) with less than 3
+  /// attempts. Excludes OSA, Delivered, and all Failed Deliveries.
+  Future<List<LocalDelivery>> searchByBarcodeLike(
+    String query, {
+    int limit = 30,
+  }) async {
+    if (query.trim().isEmpty) return [];
+    final db = await _db;
+    final q = '%${query.trim()}%';
+    final rows = await db.rawQuery(
+      '''
+      SELECT * FROM local_deliveries
+      WHERE barcode LIKE ? COLLATE NOCASE 
+        AND COALESCE(is_archived, 0) = 0
+        AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY')
+      ORDER BY updated_at DESC
+      LIMIT $limit
+      ''',
+      [q],
+    );
+    final deliveries = rows.map(LocalDelivery.fromDb).toList();
+
+    // Bagsakan ONLY includes Pending items (FOR_DELIVERY / FOR_REDELIVERY) with less than 3 attempts.
+    // Excludes: OSA, Delivered, and all Failed Deliveries.
+    return deliveries.where((d) {
+      return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
+    }).toList();
+  }
+
+  /// Searches deliveries by recipient_name (Filtered for Bagsakan).
+  ///
+  /// ONLY includes Pending items (FOR_DELIVERY / FOR_REDELIVERY) with less than 3
+  /// attempts. Excludes OSA, Delivered, and all Failed Deliveries.
+  Future<List<LocalDelivery>> searchByAccountName(
+    String query, {
+    int limit = 30,
+  }) async {
+    if (query.trim().isEmpty) return [];
+    final db = await _db;
+    final q = '%${query.trim()}%';
+    final rows = await db.rawQuery(
+      '''
+      SELECT * FROM local_deliveries
+      WHERE recipient_name LIKE ? COLLATE NOCASE 
+        AND COALESCE(is_archived, 0) = 0
+        AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY')
+      ORDER BY updated_at DESC
+      LIMIT $limit
+      ''',
+      [q],
+    );
+    final deliveries = rows.map(LocalDelivery.fromDb).toList();
+
+    // Bagsakan ONLY includes Pending items (FOR_DELIVERY / FOR_REDELIVERY) with less than 3 attempts.
+    // Excludes: OSA, Delivered, and all Failed Deliveries.
+    return deliveries.where((d) {
+      return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
+    }).toList();
   }
 
   /// Variant of [searchByQuery] restricted to deliveries that are actionable

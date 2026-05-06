@@ -45,7 +45,13 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
             : DSColors.scaffoldLight,
         appBar: AppHeaderBar(
           title: 'nav.bagsakan'.tr(),
-          pageIcon: Icons.inventory_2_rounded,
+          actions: [
+            HeaderIconButton(
+              icon: Icons.add_rounded,
+              onTap: () => context.push('/bagsakan/create'),
+              isFlat: true,
+            ),
+          ],
         ),
         body: Center(
           child: Column(
@@ -65,7 +71,7 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
               ),
               DSSpacing.hLg,
               Text(
-                'Bagsakan',
+                'bagsakan.title'.tr(),
                 style: DSTypography.heading(
                   color: isDark
                       ? DSColors.labelPrimaryDark
@@ -74,7 +80,7 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
               ),
               DSSpacing.hSm,
               Text(
-                'Under Development',
+                'bagsakan.under_development'.tr(),
                 style: DSTypography.body(
                   color: isDark
                       ? DSColors.labelSecondaryDark
@@ -108,7 +114,7 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                     ),
                     DSSpacing.wSm,
                     Text(
-                      'This feature is coming soon!',
+                      'bagsakan.coming_soon'.tr(),
                       style: DSTypography.caption(
                         color: isDark
                             ? DSColors.labelSecondaryDark

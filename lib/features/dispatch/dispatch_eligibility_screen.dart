@@ -379,11 +379,17 @@ class _DispatchEligibilityScreenState
       },
       child: Scaffold(
         appBar: AppHeaderBar(
-          leading: BackButton(onPressed: () => _handleBack()),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            iconSize: DSIconSize.lg,
+            color: DSColors.white,
+            onPressed: () => _handleBack(),
+          ),
           title: 'DISPATCH DETAILS',
           actions: [
             IconButton(
               icon: const Icon(Icons.qr_code_scanner_rounded),
+              color: DSColors.white,
               tooltip: 'Scan Dispatch',
               onPressed: () =>
                   context.push('/scan', extra: {'mode': 'dispatch'}),

@@ -63,6 +63,29 @@
     "settings": "Settings",
     "notifications": "Notifications"
   },
+  "bagsakan": {
+    "title": "Bagsakan",
+    "create": "Create Bagsakan",
+    "coming_soon": "This feature is coming soon!",
+    "under_development": "Under Development",
+    "group_name": "GROUP NAME",
+    "group_name_hint": "Enter group name",
+    "group_description": "GROUP DESCRIPTION",
+    "group_description_hint": "Enter group description",
+    "create_group": "CREATE GROUP",
+    "delivery_details": "Enter delivery details",
+    "search_by": "Search By",
+    "barcode": "Barcode",
+    "account_name": "Account Name",
+    "search": "SEARCH",
+    "search_hint": "Search...",
+    "add_to_bagsakan": "ADD TO BAGSAKAN",
+    "no_results": "No results found.",
+    "group_info": "Group Info",
+    "group_items": "Group Items",
+    "no_items": "No items added yet.",
+    "no_items_hint": "Scan a barcode or search to add deliveries to this group."
+  },
   "notifications": {
     "unread_count": "{count} unread notifications",
     "none": "No unread notifications"

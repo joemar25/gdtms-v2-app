@@ -111,6 +111,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
             if (transactionHistory.isNotEmpty)
               IconButton(
                 icon: const Icon(Icons.history_rounded),
+                color: DSColors.white,
                 onPressed: () => showPayoutHistorySheet(
                   context: context,
                   history: _data['transaction_history'] ?? [],

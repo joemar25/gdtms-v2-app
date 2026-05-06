@@ -63,6 +63,29 @@
     "settings": "Mga Setting",
     "notifications": "Mga Abiso"
   },
+  "bagsakan": {
+    "title": "Bagsakan",
+    "create": "Gumawa ng Bagsakan",
+    "coming_soon": "Ang tampok na ito ay paparating na!",
+    "under_development": "Kasalukuyang Dine-develop",
+    "group_name": "PANGALAN NG GRUPO",
+    "group_name_hint": "Ilagay ang pangalan ng grupo",
+    "group_description": "DESKRIPSYON NG GRUPO",
+    "group_description_hint": "Ilagay ang deskripsyon ng grupo",
+    "create_group": "GUMAWA NG GRUPO",
+    "delivery_details": "Ilagay ang detalye ng delivery",
+    "search_by": "Hanapin Gamit",
+    "barcode": "Barcode",
+    "account_name": "Pangalan ng Account",
+    "search": "MAGHANAP",
+    "search_hint": "Maghanap...",
+    "add_to_bagsakan": "IDAGDAG SA BAGSAKAN",
+    "no_results": "Walang nakitang resulta.",
+    "group_info": "Impormasyon ng Grupo",
+    "group_items": "Mga Item ng Grupo",
+    "no_items": "Wala pang naidagdag na item.",
+    "no_items_hint": "Mag-scan ng barcode o maghanap para magdagdag ng delivery sa grupong ito."
+  },
   "notifications": {
     "unread_count": "{count} na hindi pa nababasang abiso",
     "none": "Walang hindi pa nababasang abiso"

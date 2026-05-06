@@ -158,7 +158,7 @@ Automated tests are your safety net. You must run `flutter test` before every co
 
 Before every commit, you **MUST** run these three commands in order:
 1. `flutter analyze` — Catch static errors and lint warnings.
-2. `flutter test` — Verify logic and prevent regressions.
+2. `flutter test` — Verify logic and prevent regressions. **(flutter test --reporter json > test_results.json)**
 3. `dart format .` — Keep the codebase clean and consistent.
 
 Failure to do so is a violation of the development standards.

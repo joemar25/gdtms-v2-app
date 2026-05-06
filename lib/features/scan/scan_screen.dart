@@ -41,6 +41,7 @@ import 'package:uuid/uuid.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
@@ -55,7 +56,7 @@ import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
-enum ScanMode { dispatch, pod }
+enum ScanMode { dispatch, pod, bagsakan }
 
 class ScanScreen extends ConsumerStatefulWidget {
   const ScanScreen({super.key, required this.mode});
@@ -82,8 +83,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   bool? _wasLandscape;
 
   bool get _isDispatch => widget.mode == ScanMode.dispatch;
+  bool get _isBagsakan => widget.mode == ScanMode.bagsakan;
 
-  String get _title => _isDispatch ? 'Scan Dispatch' : 'Scan POD';
+  String get _title => _isDispatch
+      ? 'Scan Dispatch'
+      : _isBagsakan
+      ? 'Scan Bagsakan'
+      : 'Scan POD';
 
   String get _hintText => _isDispatch
       ? 'E.G. E-GEOFXXXXX1234'
@@ -188,6 +194,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     if (_isDispatch) {
       await _handleDispatch(normalizedCode);
+    } else if (_isBagsakan) {
+      await _handleBagsakan(normalizedCode);
     } else {
       await _handlePod(normalizedCode);
     }
@@ -370,6 +378,28 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       showErrorNotification(context, errorMessage);
       await _scannerController.start();
     }
+  }
+
+  Future<void> _handleBagsakan(String code) async {
+    // Placeholder — bagsakan group assignment is under development.
+    // Once implemented: look up the delivery and add it to the pending group.
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Under Development'),
+        content: Text(
+          'Scanned: $code\n\nBagsakan group assignment is not yet available.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    if (mounted && _hasPermission) await _scannerController.start();
   }
 
   void _openManualSheet() async {
@@ -1028,11 +1058,18 @@ class _ManualInputArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? DSColors.cardDark : DSColors.cardLight;
+    final labelColor = isDark
+        ? DSColors.labelPrimaryDark
+        : DSColors.labelPrimary;
+    final tertiaryLabelColor = isDark
+        ? DSColors.labelTertiaryDark
+        : DSColors.labelTertiary;
+
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? DSColors.cardDark
-            : DSColors.cardLight,
+        color: bg,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(DSSpacing.xl),
         ),
@@ -1053,7 +1090,9 @@ class _ManualInputArea extends StatelessWidget {
               width: DSIconSize.heroSm,
               height: 4,
               decoration: BoxDecoration(
-                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
+                color:
+                    (isDark ? DSColors.separatorDark : DSColors.separatorLight)
+                        .withValues(alpha: DSStyles.alphaMuted),
                 borderRadius: DSStyles.pillRadius,
               ),
             ),
@@ -1061,15 +1100,10 @@ class _ManualInputArea extends StatelessWidget {
           DSSpacing.hMd,
           Text(
             'MANUAL BARCODE/ACCOUNT NAME ENTRY',
-            style:
-                DSTypography.label(
-                  color: DSColors.white.withValues(
-                    alpha: DSStyles.alphaDisabled,
-                  ),
-                ).copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: DSTypography.lsExtraLoose,
-                ),
+            style: DSTypography.label(color: tertiaryLabelColor).copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: DSTypography.lsExtraLoose,
+            ),
           ),
           DSSpacing.hMd,
           if (error != null)
@@ -1099,27 +1133,31 @@ class _ManualInputArea extends StatelessWidget {
             ),
           TextField(
             controller: controller,
-            style: DSTypography.body(color: DSColors.white),
+            style: DSTypography.body(color: labelColor),
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
             inputFormatters: [UpperCaseFormatter()],
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: DSTypography.body(
-                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
-              ),
+              hintStyle: DSTypography.body(color: tertiaryLabelColor),
               filled: true,
-              fillColor: DSColors.white.withValues(alpha: DSStyles.alphaSoft),
+              fillColor: isDark
+                  ? DSColors.white.withValues(alpha: DSStyles.alphaSoft)
+                  : DSColors.secondarySurfaceLight,
               border: OutlineInputBorder(
                 borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
-                  color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
+                  color: isDark
+                      ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                      : DSColors.separatorLight,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: DSStyles.cardRadius,
                 borderSide: BorderSide(
-                  color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
+                  color: isDark
+                      ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                      : DSColors.separatorLight,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -1176,6 +1214,15 @@ class _SearchResultsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? DSColors.cardDark : DSColors.cardLight;
+    final labelColor = isDark
+        ? DSColors.labelPrimaryDark
+        : DSColors.labelPrimary;
+    final secondaryLabelColor = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
+    final separatorColor = isDark
+        ? DSColors.separatorDark
+        : DSColors.separatorLight;
 
     return DraggableScrollableSheet(
       expand: false,
@@ -1197,7 +1244,9 @@ class _SearchResultsSheet extends StatelessWidget {
                 width: DSIconSize.heroSm,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: DSColors.separatorLight,
+                  color: isDark
+                      ? DSColors.separatorDark
+                      : DSColors.separatorLight,
                   borderRadius: DSStyles.pillRadius,
                 ),
               ),
@@ -1219,7 +1268,9 @@ class _SearchResultsSheet extends StatelessWidget {
                           '${results.length} RESULT${results.length == 1 ? '' : 'S'} FOUND',
                           style:
                               DSTypography.label(
-                                color: DSColors.labelTertiary,
+                                color: isDark
+                                    ? DSColors.labelTertiaryDark
+                                    : DSColors.labelTertiary,
                               ).copyWith(
                                 fontSize: DSTypography.sizeSm,
                                 fontWeight: FontWeight.w800,
@@ -1231,9 +1282,7 @@ class _SearchResultsSheet extends StatelessWidget {
                           'Tap one to open delivery details',
                           style: DSTypography.body(
                             color: isDark
-                                ? DSColors.white.withValues(
-                                    alpha: DSStyles.alphaDisabled,
-                                  )
+                                ? DSColors.labelSecondaryDark
                                 : DSColors.labelSecondary,
                           ).copyWith(fontSize: DSTypography.sizeMd),
                         ),
@@ -1241,20 +1290,21 @@ class _SearchResultsSheet extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close, color: labelColor),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1),
+            Divider(height: 1, color: separatorColor),
             Expanded(
               child: ListView.separated(
                 controller: scrollController,
                 padding: EdgeInsets.symmetric(vertical: DSSpacing.sm),
                 itemCount: results.length,
-                separatorBuilder: (_, _) => const Divider(
+                separatorBuilder: (_, _) => Divider(
                   height: DSStyles.borderWidth,
+                  color: separatorColor.withValues(alpha: DSStyles.alphaSoft),
                   indent: 16,
                   endIndent: 16,
                 ),
@@ -1284,7 +1334,7 @@ class _SearchResultsSheet extends StatelessWidget {
                     ),
                     title: Text(
                       barcode,
-                      style: DSTypography.body().copyWith(
+                      style: DSTypography.body(color: labelColor).copyWith(
                         fontWeight: FontWeight.w600,
                         fontSize: DSTypography.sizeMd,
                       ),
@@ -1295,9 +1345,9 @@ class _SearchResultsSheet extends StatelessWidget {
                         if (name.isNotEmpty)
                           Text(
                             name,
-                            style: DSTypography.body().copyWith(
-                              fontSize: DSTypography.sizeSm,
-                            ),
+                            style: DSTypography.body(
+                              color: secondaryLabelColor,
+                            ).copyWith(fontSize: DSTypography.sizeSm),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1305,7 +1355,9 @@ class _SearchResultsSheet extends StatelessWidget {
                           Text(
                             address,
                             style: DSTypography.body(
-                              color: DSColors.labelTertiary,
+                              color: isDark
+                                  ? DSColors.labelTertiaryDark
+                                  : DSColors.labelTertiary,
                             ).copyWith(fontSize: DSTypography.sizeSm),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1318,15 +1370,23 @@ class _SearchResultsSheet extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: DSColors.labelSecondary.withValues(
-                          alpha: DSStyles.alphaSoft,
-                        ),
+                        color: DSColors.statusColor(
+                          status,
+                          isDark: isDark,
+                        ).withValues(alpha: DSStyles.alphaSoft),
                         borderRadius: DSStyles.pillRadius,
                       ),
                       child: Text(
-                        status.toUpperCase(),
-                        style: DSTypography.label(color: DSColors.accent)
-                            .copyWith(
+                        DeliveryStatus.fromString(
+                          status,
+                        ).displayName.toUpperCase(),
+                        style:
+                            DSTypography.label(
+                              color: DSColors.statusColor(
+                                status,
+                                isDark: isDark,
+                              ),
+                            ).copyWith(
                               fontSize: DSTypography.sizeXs,
                               fontWeight: FontWeight.w700,
                             ),

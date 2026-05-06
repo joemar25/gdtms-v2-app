@@ -84,12 +84,11 @@ class DSColors {
       case 'delivered':
       case 'success':
         return isDark ? successDark : success;
+      case 'rts':
+      case 'return_to_sender':
       case 'failed_delivery':
       case 'failed':
         return isDark ? errorDark : error;
-      case 'rts':
-      case 'return_to_sender':
-        return accent; // Accent is already balanced
       case 'osa':
       case 'out_of_service_area':
         return isDark ? warningDark : warning;

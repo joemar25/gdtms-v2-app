@@ -25,7 +25,6 @@ class AppBottomNavBar extends ConsumerWidget {
     final borderColor = isDark
         ? DSColors.separatorDark.withValues(alpha: 0.1)
         : DSColors.white.withValues(alpha: 0.2);
-    final activeColor = DSColors.white;
     final inactiveColor = DSColors.white.withValues(alpha: 0.6);
 
     // Watch update state to show badge on Profile tab

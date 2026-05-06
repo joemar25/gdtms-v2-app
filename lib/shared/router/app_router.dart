@@ -27,6 +27,7 @@ import 'package:fsi_courier_app/features/sync/sync_screen.dart';
 import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
 import 'package:fsi_courier_app/features/initial_sync/initial_sync_screen.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_screen.dart';
+import 'package:fsi_courier_app/features/bagsakan/create_bagsakan_screen.dart';
 import 'package:fsi_courier_app/features/error_logs/error_logs_screen.dart';
 import 'package:fsi_courier_app/features/notifications/notifications_screen.dart';
 import 'package:fsi_courier_app/features/legal/terms_screen.dart';
@@ -298,6 +299,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   key: state.pageKey,
                   child: const BagsakanScreen(),
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'create',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (_, state) => _page(
+                      key: state.pageKey,
+                      child: const CreateBagsakanScreen(),
+                      extra: state.extra,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -331,8 +343,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/scan',
         pageBuilder: (_, state) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
-          final isDispatch = extra['mode'] == 'dispatch';
-          final mode = isDispatch ? ScanMode.dispatch : ScanMode.pod;
+          final ScanMode mode;
+          if (extra['mode'] == 'dispatch') {
+            mode = ScanMode.dispatch;
+          } else if (extra['mode'] == 'bagsakan') {
+            mode = ScanMode.bagsakan;
+          } else {
+            mode = ScanMode.pod;
+          }
           return _page(
             key: state.pageKey,
             child: ScanScreen(mode: mode),

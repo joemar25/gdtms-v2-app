@@ -10,7 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/config.dart';
-import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
 import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -203,7 +203,7 @@ class NotificationBell extends StatelessWidget {
           ? 'notifications.unread_count'.tr(namedArgs: {'count': label})
           : 'notifications.none'.tr(),
       button: true,
-      child: _HeaderIconButton(
+      child: HeaderIconButton(
         icon: hasUnread
             ? Icons.notifications_rounded
             : Icons.notifications_outlined,
@@ -326,9 +326,9 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
     _collapse();
 
     // Exact barcode lookup in local SQLite first.
-    final matches = await LocalDeliveryDao.instance.searchVisibleByQuery(
-      query.toUpperCase(),
-    );
+    final matches = await ref
+        .read(localDeliveryDaoProvider)
+        .searchVisibleByQuery(query.toUpperCase());
     if (!mounted) return;
 
     if (matches.length == 1 &&
@@ -343,18 +343,8 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final auth = ref.watch(authProvider);
-    final courier = auth.courier ?? {};
-    final firstName = courier['first_name']?.toString();
-    final lastName = courier['last_name']?.toString();
-    final nameStr = [
-      if (firstName != null && firstName != 'null') firstName,
-      if (lastName != null && lastName != 'null') lastName,
-    ].join(' ').trim();
-
-
     final headerColor = Theme.of(context).primaryColor;
+    final courier = ref.watch(authProvider).courier ?? {};
 
     final profileUrlStr = courier['profile_picture_url']?.toString();
     final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
@@ -377,7 +367,7 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
           onSubmit: _onSubmit,
         ),
         trailingActions: [
-          _HeaderIconButton(
+          HeaderIconButton(
             icon: Icons.camera_alt_rounded,
             onTap: () {
               HapticFeedback.lightImpact();
@@ -403,7 +393,7 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
       title: AppFormatters.greeting(),
       actions: [
         if (kEnableGlobalSearch)
-          _HeaderIconButton(
+          HeaderIconButton(
             icon: Icons.search_rounded,
             onTap: _expand,
             isFlat: true,
@@ -552,8 +542,9 @@ class _HeaderProfileAvatar extends ConsumerWidget {
   }
 }
 
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
+class HeaderIconButton extends StatelessWidget {
+  const HeaderIconButton({
+    super.key,
     required this.icon,
     required this.onTap,
     this.iconColor,

@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_screen.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
 
 void main() {
+  setUpAll(() {
+    EasyLocalization.logger.printer = (object, {level, name, stackTrace}) {};
+  });
+
   testWidgets('BagsakanScreen displays under development message', (
     tester,
   ) async {
@@ -31,11 +36,11 @@ void main() {
     // Wait for animations to settle
     await tester.pumpAndSettle();
 
-    // Verify 'Bagsakan' text is present (literal in body)
-    expect(find.text('Bagsakan'), findsWidgets);
+    // Verify 'Bagsakan' text is present (using translation key as tr() returns it in tests)
+    expect(find.text('bagsakan.title'), findsWidgets);
 
-    // Verify 'Under Development' text is present (literal in body)
-    expect(find.text('Under Development'), findsOneWidget);
+    // Verify 'Under Development' text is present
+    expect(find.text('bagsakan.under_development'), findsOneWidget);
 
     // Verify icon is present
     expect(find.byIcon(Icons.inventory_2_outlined), findsOneWidget);

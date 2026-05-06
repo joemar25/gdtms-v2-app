@@ -57,3 +57,7 @@
 
 - Parcels accepted here are seeded into `local_deliveries` immediately so they appear in the delivery list offline.
 - Do not allow re-accepting already-accepted parcels (server returns 409 — handle with `ApiConflict`).
+
+### Scan Actions
+
+The header in `DispatchListScreen` must use **Scan Dispatch** mode. This mode is specifically for manifest/dispatch barcodes and handles eligibility checks via the API. Refer to [scan.md](scan.md) for full rulings.
