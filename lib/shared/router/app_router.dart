@@ -26,6 +26,7 @@ import 'package:fsi_courier_app/features/wallet/payout_request_screen.dart';
 import 'package:fsi_courier_app/features/sync/sync_screen.dart';
 import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
 import 'package:fsi_courier_app/features/initial_sync/initial_sync_screen.dart';
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_screen.dart';
 import 'package:fsi_courier_app/features/error_logs/error_logs_screen.dart';
 import 'package:fsi_courier_app/features/notifications/notifications_screen.dart';
 import 'package:fsi_courier_app/features/legal/terms_screen.dart';
@@ -285,6 +286,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 pageBuilder: (_, state) => _tabTransitionPage(
                   key: state.pageKey,
                   child: const DashboardScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/bagsakan',
+                pageBuilder: (_, state) => _tabTransitionPage(
+                  key: state.pageKey,
+                  child: const BagsakanScreen(),
                 ),
               ),
             ],

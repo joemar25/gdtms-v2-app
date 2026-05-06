@@ -146,9 +146,22 @@ import 'package:fsi_courier_app/core/config.dart';
 - **Zero warnings policy**: the pipeline does not accept a codebase with outstanding analyzer warnings. Warnings today become crashes tomorrow.
 - Do **not** suppress warnings with `// ignore:` unless you can write a full justification comment explaining why suppression is safe. Suppression is a last resort, not a shortcut.
 
-### 08 — Always Run `dart format` — Zero Unformatted Files
+### 08 — Always Run `dart format .` — Zero Unformatted Files
 
-Inconsistent formatting is noise in code reviews. `dart format` enforces the canonical Dart style guide automatically, keeping diffs clean and readable.
+Inconsistent formatting is noise in code reviews. `dart format .` enforces the canonical Dart style guide automatically, keeping diffs clean and readable.
+
+### 09 — Always Run `flutter test` — Confirm No Regressions
+
+Automated tests are your safety net. You must run `flutter test` before every commit to ensure that your changes haven't broken existing functionality. If you've added a new feature, you must also add corresponding tests as per Section 9.
+
+### 10 — The Trinity of Code Health (Pre-Commit Checklist)
+
+Before every commit, you **MUST** run these three commands in order:
+1. `flutter analyze` — Catch static errors and lint warnings.
+2. `flutter test` — Verify logic and prevent regressions.
+3. `dart format .` — Keep the codebase clean and consistent.
+
+Failure to do so is a violation of the development standards.
 
 ---
 

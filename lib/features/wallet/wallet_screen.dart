@@ -281,8 +281,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               // swipe left → Profile
               context.go('/profile', extra: {'_swipe': 'left'});
             } else {
-              // swipe right → Dashboard
-              context.go('/dashboard', extra: {'_swipe': 'right'});
+              // swipe right → Bagsakan
+              context.go('/bagsakan', extra: {'_swipe': 'right'});
             }
           }
         },

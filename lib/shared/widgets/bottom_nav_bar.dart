@@ -87,13 +87,13 @@ class AppBottomNavBar extends ConsumerWidget {
                           // ── Elastic Sliding Pill ──────────────────────────
                           AnimatedAlign(
                             alignment: Alignment(
-                              -1.0 + (2.0 * currentIdx / (3 - 1)),
+                              -1.0 + (2.0 * currentIdx / (4 - 1)),
                               0,
                             ),
                             duration: DSAnimations.dNormal,
                             curve: DSAnimations.curveElasticPill,
                             child: FractionallySizedBox(
-                              widthFactor: 1 / 3,
+                              widthFactor: 1 / 4,
                               heightFactor: 1.0,
                               child: Padding(
                                 padding: EdgeInsets.all(DSSpacing.sm),
@@ -142,10 +142,9 @@ class AppBottomNavBar extends ConsumerWidget {
                               _NavBarItem(
                                 index: 1,
                                 selectedIndex: currentIdx,
-                                icon: Icons.account_balance_wallet_outlined,
-                                activeIcon:
-                                    Icons.account_balance_wallet_rounded,
-                                label: 'nav.wallet'.tr(),
+                                icon: Icons.inventory_2_outlined,
+                                activeIcon: Icons.inventory_2_rounded,
+                                label: 'nav.bagsakan'.tr(),
                                 activeColor: DSColors.white,
                                 inactiveColor: inactiveColor,
                                 onTap: () => _onTap(1),
@@ -153,13 +152,24 @@ class AppBottomNavBar extends ConsumerWidget {
                               _NavBarItem(
                                 index: 2,
                                 selectedIndex: currentIdx,
+                                icon: Icons.account_balance_wallet_outlined,
+                                activeIcon:
+                                    Icons.account_balance_wallet_rounded,
+                                label: 'nav.wallet'.tr(),
+                                activeColor: DSColors.white,
+                                inactiveColor: inactiveColor,
+                                onTap: () => _onTap(2),
+                              ),
+                              _NavBarItem(
+                                index: 3,
+                                selectedIndex: currentIdx,
                                 icon: Icons.person_outline_rounded,
                                 activeIcon: Icons.person_rounded,
                                 label: 'nav.profile'.tr(),
                                 activeColor: DSColors.white,
                                 inactiveColor: inactiveColor,
                                 showBadge: hasUpdate,
-                                onTap: () => _onTap(2),
+                                onTap: () => _onTap(3),
                               ),
                             ],
                           ),

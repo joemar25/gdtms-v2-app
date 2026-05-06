@@ -136,7 +136,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           final velocity = details.primaryVelocity ?? 0.0;
           if (dx.abs() > 60 || velocity.abs() > 300) {
             if (dx < 0 || velocity < 0) {
-              context.go('/wallet', extra: {'_swipe': 'left'});
+              context.go('/bagsakan', extra: {'_swipe': 'left'});
             } else {
               context.go('/profile', extra: {'_swipe': 'right'});
             }
