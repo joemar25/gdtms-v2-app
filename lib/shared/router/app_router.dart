@@ -27,7 +27,7 @@ import 'package:fsi_courier_app/features/sync/sync_screen.dart';
 import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
 import 'package:fsi_courier_app/features/initial_sync/initial_sync_screen.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_screen.dart';
-import 'package:fsi_courier_app/features/bagsakan/create_bagsakan_screen.dart';
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_list_screen.dart';
 import 'package:fsi_courier_app/features/error_logs/error_logs_screen.dart';
 import 'package:fsi_courier_app/features/notifications/notifications_screen.dart';
 import 'package:fsi_courier_app/features/legal/terms_screen.dart';
@@ -305,9 +305,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     parentNavigatorKey: rootNavigatorKey,
                     pageBuilder: (_, state) => _page(
                       key: state.pageKey,
-                      child: const CreateBagsakanScreen(),
+                      child: const BagsakanListScreen(),
                       extra: state.extra,
                     ),
+                  ),
+                  GoRoute(
+                    path: 'edit/:groupId',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (_, state) {
+                      final id = int.tryParse(
+                        state.pathParameters['groupId'] ?? '',
+                      );
+                      return _page(
+                        key: state.pageKey,
+                        child: BagsakanListScreen(groupId: id),
+                        extra: state.extra,
+                      );
+                    },
                   ),
                 ],
               ),

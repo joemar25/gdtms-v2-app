@@ -43,7 +43,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     final db = await openDatabase(
       path,
-      version: 18,
+      version: 19,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -95,7 +95,18 @@ class AppDatabase {
         piece_count      INTEGER NOT NULL DEFAULT 1,
         piece_index      INTEGER NOT NULL DEFAULT 1,
         allowed_statuses TEXT,
-        data_checksum    TEXT
+        data_checksum    TEXT,
+        bagsakan_id      INTEGER
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE bagsakan_groups (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT    NOT NULL,
+        description TEXT,
+        created_at  INTEGER NOT NULL,
+        updated_at  INTEGER NOT NULL
       )
     ''');
 
@@ -360,6 +371,25 @@ class AppDatabase {
     }
     if (oldVersion < 18) {
       // v18: Preservation of version numbering (previously account_number).
+    }
+    if (oldVersion < 19) {
+      // v19: Add bagsakan_groups table and bagsakan_id column to local_deliveries.
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS bagsakan_groups (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            name        TEXT    NOT NULL,
+            description TEXT,
+            created_at  INTEGER NOT NULL,
+            updated_at  INTEGER NOT NULL
+          )
+        ''');
+      } catch (e) {
+        debugPrint('[DB] Migration info (create bagsakan_groups): $e');
+      }
+      await addColumn(
+        "ALTER TABLE local_deliveries ADD COLUMN bagsakan_id INTEGER",
+      );
     }
   }
 

@@ -14,7 +14,7 @@ import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// A card representing a single delivery assignment with its status,
 /// barcode, recipient details, and action shortcuts.
-class DeliveryCard extends StatelessWidget {
+class DeliveryCard extends StatefulWidget {
   const DeliveryCard({
     super.key,
     required this.delivery,
@@ -30,6 +30,8 @@ class DeliveryCard extends StatelessWidget {
     this.onUpdateTap,
     this.isForAssigning = false,
     this.onAddToBagsakanTap,
+    this.onRemoveFromBagsakanTap,
+    this.isInBagsakan = false,
   });
 
   final Map<String, dynamic> delivery;
@@ -49,6 +51,8 @@ class DeliveryCard extends StatelessWidget {
 
   final bool isForAssigning;
   final VoidCallback? onAddToBagsakanTap;
+  final VoidCallback? onRemoveFromBagsakanTap;
+  final bool isInBagsakan;
 
   // ─── MARK: Status Helpers ──────────────────────────────────────────────────
 
@@ -66,12 +70,17 @@ class DeliveryCard extends StatelessWidget {
     };
   }
 
+  @override
+  State<DeliveryCard> createState() => _DeliveryCardState();
+}
+
+class _DeliveryCardState extends State<DeliveryCard> {
   // ─── MARK: Build ───────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final isExpanded = !compact;
-    final delivery = this.delivery;
+    final isExpanded = !widget.compact;
+    final delivery = widget.delivery;
     final barcode = resolveDeliveryIdentifier(delivery);
     final rawStatus = delivery['delivery_status']?.toString() ?? '';
     final status = rawStatus.toUpperCase().trim();
@@ -88,8 +97,10 @@ class DeliveryCard extends StatelessWidget {
     final isDirty = syncStatus == 'dirty';
     final inSyncQueue = delivery['_in_sync_queue'] == true;
 
-    final colorForStatus = isDirty ? DSColors.warning : statusColor(status);
-    final iconForStatus = statusIcon(status);
+    final colorForStatus = isDirty
+        ? DSColors.warning
+        : DeliveryCard.statusColor(status);
+    final iconForStatus = DeliveryCard.statusIcon(status);
 
     final failedDeliveryVerifStatus =
         (delivery['_rts_verification_status']?.toString() ??
@@ -146,12 +157,12 @@ class DeliveryCard extends StatelessWidget {
     // STRICT RULE: If the card is locked (finalized/verified), hide the info button
     // for privacy and to prevent further modifications. This is mandatory.
     final canViewInfo =
-        !isPrivacyMode &&
-        !isChecking &&
+        !widget.isPrivacyMode &&
+        !widget.isChecking &&
         !isLocked &&
         ds != DeliveryStatus.unknown;
 
-    if (compact) {
+    if (widget.compact) {
       return _buildCompactCard(
         context: context,
         isDark: isDark,
@@ -185,7 +196,7 @@ class DeliveryCard extends StatelessWidget {
     Widget buildCard({BorderRadius? borderRadius}) {
       final effectiveRadius = borderRadius ?? DSStyles.cardRadius;
       return BouncingCardWrapper(
-        onTap: isChecking ? null : onTap,
+        onTap: widget.isChecking ? null : widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 260),
           curve: Curves.fastOutSlowIn,
@@ -210,8 +221,9 @@ class DeliveryCard extends StatelessWidget {
             color: DSColors.transparent,
             child: InkWell(
               borderRadius: effectiveRadius,
-              onTap: isChecking ? null : onTap,
-              onLongPress: (isChecking || isLocked || !enableHoldToReveal)
+              onTap: widget.isChecking ? null : widget.onTap,
+              onLongPress:
+                  (widget.isChecking || isLocked || !widget.enableHoldToReveal)
                   ? null
                   : () => _showHoldOptions(context, isDark),
               splashColor: colorForStatus.withValues(alpha: DSStyles.alphaSoft),
@@ -219,7 +231,7 @@ class DeliveryCard extends StatelessWidget {
                 alpha: DSStyles.alphaSoft,
               ),
               child: AnimatedOpacity(
-                opacity: isChecking ? 0.55 : 1.0,
+                opacity: widget.isChecking ? 0.55 : 1.0,
                 duration: const Duration(milliseconds: 200),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -251,7 +263,7 @@ class DeliveryCard extends StatelessWidget {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              if (!isPrivacyMode &&
+                              if (!widget.isPrivacyMode &&
                                   (status.isNotEmpty || isDirty))
                                 DeliveryStatusBadge(
                                   label: isDirty
@@ -262,7 +274,7 @@ class DeliveryCard extends StatelessWidget {
                                       ? Icons.sync_problem_rounded
                                       : iconForStatus,
                                 ),
-                              if (!isPrivacyMode &&
+                              if (!widget.isPrivacyMode &&
                                   (status.isNotEmpty || isDirty))
                                 DSSpacing.wSm,
                               Expanded(
@@ -303,7 +315,7 @@ class DeliveryCard extends StatelessWidget {
                                           ),
                                         ),
                                       ),
-                                    if (canViewInfo)
+                                    if (canViewInfo && !widget.isForAssigning)
                                       Padding(
                                         padding: EdgeInsets.only(
                                           left: DSSpacing.xs,
@@ -370,7 +382,7 @@ class DeliveryCard extends StatelessWidget {
                           ),
 
                           // ── Row 3: Recipient name ────────────────────────────
-                          if (!isPrivacyMode &&
+                          if (!widget.isPrivacyMode &&
                               name.isNotEmpty &&
                               !isLocked) ...[
                             DSSpacing.hXs,
@@ -403,7 +415,7 @@ class DeliveryCard extends StatelessWidget {
                           ],
 
                           // ── Row 4: Address ───────────────────────────────────
-                          if (!isPrivacyMode &&
+                          if (!widget.isPrivacyMode &&
                               address.isNotEmpty &&
                               !isLocked) ...[
                             DSSpacing.hXs,
@@ -436,7 +448,7 @@ class DeliveryCard extends StatelessWidget {
                           ],
 
                           // ── Metadata chips ───────────────────────────────────
-                          if (!isPrivacyMode &&
+                          if (!widget.isPrivacyMode &&
                               delivery['metadata'] is List) ...[
                             DSSpacing.hMd,
                             Wrap(
@@ -454,7 +466,8 @@ class DeliveryCard extends StatelessWidget {
                           ],
 
                           // ── Sync / Paid pills row ────────────────────────────
-                          if (!isPrivacyMode && (isDirty || inSyncQueue)) ...[
+                          if (!widget.isPrivacyMode &&
+                              (isDirty || inSyncQueue)) ...[
                             DSSpacing.hMd,
                             Wrap(
                               spacing: DSSpacing.sm,
@@ -489,11 +502,12 @@ class DeliveryCard extends StatelessWidget {
                           ],
 
                           // ── Footer ───────────────────────────────────────────
-                          if (footerText != null || isChecking) ...[
+                          if (widget.footerText != null ||
+                              widget.isChecking) ...[
                             DSSpacing.hMd,
                             Row(
                               children: [
-                                if (isChecking) ...[
+                                if (widget.isChecking) ...[
                                   const DSLoading(size: DSIconSize.xs),
                                   DSSpacing.wXs,
                                   Text(
@@ -502,18 +516,20 @@ class DeliveryCard extends StatelessWidget {
                                       color: subtextColor,
                                     ).copyWith(fontSize: DSTypography.sizeSm),
                                   ),
-                                ] else if (footerText != null) ...[
+                                ] else if (widget.footerText != null) ...[
                                   Icon(
-                                    footerIcon ?? Icons.info_outline,
+                                    widget.footerIcon ?? Icons.info_outline,
                                     size: DSIconSize.xs,
                                     color: subtextColor,
                                   ),
                                   DSSpacing.wXs,
-                                  Text(
-                                    footerText!,
-                                    style: DSTypography.caption(
-                                      color: subtextColor,
-                                    ).copyWith(fontSize: DSTypography.sizeSm),
+                                  Expanded(
+                                    child: Text(
+                                      widget.footerText!,
+                                      style: DSTypography.caption(
+                                        color: subtextColor,
+                                      ).copyWith(fontSize: DSTypography.sizeSm),
+                                    ),
                                   ),
                                 ],
                               ],
@@ -521,23 +537,39 @@ class DeliveryCard extends StatelessWidget {
                           ],
 
                           // ── Detail section (Auto-visible if not compact) ───────
-                          if (isExpanded && !isPrivacyMode)
+                          if (isExpanded && !widget.isPrivacyMode)
                             _buildDetailSection(
-                              delivery,
+                              widget.delivery,
                               isDark,
                               subtextColor,
                               ds: ds,
                               rv: rv,
                             ),
 
-                          if (isForAssigning) ...[
+                          if (widget.isForAssigning) ...[
                             DSSpacing.hMd,
                             SizedBox(
                               width: double.infinity,
                               child: FilledButton.icon(
-                                label: const Text('ADD TO BAGSAKAN'),
-                                onPressed: onAddToBagsakanTap,
-                                icon: const Icon(Icons.add_rounded),
+                                label: Text(
+                                  widget.isInBagsakan
+                                      ? 'REMOVE FROM BAGSAKAN'
+                                      : 'ADD TO BAGSAKAN',
+                                ),
+                                onPressed: widget.isInBagsakan
+                                    ? widget.onRemoveFromBagsakanTap
+                                    : widget.onAddToBagsakanTap,
+                                icon: Icon(
+                                  widget.isInBagsakan
+                                      ? Icons.delete_outline_rounded
+                                      : Icons.add_rounded,
+                                ),
+                                style: widget.isInBagsakan
+                                    ? FilledButton.styleFrom(
+                                        backgroundColor: DSColors.error,
+                                        foregroundColor: DSColors.white,
+                                      )
+                                    : null,
                               ),
                             ),
                           ],
@@ -563,8 +595,8 @@ class DeliveryCard extends StatelessWidget {
 
   void _showHoldOptions(BuildContext context, bool isDark) {
     HapticFeedback.mediumImpact();
-    final barcode = delivery['barcode']?.toString() ?? '';
-    showDeliveryAccountDetails(context, delivery, barcode);
+    final barcode = widget.delivery['barcode']?.toString() ?? '';
+    showDeliveryAccountDetails(context, widget.delivery, barcode);
   }
 
   // ─── MARK: Components ──────────────────────────────────────────────────────
@@ -731,7 +763,7 @@ class DeliveryCard extends StatelessWidget {
             // Content
             Expanded(
               child: InkWell(
-                onTap: onTap,
+                onTap: widget.onTap,
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: DSSpacing.md,
@@ -741,7 +773,8 @@ class DeliveryCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Align(
-                          alignment: (isPrivacyMode && !showChevron)
+                          alignment:
+                              (widget.isPrivacyMode && !widget.showChevron)
                               ? Alignment.center
                               : Alignment.centerLeft,
                           child: Column(
@@ -749,7 +782,7 @@ class DeliveryCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              if (!isPrivacyMode && name.isNotEmpty) ...[
+                              if (!widget.isPrivacyMode && name.isNotEmpty) ...[
                                 Row(
                                   children: [
                                     Icon(
@@ -821,7 +854,7 @@ class DeliveryCard extends StatelessWidget {
                                   DSSpacing.wXs,
                                   Flexible(
                                     child: Text(
-                                      isPrivacyMode
+                                      widget.isPrivacyMode
                                           ? (product.isNotEmpty
                                                 ? product
                                                 : 'DELIVERY ITEM')
@@ -845,7 +878,14 @@ class DeliveryCard extends StatelessWidget {
                         ),
                       ),
                       DSSpacing.wSm,
-                      if (!isPrivacyMode)
+                      if (widget.onRemoveFromBagsakanTap != null)
+                        IconButton(
+                          onPressed: widget.onRemoveFromBagsakanTap,
+                          icon: const Icon(Icons.remove_circle_outline_rounded),
+                          color: DSColors.error,
+                          iconSize: DSIconSize.md,
+                        )
+                      else if (!widget.isPrivacyMode)
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -880,7 +920,7 @@ class DeliveryCard extends StatelessWidget {
                               ),
                           ],
                         ),
-                      if (showChevron)
+                      if (widget.showChevron)
                         Padding(
                           padding: EdgeInsets.only(left: DSSpacing.sm),
                           child: Icon(

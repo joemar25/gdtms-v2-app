@@ -8,6 +8,12 @@ import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_components.dart';
+
 class BagsakanScreen extends ConsumerStatefulWidget {
   const BagsakanScreen({super.key});
 
@@ -21,6 +27,7 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final groupsAsync = ref.watch(bagsakanGroupsProvider);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -53,78 +60,123 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
             ),
           ],
         ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(DSSpacing.xl),
-                decoration: BoxDecoration(
-                  color: DSColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.inventory_2_outlined,
-                  size: DSIconSize.heroLg,
-                  color: DSColors.primary,
-                ),
+        body: RefreshIndicator(
+          onRefresh: () async =>
+              ref.read(deliveryRefreshProvider.notifier).increment(),
+          color: DSColors.primary,
+          child: groupsAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: DSColors.primary),
+            ),
+            error: (err, stack) => Center(
+              child: EmptyState(
+                message: 'common.error'.tr(),
+                icon: Icons.error_outline_rounded,
+                iconColor: DSColors.error,
               ),
-              DSSpacing.hLg,
-              Text(
-                'bagsakan.title'.tr(),
-                style: DSTypography.heading(
-                  color: isDark
-                      ? DSColors.labelPrimaryDark
-                      : DSColors.labelPrimary,
-                ),
-              ),
-              DSSpacing.hSm,
-              Text(
-                'bagsakan.under_development'.tr(),
-                style: DSTypography.body(
-                  color: isDark
-                      ? DSColors.labelSecondaryDark
-                      : DSColors.labelSecondary,
-                ),
-              ),
-              DSSpacing.hXl,
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DSSpacing.lg,
-                  vertical: DSSpacing.md,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark ? DSColors.cardDark : DSColors.cardLight,
-                  borderRadius: DSStyles.cardRadius,
-                  border: Border.all(
-                    color:
-                        (isDark
-                                ? DSColors.separatorDark
-                                : DSColors.separatorLight)
-                            .withValues(alpha: 0.5),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+            ),
+            data: (groups) {
+              if (groups.isEmpty) {
+                return ListView(
                   children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
-                      size: DSIconSize.sm,
-                      color: DSColors.primary,
-                    ),
-                    DSSpacing.wSm,
-                    Text(
-                      'bagsakan.coming_soon'.tr(),
-                      style: DSTypography.caption(
-                        color: isDark
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.7,
+                      child: EmptyState(
+                        message: 'bagsakan.empty_list'.tr(),
+                        icon: Icons.inventory_2_outlined,
+                        iconColor: isDark
                             ? DSColors.labelSecondaryDark
                             : DSColors.labelSecondary,
                       ),
                     ),
                   ],
-                ),
-              ),
-            ],
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(DSSpacing.md),
+                itemCount: groups.length,
+                itemBuilder: (context, index) {
+                  final group = groups[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: DSSpacing.md),
+                    child: BagsakanGroupCard(
+                      group: group,
+                      isDark: isDark,
+                      onTap: () {
+                        final id = group['id'] as int;
+                        context.push('/bagsakan/edit/$id');
+                      },
+                      onDelete: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text(
+                              'bagsakan.delete_confirm_title'.tr(),
+                              style: DSTypography.heading(
+                                color: isDark
+                                    ? DSColors.labelPrimaryDark
+                                    : DSColors.labelPrimary,
+                              ),
+                            ),
+                            content: Text(
+                              'bagsakan.delete_confirm_message'.tr(),
+                              style: DSTypography.body(
+                                color: isDark
+                                    ? DSColors.labelSecondaryDark
+                                    : DSColors.labelSecondary,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(
+                                  'common.cancel'.tr(),
+                                  style: DSTypography.body(
+                                    color: DSColors.primary,
+                                  ).copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(
+                                  'bagsakan.delete_confirm_confirm'.tr(),
+                                  style: DSTypography.body(
+                                    color: DSColors.error,
+                                  ).copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                            backgroundColor: isDark
+                                ? DSColors.cardDark
+                                : DSColors.cardLight,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: DSStyles.cardRadius,
+                            ),
+                          ),
+                        );
+
+                        if (confirmed == true && context.mounted) {
+                          // UI only for now as requested
+                          showAppSnackbar(
+                            context,
+                            'bagsakan.success_deleted'.tr(
+                              args: [group['name']],
+                            ),
+                            type: SnackbarType.success,
+                          );
+
+                          // COMMENTED OUT FOR LATER BACKEND INTEGRATION
+                          // final id = group['id'] as int;
+                          // await ref.read(bagsakanDaoProvider).deleteBagsakanGroup(id);
+                          // ref.read(deliveryRefreshProvider.notifier).increment();
+                        }
+                      },
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ),
       ),

@@ -7,13 +7,15 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
-import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_submit_fab.dart';
-import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_components.dart';
 
 enum BagsakanSearchMode { barcode, accountName }
 
@@ -21,24 +23,57 @@ enum BagsakanSearchMode { barcode, accountName }
 const _kSectionGap = DSSpacing.hLg;
 const _kInnerGap = DSSpacing.hSm;
 
-class CreateBagsakanScreen extends ConsumerStatefulWidget {
-  const CreateBagsakanScreen({super.key});
+class BagsakanListScreen extends ConsumerStatefulWidget {
+  final int? groupId;
+
+  const BagsakanListScreen({super.key, this.groupId});
 
   @override
-  ConsumerState<CreateBagsakanScreen> createState() =>
-      _CreateBagsakanScreenState();
+  ConsumerState<BagsakanListScreen> createState() => _BagsakanListScreenState();
 }
 
-class _CreateBagsakanScreenState extends ConsumerState<CreateBagsakanScreen> {
+class _BagsakanListScreenState extends ConsumerState<BagsakanListScreen> {
   final _groupNameController = TextEditingController();
   final _groupDescriptionController = TextEditingController();
   final _searchController = TextEditingController();
 
   BagsakanSearchMode _searchMode = BagsakanSearchMode.barcode;
   bool _isSearching = false;
-  final bool _isCreating = false;
+  bool _isSaving = false;
+  bool _isLoadingGroup = false;
   List<LocalDelivery> _searchResults = [];
   final List<LocalDelivery> _groupItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.groupId != null) {
+      _loadGroupData();
+    }
+  }
+
+  Future<void> _loadGroupData() async {
+    setState(() => _isLoadingGroup = true);
+    try {
+      final dao = ref.read(bagsakanDaoProvider);
+      final group = await dao.getBagsakanGroup(widget.groupId!);
+      if (group != null) {
+        _groupNameController.text = group['name'] as String;
+        _groupDescriptionController.text =
+            group['description'] as String? ?? '';
+
+        final items = await dao.getBagsakanItems(widget.groupId!);
+        if (mounted) {
+          setState(() {
+            _groupItems.clear();
+            _groupItems.addAll(items);
+          });
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingGroup = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -57,20 +92,148 @@ class _CreateBagsakanScreenState extends ConsumerState<CreateBagsakanScreen> {
     setState(() => _isSearching = true);
     try {
       final results = _searchMode == BagsakanSearchMode.barcode
-          ? await LocalDeliveryDao.instance.searchByBarcodeLike(query)
-          : await LocalDeliveryDao.instance.searchByAccountName(query);
+          ? await ref.read(bagsakanDaoProvider).searchByBarcodeLike(query)
+          : await ref.read(bagsakanDaoProvider).searchByAccountName(query);
       if (mounted) setState(() => _searchResults = results);
     } finally {
       if (mounted) setState(() => _isSearching = false);
     }
   }
 
-  void _onCreateGroup() {
-    // TODO: implement create group
+  Future<void> _onSaveGroup() async {
+    final name = _groupNameController.text.trim();
+    if (name.isEmpty) {
+      showErrorNotification(context, 'bagsakan.error_empty_name'.tr());
+      return;
+    }
+    if (_groupItems.isEmpty) {
+      showErrorNotification(context, 'bagsakan.error_empty_items'.tr());
+      return;
+    }
+
+    final description = _groupDescriptionController.text.trim();
+    setState(() => _isSaving = true);
+    try {
+      final dao = ref.read(bagsakanDaoProvider);
+      final int groupId;
+
+      if (widget.groupId != null) {
+        groupId = widget.groupId!;
+        await dao.updateBagsakanGroup(
+          groupId: groupId,
+          name: name,
+          description: description,
+        );
+        // Clear current items to handle removals properly
+        await dao.clearBagsakanGroup(groupId);
+      } else {
+        groupId = await dao.createBagsakanGroup(
+          name: name,
+          description: description,
+        );
+      }
+
+      await dao.assignToBagsakan(
+        groupId: groupId,
+        barcodes: _groupItems.map((e) => e.barcode).toList(),
+      );
+
+      if (mounted) {
+        showSuccessNotification(
+          context,
+          widget.groupId != null
+              ? 'bagsakan.success_updated'.tr(args: [name])
+              : 'bagsakan.success_created'.tr(args: [name]),
+        );
+        ref.read(deliveryRefreshProvider.notifier).increment();
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorNotification(context, 'bagsakan.error_failed'.tr());
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
+  // ─── MARK: Handlers ────────────────────────────────────────────────────────
+
   void _onAddToBagsakan(LocalDelivery delivery) {
-    // TODO: implement add to group
+    if (_groupItems.any((e) => e.barcode == delivery.barcode)) {
+      showInfoNotification(context, 'bagsakan.already_added'.tr());
+      return;
+    }
+
+    setState(() {
+      _groupItems.add(delivery);
+      _searchResults.removeWhere((e) => e.barcode == delivery.barcode);
+    });
+  }
+
+  Future<void> _onRemoveFromBagsakan(LocalDelivery delivery) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'bagsakan.remove_confirm_title'.tr(),
+          style: DSTypography.heading(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? DSColors.labelPrimaryDark
+                : DSColors.labelPrimary,
+          ),
+        ),
+        content: Text(
+          'bagsakan.remove_confirm_message'.tr(
+            args: [delivery.recipientName ?? delivery.barcode],
+          ),
+          style: DSTypography.body(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? DSColors.labelSecondaryDark
+                : DSColors.labelSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'common.cancel'.tr(),
+              style: DSTypography.body(
+                color: DSColors.primary,
+              ).copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'common.confirm'.tr(),
+              style: DSTypography.body(
+                color: DSColors.error,
+              ).copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? DSColors.cardDark
+            : DSColors.cardLight,
+        shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _groupItems.removeWhere((e) => e.barcode == delivery.barcode);
+      });
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          'bagsakan.success_removed'.tr(
+            args: [delivery.recipientName ?? delivery.barcode],
+          ),
+          type: SnackbarType.success,
+        );
+      }
+    }
   }
 
   Widget _radioOption({
@@ -111,21 +274,33 @@ class _CreateBagsakanScreenState extends ConsumerState<CreateBagsakanScreen> {
     );
   }
 
+  // ─── MARK: UI Building ─────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: DeliverySubmitFab(
-        isLoading: _isCreating,
-        onPressed: _onCreateGroup,
-        label: 'bagsakan.create_group'.tr(),
-        icon: Icons.inventory_2_rounded,
+      floatingActionButton: _groupItems.isEmpty
+          ? null
+          : DeliverySubmitFab(
+              isLoading: _isSaving,
+              onPressed: _onSaveGroup,
+              label: widget.groupId != null
+                  ? 'bagsakan.update_group'.tr()
+                  : 'bagsakan.create_group'.tr(),
+              icon: widget.groupId != null
+                  ? Icons.save_rounded
+                  : Icons.inventory_2_rounded,
+            ),
+      appBar: AppHeaderBar(
+        title: widget.groupId != null
+            ? 'bagsakan.edit'.tr()
+            : 'bagsakan.create'.tr(),
       ),
-      appBar: AppHeaderBar(title: 'bagsakan.create'.tr()),
       body: LoadingOverlay(
-        isLoading: _isSearching || _isCreating,
+        isLoading: _isSearching || _isSaving || _isLoadingGroup,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
             DSSpacing.md,
@@ -239,15 +414,18 @@ class _CreateBagsakanScreenState extends ConsumerState<CreateBagsakanScreen> {
             // Search results / no-results feedback
             if (_searchResults.isNotEmpty) ...[
               _kSectionGap,
-              ..._searchResults.map(
-                (delivery) => DeliveryCard(
+              ..._searchResults.map((delivery) {
+                final isAdded = _groupItems.any(
+                  (e) => e.barcode == delivery.barcode,
+                );
+                return BagsakanItemCard(
                   delivery: delivery.toDeliveryMap(),
-                  onTap: () {},
-                  compact: false,
-                  isForAssigning: true,
-                  onAddToBagsakanTap: () => _onAddToBagsakan(delivery),
-                ),
-              ),
+                  isDark: isDark,
+                  isAdded: isAdded,
+                  onAdd: () => _onAddToBagsakan(delivery),
+                  onRemove: () => _onRemoveFromBagsakan(delivery),
+                );
+              }),
             ] else if (_searchController.text.isNotEmpty && !_isSearching) ...[
               _kSectionGap,
               SizedBox(
@@ -278,10 +456,12 @@ class _CreateBagsakanScreenState extends ConsumerState<CreateBagsakanScreen> {
               )
             else
               ..._groupItems.map(
-                (delivery) => DeliveryCard(
+                (delivery) => BagsakanItemCard(
+                  key: Key('group_item_${delivery.barcode}'),
                   delivery: delivery.toDeliveryMap(),
-                  onTap: () {},
-                  compact: true,
+                  isDark: isDark,
+                  isAdded: true,
+                  onRemove: () => _onRemoveFromBagsakan(delivery),
                 ),
               ),
           ],

@@ -222,6 +222,10 @@ class LocalDeliveryDao {
     }
   }
 
+  // ─── MARK: Bagsakan (Legacy) ────────────────────────────────────────────────
+  // Note: Most Bagsakan operations have been moved to BagsakanDao.
+  // Use bagsakanDaoProvider instead.
+
   /// Inserts (or replaces) delivery items from the `GET /deliveries` API response.
   /// Uses [LocalDelivery.fromApiItem] which tolerates both eligibility-response
   /// field names and delivery-API field names.
@@ -372,7 +376,9 @@ class LocalDeliveryDao {
   Future<int> countByStatus(String status) async {
     final db = await _db;
     final res = await db.rawQuery(
-      'SELECT COUNT(*) FROM local_deliveries WHERE delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0',
+      'SELECT COUNT(*) FROM local_deliveries '
+      'WHERE delivery_status COLLATE NOCASE = ? '
+      'AND COALESCE(is_archived, 0) = 0 ',
       [status.toUpperCase()],
     );
     if (status.toUpperCase() == 'FOR_DELIVERY') {
@@ -397,7 +403,8 @@ class LocalDeliveryDao {
       'local_deliveries',
       columns: ['barcode'],
       where:
-          "delivery_status COLLATE NOCASE IN ('FOR_DELIVERY') AND COALESCE(is_archived, 0) = 0",
+          "delivery_status COLLATE NOCASE IN ('FOR_DELIVERY') "
+          "AND COALESCE(is_archived, 0) = 0 ",
     );
     return rows.map((r) => r['barcode'] as String).toSet();
   }
@@ -408,7 +415,8 @@ class LocalDeliveryDao {
     final rows = await db.query(
       'local_deliveries',
       where:
-          'delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0',
+          'delivery_status COLLATE NOCASE = ? '
+          'AND COALESCE(is_archived, 0) = 0 ',
       whereArgs: [status.toUpperCase()],
       orderBy: 'updated_at DESC',
     );
@@ -424,7 +432,8 @@ class LocalDeliveryDao {
     final db = await _db;
 
     String where =
-        'delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0';
+        'delivery_status COLLATE NOCASE = ? '
+        'AND COALESCE(is_archived, 0) = 0 ';
     List<Object?> whereArgs = [status.toUpperCase()];
 
     // Apply testing window for FOR_DELIVERY if configured.
@@ -490,6 +499,7 @@ class LocalDeliveryDao {
       where:
           "delivery_status COLLATE NOCASE = 'OSA' "
           'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL '
           '$windowClause',
       whereArgs: [...windowArgs],
       orderBy: 'updated_at DESC',
@@ -521,7 +531,8 @@ class LocalDeliveryDao {
       where:
           "delivery_status COLLATE NOCASE = 'DELIVERED' "
           'AND delivered_at >= ? AND delivered_at < ? '
-          'AND COALESCE(is_archived, 0) = 0',
+          'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL',
       whereArgs: [todayStart, tomorrowStart],
       orderBy: 'updated_at DESC',
       limit: limit,
@@ -560,7 +571,7 @@ class LocalDeliveryDao {
           "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
           "AND delivery_status COLLATE NOCASE = 'DELIVERED' "
           'AND delivered_at >= ? AND delivered_at < ? '
-          'AND COALESCE(is_archived, 0) = 0';
+          'AND COALESCE(is_archived, 0) = 0 ';
       whereArgs = [q, q, todayStart, tomorrowStart];
     } else if (status.toUpperCase() == 'FAILED_DELIVERY') {
       final (wClause, wArgs) = _windowClause(
@@ -595,7 +606,7 @@ class LocalDeliveryDao {
     } else {
       where =
           '(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) AND delivery_status COLLATE NOCASE = ? '
-          'AND COALESCE(is_archived, 0) = 0';
+          'AND COALESCE(is_archived, 0) = 0 ';
       whereArgs = [q, q, status.toUpperCase()];
     }
 
@@ -632,74 +643,14 @@ class LocalDeliveryDao {
     final rows = await db.query(
       'local_deliveries',
       where:
-          '(barcode LIKE ? COLLATE NOCASE OR recipient_name LIKE ? COLLATE NOCASE) AND COALESCE(is_archived, 0) = 0',
+          '(barcode LIKE ? COLLATE NOCASE OR recipient_name LIKE ? COLLATE NOCASE) '
+          'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL',
       whereArgs: [q, q],
       orderBy: 'updated_at DESC',
       limit: limit,
     );
     return rows.map(LocalDelivery.fromDb).toList();
-  }
-
-  /// Searches deliveries by barcode (Filtered for Bagsakan).
-  ///
-  /// ONLY includes Pending items (FOR_DELIVERY / FOR_REDELIVERY) with less than 3
-  /// attempts. Excludes OSA, Delivered, and all Failed Deliveries.
-  Future<List<LocalDelivery>> searchByBarcodeLike(
-    String query, {
-    int limit = 30,
-  }) async {
-    if (query.trim().isEmpty) return [];
-    final db = await _db;
-    final q = '%${query.trim()}%';
-    final rows = await db.rawQuery(
-      '''
-      SELECT * FROM local_deliveries
-      WHERE barcode LIKE ? COLLATE NOCASE 
-        AND COALESCE(is_archived, 0) = 0
-        AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY')
-      ORDER BY updated_at DESC
-      LIMIT $limit
-      ''',
-      [q],
-    );
-    final deliveries = rows.map(LocalDelivery.fromDb).toList();
-
-    // Bagsakan ONLY includes Pending items (FOR_DELIVERY / FOR_REDELIVERY) with less than 3 attempts.
-    // Excludes: OSA, Delivered, and all Failed Deliveries.
-    return deliveries.where((d) {
-      return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
-    }).toList();
-  }
-
-  /// Searches deliveries by recipient_name (Filtered for Bagsakan).
-  ///
-  /// ONLY includes Pending items (FOR_DELIVERY / FOR_REDELIVERY) with less than 3
-  /// attempts. Excludes OSA, Delivered, and all Failed Deliveries.
-  Future<List<LocalDelivery>> searchByAccountName(
-    String query, {
-    int limit = 30,
-  }) async {
-    if (query.trim().isEmpty) return [];
-    final db = await _db;
-    final q = '%${query.trim()}%';
-    final rows = await db.rawQuery(
-      '''
-      SELECT * FROM local_deliveries
-      WHERE recipient_name LIKE ? COLLATE NOCASE 
-        AND COALESCE(is_archived, 0) = 0
-        AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY')
-      ORDER BY updated_at DESC
-      LIMIT $limit
-      ''',
-      [q],
-    );
-    final deliveries = rows.map(LocalDelivery.fromDb).toList();
-
-    // Bagsakan ONLY includes Pending items (FOR_DELIVERY / FOR_REDELIVERY) with less than 3 attempts.
-    // Excludes: OSA, Delivered, and all Failed Deliveries.
-    return deliveries.where((d) {
-      return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
-    }).toList();
   }
 
   /// Variant of [searchByQuery] restricted to deliveries that are actionable
@@ -730,6 +681,7 @@ class LocalDeliveryDao {
       SELECT * FROM local_deliveries
       WHERE (barcode LIKE ? COLLATE NOCASE OR recipient_name LIKE ? COLLATE NOCASE)
         AND COALESCE(is_archived, 0) = 0
+        AND bagsakan_id IS NULL
         AND (
           -- FOR_DELIVERY: any non-archived pending record
           (delivery_status COLLATE NOCASE IN ('FOR_DELIVERY','FOR_REDELIVERY'))
@@ -808,7 +760,8 @@ class LocalDeliveryDao {
       'SELECT COUNT(*) FROM local_deliveries '
       "WHERE delivery_status COLLATE NOCASE = 'DELIVERED' "
       'AND delivered_at >= ? AND delivered_at < ? '
-      'AND COALESCE(is_archived, 0) = 0',
+      'AND COALESCE(is_archived, 0) = 0 '
+      'AND bagsakan_id IS NULL',
       [todayStart, tomorrowStart],
     );
     final count = Sqflite.firstIntValue(res) ?? 0;
@@ -846,6 +799,7 @@ class LocalDeliveryDao {
       // Exclude all verified failed-delivery items (with or without pay).
       "AND COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay') "
       'AND COALESCE(is_archived, 0) = 0 '
+      'AND bagsakan_id IS NULL '
       '$wClause',
       wArgs,
     );
@@ -866,6 +820,7 @@ class LocalDeliveryDao {
       'SELECT COUNT(*) FROM local_deliveries '
       "WHERE delivery_status COLLATE NOCASE = 'OSA' "
       'AND COALESCE(is_archived, 0) = 0 '
+      'AND bagsakan_id IS NULL '
       '$wClause',
       wArgs,
     );
@@ -909,8 +864,12 @@ class LocalDeliveryDao {
     final row = rows.first;
     final statusStr = (row['delivery_status'] as String? ?? '').toUpperCase();
     final isArchived = (row['is_archived'] as int? ?? 0) != 0;
-    if (isArchived) {
-      debugPrint('[DAO] isVisibleToRider($barcode) -> archived=1');
+    final bagsakanId = row['bagsakan_id'] as int?;
+
+    if (isArchived || bagsakanId != null) {
+      debugPrint(
+        '[DAO] isVisibleToRider($barcode) -> archived=$isArchived bagsakanId=$bagsakanId',
+      );
       return false;
     }
 
