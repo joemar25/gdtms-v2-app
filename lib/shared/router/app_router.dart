@@ -27,7 +27,8 @@ import 'package:fsi_courier_app/features/sync/sync_screen.dart';
 import 'package:fsi_courier_app/features/wallet/wallet_screen.dart';
 import 'package:fsi_courier_app/features/initial_sync/initial_sync_screen.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_screen.dart';
-import 'package:fsi_courier_app/features/bagsakan/bagsakan_list_screen.dart';
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_form_screen.dart';
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_group_items_screen.dart';
 import 'package:fsi_courier_app/features/error_logs/error_logs_screen.dart';
 import 'package:fsi_courier_app/features/notifications/notifications_screen.dart';
 import 'package:fsi_courier_app/features/legal/terms_screen.dart';
@@ -305,7 +306,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     parentNavigatorKey: rootNavigatorKey,
                     pageBuilder: (_, state) => _page(
                       key: state.pageKey,
-                      child: const BagsakanListScreen(),
+                      child: const BagsakanFormScreen(),
                       extra: state.extra,
                     ),
                   ),
@@ -318,7 +319,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       );
                       return _page(
                         key: state.pageKey,
-                        child: BagsakanListScreen(groupId: id),
+                        child: BagsakanFormScreen(groupId: id),
+                        extra: state.extra,
+                      );
+                    },
+                  ),
+                  GoRoute(
+                    path: 'group/:groupId',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (_, state) {
+                      final id =
+                          int.tryParse(state.pathParameters['groupId'] ?? '') ??
+                          0;
+                      return _page(
+                        key: state.pageKey,
+                        child: BagsakanGroupItemsScreen(groupId: id),
                         extra: state.extra,
                       );
                     },

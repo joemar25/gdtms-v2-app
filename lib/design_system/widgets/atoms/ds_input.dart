@@ -15,6 +15,7 @@ class DSInput extends StatefulWidget {
   final Widget? suffixIcon;
   final String? hintText;
   final void Function(String)? onChanged;
+  final bool autofocus;
 
   const DSInput({
     super.key,
@@ -29,6 +30,7 @@ class DSInput extends StatefulWidget {
     this.suffixIcon,
     this.hintText,
     this.onChanged,
+    this.autofocus = false,
   });
 
   @override
@@ -74,6 +76,7 @@ class _DSInputState extends State<DSInput> {
         inputFormatters: widget.inputFormatters,
         enabled: widget.enabled,
         onChanged: widget.onChanged,
+        autofocus: widget.autofocus,
         style: DSTypography.body(
           color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
         ),

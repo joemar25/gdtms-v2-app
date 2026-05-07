@@ -49,7 +49,11 @@ Controlled by `PaginationBar`. Page size is defined in `constants.dart`. Changin
 
 ### Scan Actions
 
-The header in `DeliveryStatusListScreen` for both `FOR_DELIVERY` and `FAILED_DELIVERY` must use **Scan POD** mode. This allows for local SQLite lookups and direct navigation to the `DeliveryUpdateScreen`. Refer to [scan.md](scan.md) for full rulings.
+The header in `DeliveryStatusListScreen` for both `FOR_DELIVERY` and `FAILED_DELIVERY` must use **Scan POD** mode.
+
+### Integrated Sub-Header (Failed Delivery)
+
+The `FAILED_DELIVERY` list uses the **Integrated Header Pattern**. The sub-filters ("For Redelivery" and "For Return") are embedded in a branded, primary-colored sub-header that merges with the top app bar. This provides a unified visual experience for complex status filtering.
 
 ---
 
@@ -73,6 +77,10 @@ Check `SyncOperationsDao.getSyncQueuedBarcodes()` on `_load()`. If the barcode i
 ### Purpose
 
 Offline-first POD (proof-of-delivery) update form.
+
+### Integrated Header Layout
+
+The `DeliveryUpdateScreen` uses the **Integrated Header Pattern**. The `AppHeaderBar` is borderless and merges into a primary-colored sub-header containing the **Status Selector**. This ensures the most critical control (Status) is prominently featured in a high-contrast, premium branded area.
 
 ### Image compression
 

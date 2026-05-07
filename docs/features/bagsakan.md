@@ -175,5 +175,6 @@ Deliveries assigned to a bagsakan group (`bagsakan_id IS NOT NULL`) are **exclud
 - **Delete guard**: Before executing delete, the DAO checks `status != 'submitted'`. If submitted, the operation is aborted.
 - **Untagging**: On delete, an `UPDATE local_deliveries SET bagsakan_id = NULL WHERE bagsakan_id = ?` is executed before removing the `bagsakan_groups` record.
 - **Courier bagsakan list lifetime**: Queries for the courier's bagsakan list filter out entries where `submitted_at` is not null and `submitted_at < (now - 1 day)`, mirroring the delivered lifetime filter in the regular delivery status list.
-- **UI (operator)**: `BagsakanListScreen` handles the creation, assignment, management, and deletion flow. The delete button is conditionally hidden when `status == 'submitted'`.
+- **UI (operator)**: `BagsakanListScreen` handles the creation, assignment, management, and deletion flow.
+- **UI (Bagsakan Form)**: Uses the **Integrated Header Pattern** with two tabs ("Info" and "Deliveries") managed by `DSSegmentedSelector`. The header is borderless and merges with a branded primary-colored sub-header.
 - **UI (courier)**: Dispatch list shows bagsakan-tagged items distinctly. Accepting moves all group deliveries into the bagsakan list screen. The bagsakan list auto-purges entries past the 1-day submitted lifetime.

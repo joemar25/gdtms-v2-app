@@ -35,6 +35,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     this.showProfileAvatar = false,
     this.isPersonalized = false,
     this.leadingWidth,
+    this.showBottomBorder = true,
   });
 
   final String? title;
@@ -51,6 +52,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   final String? heroTag;
   final bool showProfileAvatar;
   final bool isPersonalized;
+  final bool showBottomBorder;
 
   @override
   Size get preferredSize =>
@@ -148,14 +150,16 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     return Container(
       decoration: BoxDecoration(
         color: headerColor,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark
-                ? DSColors.separatorDark.withValues(alpha: 0.1)
-                : DSColors.white.withValues(alpha: 0.15),
-            width: 0.5,
-          ),
-        ),
+        border: showBottomBorder
+            ? Border(
+                bottom: BorderSide(
+                  color: isDark
+                      ? DSColors.separatorDark.withValues(alpha: 0.1)
+                      : DSColors.white.withValues(alpha: 0.15),
+                  width: 0.5,
+                ),
+              )
+            : null,
         boxShadow: [
           if (backgroundColor != null &&
               backgroundColor != DSColors.transparent)

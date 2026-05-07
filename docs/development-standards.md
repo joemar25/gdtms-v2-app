@@ -105,6 +105,7 @@ Duplicate UI code and hardcoded values are technical debt.
 - **Typography for All**: **NEVER** use direct `TextStyle()` constructors. Always use `DSTypography` methods. This ensures the correct Montserrat weight mapping and theme-aware colors are used app-wide.
 - **Search Before Creating**: Check `lib/shared/widgets/` for existing molecules/atoms before building a new UI component.
 - **Icons**: Use `DSColors.labelSecondary` or `Theme.of(context).iconTheme.color` for icons. Do not hardcode `Colors.black54` etc.
+- **Integrated Header Continuity**: For screens with sub-navigation or primary status selectors (e.g., Bagsakan, Delivery Update, Status Lists), use the **Integrated Header Pattern**. Disable the `AppHeaderBar` bottom border and merge it with a primary-colored, rounded sub-header container. This ensures a "single-unit" premium feel. Refer to `docs/styles.md` for specific layout values.
 
 #### 05 — Mandatory Package Imports
 

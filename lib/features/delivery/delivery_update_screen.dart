@@ -945,6 +945,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           onPressed: _submit,
         ),
         appBar: AppHeaderBar(
+          showBottomBorder: false,
           titleWidget: DeliveryUpdateAppBarTitle(
             barcode: widget.barcode,
             isInverse: true,
@@ -974,6 +975,40 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             },
             child: Column(
               children: [
+                // ── STATUS SELECTION SUB-HEADER ──────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(DSSpacing.xl),
+                      bottomRight: Radius.circular(DSSpacing.xl),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).primaryColor.withValues(alpha: 0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.fromLTRB(
+                    DSSpacing.md,
+                    0,
+                    DSSpacing.md,
+                    DSSpacing.lg,
+                  ),
+                  child: DeliveryStatusSection(
+                    statusSelectorKey: _statusSelectorKey,
+                    currentStatus: _status,
+                    onStatusChanged: _onStatusTap,
+                    error: _errors['delivery_status'],
+                    isHeaderIntegrated: true,
+                  ),
+                ),
+
                 Expanded(
                   child: LoadingOverlay(
                     isLoading: _loading,
@@ -1011,13 +1046,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     ),
                                   ),
 
-                                  // ── STATUS SELECTION ────────────────────────────
-                                  DeliveryStatusSection(
-                                    statusSelectorKey: _statusSelectorKey,
-                                    currentStatus: _status,
-                                    onStatusChanged: _onStatusTap,
-                                    error: _errors['delivery_status'],
-                                  ),
+                                  // Removed old DeliveryStatusSection position
 
                                   // ── RECIPIENT INFO (delivered only) ──────────
                                   if (_isDelivered) ...[

@@ -9,7 +9,7 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
 import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
-import 'package:fsi_courier_app/features/bagsakan/bagsakan_list_screen.dart';
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_form_screen.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/bagsakan_dao.dart';
@@ -53,7 +53,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder: (context, state) => const BagsakanListScreen(),
+          builder: (context, state) => const BagsakanFormScreen(),
         ),
       ],
     );
@@ -72,47 +72,53 @@ void main() {
     );
   }
 
-  group('BagsakanListScreen Widget Tests', () {
+  group('BagsakanFormScreen Widget Tests', () {
     testWidgets('renders basic UI components', (tester) async {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
       expect(find.byType(TextField), findsAtLeast(2));
-      expect(
-        find.textContaining('bagsakan.group_info'.tr().toUpperCase()),
-        findsOneWidget,
-      );
+      expect(find.textContaining('bagsakan.tab_info'.tr()), findsOneWidget);
     });
 
-    testWidgets('Create Group button is hidden when no items are added', (
+    testWidgets('Next button is visible on first step', (tester) async {
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      final nextButton = find.text('common.next'.tr());
+      expect(nextButton, findsOneWidget);
+    });
+
+    testWidgets('shows error when clicking Next with empty name', (
       tester,
     ) async {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
-      final createButton = find.text(
-        'bagsakan.create_group'.tr().toUpperCase(),
-      );
-      expect(createButton, findsNothing);
+      final nextButton = find.text('common.next'.tr());
+      await tester.tap(nextButton);
+      await tester.pump();
+      // Clear the snackbar timer to avoid "A Timer is still pending" error
+      await tester.pump(const Duration(seconds: 5));
     });
 
-    testWidgets('shows error when creating with empty name', (tester) async {
+    testWidgets('navigates to step 2 after entering name', (tester) async {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
-      // Tap create (using FAB or Submit button)
-      // Since it's a FAB in some screens or a button in others, let's find the text.
-      final createButton = find.text(
-        'bagsakan.create_group'.tr().toUpperCase(),
+      await tester.enterText(find.byType(TextField).first, 'Test Group');
+      final nextButton = find.text('common.next'.tr());
+      await tester.tap(nextButton);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('bagsakan.tab_deliveries'.tr()),
+        findsOneWidget,
       );
-      if (createButton.evaluate().isNotEmpty) {
-        await tester.tap(createButton);
-        await tester.pumpAndSettle();
-        expect(find.text('bagsakan.error_empty_name'.tr()), findsOneWidget);
-      }
+      expect(find.text('bagsakan.search'.tr()), findsOneWidget);
     });
 
-    testWidgets('search functionality calls DAO', (tester) async {
+    testWidgets('search functionality calls DAO in step 2', (tester) async {
       when(
         () => mockBagsakanDao.searchByBarcodeLike(any()),
       ).thenAnswer((_) async => []);
@@ -120,10 +126,16 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
+      // Enter name and go to step 2
+      await tester.enterText(find.byType(TextField).first, 'Test Group');
+      await tester.tap(find.text('common.next'.tr()));
+      await tester.pumpAndSettle();
+
+      // Now in Step 2
       await tester.enterText(
-        find.byType(TextField).at(2),
+        find.byType(TextField).first,
         'TEST123',
-      ); // Search input
+      ); // Search input is now the first (visible) TextField
       await tester.tap(find.text('bagsakan.search'.tr()));
       await tester.pumpAndSettle();
 

@@ -66,6 +66,24 @@ Single source of truth for all color values. **Never hardcode hex values.**
 
 ---
 
+## Layout Patterns
+
+### Integrated Header System
+
+To create a premium, "unified" feel for complex screens (Forms, Tabbed Lists), we use the Integrated Header Pattern.
+
+**Key Components:**
+- **`AppHeaderBar`**: Set `showBottomBorder: false` to remove the separation line.
+- **Sub-Header Container**: A branded `Container` with the global `primaryColor` and `DSSpacing.xl` bottom-corner rounding.
+- **`DSSegmentedSelector`**: Integrated directly into the sub-header with borderless styling and white-alpha unselected states.
+
+**Usage Rules:**
+- The sub-header **must** use `Theme.of(context).primaryColor`.
+- It **must** have a subtle shadow matching the primary color's tone.
+- Unselected text/icons in the selector should use `DSColors.white.withValues(alpha: 0.7)`.
+
+---
+
 ## Components
 
 ### `DSInput`

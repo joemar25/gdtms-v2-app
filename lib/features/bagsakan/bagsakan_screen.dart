@@ -105,7 +105,7 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                       isDark: isDark,
                       onTap: () {
                         final id = group['id'] as int;
-                        context.push('/bagsakan/edit/$id');
+                        context.push('/bagsakan/group/$id');
                       },
                       onDelete: () async {
                         final confirmed = await showDialog<bool>(

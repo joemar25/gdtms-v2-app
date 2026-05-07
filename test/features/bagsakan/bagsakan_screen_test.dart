@@ -65,6 +65,11 @@ void main() {
               builder: (context, state) =>
                   const Scaffold(body: Text('Edit Screen')),
             ),
+            GoRoute(
+              path: 'group/:groupId',
+              builder: (context, state) =>
+                  const Scaffold(body: Text('Details Screen')),
+            ),
           ],
         ),
       ],
@@ -165,7 +170,7 @@ void main() {
       );
     });
 
-    testWidgets('tapping a group card navigates to edit screen', (
+    testWidgets('tapping a group card navigates to details screen', (
       tester,
     ) async {
       final groups = [
@@ -188,7 +193,15 @@ void main() {
       await tester.tap(find.text('Group A'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Edit Screen'), findsOneWidget);
+      expect(find.text('Details Screen'), findsOneWidget);
+    });
+    group('Bagsakan Screen Edit Mode', () {
+      testWidgets(
+        'tapping edit icon toggles edit mode (now removed from this screen)',
+        (tester) async {
+          // This test is no longer relevant as per user request to move Edit to details
+        },
+      );
     });
   });
 }
