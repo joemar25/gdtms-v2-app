@@ -138,6 +138,82 @@ const bool kEnableGlobalSearch = bool.fromEnvironment(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Delivery Visibility Windows
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Controls how long each delivery status remains visible in the courier's
+// active list before the local DB query filters it out.
+//
+// ## Production rules (default — all windows = 0)
+//
+//   FOR_DELIVERY   → visible forever until archived by the server.
+//   FAILED_DELIVERY→ visible forever until verified by hub OR archived.
+//   OSA            → visible forever until archived by the server.
+//   DELIVERED      → ALWAYS today-only (not configurable — payout law).
+//
+// ## Testing rules (set window > 0)
+//
+//   A positive value N means: show the item for N hours from its
+//   `completed_at` timestamp (FAILED_DELIVERY, OSA) or from `created_at`
+//   (FOR_DELIVERY). After N hours the item is filtered from the list query
+//   as if it had been archived, without touching the database.
+//
+//   Example — simulate midnight clearing at 1 hour window:
+//     dart_defines.json:
+//       "FAILED_DELIVERY_VISIBILITY_MINUTES": 60
+//       "OSA_VISIBILITY_MINUTES": 60
+//
+//   Example — simulate a 1-minute test window (fastest test):
+//     flutter run --dart-define=FAILED_DELIVERY_VISIBILITY_MINUTES=1 ...
+//
+//   Example — simulate a 30-minute test window:
+//     dart_defines.json:
+//       "FAILED_DELIVERY_VISIBILITY_MINUTES": 30
+//
+// ⚠️  PRODUCTION SAFETY: All three defaults are 0 (disabled).
+//     NEVER ship a build with non-zero values in release/prod defines.
+
+/// Visibility window for FAILED_DELIVERY items, in **minutes**.
+///
+/// - `0` = no window (production default — items persist until verified/archived).
+/// - `60` = items disappear 60 min after their `completed_at` timestamp.
+/// - `1` = items disappear after 1 minute (fastest test scenario).
+///
+/// Set via `--dart-define=FAILED_DELIVERY_VISIBILITY_MINUTES=<n>`
+/// or in `dart_defines.json`.
+const int kFailedDeliveryVisibilityWindowMinutes = int.fromEnvironment(
+  'FAILED_DELIVERY_VISIBILITY_MINUTES',
+  defaultValue: 0,
+);
+
+/// Visibility window for OSA items, in **minutes**.
+///
+/// - `0` = no window (production default — items persist until archived).
+/// - `60` = items disappear 60 min after their `completed_at` timestamp.
+const int kOsaVisibilityWindowMinutes = int.fromEnvironment(
+  'OSA_VISIBILITY_MINUTES',
+  defaultValue: 0,
+);
+
+/// Visibility window for FOR_DELIVERY items, in **minutes**.
+///
+/// - `0` = no window (production default — items persist until archived).
+///
+/// Use this to test that pending items correctly disappear when the server
+/// removes them from a courier's workload after a set time window.
+const int kForDeliveryVisibilityWindowMinutes = int.fromEnvironment(
+  'FOR_DELIVERY_VISIBILITY_MINUTES',
+  defaultValue: 0,
+);
+
+/// True when ANY visibility window is active.
+/// Useful for logging / asserting that production builds are always clean.
+const bool kVisibilityWindowsActive =
+    kFailedDeliveryVisibilityWindowMinutes > 0 ||
+    kOsaVisibilityWindowMinutes > 0 ||
+    kForDeliveryVisibilityWindowMinutes > 0;
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Debug Mode
 // ─────────────────────────────────────────────────────────────────────────────
 

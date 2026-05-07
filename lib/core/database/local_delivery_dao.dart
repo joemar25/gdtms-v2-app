@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
@@ -20,7 +21,40 @@ class LocalDeliveryDao {
 
   Future<Database> get _db => AppDatabase.getInstance();
 
-  // ── Write ─────────────────────────────────────────────────────────────────
+  // ── Visibility window helpers ──────────────────────────────────────────────
+
+  /// Converts a [minutes] value from config into milliseconds.
+  /// Returns `null` when [minutes] is 0 (= no window, production mode).
+  static int? _windowMs(int minutes) {
+    if (minutes <= 0) return null;
+    return minutes * Duration.millisecondsPerMinute;
+  }
+
+  /// Returns a SQL `AND completed_at >= ?` clause + arg list for a rolling
+  /// visibility window, or an empty string + empty list when no window is set.
+  ///
+  /// The [timestampColumn] is the column to compare against (usually
+  /// `completed_at` for FAILED_DELIVERY / OSA, `created_at` for FOR_DELIVERY).
+  ///
+  /// Usage:
+  /// ```dart
+  /// final (clause, args) = _windowClause(kFailedDeliveryVisibilityWindowMinutes);
+  /// where += clause;
+  /// whereArgs.addAll(args);
+  /// ```
+  static (String, List<Object>) _windowClause(
+    int minutes, {
+    String timestampColumn = 'completed_at',
+  }) {
+    final ms = _windowMs(minutes);
+    if (ms == null) return ('', []);
+    final cutoff = DateTime.now().millisecondsSinceEpoch - ms;
+    debugPrint(
+      '[DAO] visibility window active: ${minutes}min for $timestampColumn '
+      '(cutoff=${DateTime.fromMillisecondsSinceEpoch(cutoff)})',
+    );
+    return ('AND COALESCE($timestampColumn, 0) >= ? ', [cutoff]);
+  }
 
   /// Inserts (or replaces) the delivery objects from the eligibility response
   /// into local storage, binding them to the accepting [dispatchCode].
@@ -388,11 +422,25 @@ class LocalDeliveryDao {
     int offset = 0,
   }) async {
     final db = await _db;
+
+    String where =
+        'delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0';
+    List<Object?> whereArgs = [status.toUpperCase()];
+
+    // Apply testing window for FOR_DELIVERY if configured.
+    if (status.toUpperCase() == 'FOR_DELIVERY') {
+      final (wClause, wArgs) = _windowClause(
+        kForDeliveryVisibilityWindowMinutes,
+        timestampColumn: 'created_at',
+      );
+      where += ' $wClause';
+      whereArgs.addAll(wArgs);
+    }
+
     final rows = await db.query(
       'local_deliveries',
-      where:
-          'delivery_status COLLATE NOCASE = ? AND COALESCE(is_archived, 0) = 0',
-      whereArgs: [status.toUpperCase()],
+      where: where,
+      whereArgs: whereArgs,
       orderBy: 'updated_at DESC',
       limit: limit,
       offset: offset,
@@ -406,25 +454,19 @@ class LocalDeliveryDao {
     int offset = 0,
   }) async {
     final db = await _db;
-    final now = DateTime.now();
-    final todayStart = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).millisecondsSinceEpoch;
-    final tomorrowStart = DateTime(
-      now.year,
-      now.month,
-      now.day + 1,
-    ).millisecondsSinceEpoch;
+    // Production: no date filter — items persist until verified or archived.
+    // Testing: apply rolling window from kFailedDeliveryVisibilityWindowHours.
+    final (windowClause, windowArgs) = _windowClause(
+      kFailedDeliveryVisibilityWindowMinutes,
+    );
     final rows = await db.query(
       'local_deliveries',
       where:
           "delivery_status COLLATE NOCASE = 'FAILED_DELIVERY' "
-          "AND completed_at >= ? AND completed_at < ? "
           "AND COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay') "
-          'AND COALESCE(is_archived, 0) = 0',
-      whereArgs: [todayStart, tomorrowStart],
+          'AND COALESCE(is_archived, 0) = 0 '
+          '$windowClause',
+      whereArgs: [...windowArgs],
       orderBy: 'updated_at DESC',
       limit: limit,
       offset: offset,
@@ -438,24 +480,18 @@ class LocalDeliveryDao {
     int offset = 0,
   }) async {
     final db = await _db;
-    final now = DateTime.now();
-    final todayStart = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).millisecondsSinceEpoch;
-    final tomorrowStart = DateTime(
-      now.year,
-      now.month,
-      now.day + 1,
-    ).millisecondsSinceEpoch;
+    // Production: no date filter — items persist until archived by the server.
+    // Testing: apply rolling window from kOsaVisibilityWindowMinutes.
+    final (windowClause, windowArgs) = _windowClause(
+      kOsaVisibilityWindowMinutes,
+    );
     final rows = await db.query(
       'local_deliveries',
       where:
           "delivery_status COLLATE NOCASE = 'OSA' "
-          'AND completed_at >= ? AND completed_at < ? '
-          'AND COALESCE(is_archived, 0) = 0',
-      whereArgs: [todayStart, tomorrowStart],
+          'AND COALESCE(is_archived, 0) = 0 '
+          '$windowClause',
+      whereArgs: [...windowArgs],
       orderBy: 'updated_at DESC',
       limit: limit,
       offset: offset,
@@ -527,43 +563,35 @@ class LocalDeliveryDao {
           'AND COALESCE(is_archived, 0) = 0';
       whereArgs = [q, q, todayStart, tomorrowStart];
     } else if (status.toUpperCase() == 'FAILED_DELIVERY') {
-      final now = DateTime.now();
-      final todayStart = DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ).millisecondsSinceEpoch;
-      final tomorrowStart = DateTime(
-        now.year,
-        now.month,
-        now.day + 1,
-      ).millisecondsSinceEpoch;
+      final (wClause, wArgs) = _windowClause(
+        kFailedDeliveryVisibilityWindowMinutes,
+      );
       where =
           "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
           "AND delivery_status COLLATE NOCASE = 'FAILED_DELIVERY' "
-          'AND completed_at >= ? AND completed_at < ? '
           // Exclude verified failed-delivery items — once verified the courier can no longer act.
           "AND COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay') "
-          'AND COALESCE(is_archived, 0) = 0';
-      whereArgs = [q, q, todayStart, tomorrowStart];
+          'AND COALESCE(is_archived, 0) = 0 '
+          '$wClause';
+      whereArgs = [q, q, ...wArgs];
     } else if (status.toUpperCase() == 'OSA') {
-      final now = DateTime.now();
-      final todayStart = DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ).millisecondsSinceEpoch;
-      final tomorrowStart = DateTime(
-        now.year,
-        now.month,
-        now.day + 1,
-      ).millisecondsSinceEpoch;
+      final (wClause, wArgs) = _windowClause(kOsaVisibilityWindowMinutes);
       where =
           "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
           "AND delivery_status COLLATE NOCASE = ? "
-          'AND completed_at >= ? AND completed_at < ? '
-          'AND COALESCE(is_archived, 0) = 0';
-      whereArgs = [q, q, status.toUpperCase(), todayStart, tomorrowStart];
+          'AND COALESCE(is_archived, 0) = 0 '
+          '$wClause';
+      whereArgs = [q, q, status.toUpperCase(), ...wArgs];
+    } else if (status.toUpperCase() == 'FOR_DELIVERY') {
+      final (wClause, wArgs) = _windowClause(
+        kForDeliveryVisibilityWindowMinutes,
+        timestampColumn: 'created_at',
+      );
+      where =
+          '(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) AND delivery_status COLLATE NOCASE = ? '
+          'AND COALESCE(is_archived, 0) = 0 '
+          '$wClause';
+      whereArgs = [q, q, status.toUpperCase(), ...wArgs];
     } else {
       where =
           '(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) AND delivery_status COLLATE NOCASE = ? '
@@ -799,68 +827,67 @@ class LocalDeliveryDao {
     return count;
   }
 
-  /// Returns the count of failed-delivery items whose [completed_at] is today.
+  /// Returns the count of unverified FAILED_DELIVERY items in the local DB.
+  ///
+  /// Visibility rule: items remain until they are verified by the hub
+  /// (`rts_verification_status` → verified_with_pay / verified_no_pay)
+  /// or the server stops returning them (reassigned / removed → is_archived).
+  ///
+  /// When [kFailedDeliveryVisibilityWindowHours] > 0 (testing mode), items
+  /// older than the window are excluded.
   Future<int> countVisibleFailedDelivery() async {
     final db = await _db;
-    final now = DateTime.now();
-    final todayStart = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).millisecondsSinceEpoch;
-    final tomorrowStart = DateTime(
-      now.year,
-      now.month,
-      now.day + 1,
-    ).millisecondsSinceEpoch;
+    final (wClause, wArgs) = _windowClause(
+      kFailedDeliveryVisibilityWindowMinutes,
+    );
     final res = await db.rawQuery(
       "SELECT COUNT(*) FROM local_deliveries "
       "WHERE delivery_status COLLATE NOCASE = 'FAILED_DELIVERY' "
-      'AND completed_at >= ? AND completed_at < ? '
       // Exclude all verified failed-delivery items (with or without pay).
       "AND COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay') "
-      'AND COALESCE(is_archived, 0) = 0',
-      [todayStart, tomorrowStart],
+      'AND COALESCE(is_archived, 0) = 0 '
+      '$wClause',
+      wArgs,
     );
     return Sqflite.firstIntValue(res) ?? 0;
   }
 
-  /// Returns the count of OSA items whose [completed_at] is today.
+  /// Returns the count of OSA (misrouted) items in the local DB.
+  ///
+  /// Visibility rule: items remain until the server stops returning them
+  /// (i.e., they have been reassigned to another courier → is_archived).
+  ///
+  /// When [kOsaVisibilityWindowMinutes] > 0 (testing mode), items
+  /// older than the window are excluded.
   Future<int> countVisibleOsa() async {
     final db = await _db;
-    final now = DateTime.now();
-    final todayStart = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).millisecondsSinceEpoch;
-    final tomorrowStart = DateTime(
-      now.year,
-      now.month,
-      now.day + 1,
-    ).millisecondsSinceEpoch;
+    final (wClause, wArgs) = _windowClause(kOsaVisibilityWindowMinutes);
     final res = await db.rawQuery(
       'SELECT COUNT(*) FROM local_deliveries '
       "WHERE delivery_status COLLATE NOCASE = 'OSA' "
-      'AND completed_at >= ? AND completed_at < ? '
-      'AND COALESCE(is_archived, 0) = 0',
-      [todayStart, tomorrowStart],
+      'AND COALESCE(is_archived, 0) = 0 '
+      '$wClause',
+      wArgs,
     );
     return Sqflite.firstIntValue(res) ?? 0;
   }
 
   /// Returns `true` when [barcode] would appear in one of the courier's active
-  /// list screens (pending, today-delivered, today-FAILED_DELIVERY, today-OSA).
+  /// list screens. This is the canonical hard gate used by the scan screen —
+  /// a courier must not be able to open a delivery that is not in their workload.
   ///
-  /// This mirrors the visibility rules of every list query exactly:
+  /// ## Visibility rules (strictly enforced)
   ///
-  /// | Status    | Visible when                                                      |
-  /// |-----------|-------------------------------------------------------------------|
-  /// | PENDING          | Not archived                                                      |
-  /// | DELIVERED        | delivered_at is today                                             |
-  /// | FAILED_DELIVERY  | completed_at is today AND rts_verification_status is NOT verified |
-  /// | OSA              | completed_at is today                                             |
-  /// | other     | never visible                                                     |
+  /// | Status          | Visible when                                                                    |
+  /// |-----------------|---------------------------------------------------------------------------------|
+  /// | FOR_DELIVERY    | Not archived. Remains until delivered / failed / OSA by the server.             |
+  /// | DELIVERED       | `delivered_at` is today (today-only — payout tracking window).                  |
+  /// | FAILED_DELIVERY | Not verified (`rts_verification_status` is `unvalidated`). Remains until       |
+  /// |                 | verified by hub OR status changes to DELIVERED / OSA.                           |
+  /// |                 | Items with 3+ attempts are still visible but locked (cannot act via POD scan).  |
+  /// | OSA             | Not archived. Remains until the server stops returning it                       |
+  /// |                 | (i.e., reassigned to another courier → is_archived by removeStaleLocalPending). |
+  /// | other           | Never visible.                                                                  |
   ///
   /// Used by the scan screen to gate navigation — a courier must not be able
   /// to open a delivery that is not in their active list.
@@ -903,6 +930,19 @@ class LocalDeliveryDao {
 
     switch (ds) {
       case DeliveryStatus.pending:
+        // Testing window: if set, apply rolling filter on created_at.
+        final fdWindowMs = _windowMs(kForDeliveryVisibilityWindowMinutes);
+        if (fdWindowMs != null) {
+          final createdAt = row['created_at'] as int? ?? 0;
+          final cutoff = DateTime.now().millisecondsSinceEpoch - fdWindowMs;
+          if (createdAt < cutoff) {
+            debugPrint(
+              '[DAO] isVisibleToRider($barcode) -> pending window expired '
+              '(createdAt=$createdAt cutoff=$cutoff) -> false',
+            );
+            return false;
+          }
+        }
         debugPrint('[DAO] isVisibleToRider($barcode) -> pending -> true');
         return true;
 
@@ -926,14 +966,26 @@ class LocalDeliveryDao {
           );
           return false;
         }
+        // Testing window: if set, apply rolling hour filter on completed_at.
+        final fdWindowMs = _windowMs(kFailedDeliveryVisibilityWindowMinutes);
+        if (fdWindowMs != null) {
+          final completedAt = row['completed_at'] as int? ?? 0;
+          final cutoff = DateTime.now().millisecondsSinceEpoch - fdWindowMs;
+          if (completedAt < cutoff) {
+            debugPrint(
+              '[DAO] isVisibleToRider($barcode) -> failedDelivery window expired '
+              '(completedAt=$completedAt cutoff=$cutoff) -> false',
+            );
+            return false;
+          }
+        }
         try {
           final ld = LocalDelivery.fromDb(row);
           final attempts = getAttemptsCountFromMap(ld.toDeliveryMap());
-          final visible = attempts < 3;
           debugPrint(
-            '[DAO] isVisibleToRider($barcode) -> failedDelivery attempts=$attempts visible=$visible',
+            '[DAO] isVisibleToRider($barcode) -> failedDelivery attempts=$attempts -> visible=true (locked if >=3)',
           );
-          return visible;
+          return true;
         } catch (e) {
           debugPrint(
             '[DAO] isVisibleToRider($barcode) -> failedDelivery parse error: $e',
@@ -942,13 +994,21 @@ class LocalDeliveryDao {
         }
 
       case DeliveryStatus.osa:
-        final completedAt = row['completed_at'] as int? ?? 0;
-        final visible =
-            completedAt >= todayStart && completedAt < tomorrowStart;
-        debugPrint(
-          '[DAO] isVisibleToRider($barcode) -> OSA completed_at=$completedAt visible=$visible',
-        );
-        return visible;
+        // Testing window: if set, apply rolling hour filter on completed_at.
+        final osaWindowMs = _windowMs(kOsaVisibilityWindowMinutes);
+        if (osaWindowMs != null) {
+          final completedAt = row['completed_at'] as int? ?? 0;
+          final cutoff = DateTime.now().millisecondsSinceEpoch - osaWindowMs;
+          if (completedAt < cutoff) {
+            debugPrint(
+              '[DAO] isVisibleToRider($barcode) -> OSA window expired '
+              '(completedAt=$completedAt cutoff=$cutoff) -> false',
+            );
+            return false;
+          }
+        }
+        debugPrint('[DAO] isVisibleToRider($barcode) -> OSA -> true');
+        return true;
 
       default:
         debugPrint(
@@ -966,45 +1026,74 @@ class LocalDeliveryDao {
     await db.delete('local_deliveries');
   }
 
-  /// Removes locally-pending items whose barcodes are NOT present in
-  /// [serverBarcodes] — the full set returned by the server across all
-  /// status pages during the latest sync cycle.
+  /// Archives (sets `is_archived = 1`) any local item whose barcode is NOT
+  /// present in [serverBarcodes] — the full set returned by the server across
+  /// ALL status pages during the latest full sync cycle.
   ///
-  /// This cleans up deliveries that a web-app admin cancelled, reassigned,
-  /// or otherwise removed from the courier's workload since the last sync.
+  /// ## What this removes
   ///
-  /// Items in a terminal success state (`DELIVERED`) are usually kept for payout
-  /// tracking, but `FAILED_DELIVERY` and `OSA` are included in cleanup because
-  /// they are purged once verified or reassigned by the hub.
+  /// - **FOR_DELIVERY**: Cancelled, reassigned, or removed from the courier's
+  ///   workload by a web admin. These are archived so they disappear from
+  ///   the pending list but can be recovered if the admin reverses the action.
+  ///
+  /// - **FAILED_DELIVERY**: If the server no longer returns a FAILED_DELIVERY
+  ///   barcode at all, it has been reassigned to another courier or removed
+  ///   from the system. Archive it so the courier cannot interact with it.
+  ///
+  /// - **OSA** (Misrouted): If the server no longer returns an OSA barcode,
+  ///   the item has been reassigned to the correct branch/courier. Archive it.
+  ///
+  /// ## What this does NOT touch
+  ///
+  /// - **DELIVERED**: Never archived here — kept for payout tracking.
+  /// - **Dirty records** (`sync_status = 'dirty'`): Skipped — the courier
+  ///   has a pending offline update that has not reached the server yet.
+  ///   Removing it here would silently drop a queued status change.
+  ///
+  /// ## Safety guard
+  ///
+  /// Only called during a **FULL** sync (when `updatedSince` is null/0).
+  /// Never called during a DELTA sync, because a delta response only covers
+  /// *changed* items and cannot determine whether unchanged items are gone.
   Future<void> removeStaleLocalPending(Set<String> serverBarcodes) async {
     if (serverBarcodes.isEmpty) return;
     final db = await _db;
 
-    // Only operate on locally-pending records that are NOT dirty.
-    final pendingRows = await db.query(
+    // Collect all local active (non-DELIVERED, non-dirty) records to check.
+    final activeRows = await db.query(
       'local_deliveries',
       columns: ['barcode'],
       where:
-          "delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FAILED_DELIVERY', 'OSA') AND COALESCE(sync_status, '') != 'dirty'",
+          "delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FAILED_DELIVERY', 'OSA') "
+          "AND COALESCE(sync_status, '') != 'dirty'",
     );
 
-    final staleBarcodes = pendingRows
+    final staleBarcodes = activeRows
         .map((r) => r['barcode'] as String)
         .where((b) => !serverBarcodes.contains(b))
         .toList();
 
     if (staleBarcodes.isEmpty) return;
 
+    debugPrint(
+      '[DAO] removeStaleLocalPending: archiving ${staleBarcodes.length} stale barcodes '
+      '(not in server set of ${serverBarcodes.length})',
+    );
+
     // Set is_archived = 1 in batches to stay within SQLite parameter limits.
     const chunkSize = 50;
     for (var i = 0; i < staleBarcodes.length; i += chunkSize) {
       final chunk = staleBarcodes.skip(i).take(chunkSize).toList();
       final placeholders = List.filled(chunk.length, '?').join(',');
+      // Archive all three actionable statuses — not just FOR_DELIVERY.
+      // FAILED_DELIVERY and OSA items absent from the server have been
+      // reassigned or removed and must not remain accessible to this courier.
       await db.update(
         'local_deliveries',
         {'is_archived': 1},
         where:
-            "barcode IN ($placeholders) AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY')",
+            "barcode IN ($placeholders) "
+            "AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FAILED_DELIVERY', 'OSA')",
         whereArgs: chunk,
       );
     }
