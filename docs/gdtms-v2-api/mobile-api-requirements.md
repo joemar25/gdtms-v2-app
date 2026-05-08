@@ -13,22 +13,36 @@
 **Request**: Implement backend support for the Bagsakan (Group Delivery) module to synchronize group metadata and delivery assignments.
 
 1.  **Schema Update**:
-    - Add `bagsakan_id` (nullable integer) to the deliveries table.
-    - Create `bagsakan_groups` table with `id`, `name`, `description`, `created_at`, and `updated_at`.
+    - Add `bagsakan_id` (nullable integer) to the `deliveries` table.
+    - Create `bagsakan_groups` table with: `id`, `name`, `description`, `status` (enum: `pending`, `submitted`), `created_at`, `updated_at`.
 2.  **New Endpoints**:
     - `GET /api/mbl/bagsakan/groups`: Fetch all active groups for the courier.
-    - `POST /api/mbl/bagsakan/groups`: Create a new group.
-    - `PATCH /api/mbl/bagsakan/groups/{id}`: Update group info.
-    - `DELETE /api/mbl/bagsakan/groups/{id}`: Delete group (Should untag associated deliveries server-side).
-    - `POST /api/mbl/bagsakan/groups/{id}/assign`: Bulk assign barcodes to a group.
+    - `POST /api/mbl/bagsakan/groups`: Create a new group (Defaults to `status: 'pending'`).
+    - `PATCH /api/mbl/bagsakan/groups/{id}`: Update group metadata (Only if `pending`).
+    - `DELETE /api/mbl/bagsakan/groups/{id}`: Delete group and **unassign** all deliveries associated with it.
+    - `POST /api/mbl/bagsakan/groups/{id}/assign`: Bulk assign barcodes (List of strings) to a group.
+    - `POST /api/mbl/bagsakan/groups/{id}/unassign`: Bulk unassign barcodes from a group.
+    - `POST /api/mbl/bagsakan/groups/{id}/submit`: Finalize the Bagsakan group. All associated deliveries should be marked for bulk processing on the server.
 3.  **Sync Integration**:
     - Include Bagsakan groups in the `GET /api/mbl/sync` payload.
-    - Ensure `bagsakan_id` is present in the `LocalDelivery` response objects.
+    - Support **Soft Deletion**: Include `is_archived` (boolean) for groups to allow the mobile app to purge deleted groups during sync.
+    - Ensure `bagsakan_id` is present in the `LocalDelivery` response objects in both standard and group-specific contexts.
 4.  **Dispatch Acceptance**:
-    - `GET /api/mbl/dispatches`: Include `bagsakan_id` and `is_bagsakan: true` flag for Bagsakan group dispatches.
+    - `GET /api/mbl/dispatches`: Include `bagsakan_id` and `is_bagsakan: true` flag for pre-grouped dispatches.
     - `POST /api/mbl/dispatches/{id}/accept`: When accepting a Bagsakan dispatch, the server must automatically link all associated deliveries to the `bagsakan_id` in the courier's context.
+5.  **Visibility Hard Gate (MANDATORY)**:
+    - **Dashboard Summary**: `GET /api/mbl/dashboard-summary` must exclude deliveries with a `bagsakan_id` from standard counts (Pending, Failed, etc.).
+    - **Deliveries List**: `GET /api/mbl/deliveries` must strictly exclude items assigned to any `bagsakan_id` to prevent redundant courier workflow.
+6.  **Case-Insensitivity**:
+    - All barcode matching for assignment/unassignment must use `COLLATE NOCASE` (or equivalent) to ensure resilience against scanner case discrepancies.
+7.  **Mobile Developer & UX Conveniences**:
+    - **Computed Counts**: `GET /api/mbl/bagsakan/groups` must return `item_count` and `delivered_count` per group to avoid client-side tallying.
+    - **Eligibility Flag**: `GET /api/mbl/deliveries/search` should support an `eligible_for_bagsakan=1` flag to offload complex status/attempt filtering to the server.
+    - **Conflict Intelligence**: The `assign` endpoint should return a `409 Conflict` with a list of `already_assigned_barcodes` and their current `group_name` if any barcode is already part of another group.
+    - **Bulk Account Assignment**: `POST /api/mbl/bagsakan/groups/{id}/assign-account` (Payload: `account_name`) to instantly group all eligible deliveries for a client.
+    - **Propagation Preview**: When querying a group, if any item is `DELIVERED`, the API should flag it as the `propagation_source: true` to help the UI highlight which data will be copied.
 
-- **Priority**: High.
+- **Priority**: High (Blocking v3.8 stabilization).
 - **Deadline**: May 15, 2026.
 
 ---

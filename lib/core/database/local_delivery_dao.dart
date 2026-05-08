@@ -373,12 +373,16 @@ class LocalDeliveryDao {
   // ── Read ──────────────────────────────────────────────────────────────────────────────
 
   /// Returns the count of deliveries matching [status].
+  ///
+  /// NOTE: This excludes deliveries assigned to a Bagsakan group (bagsakan_id IS NOT NULL)
+  /// to ensure they are only actionable through the Bagsakan workflow.
   Future<int> countByStatus(String status) async {
     final db = await _db;
     final res = await db.rawQuery(
       'SELECT COUNT(*) FROM local_deliveries '
       'WHERE delivery_status COLLATE NOCASE = ? '
-      'AND COALESCE(is_archived, 0) = 0 ',
+      'AND COALESCE(is_archived, 0) = 0 '
+      'AND bagsakan_id IS NULL',
       [status.toUpperCase()],
     );
     if (status.toUpperCase() == 'FOR_DELIVERY') {
@@ -404,7 +408,8 @@ class LocalDeliveryDao {
       columns: ['barcode'],
       where:
           "delivery_status COLLATE NOCASE IN ('FOR_DELIVERY') "
-          "AND COALESCE(is_archived, 0) = 0 ",
+          "AND COALESCE(is_archived, 0) = 0 "
+          "AND bagsakan_id IS NULL ",
     );
     return rows.map((r) => r['barcode'] as String).toSet();
   }
@@ -416,7 +421,8 @@ class LocalDeliveryDao {
       'local_deliveries',
       where:
           'delivery_status COLLATE NOCASE = ? '
-          'AND COALESCE(is_archived, 0) = 0 ',
+          'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL ',
       whereArgs: [status.toUpperCase()],
       orderBy: 'updated_at DESC',
     );
@@ -424,6 +430,8 @@ class LocalDeliveryDao {
   }
 
   /// Paginated variant of [getByStatus].
+  ///
+  /// NOTE: This excludes deliveries assigned to a Bagsakan group (bagsakan_id IS NOT NULL).
   Future<List<LocalDelivery>> getByStatusPaged(
     String status, {
     int limit = 30,
@@ -433,7 +441,8 @@ class LocalDeliveryDao {
 
     String where =
         'delivery_status COLLATE NOCASE = ? '
-        'AND COALESCE(is_archived, 0) = 0 ';
+        'AND COALESCE(is_archived, 0) = 0 '
+        'AND bagsakan_id IS NULL ';
     List<Object?> whereArgs = [status.toUpperCase()];
 
     // Apply testing window for FOR_DELIVERY if configured.
@@ -458,6 +467,8 @@ class LocalDeliveryDao {
   }
 
   /// Paginated variant of [getVisibleFailedDelivery].
+  ///
+  /// NOTE: This excludes deliveries assigned to a Bagsakan group (bagsakan_id IS NOT NULL).
   Future<List<LocalDelivery>> getVisibleFailedDeliveryPaged({
     int limit = 30,
     int offset = 0,
@@ -474,6 +485,7 @@ class LocalDeliveryDao {
           "delivery_status COLLATE NOCASE = 'FAILED_DELIVERY' "
           "AND COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay') "
           'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL '
           '$windowClause',
       whereArgs: [...windowArgs],
       orderBy: 'updated_at DESC',
@@ -484,6 +496,8 @@ class LocalDeliveryDao {
   }
 
   /// Paginated variant of [getVisibleOsa].
+  ///
+  /// NOTE: This excludes deliveries assigned to a Bagsakan group (bagsakan_id IS NOT NULL).
   Future<List<LocalDelivery>> getVisibleOsaPaged({
     int limit = 30,
     int offset = 0,
@@ -510,6 +524,8 @@ class LocalDeliveryDao {
   }
 
   /// Paginated variant of [getVisibleDelivered].
+  ///
+  /// NOTE: This excludes deliveries assigned to a Bagsakan group (bagsakan_id IS NOT NULL).
   Future<List<LocalDelivery>> getVisibleDeliveredPaged({
     int limit = 30,
     int offset = 0,
@@ -571,7 +587,8 @@ class LocalDeliveryDao {
           "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
           "AND delivery_status COLLATE NOCASE = 'DELIVERED' "
           'AND delivered_at >= ? AND delivered_at < ? '
-          'AND COALESCE(is_archived, 0) = 0 ';
+          'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL ';
       whereArgs = [q, q, todayStart, tomorrowStart];
     } else if (status.toUpperCase() == 'FAILED_DELIVERY') {
       final (wClause, wArgs) = _windowClause(
@@ -583,6 +600,7 @@ class LocalDeliveryDao {
           // Exclude verified failed-delivery items — once verified the courier can no longer act.
           "AND COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay') "
           'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL '
           '$wClause';
       whereArgs = [q, q, ...wArgs];
     } else if (status.toUpperCase() == 'OSA') {
@@ -591,6 +609,7 @@ class LocalDeliveryDao {
           "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
           "AND delivery_status COLLATE NOCASE = ? "
           'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL '
           '$wClause';
       whereArgs = [q, q, status.toUpperCase(), ...wArgs];
     } else if (status.toUpperCase() == 'FOR_DELIVERY') {
@@ -601,12 +620,14 @@ class LocalDeliveryDao {
       where =
           '(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) AND delivery_status COLLATE NOCASE = ? '
           'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL '
           '$wClause';
       whereArgs = [q, q, status.toUpperCase(), ...wArgs];
     } else {
       where =
           '(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) AND delivery_status COLLATE NOCASE = ? '
-          'AND COALESCE(is_archived, 0) = 0 ';
+          'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL ';
       whereArgs = [q, q, status.toUpperCase()];
     }
 
@@ -732,7 +753,8 @@ class LocalDeliveryDao {
       where:
           "delivery_status COLLATE NOCASE = 'DELIVERED' "
           'AND delivered_at >= ? AND delivered_at < ? '
-          'AND COALESCE(is_archived, 0) = 0',
+          'AND COALESCE(is_archived, 0) = 0 '
+          'AND bagsakan_id IS NULL',
       whereArgs: [todayStart, tomorrowStart],
       orderBy: 'updated_at DESC',
     );
@@ -1024,7 +1046,8 @@ class LocalDeliveryDao {
       columns: ['barcode'],
       where:
           "delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FAILED_DELIVERY', 'OSA') "
-          "AND COALESCE(sync_status, '') != 'dirty'",
+          "AND COALESCE(sync_status, '') != 'dirty' "
+          "AND bagsakan_id IS NULL",
     );
 
     final staleBarcodes = activeRows

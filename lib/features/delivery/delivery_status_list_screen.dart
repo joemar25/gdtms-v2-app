@@ -684,6 +684,9 @@ class _DeliveryStatusListScreenState
                                             rv.isVerified) {
                                           msg =
                                               'This failed delivery has already been verified and is no longer actionable.';
+                                        } else if (d['bagsakan_id'] != null) {
+                                          msg =
+                                              'This delivery is part of a Bagsakan group and cannot be opened individually.';
                                         }
                                         showInfoNotification(context, msg);
                                       }

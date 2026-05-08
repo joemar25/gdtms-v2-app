@@ -170,8 +170,8 @@ Deliveries assigned to a bagsakan group (`bagsakan_id IS NOT NULL`) are **exclud
 
 ## Technical Implementation
 
-- **DAO**: `LocalDeliveryDao` handles group creation, delivery assignment, and bulk untagging on delete.
-- **Filtering**: Most `LocalDeliveryDao` query methods include `AND bagsakan_id IS NULL`.
+- **DAO Filtering (Visibility Hard Gate)**: Most `LocalDeliveryDao` query methods (counts, lists, and search) strictly include `AND bagsakan_id IS NULL`. This ensures grouped items are invisible in the standard workflow.
+- **Interaction Locking**: Any item with a `bagsakan_id != null` is considered "Locked" by the UI (via `checkIsLocked`). Tapping these items in search results or lists triggers a specific lock notification instead of opening the update screen.
 - **Delete guard**: Before executing delete, the DAO checks `status != 'submitted'`. If submitted, the operation is aborted.
 - **Untagging**: On delete, an `UPDATE local_deliveries SET bagsakan_id = NULL WHERE bagsakan_id = ?` is executed before removing the `bagsakan_groups` record.
 - **Courier bagsakan list lifetime**: Queries for the courier's bagsakan list filter out entries where `submitted_at` is not null and `submitted_at < (now - 1 day)`, mirroring the delivered lifetime filter in the regular delivery status list.

@@ -116,7 +116,10 @@
     "submit_confirm_confirm": "Isumite",
     "success_submitted": "Naisumite na ang Bagsakan at kumalat na ang data.",
     "submit_button": "ISUMITE ANG BAGSAKAN",
-    "new_items_header": "Mga Bagong Dagdag na Item"
+    "new_items_header": "Mga Bagong Dagdag na Item",
+    "search_results_header": "Mga Resulta ({})",
+    "add_all": "Idagdag Lahat",
+    "success_added_bulk": "Matagumpay na naidagdag ang {} na item sa grupo"
   },
   "notifications": {
     "unread_count": "{count} na hindi pa nababasang abiso",

@@ -80,7 +80,7 @@ class BagsakanDao {
       batch.update(
         'local_deliveries',
         {'bagsakan_id': groupId, 'updated_at': now, 'sync_status': 'dirty'},
-        where: 'barcode = ?',
+        where: 'barcode COLLATE NOCASE = ?',
         whereArgs: [barcode],
       );
     }
@@ -94,7 +94,7 @@ class BagsakanDao {
     await db.update(
       'local_deliveries',
       {'bagsakan_id': null, 'updated_at': now, 'sync_status': 'dirty'},
-      where: 'barcode = ?',
+      where: 'barcode COLLATE NOCASE = ?',
       whereArgs: [barcode],
     );
   }
@@ -240,64 +240,52 @@ class BagsakanDao {
   /// Searches deliveries by barcode (Filtered for Bagsakan).
   Future<List<LocalDelivery>> searchByBarcodeLike(
     String query, {
-    int limit = 30,
+    bool eligibleOnly = true,
   }) async {
     if (query.trim().isEmpty) return [];
     final db = await _db;
     final q = '%${query.trim()}%';
-    final rows = await db.rawQuery(
-      '''
-      SELECT * FROM local_deliveries
-      WHERE barcode LIKE ? COLLATE NOCASE 
-        AND COALESCE(is_archived, 0) = 0
-        AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY', 'FAILED_DELIVERY')
-        AND bagsakan_id IS NULL
-      ORDER BY updated_at DESC
-      LIMIT $limit
-      ''',
-      [q],
-    );
-    final deliveries = rows.map(LocalDelivery.fromDb).toList();
+    
+    String where = '(barcode LIKE ? COLLATE NOCASE)';
+    if (eligibleOnly) {
+      where += " AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY', 'FAILED_DELIVERY') "
+               " AND (COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay')) "
+               " AND bagsakan_id IS NULL "
+               " AND COALESCE(is_archived, 0) = 0";
+    }
 
-    return deliveries.where((d) {
-      final status = d.deliveryStatus.toUpperCase();
-      if (status == 'FOR_DELIVERY' || status == 'FOR_REDELIVERY') return true;
-      if (status == 'FAILED_DELIVERY') {
-        return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
-      }
-      return false;
-    }).toList();
+    final maps = await db.query(
+      'local_deliveries',
+      where: where,
+      whereArgs: [q],
+      limit: 20,
+    );
+    return maps.map((e) => LocalDelivery.fromDb(e)).toList();
   }
 
-  /// Searches deliveries by recipient_name (Filtered for Bagsakan).
+  /// Search for deliveries by account name.
   Future<List<LocalDelivery>> searchByAccountName(
     String query, {
-    int limit = 30,
+    bool eligibleOnly = true,
   }) async {
     if (query.trim().isEmpty) return [];
     final db = await _db;
     final q = '%${query.trim()}%';
-    final rows = await db.rawQuery(
-      '''
-      SELECT * FROM local_deliveries
-      WHERE recipient_name LIKE ? COLLATE NOCASE 
-        AND COALESCE(is_archived, 0) = 0
-        AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY', 'FAILED_DELIVERY')
-        AND bagsakan_id IS NULL
-      ORDER BY updated_at DESC
-      LIMIT $limit
-      ''',
-      [q],
-    );
-    final deliveries = rows.map(LocalDelivery.fromDb).toList();
 
-    return deliveries.where((d) {
-      final status = d.deliveryStatus.toUpperCase();
-      if (status == 'FOR_DELIVERY' || status == 'FOR_REDELIVERY') return true;
-      if (status == 'FAILED_DELIVERY') {
-        return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
-      }
-      return false;
-    }).toList();
+    String where = '(recipient_name LIKE ? COLLATE NOCASE)';
+    if (eligibleOnly) {
+      where += " AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY', 'FAILED_DELIVERY') "
+               " AND (COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay')) "
+               " AND bagsakan_id IS NULL "
+               " AND COALESCE(is_archived, 0) = 0";
+    }
+
+    final maps = await db.query(
+      'local_deliveries',
+      where: where,
+      whereArgs: [q],
+      limit: 50,
+    );
+    return maps.map((e) => LocalDelivery.fromDb(e)).toList();
   }
 }

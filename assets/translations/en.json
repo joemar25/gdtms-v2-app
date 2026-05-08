@@ -116,7 +116,10 @@
     "submit_confirm_confirm": "Submit",
     "success_submitted": "Bagsakan submitted and data propagated.",
     "submit_button": "SUBMIT BAGSAKAN",
-    "new_items_header": "Newly Added Items"
+    "new_items_header": "Newly Added Items",
+    "search_results_header": "Results ({})",
+    "add_all": "Add All",
+    "success_added_bulk": "Successfully added {} items to group"
   },
   "notifications": {
     "unread_count": "{count} unread notifications",

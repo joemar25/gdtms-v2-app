@@ -571,6 +571,45 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
         // Search results
         if (_searchResults.isNotEmpty) ...[
           _kSectionGap,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              DeliverySectionHeader(
+                label: 'bagsakan.search_results_header'.tr(
+                  args: [_searchResults.length.toString()],
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.add_task_rounded, size: DSIconSize.sm),
+                label: Text(
+                  'bagsakan.add_all'.tr(),
+                  style: DSTypography.body(color: DSColors.primary).copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onPressed: () {
+                  int added = 0;
+                  for (final item in _searchResults) {
+                    if (!_groupItems.any((e) => e.barcode == item.barcode)) {
+                      _groupItems.add(item);
+                      added++;
+                    }
+                  }
+                  if (added > 0) {
+                    setState(() {
+                      _searchResults.clear();
+                      _searchController.clear();
+                    });
+                    showSuccessNotification(
+                      context,
+                      'bagsakan.success_added_bulk'.tr(args: [added.toString()]),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+          _kInnerGap,
           ..._searchResults.map((delivery) {
             final isAdded = _groupItems.any(
               (e) => e.barcode == delivery.barcode,
