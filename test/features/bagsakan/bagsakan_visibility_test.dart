@@ -18,6 +18,7 @@ import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:go_router/go_router.dart';
 
 class MockLocalDeliveryDao extends Mock implements LocalDeliveryDao {}
+
 class MockSyncOperationsDao extends Mock implements SyncOperationsDao {}
 
 class MockAuthNotifier extends AuthNotifier {
@@ -82,42 +83,60 @@ void main() {
   }
 
   group('Bagsakan Visibility Edge Cases', () {
-    testWidgets('Items re-appear in standard list after being unassigned (Refresh trigger)', (tester) async {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final delivery = LocalDelivery(
-        barcode: 'REFRESH123',
-        deliveryStatus: 'FOR_DELIVERY',
-        recipientName: 'Refresh User',
-        rawJson: '{}',
-        createdAt: now,
-        updatedAt: now,
-      );
+    testWidgets(
+      'Items re-appear in standard list after being unassigned (Refresh trigger)',
+      (tester) async {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final delivery = LocalDelivery(
+          barcode: 'REFRESH123',
+          deliveryStatus: 'FOR_DELIVERY',
+          recipientName: 'Refresh User',
+          rawJson: '{}',
+          createdAt: now,
+          updatedAt: now,
+        );
 
-      when(() => mockLocalDao.countByStatus(any()))
-          .thenAnswer((_) async => 0);
-      when(() => mockLocalDao.getByStatusPaged(any(), limit: any(named: 'limit'), offset: any(named: 'offset')))
-          .thenAnswer((_) async => []);
-      when(() => mockSyncDao.getSyncQueuedBarcodes(any()))
-          .thenAnswer((_) async => {});
+        when(
+          () => mockLocalDao.countByStatus(any()),
+        ).thenAnswer((_) async => 0);
+        when(
+          () => mockLocalDao.getByStatusPaged(
+            any(),
+            limit: any(named: 'limit'),
+            offset: any(named: 'offset'),
+          ),
+        ).thenAnswer((_) async => []);
+        when(
+          () => mockSyncDao.getSyncQueuedBarcodes(any()),
+        ).thenAnswer((_) async => {});
 
-      await tester.pumpWidget(createTestWidget());
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pumpAndSettle();
-      expect(find.text('Refresh User'), findsNothing);
+        await tester.pumpWidget(createTestWidget());
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pumpAndSettle();
+        expect(find.text('Refresh User'), findsNothing);
 
-      when(() => mockLocalDao.countByStatus('FOR_DELIVERY'))
-          .thenAnswer((_) async => 1);
-      when(() => mockLocalDao.getByStatusPaged('FOR_DELIVERY', limit: any(named: 'limit'), offset: any(named: 'offset')))
-          .thenAnswer((_) async => [delivery]);
+        when(
+          () => mockLocalDao.countByStatus('FOR_DELIVERY'),
+        ).thenAnswer((_) async => 1);
+        when(
+          () => mockLocalDao.getByStatusPaged(
+            'FOR_DELIVERY',
+            limit: any(named: 'limit'),
+            offset: any(named: 'offset'),
+          ),
+        ).thenAnswer((_) async => [delivery]);
 
-      final container = ProviderScope.containerOf(tester.element(find.byType(DeliveryStatusListScreen)));
-      container.read(deliveryRefreshProvider.notifier).increment();
-      
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pumpAndSettle();
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(DeliveryStatusListScreen)),
+        );
+        container.read(deliveryRefreshProvider.notifier).increment();
 
-      expect(find.text('Refresh User'), findsOneWidget);
-    });
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Refresh User'), findsOneWidget);
+      },
+    );
 
     testWidgets('Search correctly respects bagsakan_id filter', (tester) async {
       final now = DateTime.now().millisecondsSinceEpoch;
@@ -130,15 +149,21 @@ void main() {
         updatedAt: now,
       );
 
-      when(() => mockLocalDao.countByStatus(any()))
-          .thenAnswer((_) async => 0);
-      when(() => mockLocalDao.getByStatusPaged(any(), limit: any(named: 'limit'), offset: any(named: 'offset')))
-          .thenAnswer((_) async => []);
-      when(() => mockSyncDao.getSyncQueuedBarcodes(any()))
-          .thenAnswer((_) async => {});
-      
-      when(() => mockLocalDao.searchByStatusAndQuery('FOR_DELIVERY', 'SEARCH'))
-          .thenAnswer((_) async => [ungrouped]);
+      when(() => mockLocalDao.countByStatus(any())).thenAnswer((_) async => 0);
+      when(
+        () => mockLocalDao.getByStatusPaged(
+          any(),
+          limit: any(named: 'limit'),
+          offset: any(named: 'offset'),
+        ),
+      ).thenAnswer((_) async => []);
+      when(
+        () => mockSyncDao.getSyncQueuedBarcodes(any()),
+      ).thenAnswer((_) async => {});
+
+      when(
+        () => mockLocalDao.searchByStatusAndQuery('FOR_DELIVERY', 'SEARCH'),
+      ).thenAnswer((_) async => [ungrouped]);
 
       await tester.pumpWidget(createTestWidget());
       await tester.pump(const Duration(seconds: 1));
@@ -148,48 +173,63 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'SEARCH');
-      await tester.pump(const Duration(milliseconds: 600)); 
+      await tester.pump(const Duration(milliseconds: 600));
       await tester.pumpAndSettle();
 
       expect(find.text('Searchable User'), findsOneWidget);
     });
-    
-    testWidgets('Locked items message is shown on tap if item is in bagsakan group', (tester) async {
-       final now = DateTime.now().millisecondsSinceEpoch;
-       final grouped = LocalDelivery(
-        barcode: 'LOCKED123',
-        deliveryStatus: 'FOR_DELIVERY',
-        recipientName: 'Locked User',
-        bagsakanId: 999,
-        rawJson: '{}',
-        createdAt: now,
-        updatedAt: now,
-      );
 
-      when(() => mockLocalDao.countByStatus(any())).thenAnswer((_) async => 1);
-      when(() => mockLocalDao.getByStatusPaged(any(), limit: any(named: 'limit'), offset: any(named: 'offset')))
-          .thenAnswer((_) async => [grouped]);
-      when(() => mockSyncDao.getSyncQueuedBarcodes(any())).thenAnswer((_) async => {});
+    testWidgets(
+      'Locked items message is shown on tap if item is in bagsakan group',
+      (tester) async {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final grouped = LocalDelivery(
+          barcode: 'LOCKED123',
+          deliveryStatus: 'FOR_DELIVERY',
+          recipientName: 'Locked User',
+          bagsakanId: 999,
+          rawJson: '{}',
+          createdAt: now,
+          updatedAt: now,
+        );
 
-      await tester.pumpWidget(createTestWidget());
-      
-      for (int i = 0; i < 5; i++) {
-        await tester.pump(const Duration(milliseconds: 200));
-      }
-      await tester.pumpAndSettle();
+        when(
+          () => mockLocalDao.countByStatus(any()),
+        ).thenAnswer((_) async => 1);
+        when(
+          () => mockLocalDao.getByStatusPaged(
+            any(),
+            limit: any(named: 'limit'),
+            offset: any(named: 'offset'),
+          ),
+        ).thenAnswer((_) async => [grouped]);
+        when(
+          () => mockSyncDao.getSyncQueuedBarcodes(any()),
+        ).thenAnswer((_) async => {});
 
-      expect(find.text('LOCKED123'), findsOneWidget);
+        await tester.pumpWidget(createTestWidget());
 
-      await tester.tap(find.text('LOCKED123'));
-      // The overlay notification takes time to animate in
-      for (int i = 0; i < 5; i++) {
-        await tester.pump(const Duration(milliseconds: 200));
-      }
+        for (int i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+        await tester.pumpAndSettle();
 
-      expect(find.textContaining('Bagsakan group', skipOffstage: true), findsOneWidget);
+        expect(find.text('LOCKED123'), findsOneWidget);
 
-      // Clean up: Wait for the 3-second auto-dismiss timer to finish
-      await tester.pump(const Duration(seconds: 5));
-    });
+        await tester.tap(find.text('LOCKED123'));
+        // The overlay notification takes time to animate in
+        for (int i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+
+        expect(
+          find.textContaining('Bagsakan group', skipOffstage: true),
+          findsOneWidget,
+        );
+
+        // Clean up: Wait for the 3-second auto-dismiss timer to finish
+        await tester.pump(const Duration(seconds: 5));
+      },
+    );
   });
 }

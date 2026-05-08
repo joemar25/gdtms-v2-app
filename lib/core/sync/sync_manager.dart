@@ -187,9 +187,19 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     for (final entry in pending) {
       if (_disposed) break;
 
+      final String opLabel = switch (entry.operationType) {
+        'CREATE_BAGSAKAN' => 'Creating bagsakan group...',
+        'UPDATE_BAGSAKAN_GROUP' => 'Updating bagsakan metadata...',
+        'DELETE_BAGSAKAN_GROUP' => 'Deleting bagsakan group...',
+        'ASSIGN_TO_BAGSAKAN' => 'Assigning items to bagsakan...',
+        'UNASSIGN_FROM_BAGSAKAN' => 'Unassigning items from bagsakan...',
+        'SUBMIT_BAGSAKAN' => 'Submitting bagsakan group...',
+        _ => 'Updating delivery ${entry.barcode} to server...',
+      };
+
       state = state.copyWith(
         currentBarcode: entry.barcode,
-        lastMessage: 'Updating delivery ${entry.barcode} to server…',
+        lastMessage: opLabel,
       );
 
       // Profile updates are online-only direct API calls (PATCH /me).
@@ -418,17 +428,66 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
         final result = await retry<ApiResult<Map<String, dynamic>>>(
           () async {
-            final path = 'deliveries/${entry.barcode}';
-            final res = await ref
-                .read(apiClientProvider)
-                .patch<Map<String, dynamic>>(
-                  path,
-                  data: payload,
-                  extraHeaders: {
-                    'X-Request-ID': entry.id,
-                  }, // Use op UUID for idempotency
-                  parser: parseApiMap,
-                );
+            final api = ref.read(apiClientProvider);
+            final ApiResult<Map<String, dynamic>> res;
+
+            final headers = {'X-Request-ID': entry.id};
+
+            if (entry.operationType == 'CREATE_BAGSAKAN') {
+              res = await api.post<Map<String, dynamic>>(
+                'bagsakan/groups',
+                data: payload,
+                extraHeaders: headers,
+                parser: parseApiMap,
+              );
+            } else if (entry.operationType == 'UPDATE_BAGSAKAN_GROUP') {
+              final id = payload['id'];
+              res = await api.patch<Map<String, dynamic>>(
+                'bagsakan/groups/$id',
+                data: payload,
+                extraHeaders: headers,
+                parser: parseApiMap,
+              );
+            } else if (entry.operationType == 'DELETE_BAGSAKAN_GROUP') {
+              final id = payload['id'];
+              res = await api.delete<Map<String, dynamic>>(
+                'bagsakan/groups/$id',
+                extraHeaders: headers,
+                parser: parseApiMap,
+              );
+            } else if (entry.operationType == 'ASSIGN_TO_BAGSAKAN') {
+              final id = payload['group_id'];
+              res = await api.post<Map<String, dynamic>>(
+                'bagsakan/groups/$id/assign',
+                data: payload,
+                extraHeaders: headers,
+                parser: parseApiMap,
+              );
+            } else if (entry.operationType == 'UNASSIGN_FROM_BAGSAKAN') {
+              final id = payload['group_id'];
+              res = await api.post<Map<String, dynamic>>(
+                'bagsakan/groups/$id/unassign',
+                data: payload,
+                extraHeaders: headers,
+                parser: parseApiMap,
+              );
+            } else if (entry.operationType == 'SUBMIT_BAGSAKAN') {
+              final id = payload['group_id'];
+              res = await api.post<Map<String, dynamic>>(
+                'bagsakan/groups/$id/submit',
+                data: payload,
+                extraHeaders: headers,
+                parser: parseApiMap,
+              );
+            } else {
+              res = await api.patch<Map<String, dynamic>>(
+                'deliveries/${entry.barcode}',
+                data: payload,
+                extraHeaders: headers,
+                parser: parseApiMap,
+              );
+            }
+
             if (res is ApiRateLimited) {
               // Respect the Retry-After header before letting retry() fire again.
               final waitSecs = (res as ApiRateLimited).retryAfterSeconds ?? 60;
@@ -462,18 +521,31 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           // clock is behind this moment is rejected as a backdated update.
           unawaited(TimeValidationService.instance.recordSyncAnchor());
           final deliveryData = result.data['data'];
-          if (deliveryData is Map<String, dynamic>) {
+          if (deliveryData is Map<String, dynamic> &&
+              !entry.barcode.startsWith('BAGSAKAN_')) {
             await ref
                 .read(localDeliveryDaoProvider)
                 .updateFromJson(entry.barcode, deliveryData);
           } else {
-            // Payload stores UPPERCASE status (server format); normalise to
-            // lowercase before writing to local DB (internal app format).
-            final status = payload['delivery_status']?.toString().toUpperCase();
-            if (status != null) {
-              await ref
-                  .read(localDeliveryDaoProvider)
-                  .updateStatus(entry.barcode, status);
+            // Handle Bagsakan items cleanup
+            if (entry.operationType == 'ASSIGN_TO_BAGSAKAN' ||
+                entry.operationType == 'UNASSIGN_FROM_BAGSAKAN' ||
+                entry.operationType == 'DELETE_BAGSAKAN_GROUP' ||
+                entry.operationType == 'SUBMIT_BAGSAKAN') {
+              _cleanupBagsakanItems(payload, entry.operationType);
+            } else if (!entry.barcode.startsWith('BAGSAKAN_')) {
+              // Fallback for normal deliveries if no detailed object returned
+              final status = payload['delivery_status']
+                  ?.toString()
+                  .toUpperCase();
+              if (status != null) {
+                await ref
+                    .read(localDeliveryDaoProvider)
+                    .updateStatus(entry.barcode, status);
+                await ref
+                    .read(localDeliveryDaoProvider)
+                    .markClean(entry.barcode);
+              }
             }
           }
           successCount++;
@@ -546,11 +618,20 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               final maybeData = responseData is Map
                   ? responseData['data'] ?? responseData
                   : null;
-              if (maybeData is Map<String, dynamic>) {
+              if (maybeData is Map<String, dynamic> &&
+                  !entry.barcode.startsWith('BAGSAKAN_')) {
                 await ref
                     .read(localDeliveryDaoProvider)
                     .updateFromJson(entry.barcode, maybeData);
               }
+            }
+
+            // Bagsakan auto-resolve cleanup (fixes "ghost dirty" items)
+            if (entry.operationType == 'ASSIGN_TO_BAGSAKAN' ||
+                entry.operationType == 'UNASSIGN_FROM_BAGSAKAN' ||
+                entry.operationType == 'DELETE_BAGSAKAN_GROUP' ||
+                entry.operationType == 'SUBMIT_BAGSAKAN') {
+              _cleanupBagsakanItems(payload, entry.operationType);
             }
 
             await ref
@@ -741,6 +822,40 @@ class SyncManagerNotifier extends Notifier<SyncState> {
       ApiServerError<Map<String, dynamic>>(:final message) => message,
       _ => 'Unexpected error',
     };
+  }
+
+  /// Marks individual items in a Bagsakan group as 'clean' in the local DB.
+  /// Call this when a Bagsakan operation is either successfully synced
+  /// or auto-resolved (e.g. Conflict 409).
+  void _cleanupBagsakanItems(
+    Map<String, dynamic> payload,
+    String operationType,
+  ) {
+    // ignore: discarded_futures
+    _cleanupBagsakanItemsAsync(payload, operationType);
+  }
+
+  Future<void> _cleanupBagsakanItemsAsync(
+    Map<String, dynamic> payload,
+    String operationType,
+  ) async {
+    try {
+      final barcodes = payload['barcodes'] as List?;
+      if (barcodes != null) {
+        for (final b in barcodes) {
+          await ref.read(localDeliveryDaoProvider).markClean(b.toString());
+        }
+      }
+
+      if (operationType == 'SUBMIT_BAGSAKAN') {
+        final source = payload['source_barcode'];
+        if (source != null) {
+          await ref.read(localDeliveryDaoProvider).markClean(source.toString());
+        }
+      }
+    } catch (e) {
+      debugPrint('[SYNC] Failed to cleanup Bagsakan items: $e');
+    }
   }
 
   void _runCleanupSilently() {

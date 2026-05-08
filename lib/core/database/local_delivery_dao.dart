@@ -222,6 +222,20 @@ class LocalDeliveryDao {
     }
   }
 
+  /// Marks a specific delivery as 'clean' (synced).
+  Future<void> markClean(String barcode) async {
+    final db = await _db;
+    await db.update(
+      'local_deliveries',
+      {
+        'sync_status': 'clean',
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'barcode COLLATE NOCASE = ?',
+      whereArgs: [barcode],
+    );
+  }
+
   // ─── MARK: Bagsakan (Legacy) ────────────────────────────────────────────────
   // Note: Most Bagsakan operations have been moved to BagsakanDao.
   // Use bagsakanDaoProvider instead.

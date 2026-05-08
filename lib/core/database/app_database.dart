@@ -16,6 +16,8 @@ import 'package:sqflite/sqflite.dart';
 class AppDatabase {
   AppDatabase._();
 
+  static const int kVersion = 22;
+
   static Database? _instance;
   static Future<Database>? _openFuture;
 
@@ -43,7 +45,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     final db = await openDatabase(
       path,
-      version: 20,
+      version: kVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -107,6 +109,7 @@ class AppDatabase {
         description  TEXT,
         status       TEXT    NOT NULL DEFAULT 'draft',
         submitted_at INTEGER,
+        is_archived  INTEGER NOT NULL DEFAULT 0,
         created_at   INTEGER NOT NULL,
         updated_at   INTEGER NOT NULL
       )
@@ -396,6 +399,23 @@ class AppDatabase {
       }
       await addColumn(
         "ALTER TABLE local_deliveries ADD COLUMN bagsakan_id INTEGER",
+      );
+    }
+
+    if (oldVersion < 21) {
+      // v21: Ensure status and submitted_at exist in bagsakan_groups (Fix for missing columns).
+      await addColumn(
+        "ALTER TABLE bagsakan_groups ADD COLUMN status TEXT NOT NULL DEFAULT 'draft'",
+      );
+      await addColumn(
+        "ALTER TABLE bagsakan_groups ADD COLUMN submitted_at INTEGER",
+      );
+    }
+
+    if (oldVersion < 22) {
+      // v22: Add is_archived column to bagsakan_groups
+      await db.execute(
+        'ALTER TABLE bagsakan_groups ADD COLUMN is_archived INTEGER DEFAULT 0',
       );
     }
   }

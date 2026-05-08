@@ -11,7 +11,9 @@ import 'package:go_router/go_router.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_components.dart';
 
@@ -158,21 +160,31 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                         );
 
                         if (confirmed == true && context.mounted) {
-                          // UI only for now as requested
-                          showSuccessNotification(
-                            context,
-                            'bagsakan.success_deleted'.tr(
-                              args: [group['name']],
-                            ),
-                          );
-
                           final id = group['id'] as int;
+                          final courierId =
+                              ref
+                                  .read(authProvider)
+                                  .courier?['id']
+                                  ?.toString() ??
+                              '';
                           await ref
                               .read(bagsakanDaoProvider)
-                              .deleteBagsakanGroup(id);
+                              .deleteBagsakanGroup(id, courierId);
+                          await ref
+                              .read(syncManagerProvider.notifier)
+                              .loadEntries();
                           ref
                               .read(deliveryRefreshProvider.notifier)
                               .increment();
+
+                          if (context.mounted) {
+                            showSuccessNotification(
+                              context,
+                              'bagsakan.success_deleted'.tr(
+                                args: [group['name']],
+                              ),
+                            );
+                          }
                         }
                       },
                     ),

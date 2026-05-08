@@ -53,7 +53,8 @@ void main() {
           routes: [
             GoRoute(
               path: 'scan',
-              builder: (context, state) => const ScanScreen(mode: ScanMode.bagsakan),
+              builder: (context, state) =>
+                  const ScanScreen(mode: ScanMode.bagsakan),
             ),
           ],
         ),
@@ -73,7 +74,9 @@ void main() {
     );
   }
 
-  testWidgets('ScanScreen in bagsakan mode handles manual input successfully', (tester) async {
+  testWidgets('ScanScreen in bagsakan mode handles manual input successfully', (
+    tester,
+  ) async {
     final delivery = LocalDelivery(
       barcode: 'BAG123',
       deliveryStatus: 'FOR_DELIVERY',
@@ -83,8 +86,9 @@ void main() {
       updatedAt: DateTime.now().millisecondsSinceEpoch,
     );
 
-    when(() => mockLocalDao.searchByQuery('BAG123'))
-        .thenAnswer((_) async => [delivery]);
+    when(
+      () => mockLocalDao.searchByQuery('BAG123'),
+    ).thenAnswer((_) async => [delivery]);
 
     await tester.pumpWidget(createTestWidget());
     await tester.pump(const Duration(milliseconds: 100));
@@ -92,20 +96,22 @@ void main() {
     // Open manual input
     final manualButton = find.byIcon(Icons.keyboard_alt_outlined);
     await tester.tap(manualButton);
-    await tester.pump(const Duration(seconds: 1)); 
+    await tester.pump(const Duration(seconds: 1));
 
     // Enter barcode and simulate "Done" action
     await tester.enterText(find.byType(TextField), 'BAG123');
     await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump(const Duration(seconds: 1)); 
+    await tester.pump(const Duration(seconds: 1));
 
     verify(() => mockLocalDao.searchByQuery('BAG123')).called(1);
-    
+
     // Check if we popped to Home
     expect(find.text('Home'), findsOneWidget);
   });
 
-  testWidgets('ScanScreen shows error for ineligible delivery status', (tester) async {
+  testWidgets('ScanScreen shows error for ineligible delivery status', (
+    tester,
+  ) async {
     final delivery = LocalDelivery(
       barcode: 'BAG456',
       deliveryStatus: 'DELIVERED', // Ineligible
@@ -115,8 +121,9 @@ void main() {
       updatedAt: DateTime.now().millisecondsSinceEpoch,
     );
 
-    when(() => mockLocalDao.searchByQuery('BAG456'))
-        .thenAnswer((_) async => [delivery]);
+    when(
+      () => mockLocalDao.searchByQuery('BAG456'),
+    ).thenAnswer((_) async => [delivery]);
 
     await tester.pumpWidget(createTestWidget());
     await tester.pump(const Duration(milliseconds: 100));
@@ -131,7 +138,7 @@ void main() {
 
     // Verify error notification text appears (at least one)
     expect(find.textContaining('not eligible for Bagsakan'), findsAtLeast(1));
-    
+
     // Wait for notification timer to avoid pending timer error
     await tester.pump(const Duration(seconds: 5));
   });

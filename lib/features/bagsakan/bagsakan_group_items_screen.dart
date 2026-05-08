@@ -11,8 +11,10 @@ import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class BagsakanGroupItemsScreen extends ConsumerStatefulWidget {
@@ -95,10 +97,14 @@ class _BagsakanGroupItemsScreenState
     if (confirmed == true && mounted) {
       setState(() => _isLoading = true);
       try {
+        final courierId =
+            ref.read(authProvider).courier?['id']?.toString() ?? '';
         await ref
             .read(bagsakanDaoProvider)
-            .submitBagsakanGroup(widget.groupId, sourceBarcode);
+            .submitBagsakanGroup(widget.groupId, sourceBarcode, courierId);
+        await ref.read(syncManagerProvider.notifier).loadEntries();
         await _loadData();
+        ref.read(deliveryRefreshProvider.notifier).increment();
         if (mounted) {
           showSuccessNotification(context, 'bagsakan.success_submitted'.tr());
         }

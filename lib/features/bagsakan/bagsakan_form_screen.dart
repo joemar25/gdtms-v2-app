@@ -11,9 +11,11 @@ import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_submit_fab.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/ds_segmented_selector.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
@@ -142,24 +144,33 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
 
       if (widget.groupId != null) {
         groupId = widget.groupId!;
+        final courierId =
+            ref.read(authProvider).courier?['id']?.toString() ?? '';
         await dao.updateBagsakanGroup(
           groupId: groupId,
           name: name,
           description: description,
+          courierId: courierId,
         );
         // Clear current items to handle removals properly
-        await dao.clearBagsakanGroup(groupId);
+        await dao.clearBagsakanGroup(groupId, courierId);
       } else {
+        final courierId =
+            ref.read(authProvider).courier?['id']?.toString() ?? '';
         groupId = await dao.createBagsakanGroup(
           name: name,
           description: description,
+          courierId: courierId,
         );
       }
 
+      final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
       await dao.assignToBagsakan(
         groupId: groupId,
         barcodes: _groupItems.map((e) => e.barcode).toList(),
+        courierId: courierId,
       );
+      await ref.read(syncManagerProvider.notifier).loadEntries();
 
       if (mounted) {
         showSuccessNotification(
@@ -583,9 +594,9 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
                 icon: const Icon(Icons.add_task_rounded, size: DSIconSize.sm),
                 label: Text(
                   'bagsakan.add_all'.tr(),
-                  style: DSTypography.body(color: DSColors.primary).copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: DSTypography.body(
+                    color: DSColors.primary,
+                  ).copyWith(fontWeight: FontWeight.bold),
                 ),
                 onPressed: () {
                   int added = 0;
@@ -602,7 +613,9 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
                     });
                     showSuccessNotification(
                       context,
-                      'bagsakan.success_added_bulk'.tr(args: [added.toString()]),
+                      'bagsakan.success_added_bulk'.tr(
+                        args: [added.toString()],
+                      ),
                     );
                   }
                 },

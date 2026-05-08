@@ -9,6 +9,7 @@ import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -58,6 +59,13 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncManagerProvider);
     final connectionStatus = ref.watch(connectionStatusProvider);
+
+    ref.listen<int>(deliveryRefreshProvider, (prev, next) async {
+      if (prev != next) {
+        await ref.read(syncManagerProvider.notifier).loadEntries();
+        await _loadDeliveries();
+      }
+    });
 
     ref.listen<SyncState>(syncManagerProvider, (prev, next) {
       if (prev?.entries.length != next.entries.length) {

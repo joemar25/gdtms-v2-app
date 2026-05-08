@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
@@ -74,8 +75,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }
       }
 
-      final courierId =
+      final courierIdFromAuth =
+          ref.read(authProvider).courier?['id']?.toString() ?? '';
+      final courierIdFromStorage =
           await ref.read(authStorageProvider).getLastCourierId() ?? '';
+      final courierId = courierIdFromAuth.isNotEmpty
+          ? courierIdFromAuth
+          : courierIdFromStorage;
       final pendingSync = await SyncOperationsDao.instance.getPendingCount(
         courierId,
       );

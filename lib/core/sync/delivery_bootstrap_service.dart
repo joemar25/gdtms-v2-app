@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/database/bagsakan_dao.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 
@@ -93,6 +94,10 @@ class DeliveryBootstrapService {
       }
     }
 
+    // ── Phase 1b: Sync Bagsakan Groups ───────────────────────────────────────
+    onProgress?.call('Syncing bagsakan groups...');
+    await _syncBagsakanGroups(client);
+
     onProgress?.call('Cleaning up stale data...');
     try {
       final allServerBarcodes = <String>{
@@ -177,6 +182,9 @@ class DeliveryBootstrapService {
         serverBarcodesPerStatus[status] = barcodes;
       }
     }
+
+    // ── Phase 1b: Sync Bagsakan Groups ───────────────────────────────────────
+    await _syncBagsakanGroups(client);
 
     // ── Phase 2: Remove stale local pending items ─────────────────────────────
     // Skip if delta sync (see rule 4 in syncFromApiWithProgress).
@@ -436,5 +444,39 @@ class DeliveryBootstrapService {
     } while (page <= lastPage);
 
     return allBarcodes;
+  }
+
+  /// Fetches all active bagsakan groups and upserts them locally.
+  Future<void> _syncBagsakanGroups(ApiClient client) async {
+    try {
+      final result = await client.get<Map<String, dynamic>>(
+        'bagsakan/groups',
+        parser: parseApiMap,
+      );
+
+      if (result is ApiSuccess<Map<String, dynamic>>) {
+        final rawData = result.data['data'];
+        final List<Map<String, dynamic>> groups = [];
+
+        if (rawData is List) {
+          for (final item in rawData) {
+            if (item is Map<String, dynamic>) {
+              groups.add(item);
+            } else if (item is Map) {
+              groups.add(Map<String, dynamic>.from(item));
+            }
+          }
+        }
+
+        if (groups.isNotEmpty) {
+          debugPrint('[SYNC] fetched ${groups.length} bagsakan groups');
+          await BagsakanDao.instance.upsertGroupsFromSync(groups);
+        }
+      } else {
+        debugPrint('[SYNC] _syncBagsakanGroups failed: $result');
+      }
+    } catch (e) {
+      debugPrint('[SYNC] _syncBagsakanGroups exception: $e');
+    }
   }
 }
