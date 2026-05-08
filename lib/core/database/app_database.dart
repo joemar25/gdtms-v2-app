@@ -43,7 +43,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     final db = await openDatabase(
       path,
-      version: 19,
+      version: 20,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -102,11 +102,13 @@ class AppDatabase {
 
     await db.execute('''
       CREATE TABLE bagsakan_groups (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        name        TEXT    NOT NULL,
-        description TEXT,
-        created_at  INTEGER NOT NULL,
-        updated_at  INTEGER NOT NULL
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        name         TEXT    NOT NULL,
+        description  TEXT,
+        status       TEXT    NOT NULL DEFAULT 'draft',
+        submitted_at INTEGER,
+        created_at   INTEGER NOT NULL,
+        updated_at   INTEGER NOT NULL
       )
     ''');
 
@@ -373,15 +375,20 @@ class AppDatabase {
       // v18: Preservation of version numbering (previously account_number).
     }
     if (oldVersion < 19) {
-      // v19: Add bagsakan_groups table and bagsakan_id column to local_deliveries.
+      // v19: Preservation of version numbering.
+    }
+    if (oldVersion < 20) {
+      // v20: Add bagsakan_groups table and bagsakan_id column to local_deliveries.
       try {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS bagsakan_groups (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            name        TEXT    NOT NULL,
-            description TEXT,
-            created_at  INTEGER NOT NULL,
-            updated_at  INTEGER NOT NULL
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            name         TEXT    NOT NULL,
+            description  TEXT,
+            status       TEXT    NOT NULL DEFAULT 'draft',
+            submitted_at INTEGER,
+            created_at   INTEGER NOT NULL,
+            updated_at   INTEGER NOT NULL
           )
         ''');
       } catch (e) {

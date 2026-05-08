@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
@@ -99,15 +100,25 @@ class BagsakanDao {
   }
 
   /// Returns all bagsakan groups with item counts, ordered by most recently created.
+  /// Filters out submitted groups older than 1 day (Requirement 166).
   Future<List<Map<String, dynamic>>> getBagsakanGroups() async {
     final db = await _db;
-    return await db.rawQuery('''
+    final oneDayAgo = DateTime.now()
+        .subtract(const Duration(days: 1))
+        .millisecondsSinceEpoch;
+
+    return await db.rawQuery(
+      '''
       SELECT g.*, COUNT(d.barcode) as item_count
       FROM bagsakan_groups g
       LEFT JOIN local_deliveries d ON g.id = d.bagsakan_id
+      WHERE g.status != 'submitted' 
+         OR g.submitted_at >= ?
       GROUP BY g.id
       ORDER BY g.created_at DESC
-    ''');
+    ''',
+      [oneDayAgo],
+    );
   }
 
   /// Returns all items assigned to a specific bagsakan group.
@@ -122,11 +133,23 @@ class BagsakanDao {
   }
 
   /// Deletes a bagsakan group and unlinks all associated deliveries.
+  /// Only allowed if the group is not yet submitted.
   Future<void> deleteBagsakanGroup(int groupId) async {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
 
     await db.transaction((txn) async {
+      // Verify not submitted
+      final groups = await txn.query(
+        'bagsakan_groups',
+        columns: ['status'],
+        where: 'id = ?',
+        whereArgs: [groupId],
+      );
+      if (groups.isNotEmpty && groups.first['status'] == 'submitted') {
+        throw Exception('Cannot delete a submitted bagsakan group');
+      }
+
       await txn.update(
         'local_deliveries',
         {'bagsakan_id': null, 'updated_at': now, 'sync_status': 'dirty'},
@@ -136,6 +159,78 @@ class BagsakanDao {
 
       await txn.delete(
         'bagsakan_groups',
+        where: 'id = ?',
+        whereArgs: [groupId],
+      );
+    });
+  }
+
+  /// Submits a bagsakan group, propagating data from a source delivery to all others.
+  /// This action is irreversible and locks the group.
+  Future<void> submitBagsakanGroup(int groupId, String sourceBarcode) async {
+    final db = await _db;
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    await db.transaction((txn) async {
+      // 1. Fetch source delivery
+      final sourceRows = await txn.query(
+        'local_deliveries',
+        where: 'barcode = ? AND bagsakan_id = ?',
+        whereArgs: [sourceBarcode, groupId],
+        limit: 1,
+      );
+      if (sourceRows.isEmpty) throw Exception('Source delivery not found');
+
+      final source = LocalDelivery.fromDb(sourceRows.first);
+      final sourceMap = source.toDeliveryMap();
+
+      // 2. Update all other deliveries in the group
+      final otherRows = await txn.query(
+        'local_deliveries',
+        where: 'bagsakan_id = ? AND barcode != ?',
+        whereArgs: [groupId, sourceBarcode],
+      );
+
+      for (final row in otherRows) {
+        final item = LocalDelivery.fromDb(row);
+        final itemMap = item.toDeliveryMap();
+
+        // Merge delivery details from source into itemMap
+        // Requirement: Copy POD image, transaction date, and all delivery details.
+        final Map<String, dynamic> updatedMap = {
+          ...itemMap,
+          'delivery_status': 'DELIVERED',
+          'delivered_at': source.deliveredAt,
+          'completed_at': source.completedAt,
+          // Copy POD specific fields
+          'proof_of_delivery': sourceMap['proof_of_delivery'],
+          'signature_image': sourceMap['signature_image'],
+          'photo_image': sourceMap['photo_image'],
+          'recipient_relation': sourceMap['recipient_relation'],
+          'recipient_type': sourceMap['recipient_type'],
+          'latitude': sourceMap['latitude'],
+          'longitude': sourceMap['longitude'],
+        };
+
+        await txn.update(
+          'local_deliveries',
+          {
+            'delivery_status': 'DELIVERED',
+            'delivered_at': source.deliveredAt,
+            'completed_at': source.completedAt,
+            'raw_json': jsonEncode(updatedMap),
+            'sync_status': 'dirty',
+            'updated_at': now,
+          },
+          where: 'barcode = ?',
+          whereArgs: [item.barcode],
+        );
+      }
+
+      // 3. Mark group as submitted and set the 1-day purge clock
+      await txn.update(
+        'bagsakan_groups',
+        {'status': 'submitted', 'submitted_at': now, 'updated_at': now},
         where: 'id = ?',
         whereArgs: [groupId],
       );

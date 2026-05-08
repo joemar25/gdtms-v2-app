@@ -40,6 +40,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
+import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
@@ -210,7 +211,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // Strict pre-filter: if this barcode matches any local delivery (POD), do
     // not treat it as a dispatch scan. This avoids unnecessary network checks
     // and prevents navigating to the dispatch eligibility page for PODs.
-    final localMatches = await LocalDeliveryDao.instance.searchByQuery(code);
+    final localMatches = await ref.read(localDeliveryDaoProvider).searchByQuery(code);
     if (!mounted) return;
     if (localMatches.isNotEmpty) {
       final msg =
@@ -323,7 +324,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 .map((e) => Map<String, dynamic>.from(e))
                 .toList();
             if (deliveries.isNotEmpty) {
-              await LocalDeliveryDao.instance.insertAll(
+              await ref.read(localDeliveryDaoProvider).insertAll(
                 deliveries,
                 dispatchCode: dispatchCode,
               );
@@ -381,25 +382,35 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   }
 
   Future<void> _handleBagsakan(String code) async {
-    // Placeholder — bagsakan group assignment is under development.
-    // Once implemented: look up the delivery and add it to the pending group.
+    // Look up the delivery locally
+    final matches = await ref.read(localDeliveryDaoProvider).searchByQuery(code);
     if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Under Development'),
-        content: Text(
-          'Scanned: $code\n\nBagsakan group assignment is not yet available.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-    if (mounted && _hasPermission) await _scannerController.start();
+
+    if (matches.isEmpty) {
+      setState(() => _inlineError = 'No delivery found for "$code".');
+      showErrorNotification(context, 'No delivery found for "$code".');
+      if (_hasPermission) await _scannerController.start();
+      return;
+    }
+
+    // If multiple matches, we return the first one or show a picker.
+    // For scanning, we usually want the exact match.
+    final match = matches.first;
+
+    // Check eligibility: status must be FOR_DELIVERY or FAILED_DELIVERY
+    final status = match.deliveryStatus.toUpperCase();
+    final isEligible = status == 'FOR_DELIVERY' || status == 'FAILED_DELIVERY';
+
+    if (!isEligible) {
+      final msg = 'Delivery status "$status" is not eligible for Bagsakan.';
+      setState(() => _inlineError = msg);
+      showInfoNotification(context, msg);
+      if (_hasPermission) await _scannerController.start();
+      return;
+    }
+
+    // Success: Pop the barcode back to the caller
+    context.pop(match.barcode);
   }
 
   void _openManualSheet() async {
@@ -436,7 +447,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // DeliveryUpdateScreen._load() runs isVisibleToRider again as the canonical
     // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
     // message before ever navigating, and avoids N+1 per-row checks.
-    var matches = await LocalDeliveryDao.instance.searchVisibleByQuery(code);
+    var matches = await ref.read(localDeliveryDaoProvider).searchVisibleByQuery(code);
     debugPrint(
       '[SCAN] searchVisibleByQuery($code) -> ${matches.length} matches',
     );
@@ -456,14 +467,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // excluded it (e.g. completed_at missing or other edge cases). We then
     // validate visibility per-row using the canonical isVisibleToRider gate.
     if (matches.isEmpty) {
-      final fallback = await LocalDeliveryDao.instance.searchByQuery(code);
+      final fallback = await ref.read(localDeliveryDaoProvider).searchByQuery(code);
       debugPrint(
         '[SCAN] fallback searchByQuery($code) -> ${fallback.length} results',
       );
       if (!mounted) return;
       if (fallback.isNotEmpty) {
         final visibilityFutures = fallback
-            .map((d) => LocalDeliveryDao.instance.isVisibleToRider(d.barcode))
+            .map((d) => ref.read(localDeliveryDaoProvider).isVisibleToRider(d.barcode))
             .toList();
         final visibilityResults = await Future.wait(visibilityFutures);
         if (!mounted) return;
@@ -529,7 +540,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // Before giving up, check if the barcode exists locally but is non-visible
     // (e.g. verified Failed Delivery, paid delivered, old window) so we can give a better
     // error message than just "not found".
-    final anyLocal = await LocalDeliveryDao.instance.getByBarcode(code);
+    final anyLocal = await ref.read(localDeliveryDaoProvider).getByBarcode(code);
     if (!mounted) return;
     if (anyLocal != null) {
       // Item exists locally but is blocked — show status-specific reason.

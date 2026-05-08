@@ -109,7 +109,14 @@
     "remove_confirm_title": "Remove from Bagsakan?",
     "remove_confirm_message": "Are you sure you want to remove \"{}\" from this bagsakan?",
     "success_deleted": "Bagsakan \"{}\" deleted.",
-    "success_removed": "Item \"{}\" removed from bagsakan."
+    "success_removed": "Item \"{}\" removed from bagsakan.",
+    "status_submitted": "SUBMITTED",
+    "submit_confirm_title": "Submit Bagsakan?",
+    "submit_confirm_message": "This will propagate the delivery data to all items in the group. Please ensure you have removed any failed deliveries from the group first.",
+    "submit_confirm_confirm": "Submit",
+    "success_submitted": "Bagsakan submitted and data propagated.",
+    "submit_button": "SUBMIT BAGSAKAN",
+    "new_items_header": "Newly Added Items"
   },
   "notifications": {
     "unread_count": "{count} unread notifications",

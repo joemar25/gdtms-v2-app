@@ -178,3 +178,15 @@ Deliveries assigned to a bagsakan group (`bagsakan_id IS NOT NULL`) are **exclud
 - **UI (operator)**: `BagsakanListScreen` handles the creation, assignment, management, and deletion flow.
 - **UI (Bagsakan Form)**: Uses the **Integrated Header Pattern** with two tabs ("Info" and "Deliveries") managed by `DSSegmentedSelector`. The header is borderless and merges with a branded primary-colored sub-header.
 - **UI (courier)**: Dispatch list shows bagsakan-tagged items distinctly. Accepting moves all group deliveries into the bagsakan list screen. The bagsakan list auto-purges entries past the 1-day submitted lifetime.
+
+---
+
+## UI Behavioral Rules
+
+### Form Item Visibility
+- **Creation Mode**: Displays all selected items in a "Pending Additions" summary list for verification.
+- **Edit Mode**: Displays only the **newly added** items in a "Newly Added Items" summary list. Items that were already part of the group are hidden to keep the interface focused.
+
+### Removal Confirmation
+- **Instant Removal**: Removing an item added in the current session (not yet saved) happens instantly without a confirmation dialog.
+- **Safe Removal**: Removing an item that was already part of the saved group requires a **confirmation dialog** to prevent accidental ungrouping of previously finalized items.

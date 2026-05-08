@@ -109,7 +109,14 @@
     "remove_confirm_title": "Alisin sa Bagsakan?",
     "remove_confirm_message": "Sigurado ka bang gusto mong alisin ang \"{}\" sa bagsakan na ito?",
     "success_deleted": "Ang Bagsakan na \"{}\" ay nabura na.",
-    "success_removed": "Ang item na \"{}\" ay naalis na sa bagsakan."
+    "success_removed": "Ang item na \"{}\" ay naalis na sa bagsakan.",
+    "status_submitted": "NAISUMITE",
+    "submit_confirm_title": "Isumite ang Bagsakan?",
+    "submit_confirm_message": "Ikakalat nito ang data ng delivery sa lahat ng item sa grupo. Pakisiguradong naalis mo na ang anumang failed deliveries sa grupo bago magpatuloy.",
+    "submit_confirm_confirm": "Isumite",
+    "success_submitted": "Naisumite na ang Bagsakan at kumalat na ang data.",
+    "submit_button": "ISUMITE ANG BAGSAKAN",
+    "new_items_header": "Mga Bagong Dagdag na Item"
   },
   "notifications": {
     "unread_count": "{count} na hindi pa nababasang abiso",

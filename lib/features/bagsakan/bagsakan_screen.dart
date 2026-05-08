@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_components.dart';
 
@@ -158,18 +159,20 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
 
                         if (confirmed == true && context.mounted) {
                           // UI only for now as requested
-                          showAppSnackbar(
+                          showSuccessNotification(
                             context,
                             'bagsakan.success_deleted'.tr(
                               args: [group['name']],
                             ),
-                            type: SnackbarType.success,
                           );
 
-                          // COMMENTED OUT FOR LATER BACKEND INTEGRATION
-                          // final id = group['id'] as int;
-                          // await ref.read(bagsakanDaoProvider).deleteBagsakanGroup(id);
-                          // ref.read(deliveryRefreshProvider.notifier).increment();
+                          final id = group['id'] as int;
+                          await ref
+                              .read(bagsakanDaoProvider)
+                              .deleteBagsakanGroup(id);
+                          ref
+                              .read(deliveryRefreshProvider.notifier)
+                              .increment();
                         }
                       },
                     ),

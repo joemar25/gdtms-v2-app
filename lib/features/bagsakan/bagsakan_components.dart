@@ -11,19 +11,21 @@ class BagsakanGroupCard extends StatelessWidget {
     required this.group,
     required this.isDark,
     required this.onTap,
-    required this.onDelete,
+    this.onDelete,
   });
 
   final Map<String, dynamic> group;
   final bool isDark;
   final VoidCallback onTap;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
     final name = group['name'] as String;
     final description = group['description'] as String?;
     final itemCount = group['item_count'] as int;
+    final status = group['status'] as String? ?? 'draft';
+    final isSubmitted = status == 'submitted';
     final createdAt = DateTime.fromMillisecondsSinceEpoch(
       group['created_at'] as int,
     );
@@ -71,10 +73,9 @@ class BagsakanGroupCard extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          DSColors.primary,
-                          DSColors.primary.withValues(
-                            alpha: DSStyles.alphaMuted,
-                          ),
+                          isSubmitted ? DSColors.success : DSColors.primary,
+                          (isSubmitted ? DSColors.success : DSColors.primary)
+                              .withValues(alpha: DSStyles.alphaMuted),
                         ],
                       ),
                     ),
@@ -92,6 +93,37 @@ class BagsakanGroupCard extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    if (isSubmitted) ...[
+                                      Container(
+                                        margin: const EdgeInsets.only(
+                                          bottom: DSSpacing.xs,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: DSSpacing.sm,
+                                          vertical: DSSpacing.xs,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: DSColors.success.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            DSSpacing.xs,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'bagsakan.status_submitted'
+                                              .tr()
+                                              .toUpperCase(),
+                                          style:
+                                              DSTypography.caption(
+                                                color: DSColors.success,
+                                              ).copyWith(
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 0.5,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
                                     Text(
                                       name,
                                       style:
@@ -122,21 +154,25 @@ class BagsakanGroupCard extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              DSSpacing.wSm,
-                              IconButton(
-                                onPressed: onDelete,
-                                icon: const Icon(Icons.delete_outline_rounded),
-                                color: DSColors.error,
-                                style: IconButton.styleFrom(
-                                  backgroundColor: DSColors.error.withValues(
-                                    alpha: 0.1,
+                              if (onDelete != null && !isSubmitted) ...[
+                                DSSpacing.wSm,
+                                IconButton(
+                                  onPressed: onDelete,
+                                  icon: const Icon(
+                                    Icons.delete_outline_rounded,
                                   ),
-                                  padding: const EdgeInsets.all(DSSpacing.xs),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
+                                  color: DSColors.error,
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: DSColors.error.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    padding: const EdgeInsets.all(DSSpacing.xs),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                           DSSpacing.hMd,

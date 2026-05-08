@@ -46,6 +46,7 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
   bool _isLoadingGroup = false;
   List<LocalDelivery> _searchResults = [];
   final List<LocalDelivery> _groupItems = [];
+  final Set<String> _initialBarcodes = {};
 
   @override
   void initState() {
@@ -76,6 +77,8 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
           setState(() {
             _groupItems.clear();
             _groupItems.addAll(items);
+            _initialBarcodes.clear();
+            _initialBarcodes.addAll(items.map((e) => e.barcode));
           });
         }
       }
@@ -191,66 +194,89 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
     });
   }
 
-  Future<void> _onRemoveFromBagsakan(LocalDelivery delivery) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'bagsakan.remove_confirm_title'.tr(),
-          style: DSTypography.heading(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? DSColors.labelPrimaryDark
-                : DSColors.labelPrimary,
-          ),
-        ),
-        content: Text(
-          'bagsakan.remove_confirm_message'.tr(
-            args: [delivery.recipientName ?? delivery.barcode],
-          ),
-          style: DSTypography.body(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? DSColors.labelSecondaryDark
-                : DSColors.labelSecondary,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'common.cancel'.tr(),
-              style: DSTypography.body(
-                color: DSColors.primary,
-              ).copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'common.confirm'.tr(),
-              style: DSTypography.body(
-                color: DSColors.error,
-              ).copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? DSColors.cardDark
-            : DSColors.cardLight,
-        shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-      ),
-    );
+  Future<void> _handleScannedBarcode(String barcode) async {
+    final dao = ref.read(bagsakanDaoProvider);
+    final results = await dao.searchByBarcodeLike(barcode);
+    if (results.isNotEmpty) {
+      // Find exact match if possible
+      final exactMatch = results.firstWhere(
+        (e) => e.barcode.toUpperCase() == barcode.toUpperCase(),
+        orElse: () => results.first,
+      );
+      _onAddToBagsakan(exactMatch);
+    } else {
+      if (mounted) {
+        showErrorNotification(context, 'bagsakan.not_found'.tr());
+      }
+    }
+  }
 
-    if (confirmed == true) {
+  Future<void> _onRemoveFromBagsakan(LocalDelivery delivery) async {
+    final isExisting = _initialBarcodes.contains(delivery.barcode);
+
+    bool confirmed = true;
+    if (isExisting) {
+      confirmed =
+          await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(
+                'bagsakan.remove_confirm_title'.tr(),
+                style: DSTypography.heading(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? DSColors.labelPrimaryDark
+                      : DSColors.labelPrimary,
+                ),
+              ),
+              content: Text(
+                'bagsakan.remove_confirm_message'.tr(
+                  args: [delivery.recipientName ?? delivery.barcode],
+                ),
+                style: DSTypography.body(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.labelSecondary,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(
+                    'common.cancel'.tr(),
+                    style: DSTypography.body(
+                      color: DSColors.primary,
+                    ).copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(
+                    'common.confirm'.tr(),
+                    style: DSTypography.body(
+                      color: DSColors.error,
+                    ).copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? DSColors.cardDark
+                  : DSColors.cardLight,
+              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
+            ),
+          ) ??
+          false;
+    }
+
+    if (confirmed) {
       setState(() {
         _groupItems.removeWhere((e) => e.barcode == delivery.barcode);
       });
       if (mounted) {
-        showAppSnackbar(
+        showSuccessNotification(
           context,
           'bagsakan.success_removed'.tr(
             args: [delivery.recipientName ?? delivery.barcode],
           ),
-          type: SnackbarType.success,
         );
       }
     }
@@ -482,8 +508,15 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
                 child: IconButton(
                   icon: const Icon(Icons.qr_code_scanner_rounded),
                   color: DSColors.primary,
-                  onPressed: () =>
-                      context.push('/scan', extra: {'mode': 'bagsakan'}),
+                  onPressed: () async {
+                    final barcode = await context.push<String>(
+                      '/scan',
+                      extra: {'mode': 'bagsakan'},
+                    );
+                    if (barcode != null && mounted) {
+                      _handleScannedBarcode(barcode);
+                    }
+                  },
                 ),
               ),
             ],
@@ -565,6 +598,47 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
             ),
           ),
         ],
+
+        // ── PENDING ADDITIONS (Filtered summary) ──────────────────────────
+        _buildPendingAdditions(isDark),
+      ],
+    );
+  }
+
+  Widget _buildPendingAdditions(bool isDark) {
+    // Show all items if creating new group
+    // Show only NEWLY added items if editing existing group
+    final itemsToShow = widget.groupId == null
+        ? _groupItems
+        : _groupItems
+              .where((e) => !_initialBarcodes.contains(e.barcode))
+              .toList();
+
+    if (itemsToShow.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _kSectionGap,
+        DeliverySectionHeader(
+          label: widget.groupId == null
+              ? 'bagsakan.group_items_header'.tr()
+              : 'bagsakan.new_items_header'.tr(),
+        ),
+        _kInnerGap,
+        ...itemsToShow.map(
+          (delivery) => Padding(
+            padding: const EdgeInsets.only(bottom: DSSpacing.md),
+            child: DeliveryCard(
+              delivery: delivery.toDeliveryMap(),
+              onTap: null,
+              isForAssigning: true,
+              isInBagsakan: true,
+              onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
+              compact: false,
+            ),
+          ),
+        ),
       ],
     );
   }
