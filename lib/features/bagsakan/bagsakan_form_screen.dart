@@ -1,8 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/bagsakan.md — update that file when you edit this one.
 
-import 'dart:async' show unawaited;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -74,20 +72,61 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
     setState(() => _isLoadingGroup = true);
     try {
       final dao = ref.read(bagsakanDaoProvider);
-      final group = await dao.getBagsakanGroup(widget.groupId!);
-      if (group != null) {
-        _groupNameController.text = group['name'] as String;
-        _groupDescriptionController.text =
-            group['description'] as String? ?? '';
 
-        final items = await dao.getBagsakanItems(widget.groupId!);
+      // 1. Initial local load for responsiveness
+      final localGroup = await dao.getBagsakanGroup(widget.groupId!);
+      if (localGroup != null && mounted) {
+        setState(() {
+          _groupNameController.text = localGroup['name'] as String? ?? '';
+          _groupDescriptionController.text =
+              localGroup['description'] as String? ?? '';
+        });
+        final localItems = await dao.getBagsakanItems(widget.groupId!);
         if (mounted) {
           setState(() {
             _groupItems.clear();
-            _groupItems.addAll(items);
+            _groupItems.addAll(localItems);
             _initialBarcodes.clear();
-            _initialBarcodes.addAll(items.map((e) => e.barcode));
+            _initialBarcodes.addAll(localItems.map((e) => e.barcode));
           });
+        }
+      }
+
+      // 2. Online Refresh (Priority)
+      final isOnline =
+          ref.read(connectionStatusProvider) == ConnectionStatus.online;
+      if (isOnline) {
+        try {
+          final api = ref.read(apiClientProvider);
+          final res = await api.get<Map<String, dynamic>>(
+            'bagsakan/groups/${widget.groupId}',
+            parser: parseApiMap,
+          );
+          if (res is ApiSuccess<Map<String, dynamic>>) {
+            final groupData = res.data['data'];
+            if (groupData is Map<String, dynamic>) {
+              await dao.upsertGroupsFromSync([groupData]);
+
+              // Reload from local DB after API sync
+              final syncedGroup = await dao.getBagsakanGroup(widget.groupId!);
+              final syncedItems = await dao.getBagsakanItems(widget.groupId!);
+
+              if (mounted && syncedGroup != null) {
+                setState(() {
+                  _groupNameController.text =
+                      syncedGroup['name'] as String? ?? '';
+                  _groupDescriptionController.text =
+                      syncedGroup['description'] as String? ?? '';
+                  _groupItems.clear();
+                  _groupItems.addAll(syncedItems);
+                  _initialBarcodes.clear();
+                  _initialBarcodes.addAll(syncedItems.map((e) => e.barcode));
+                });
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('[BAGSAKAN] Online refresh failed: $e');
         }
       }
     } finally {
@@ -216,21 +255,19 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
       );
       await ref.read(syncManagerProvider.notifier).loadEntries();
 
-      // When online, immediately flush queued Bagsakan operations so the
-      // backend has the group before users open group details.
+      // When online, immediately flush queued Bagsakan operations.
+      // We AWAIT this when online to ensure the authoritative server ID is
+      // obtained and remapped locally before we return to the list screen,
+      // satisfying the "Online Priority" and "Respect Sync Always" requirements.
       final isOnline =
           ref.read(connectionStatusProvider) == ConnectionStatus.online;
       if (isOnline) {
-        unawaited(
-          ref.read(syncManagerProvider.notifier).processQueue().catchError((
-            e,
-            st,
-          ) {
-            debugPrint(
-              '[BAGSAKAN] immediate queue flush failed (non-blocking): $e',
-            );
-          }),
-        );
+        try {
+          await ref.read(syncManagerProvider.notifier).processQueue();
+        } catch (e) {
+          debugPrint('[BAGSAKAN] immediate sync failed: $e');
+          // Non-blocking for the UI pop, the queue will retry automatically.
+        }
       }
 
       if (mounted) {

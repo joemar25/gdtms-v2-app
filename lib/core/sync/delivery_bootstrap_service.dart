@@ -106,12 +106,12 @@ class DeliveryBootstrapService {
       }
     }
 
-    // ── Phase 1b: Sync Bagsakan Groups ───────────────────────────────────────
+    // ── Phase 1b: Sync Bagsakan Groups (Authoritative) ───────────────────────
     onProgress?.call('Syncing bagsakan groups...');
-    await _syncBagsakanGroupsFromUnifiedSync(
-      client,
-      updatedSince: updatedSince,
-    );
+    // We always perform a full sweep for groups to ensure "Online Priority"
+    // and purge any stale local records that don't exist on the current server.
+    final serverGroupIds = await _syncBagsakanGroupsFromUnifiedSync(client);
+    await BagsakanDao.instance.removeStaleGroups(serverGroupIds);
 
     onProgress?.call('Cleaning up stale data...');
     try {
@@ -198,11 +198,11 @@ class DeliveryBootstrapService {
       }
     }
 
-    // ── Phase 1b: Sync Bagsakan Groups ───────────────────────────────────────
-    await _syncBagsakanGroupsFromUnifiedSync(
-      client,
-      updatedSince: updatedSince,
-    );
+    // ── Phase 1b: Sync Bagsakan Groups (Authoritative) ───────────────────────
+    // We always perform a full sweep for groups to ensure "Online Priority"
+    // and purge any stale local records that don't exist on the current server.
+    final serverGroupIds = await _syncBagsakanGroupsFromUnifiedSync(client);
+    await BagsakanDao.instance.removeStaleGroups(serverGroupIds);
 
     // ── Phase 2: Remove stale local pending items ─────────────────────────────
     // Skip if delta sync (see rule 4 in syncFromApiWithProgress).
@@ -466,10 +466,12 @@ class DeliveryBootstrapService {
 
   /// Fetches bagsakan groups from the unified `/sync` stream and upserts them
   /// locally. Falls back to legacy `GET /bagsakan/groups` when unavailable.
-  Future<void> _syncBagsakanGroupsFromUnifiedSync(
-    ApiClient client, {
-    int? updatedSince,
-  }) async {
+  /// Note: We intentionally ignore updatedSince here to perform an 
+  /// authoritative full-sweep of active groups.
+  Future<Set<int>> _syncBagsakanGroupsFromUnifiedSync(
+    ApiClient client,
+  ) async {
+    int? updatedSince; // Explicitly ignored for group authoritative sync
     final groupsById = <Object, Map<String, dynamic>>{};
     int page = 1;
     int lastPage = 1;
@@ -519,19 +521,20 @@ class DeliveryBootstrapService {
         final groups = groupsById.values.toList(growable: false);
         debugPrint('[SYNC] fetched ${groups.length} bagsakan groups via /sync');
         await BagsakanDao.instance.upsertGroupsFromSync(groups);
-        return;
+        return groupsById.keys.map((k) => int.parse(k.toString())).toSet();
       }
 
       // Fallback for environments that have not yet exposed groups in /sync.
-      await _syncBagsakanGroupsLegacy(client);
+      return await _syncBagsakanGroupsLegacy(client);
     } catch (e) {
       debugPrint('[SYNC] _syncBagsakanGroupsFromUnifiedSync exception: $e');
-      await _syncBagsakanGroupsLegacy(client);
+      return await _syncBagsakanGroupsLegacy(client);
     }
   }
 
   /// Legacy groups fetch path, kept as fallback safety net.
-  Future<void> _syncBagsakanGroupsLegacy(ApiClient client) async {
+  Future<Set<int>> _syncBagsakanGroupsLegacy(ApiClient client) async {
+    final serverIds = <int>{};
     try {
       final result = await client.get<Map<String, dynamic>>(
         'bagsakan/groups',
@@ -557,6 +560,14 @@ class DeliveryBootstrapService {
             '[SYNC] fetched ${groups.length} bagsakan groups (legacy)',
           );
           await BagsakanDao.instance.upsertGroupsFromSync(groups);
+          for (final g in groups) {
+            final id = g['id'];
+            if (id is int) serverIds.add(id);
+            if (id is String) {
+              final parsed = int.tryParse(id);
+              if (parsed != null) serverIds.add(parsed);
+            }
+          }
         }
       } else {
         debugPrint('[SYNC] _syncBagsakanGroupsLegacy failed: $result');
@@ -564,5 +575,6 @@ class DeliveryBootstrapService {
     } catch (e) {
       debugPrint('[SYNC] _syncBagsakanGroupsLegacy exception: $e');
     }
+    return serverIds;
   }
 }

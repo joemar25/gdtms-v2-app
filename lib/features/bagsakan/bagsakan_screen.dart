@@ -86,9 +86,13 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                 onRefresh: () async {
                   final isOnline = ref.read(isOnlineProvider);
                   if (isOnline) {
-                    await DeliveryBootstrapService.instance.syncFromApi(
-                      ref.read(apiClientProvider),
-                    );
+                    final api = ref.read(apiClientProvider);
+                    final sync = ref.read(syncManagerProvider.notifier);
+
+                    // Rule: online data is priority. Pull the latest state first,
+                    // then push any pending local changes to reconcile.
+                    await DeliveryBootstrapService.instance.syncFromApi(api);
+                    await sync.processQueue();
                   }
                   ref.read(deliveryRefreshProvider.notifier).increment();
                 },

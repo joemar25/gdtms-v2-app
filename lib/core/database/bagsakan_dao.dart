@@ -999,9 +999,8 @@ class BagsakanDao {
     });
   }
 
-  /// Forces a specific item to point to a specific bagsakan group.
-  /// Used by [SyncManager] during post-sync cleanup to ensure consistency
-  /// even if concurrent background syncs cleared the assignment.
+  /// Force reconcile bagsakan_id during cleanup to ensure consistency
+  /// even if a concurrent sync-from-api pass cleared it locally.
   Future<void> forceReconcileItemAssignment(
     String barcode,
     int? groupId,
@@ -1014,5 +1013,58 @@ class BagsakanDao {
       where: 'barcode COLLATE NOCASE = ?',
       whereArgs: [barcode],
     );
+  }
+
+  /// Removes local bagsakan groups that are not in the provided set of server IDs,
+  /// provided they have no pending sync operations.
+  /// This ensures "Online Priority" by purging stale local records that don't
+  /// exist on the authoritative server.
+  Future<void> removeStaleGroups(Set<int> serverIds) async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      // Find all groups not in the server list
+      final placeholders = serverIds.isEmpty ? '' : serverIds.map((_) => '?').join(', ');
+      final where = serverIds.isEmpty ? '1=1' : 'id NOT IN ($placeholders)';
+      
+      final staleGroups = await txn.query(
+        'bagsakan_groups',
+        columns: ['id'],
+        where: where,
+        whereArgs: serverIds.toList(),
+      );
+
+      for (final g in staleGroups) {
+        final id = g['id'] as int;
+        
+        // Safety: check if there are pending sync operations for this group
+        // If it's pending, it means it's a new local-only group; keep it.
+        final pending = await txn.query(
+          'sync_operations',
+          columns: ['id'],
+          where: "barcode = ? AND status IN ('pending', 'processing', 'failed', 'conflict')",
+          whereArgs: ['BAGSAKAN_$id'],
+          limit: 1,
+        );
+
+        if (pending.isEmpty) {
+          debugPrint('[DAO] removeStaleGroups: purging stale group $id (not on server, no pending sync)');
+          
+          // 1. Unassign items
+          await txn.update(
+            'local_deliveries',
+            {'bagsakan_id': null},
+            where: 'bagsakan_id = ?',
+            whereArgs: [id],
+          );
+          
+          // 2. Delete group
+          await txn.delete(
+            'bagsakan_groups',
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+        }
+      }
+    });
   }
 }
