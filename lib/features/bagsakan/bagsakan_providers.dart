@@ -14,3 +14,20 @@ final bagsakanGroupsProvider = FutureProvider<List<Map<String, dynamic>>>((
   ref.watch(deliveryRefreshProvider);
   return await ref.read(bagsakanDaoProvider).getBagsakanGroups();
 });
+
+/// Keeps track of local-to-server ID remappings during a sync session.
+/// This prevents UI flicker or 'not found' errors when a group is remapped
+/// while its details screen is open.
+class BagsakanIdRemapNotifier extends Notifier<Map<int, int>> {
+  @override
+  Map<int, int> build() => {};
+
+  void updateRemap(int localId, int serverId) {
+    state = {...state, localId: serverId};
+  }
+}
+
+final bagsakanIdRemapProvider =
+    NotifierProvider<BagsakanIdRemapNotifier, Map<int, int>>(
+      BagsakanIdRemapNotifier.new,
+    );

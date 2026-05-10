@@ -26,6 +26,7 @@ class BagsakanGroupCard extends StatelessWidget {
     final itemCount = group['item_count'] as int;
     final status = group['status'] as String? ?? 'draft';
     final isSubmitted = status == 'submitted';
+    final pendingSyncCount = group['pending_sync_count'] as int? ?? 0;
     final createdAt = DateTime.fromMillisecondsSinceEpoch(
       group['created_at'] as int,
     );
@@ -93,6 +94,23 @@ class BagsakanGroupCard extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    if (pendingSyncCount > 0)
+                                      Container(
+                                        margin: const EdgeInsets.only(
+                                          bottom: DSSpacing.xs,
+                                        ),
+                                        child: DeliveryMiniPill(
+                                          label: 'UNSYNCED',
+                                          icon: Icons.sync_problem_rounded,
+                                          bg: DSColors.warning.withValues(
+                                            alpha: DSStyles.alphaSubtle,
+                                          ),
+                                          border: DSColors.warning.withValues(
+                                            alpha: DSStyles.alphaMuted,
+                                          ),
+                                          fg: DSColors.warning,
+                                        ),
+                                      ),
                                     if (isSubmitted) ...[
                                       Container(
                                         margin: const EdgeInsets.only(
@@ -154,7 +172,7 @@ class BagsakanGroupCard extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              if (onDelete != null && !isSubmitted) ...[
+                              if (onDelete != null) ...[
                                 DSSpacing.wSm,
                                 IconButton(
                                   onPressed: onDelete,

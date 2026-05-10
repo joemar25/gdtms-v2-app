@@ -34,8 +34,57 @@ class SyncEntryTile extends StatelessWidget {
   final VoidCallback? onDismiss;
   final VoidCallback? onDelete;
 
+  bool get _isBagsakan =>
+      entry.barcode.startsWith('BAGSAKAN_') ||
+      entry.operationType.contains('BAGSAKAN');
+
+  String get _bagsakanDisplayName {
+    final name = (entry.payload['group_name'] ?? entry.payload['name'])
+        ?.toString();
+    if (name != null && name.isNotEmpty) return name;
+    return entry.barcode; // fallback: "BAGSAKAN_5"
+  }
+
+  String get _bagsakanOperationLabel {
+    switch (entry.operationType) {
+      case 'CREATE_BAGSAKAN':
+        return 'Create group';
+      case 'UPDATE_BAGSAKAN_GROUP':
+        return 'Update group';
+      case 'ASSIGN_TO_BAGSAKAN':
+        final count = _bagsakanBarcodeCount;
+        return count > 0
+            ? 'Assign $count item${count == 1 ? '' : 's'}'
+            : 'Assign items';
+      case 'UNASSIGN_FROM_BAGSAKAN':
+        final count = _bagsakanBarcodeCount;
+        return count > 0
+            ? 'Remove $count item${count == 1 ? '' : 's'}'
+            : 'Remove items';
+      case 'DELETE_BAGSAKAN':
+        return 'Delete group';
+      default:
+        return entry.operationType.replaceAll('_', ' ').toLowerCase();
+    }
+  }
+
+  int get _bagsakanBarcodeCount {
+    final raw = entry.payload['barcodes'];
+    if (raw is List) return raw.length;
+    return 0;
+  }
+
   String get _payloadStatus {
     return entry.payload['delivery_status']?.toString() ?? '';
+  }
+
+  List<Map<String, dynamic>> get _conflictDetails {
+    final raw = entry.payload['conflict_details'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
+        .toList();
   }
 
   ({String deliveryDate, String transactionDate, String dispatchDate})
@@ -158,6 +207,8 @@ class SyncEntryTile extends StatelessWidget {
                   context,
                   'sync.list.profile_update_info'.tr(),
                 )
+              : _isBagsakan
+              ? null
               : () => context.push('/deliveries/${entry.barcode}/update'),
           onLongPress: onDelete,
           child: IntrinsicHeight(
@@ -175,18 +226,34 @@ class SyncEntryTile extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                entry.barcode,
+                                _isBagsakan
+                                    ? _bagsakanDisplayName
+                                    : entry.barcode,
                                 style: DSTypography.heading(fontSize: 14)
                                     .copyWith(
-                                      fontFamily: 'monospace',
-                                      letterSpacing: 1.0,
+                                      fontFamily: _isBagsakan
+                                          ? null
+                                          : 'monospace',
+                                      letterSpacing: _isBagsakan ? 0 : 1.0,
                                     ),
                               ),
                             ),
                             _StatusChipCompact(status: entry.status),
                           ],
                         ),
-                        if (recipientName != null &&
+                        if (_isBagsakan) ...[
+                          DSSpacing.hXs,
+                          Text(
+                            _bagsakanOperationLabel,
+                            style: DSTypography.body(
+                              fontWeight: FontWeight.w500,
+                              fontSize: DSTypography.sizeSm,
+                              color: DSColors.labelSecondary,
+                            ),
+                          ),
+                        ],
+                        if (!_isBagsakan &&
+                            recipientName != null &&
                             recipientName.isNotEmpty &&
                             !isLocked) ...[
                           DSSpacing.hXs,
@@ -215,45 +282,48 @@ class SyncEntryTile extends StatelessWidget {
                           ),
                         ],
                         DSSpacing.hSm,
-                        Wrap(
-                          spacing: DSSpacing.sm,
-                          runSpacing: DSSpacing.xs,
-                          children: [
-                            if (payloadStatus.isNotEmpty)
-                              _StatusBadge(status: payloadStatus),
-                            if (product != null && product.isNotEmpty)
-                              _Chip(product.toUpperCase()),
-                            if (mailType != null &&
-                                mailType.isNotEmpty &&
-                                (product == null ||
-                                    !product.toUpperCase().contains(
-                                      mailType.toUpperCase(),
-                                    )))
-                              _Chip(mailType.toUpperCase()),
-                            if (dispatchCode != null && dispatchCode.isNotEmpty)
-                              _Chip(dispatchCode),
-                          ],
-                        ),
-                        DSSpacing.hSm,
-                        if (dates.deliveryDate.isNotEmpty)
-                          _MetaRow(
-                            icon: Icons.local_shipping_outlined,
-                            label: 'sync.list.delivered_label'.tr(),
-                            value: dates.deliveryDate,
+                        if (!_isBagsakan) ...[
+                          Wrap(
+                            spacing: DSSpacing.sm,
+                            runSpacing: DSSpacing.xs,
+                            children: [
+                              if (payloadStatus.isNotEmpty)
+                                _StatusBadge(status: payloadStatus),
+                              if (product != null && product.isNotEmpty)
+                                _Chip(product.toUpperCase()),
+                              if (mailType != null &&
+                                  mailType.isNotEmpty &&
+                                  (product == null ||
+                                      !product.toUpperCase().contains(
+                                        mailType.toUpperCase(),
+                                      )))
+                                _Chip(mailType.toUpperCase()),
+                              if (dispatchCode != null &&
+                                  dispatchCode.isNotEmpty)
+                                _Chip(dispatchCode),
+                            ],
                           ),
-                        if (dates.transactionDate.isNotEmpty)
-                          _MetaRow(
-                            icon: Icons.receipt_outlined,
-                            label: 'sync.list.transaction_label'.tr(),
-                            value: dates.transactionDate,
-                          ),
-                        if (dates.deliveryDate.isEmpty &&
-                            dates.dispatchDate.isNotEmpty)
-                          _MetaRow(
-                            icon: Icons.call_made_rounded,
-                            label: 'sync.list.dispatched_label'.tr(),
-                            value: dates.dispatchDate,
-                          ),
+                          DSSpacing.hSm,
+                          if (dates.deliveryDate.isNotEmpty)
+                            _MetaRow(
+                              icon: Icons.local_shipping_outlined,
+                              label: 'sync.list.delivered_label'.tr(),
+                              value: dates.deliveryDate,
+                            ),
+                          if (dates.transactionDate.isNotEmpty)
+                            _MetaRow(
+                              icon: Icons.receipt_outlined,
+                              label: 'sync.list.transaction_label'.tr(),
+                              value: dates.transactionDate,
+                            ),
+                          if (dates.deliveryDate.isEmpty &&
+                              dates.dispatchDate.isNotEmpty)
+                            _MetaRow(
+                              icon: Icons.call_made_rounded,
+                              label: 'sync.list.dispatched_label'.tr(),
+                              value: dates.dispatchDate,
+                            ),
+                        ],
                         _MetaRow(
                           icon: Icons.cloud_upload_outlined,
                           label: 'sync.list.queued_label'.tr(),
@@ -290,6 +360,53 @@ class SyncEntryTile extends StatelessWidget {
                               ),
                             ],
                           ),
+                        ],
+                        if (_conflictDetails.isNotEmpty) ...[
+                          DSSpacing.hXs,
+                          for (final item in _conflictDetails.take(3))
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '• ',
+                                    style: DSTypography.caption(
+                                      color: DSColors.error,
+                                      fontSize: DSTypography.sizeXs,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      () {
+                                        final barcode =
+                                            (item['barcode']?.toString() ?? '')
+                                                .trim();
+                                        final groupName =
+                                            (item['group_name']?.toString() ??
+                                                    '')
+                                                .trim();
+                                        if (barcode.isEmpty &&
+                                            groupName.isEmpty) {
+                                          return '';
+                                        }
+                                        if (groupName.isEmpty) return barcode;
+                                        if (barcode.isEmpty) {
+                                          return 'Assigned to $groupName';
+                                        }
+                                        return '$barcode assigned to $groupName';
+                                      }(),
+                                      style: DSTypography.caption(
+                                        color: DSColors.error,
+                                        fontSize: DSTypography.sizeXs,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                         if (entry.status != 'synced' &&
                             entry.mediaPathsJson != null) ...[

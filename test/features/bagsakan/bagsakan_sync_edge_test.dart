@@ -7,6 +7,7 @@ import 'package:fsi_courier_app/core/database/bagsakan_dao.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'dart:convert';
 
 class MockApiClient extends Mock implements ApiClient {}
@@ -15,24 +16,44 @@ class MockSyncOperationsDao extends Mock implements SyncOperationsDao {}
 
 class MockBagsakanDao extends Mock implements BagsakanDao {}
 
+class MockLocalDeliveryDao extends Mock implements LocalDeliveryDao {}
+
 void main() {
   late MockApiClient mockApi;
   late MockSyncOperationsDao mockSyncDao;
   late MockBagsakanDao mockBagsakanDao;
+  late MockLocalDeliveryDao mockLocalDao;
   late ProviderContainer container;
 
   setUp(() {
     mockApi = MockApiClient();
     mockSyncDao = MockSyncOperationsDao();
     mockBagsakanDao = MockBagsakanDao();
+    mockLocalDao = MockLocalDeliveryDao();
 
     when(() => mockSyncDao.getAll(any())).thenAnswer((_) async => []);
+    when(
+      () => mockSyncDao.hasPendingSync(any()),
+    ).thenAnswer((_) async => false);
+    when(
+      () => mockBagsakanDao.forceReconcileItemAssignment(any(), any()),
+    ).thenAnswer((_) async => {});
+    when(() => mockLocalDao.markClean(any())).thenAnswer((_) async => {});
+
+    when(
+      () => mockSyncDao.hasUnfinishedCreateBagsakan(
+        any(),
+        any(),
+        excludeOperationId: any(named: 'excludeOperationId'),
+      ),
+    ).thenAnswer((_) async => false);
 
     container = ProviderContainer(
       overrides: [
         apiClientProvider.overrideWithValue(mockApi),
         syncOperationsDaoProvider.overrideWithValue(mockSyncDao),
         bagsakanDaoProvider.overrideWithValue(mockBagsakanDao),
+        localDeliveryDaoProvider.overrideWithValue(mockLocalDao),
       ],
     );
   });
@@ -191,5 +212,172 @@ void main() {
 
       verify(() => mockBagsakanDao.upsertGroupsFromSync(groups)).called(1);
     });
+
+    test('CREATE remap is applied to ASSIGN in same sync batch', () async {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final createOp = SyncOperation(
+        id: 'op-create-5',
+        courierId: 'c1',
+        barcode: 'BAGSAKAN_5',
+        operationType: 'CREATE_BAGSAKAN',
+        payloadJson: jsonEncode({'id': 5, 'name': 'G5'}),
+        createdAt: now,
+      );
+      final assignOp = SyncOperation(
+        id: 'op-assign-5',
+        courierId: 'c1',
+        barcode: 'BAGSAKAN_5',
+        operationType: 'ASSIGN_TO_BAGSAKAN',
+        payloadJson: jsonEncode({
+          'group_id': 5,
+          'barcodes': ['B1'],
+        }),
+        createdAt: now + 1,
+      );
+
+      when(
+        () => mockSyncDao.getPending(any()),
+      ).thenAnswer((_) async => [createOp, assignOp]);
+      when(
+        () => mockSyncDao.updateStatus(
+          any(),
+          any(),
+          lastAttemptAt: any(named: 'lastAttemptAt'),
+        ),
+      ).thenAnswer((_) async => {});
+      when(
+        () => mockSyncDao.updateStatus(
+          any(),
+          any(),
+          retryCount: any(named: 'retryCount'),
+          lastError: any(named: 'lastError'),
+        ),
+      ).thenAnswer((_) async => {});
+      when(
+        () => mockSyncDao.hasUnfinishedCreateBagsakan(
+          any(),
+          any(),
+          excludeOperationId: any(named: 'excludeOperationId'),
+        ),
+      ).thenAnswer((_) async => false);
+
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          'bagsakan/groups',
+          data: any(named: 'data'),
+          extraHeaders: any(named: 'extraHeaders'),
+          parser: any(named: 'parser'),
+        ),
+      ).thenAnswer(
+        (_) async => ApiSuccess<Map<String, dynamic>>({
+          'data': {'id': 3},
+        }),
+      );
+
+      when(
+        () => mockBagsakanDao.remapGroupId(fromGroupId: 5, toGroupId: 3),
+      ).thenAnswer((_) async => {});
+
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          'bagsakan/groups/3/assign',
+          data: any(named: 'data'),
+          extraHeaders: any(named: 'extraHeaders'),
+          parser: any(named: 'parser'),
+        ),
+      ).thenAnswer((_) async => ApiSuccess<Map<String, dynamic>>({}));
+
+      final syncManager = container.read(syncManagerProvider.notifier);
+      await syncManager.processQueue();
+
+      verify(
+        () => mockApi.post<Map<String, dynamic>>(
+          'bagsakan/groups/3/assign',
+          data: any(named: 'data'),
+          extraHeaders: any(named: 'extraHeaders'),
+          parser: any(named: 'parser'),
+        ),
+      ).called(1);
+      verifyNever(
+        () => mockApi.post<Map<String, dynamic>>(
+          'bagsakan/groups/5/assign',
+          data: any(named: 'data'),
+          extraHeaders: any(named: 'extraHeaders'),
+          parser: any(named: 'parser'),
+        ),
+      );
+    });
+
+    test(
+      'Stale BAGSAKAN_NOT_FOUND for missing local group is auto-resolved as synced',
+      () async {
+        final operation = SyncOperation(
+          id: 'op-stale-1',
+          courierId: 'c1',
+          barcode: 'BAGSAKAN_999',
+          operationType: 'ASSIGN_TO_BAGSAKAN',
+          payloadJson: jsonEncode({
+            'group_id': 999,
+            'barcodes': ['B1'],
+          }),
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+        );
+
+        when(
+          () => mockSyncDao.getPending(any()),
+        ).thenAnswer((_) async => [operation]);
+        when(
+          () => mockSyncDao.updateStatus(
+            any(),
+            any(),
+            lastAttemptAt: any(named: 'lastAttemptAt'),
+          ),
+        ).thenAnswer((_) async => {});
+        when(
+          () => mockSyncDao.updateStatus(
+            any(),
+            any(),
+            lastError: any(named: 'lastError'),
+            lastAttemptAt: any(named: 'lastAttemptAt'),
+          ),
+        ).thenAnswer((_) async => {});
+        when(
+          () => mockSyncDao.updateStatus(
+            any(),
+            any(),
+            retryCount: any(named: 'retryCount'),
+            lastError: any(named: 'lastError'),
+          ),
+        ).thenAnswer((_) async => {});
+
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            any(),
+            data: any(named: 'data'),
+            extraHeaders: any(named: 'extraHeaders'),
+            parser: any(named: 'parser'),
+          ),
+        ).thenAnswer(
+          (_) async =>
+              ApiServerError<Map<String, dynamic>>('Bagsakan group not found.'),
+        );
+
+        when(
+          () => mockBagsakanDao.getBagsakanGroup(999),
+        ).thenAnswer((_) async => null);
+
+        final syncManager = container.read(syncManagerProvider.notifier);
+        await syncManager.processQueue();
+
+        verify(
+          () => mockSyncDao.updateStatus(
+            'op-stale-1',
+            'synced',
+            lastAttemptAt: any(named: 'lastAttemptAt'),
+            lastError: any(named: 'lastError'),
+          ),
+        ).called(1);
+      },
+    );
   });
 }

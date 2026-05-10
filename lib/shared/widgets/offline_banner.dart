@@ -191,8 +191,8 @@ class _StandardBanner extends StatelessWidget {
     final body = isApiError
         ? 'Your device is connected to the internet, but the server cannot '
               'be reached. Please try again later.'
-        : 'Local preferences (theme, compact mode, auto-accept) still work. '
-              'Dispatch scanning and data sync require an internet connection.';
+        : 'You can still update deliveries and manage Bagsakan groups. '
+              'Your changes will be saved locally and synced automatically once you are back online.';
 
     return Container(
       margin: margin,

@@ -46,6 +46,9 @@ class MockSyncManagerNotifier extends SyncManagerNotifier {
 
   @override
   Future<void> loadEntries() async {}
+
+  @override
+  Future<void> processQueue() async {}
 }
 
 void main() {
@@ -59,6 +62,9 @@ void main() {
   setUp(() {
     mockLocalDeliveryDao = MockLocalDeliveryDao();
     mockBagsakanDao = MockBagsakanDao();
+    when(
+      () => mockBagsakanDao.getBagsakanGroup(any()),
+    ).thenAnswer((_) async => {'id': 1, 'status': 'pending'});
   });
 
   Widget createWidgetUnderTest() {

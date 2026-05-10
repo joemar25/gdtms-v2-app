@@ -85,10 +85,10 @@ enum DeliveryStatus {
 
   /// Human-readable label for display in the UI.
   String get displayName => switch (this) {
-    pending => 'Pending',
+    pending => 'For Delivery',
     delivered => 'Delivered',
     failedDelivery => 'Failed Delivery',
-    osa => 'Misrouted',
+    osa => 'Out of Service Area',
     unknown => '—',
   };
 

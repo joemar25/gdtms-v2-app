@@ -180,6 +180,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
         mailType: mailType,
         address: address,
         attemptsCount: attemptsCount,
+        isInBagsakan: delivery['bagsakan_id'] != null,
       );
     }
 
@@ -261,93 +262,124 @@ class _DeliveryCardState extends State<DeliveryCard> {
                         children: [
                           // ── Row 1: Status pill + Job Order + Chevron ─────────
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (!widget.isPrivacyMode &&
-                                  (status.isNotEmpty || isDirty))
-                                DeliveryStatusBadge(
-                                  label: isDirty
-                                      ? 'UNSYNCED'
-                                      : ds.displayName.toUpperCase(),
-                                  color: colorForStatus,
-                                  icon: isDirty
-                                      ? Icons.sync_problem_rounded
-                                      : iconForStatus,
-                                ),
-                              if (!widget.isPrivacyMode &&
-                                  (status.isNotEmpty || isDirty))
-                                DSSpacing.wSm,
                               Expanded(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
+                                child: Wrap(
+                                  spacing: DSSpacing.sm,
+                                  runSpacing: DSSpacing.xs,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
-                                    if (attemptsCount > 0)
-                                      Flexible(
-                                        child: Padding(
-                                          padding: EdgeInsets.only(
-                                            left: DSSpacing.xs,
-                                          ),
-                                          child: DeliveryMiniPill(
-                                            label:
-                                                ds == DeliveryStatus.delivered
-                                                ? 'FAILED ATTEMPTS: $attemptsCount'
-                                                : 'ATTEMPTS: $attemptsCount',
-                                            icon: Icons.autorenew_rounded,
-                                            bg:
-                                                (attemptsCount >= 3
-                                                        ? DSColors.error
-                                                        : DSColors.warning)
-                                                    .withValues(
-                                                      alpha:
-                                                          DSStyles.alphaSubtle,
-                                                    ),
-                                            border:
-                                                (attemptsCount >= 3
-                                                        ? DSColors.error
-                                                        : DSColors.warning)
-                                                    .withValues(
-                                                      alpha:
-                                                          DSStyles.alphaMuted,
-                                                    ),
-                                            fg: attemptsCount >= 3
-                                                ? DSColors.error
-                                                : DSColors.warning,
-                                          ),
-                                        ),
+                                    if (!widget.isPrivacyMode &&
+                                        (status.isNotEmpty || isDirty))
+                                      DeliveryStatusBadge(
+                                        label: isDirty
+                                            ? 'UNSYNCED'
+                                            : ds.displayName.toUpperCase(),
+                                        color: colorForStatus,
+                                        icon: isDirty
+                                            ? Icons.sync_problem_rounded
+                                            : iconForStatus,
                                       ),
-                                    if (canViewInfo && !widget.isForAssigning)
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                          left: DSSpacing.xs,
-                                        ),
-                                        child: InkWell(
-                                          onTap: () {
-                                            HapticFeedback.lightImpact();
-                                            showDeliveryAccountDetails(
-                                              context,
-                                              delivery,
-                                              barcode,
-                                            );
-                                          },
-                                          borderRadius: DSStyles.pillRadius,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(
-                                              DSSpacing.xs,
-                                            ),
-                                            child: Icon(
-                                              Icons.info_outline_rounded,
-                                              size: DSIconSize.md,
-                                              color: DSColors.primary,
-                                            ),
-                                          ),
-                                        ),
+                                    if (delivery['bagsakan_id'] != null)
+                                      DeliveryStatusBadge(
+                                        label: 'GROUP DELIVERY',
+                                        color: DSColors.accent,
+                                        icon: Icons.inventory_2_rounded,
                                       ),
                                   ],
                                 ),
                               ),
+                              DSSpacing.wSm,
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  if (widget.onRemoveFromBagsakanTap != null &&
+                                      !widget.isForAssigning)
+                                    Padding(
+                                      padding: EdgeInsets.only(
+                                        right: DSSpacing.xs,
+                                      ),
+                                      child: InkWell(
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          widget.onRemoveFromBagsakanTap!();
+                                        },
+                                        borderRadius: DSStyles.pillRadius,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(
+                                            DSSpacing.xs,
+                                          ),
+                                          child: const Icon(
+                                            Icons.remove_circle_outline_rounded,
+                                            size: DSIconSize.md,
+                                            color: DSColors.error,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  if (attemptsCount > 0)
+                                    Padding(
+                                      padding: EdgeInsets.only(
+                                        left: DSSpacing.xs,
+                                      ),
+                                      child: DeliveryMiniPill(
+                                        label: ds == DeliveryStatus.delivered
+                                            ? 'FAILED ATTEMPTS: $attemptsCount'
+                                            : 'ATTEMPTS: $attemptsCount',
+                                        icon: Icons.autorenew_rounded,
+                                        bg:
+                                            (attemptsCount >= 3
+                                                    ? DSColors.error
+                                                    : DSColors.warning)
+                                                .withValues(
+                                                  alpha: DSStyles.alphaSubtle,
+                                                ),
+                                        border:
+                                            (attemptsCount >= 3
+                                                    ? DSColors.error
+                                                    : DSColors.warning)
+                                                .withValues(
+                                                  alpha: DSStyles.alphaMuted,
+                                                ),
+                                        fg: attemptsCount >= 3
+                                            ? DSColors.error
+                                            : DSColors.warning,
+                                      ),
+                                    ),
+                                  if (canViewInfo && !widget.isForAssigning)
+                                    Padding(
+                                      padding: EdgeInsets.only(
+                                        left: DSSpacing.xs,
+                                      ),
+                                      child: InkWell(
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          showDeliveryAccountDetails(
+                                            context,
+                                            delivery,
+                                            barcode,
+                                          );
+                                        },
+                                        borderRadius: DSStyles.pillRadius,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(
+                                            DSSpacing.xs,
+                                          ),
+                                          child: Icon(
+                                            Icons.info_outline_rounded,
+                                            size: DSIconSize.md,
+                                            color: DSColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
-
                           DSSpacing.hMd,
 
                           // ── Row 2: Barcode (large) ────────────────────────────
@@ -382,9 +414,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                           ),
 
                           // ── Row 3: Recipient name ────────────────────────────
-                          if (!widget.isPrivacyMode &&
-                              name.isNotEmpty &&
-                              !isLocked) ...[
+                          if (!widget.isPrivacyMode && name.isNotEmpty) ...[
                             DSSpacing.hXs,
                             Row(
                               children: [
@@ -415,9 +445,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                           ],
 
                           // ── Row 4: Address ───────────────────────────────────
-                          if (!widget.isPrivacyMode &&
-                              address.isNotEmpty &&
-                              !isLocked) ...[
+                          if (!widget.isPrivacyMode && address.isNotEmpty) ...[
                             DSSpacing.hXs,
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,6 +742,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
     required String mailType,
     required String address,
     required int attemptsCount,
+    required bool isInBagsakan,
   }) {
     final ds = DeliveryStatus.fromString(status);
     final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
@@ -917,6 +946,11 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                 color: (isFailedWithPay || isFailedNoPay)
                                     ? DSColors.success
                                     : DSColors.warning,
+                              ),
+                            if (isInBagsakan)
+                              DeliveryTinyPill(
+                                label: 'GD',
+                                color: DSColors.accent,
                               ),
                           ],
                         ),

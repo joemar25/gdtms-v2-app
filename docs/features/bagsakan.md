@@ -88,6 +88,47 @@ Once a bagsakan reaches the submitted state:
 
 ---
 
+## Item Management
+
+### 1. Removing Items from Group
+
+When viewing items in a Bagsakan group (Group Items screen), removal of an item requires **explicit user confirmation** via a dialog. This is because the item is already part of an established group context, and removal changes its operational visibility (it will return to the standard delivery list).
+
+### 2. Add/Edit Flow vs. Group List
+
+- **Add/Edit Screen**: Assignment toggles are direct and do not require confirmation (bulk selection phase).
+- **Group Items List**: Individual removals require a confirmation dialog ("Remove from Bagsakan?").
+
+### 3. Immediate Sync
+
+Similar to group deletion, individual item removal triggers an immediate background sync (`processQueue`) to ensure the server is notified and the item re-appears in the correct lists across all devices.
+
+---
+
+## Sync & Connectivity Rules
+
+### 1. Synchronization Visibility
+
+Bagsakan group cards must display a **"UNSYNCED"** badge (using the standard `DeliveryMiniPill`) if there are any pending, failed, or conflicting sync operations associated with that group (`barcode = BAGSAKAN_{ID}`). This ensures parity with the regular delivery card identifiers.
+
+### 2. Deletion Identity
+
+When a Bagsakan group is deleted locally:
+
+- The system must capture the **group name** before removal.
+- The `DELETE_BAGSAKAN_GROUP` sync operation must include this name in its payload (`group_name`).
+- This allows the **Sync History** screen to identify the deleted group by name instead of a generic ID.
+
+### 3. Immediate Sync (Auto-Sync)
+
+To ensure data integrity between the mobile device and server, an **immediate background sync** (`processQueue`) is triggered automatically after a group is deleted locally.
+
+### 4. Connectivity Indicators
+
+Both the **Bagsakan List** and **Bagsakan Group Details** screens must display the global `ConnectionStatusBanner`. This provides couriers with real-time feedback on their network and API availability, consistent with the rest of the application.
+
+---
+
 ## Edge Cases
 
 | Scenario                                                                                      | Behavior                                                                                                                                                                                          |
@@ -184,9 +225,95 @@ Deliveries assigned to a bagsakan group (`bagsakan_id IS NOT NULL`) are **exclud
 ## UI Behavioral Rules
 
 ### Form Item Visibility
+
 - **Creation Mode**: Displays all selected items in a "Pending Additions" summary list for verification.
 - **Edit Mode**: Displays only the **newly added** items in a "Newly Added Items" summary list. Items that were already part of the group are hidden to keep the interface focused.
 
 ### Removal Confirmation
+
 - **Instant Removal**: Removing an item added in the current session (not yet saved) happens instantly without a confirmation dialog.
 - **Safe Removal**: Removing an item that was already part of the saved group requires a **confirmation dialog** to prevent accidental ungrouping of previously finalized items.
+
+---
+
+## Offline-First & Sync Implementation
+
+### Offline Behavior
+
+The bagsakan feature is **offline-first** — all operations are queued locally before transmission:
+
+#### When Offline
+
+- **No local persistence**: Bagsakan groups do not persist as cached data. Only operations are queued in the `sync_operations` table.
+- **Read-only access**: Users can view previously-synced bagsakan groups (from the last online sync) but cannot create or modify them.
+- **UI indicators**:
+  - ConnectionStatusBanner displays at the top of forms
+  - Submit/Save buttons remain visible but are logically gated (user is informed that sync requires internet)
+  - Form saves are still allowed to queue locally, but success message indicates "Will sync when online"
+
+#### When Online
+
+- **Automatic sync**: On app startup or reconnection, the SyncManager processes all pending bagsakan operations in order:
+  1. `CREATE_BAGSAKAN` (create new groups)
+  2. `UPDATE_BAGSAKAN_GROUP` (update group metadata)
+  3. `ASSIGN_TO_BAGSAKAN` (assign deliveries to groups)
+  4. `UNASSIGN_FROM_BAGSAKAN` (remove deliveries from groups)
+  5. `SUBMIT_BAGSAKAN` (finalize groups with propagation)
+  6. `DELETE_BAGSAKAN_GROUP` (cleanup deleted groups)
+
+- **Immediate flush** (when online during save): If the user saves a bagsakan group while online, the SyncManager automatically initiates queue processing so the backend has the group immediately, improving UX and preventing "group not found" errors when viewing details.
+
+### Sync Queue Structure
+
+All bagsakan mutations are stored as `SyncOperation` entries:
+
+```sql
+INSERT INTO sync_operations (
+  id, courier_id, barcode, operation_type, payload_json, status, created_at
+) VALUES (
+  '<UUID>', '<courierId>', 'BAGSAKAN_<groupId>', 'CREATE_BAGSAKAN',
+  '{"id":42,"name":"...","description":"..."}', 'pending', <timestamp>
+);
+```
+
+### Operation Dependencies
+
+The sync manager respects operation ordering to prevent referential integrity errors:
+
+- **ASSIGN/UNASSIGN/DELETE operations** wait for their group's `CREATE_BAGSAKAN` to complete first.
+- **SUBMIT operations** wait for their source delivery's status sync to complete (if any).
+- If a dependency is not yet satisfied, the operation is re-queued as `pending` and retried on the next sync cycle.
+
+### Conflict & Error Handling
+
+#### Idempotency
+
+- Every operation includes `X-Request-ID: <operation.id>` header.
+- Server deduplicates retries by this ID (safe to retry).
+
+#### Conflict Resolution (409)
+
+- Server returns `409 Conflict` with details (`already_assigned_barcodes`, `group_name`) for assign collisions.
+- Operation is marked `conflict` status; UI offers manual resolution (move, skip, delete).
+
+#### Transient Failures (5xx, timeout)
+
+- Automatic exponential backoff (up to 3 retries).
+- Operation remains `failed` until next sync trigger.
+
+#### Deleted Groups
+
+- If server rejects because group no longer exists, operation is auto-cleaned with user notification.
+
+### UI Indicators
+
+- **"✓ Synced"** badge: Group exists on server.
+- **"⏳ Pending Sync"** badge: Create/update operations queued.
+- **"⚠️ Sync Error"** badge: Last sync failed (with retry option).
+- **Action buttons disabled** while offline or during active sync.
+
+### Data Retention
+
+- **Synced operations**: Auto-deleted after `sync_retention_days` (configurable via app config).
+- **Pending operations**: Retained indefinitely until sync succeeds.
+- **Conflict operations**: Retained until user resolves (max 7 days auto-cleanup).

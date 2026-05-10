@@ -87,20 +87,20 @@ The `DeliveryUpdateScreen` uses the **Integrated Header Pattern**. The `AppHeade
 - Uses `FlutterImageCompress`: max width **600px**, quality **70**.
 - Do not increase these — they are tuned for offline storage and upload reliability.
 
-### Offline submit flow
+### Offline-First Architecture
 
-1. Compress photos to base64.
-2. Write row to `delivery_update_queue` with `_pending_media`.
-3. Write `sync_operations` row with status `pending`.
-4. Show `SuccessOverlay` (not a navigation pop).
-5. `SyncManager` processes the queue on next sync cycle.
+All delivery updates follow a unified **Offline-First** flow. There are no separate "online" vs "offline" submission code paths.
 
-### Online submit flow
+1.  **Form Submission**: All status changes (DELIVERED, FAILED_DELIVERY, OSA) are persisted locally to the `delivery_update_queue` and the `local_deliveries` table immediately.
+2.  **Sync Registration**: A `SyncOperation` is created with a `pending` status.
+3.  **Background Processing**: `SyncManager` handles the actual server communication. If the device is online at the time of submission, `processQueue()` is triggered immediately (unawaited), otherwise it waits for the next connectivity event or manual refresh.
 
-1. Compress + upload photos immediately (API or S3).
-2. PATCH `/deliveries/{barcode}`.
-3. Update `local_deliveries.status` in SQLite.
-4. Show `SuccessOverlay`.
+### Operational Rules
+
+-   **Connectivity Agnostic**: The ability to update a delivery is governed strictly by its **Status** and **Eligibility**, NOT by real-time connectivity. If an item is "available to update" (e.g., FOR_DELIVERY), the courier can process it even in a complete dead zone.
+-   **Terminal Lock**: Once a delivery is marked `DELIVERED` or `OSA`, or has reached max `FAILED_DELIVERY` attempts, it is considered "locked" locally to prevent inconsistent state changes before synchronization.
+-   **Sync Visibility**: Items pending server reconciliation must display the **UNSYNCED** or **PENDING SYNC** indicator on all list views.
+-   **Image Integrity**: Photos are compressed (600px/70 quality) immediately upon capture to ensure they fit in the local SQLite payload and upload reliably over poor 4G/LTE connections.
 
 ---
 

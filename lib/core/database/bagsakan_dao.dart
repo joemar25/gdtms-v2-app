@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
+import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -12,6 +13,199 @@ class BagsakanDao {
   static final BagsakanDao instance = BagsakanDao._();
 
   Future<Database> get _db async => await AppDatabase.getInstance();
+
+  Future<void> _upsertGroupedBagsakanOperation({
+    required String courierId,
+    required int groupId,
+    required String operationType,
+    required List<String> barcodes,
+    required int createdAt,
+    String? groupName,
+  }) async {
+    if (barcodes.isEmpty) return;
+
+    final db = await _db;
+    final groupBarcode = 'BAGSAKAN_$groupId';
+
+    String? oppositeType;
+    if (operationType == 'ASSIGN_TO_BAGSAKAN') {
+      oppositeType = 'UNASSIGN_FROM_BAGSAKAN';
+    } else if (operationType == 'UNASSIGN_FROM_BAGSAKAN') {
+      oppositeType = 'ASSIGN_TO_BAGSAKAN';
+    }
+
+    Set<String> parseBarcodeSet(String? payloadJson) {
+      if (payloadJson == null || payloadJson.isEmpty) return <String>{};
+      try {
+        final decoded = jsonDecode(payloadJson);
+        if (decoded is! Map<String, dynamic>) return <String>{};
+        final raw = decoded['barcodes'];
+        if (raw is! List) return <String>{};
+        return raw
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toSet();
+      } catch (_) {
+        return <String>{};
+      }
+    }
+
+    // Resolve group name from existing payload or DB if not provided.
+    String? resolvedName = groupName;
+    if (resolvedName == null || resolvedName.isEmpty) {
+      final existingRows = await db.query(
+        'sync_operations',
+        columns: ['payload_json'],
+        where:
+            "courier_id = ? AND barcode = ? "
+            "AND operation_type IN ('CREATE_BAGSAKAN','UPDATE_BAGSAKAN_GROUP','ASSIGN_TO_BAGSAKAN','UNASSIGN_FROM_BAGSAKAN')",
+        whereArgs: [courierId, groupBarcode],
+        orderBy: 'created_at DESC',
+        limit: 1,
+      );
+      if (existingRows.isNotEmpty) {
+        try {
+          final p = jsonDecode(
+            existingRows.first['payload_json']?.toString() ?? '{}',
+          );
+          resolvedName = p['group_name']?.toString();
+        } catch (_) {}
+      }
+    }
+    if (resolvedName == null || resolvedName.isEmpty) {
+      final groupRow = await db.query(
+        'bagsakan_groups',
+        columns: ['name'],
+        where: 'id = ?',
+        whereArgs: [groupId],
+        limit: 1,
+      );
+      resolvedName = groupRow.isNotEmpty
+          ? groupRow.first['name']?.toString()
+          : null;
+    }
+
+    String encodePayload(Iterable<String> values) {
+      return jsonEncode({
+        'group_id': groupId,
+        if (resolvedName != null && resolvedName.isNotEmpty)
+          'group_name': resolvedName,
+        'barcodes': values.toList(growable: false),
+      });
+    }
+
+    final incoming = barcodes
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    if (incoming.isEmpty) return;
+
+    if (oppositeType != null) {
+      final oppositeRows = await db.query(
+        'sync_operations',
+        columns: ['id', 'payload_json'],
+        where:
+            "courier_id = ? AND barcode = ? AND operation_type = ? "
+            "AND status IN ('pending','failed','conflict')",
+        whereArgs: [courierId, groupBarcode, oppositeType],
+        orderBy: 'created_at DESC',
+        limit: 1,
+      );
+
+      if (oppositeRows.isNotEmpty) {
+        final oppositeRow = oppositeRows.first;
+        final oppositeId = oppositeRow['id']?.toString();
+        if (oppositeId != null && oppositeId.isNotEmpty) {
+          final oppositeSet = parseBarcodeSet(
+            oppositeRow['payload_json']?.toString(),
+          );
+
+          final cancelled = incoming
+              .where(
+                (b) =>
+                    oppositeSet.any((x) => x.toUpperCase() == b.toUpperCase()),
+              )
+              .toSet();
+
+          if (cancelled.isNotEmpty) {
+            oppositeSet.removeWhere(
+              (x) => cancelled.any((c) => c.toUpperCase() == x.toUpperCase()),
+            );
+            incoming.removeWhere(
+              (x) => cancelled.any((c) => c.toUpperCase() == x.toUpperCase()),
+            );
+
+            if (oppositeSet.isEmpty) {
+              await db.delete(
+                'sync_operations',
+                where: 'id = ?',
+                whereArgs: [oppositeId],
+              );
+            } else {
+              await db.update(
+                'sync_operations',
+                {
+                  'payload_json': encodePayload(oppositeSet),
+                  'status': 'pending',
+                  'retry_count': 0,
+                  'last_error': null,
+                },
+                where: 'id = ?',
+                whereArgs: [oppositeId],
+              );
+            }
+          }
+        }
+      }
+    }
+
+    if (incoming.isEmpty) return;
+
+    final rows = await db.query(
+      'sync_operations',
+      columns: ['id', 'payload_json'],
+      where:
+          "courier_id = ? AND barcode = ? AND operation_type = ? "
+          "AND status IN ('pending','failed','conflict')",
+      whereArgs: [courierId, groupBarcode, operationType],
+      orderBy: 'created_at DESC',
+      limit: 1,
+    );
+
+    if (rows.isEmpty) {
+      await SyncOperationsDao.instance.insert(
+        SyncOperation(
+          id: const Uuid().v4(),
+          courierId: courierId,
+          barcode: groupBarcode,
+          operationType: operationType,
+          payloadJson: encodePayload(incoming),
+          createdAt: createdAt,
+        ),
+      );
+      return;
+    }
+
+    final row = rows.first;
+    final opId = row['id']?.toString();
+    if (opId == null || opId.isEmpty) return;
+
+    final merged = parseBarcodeSet(row['payload_json']?.toString())
+      ..addAll(incoming);
+
+    await db.update(
+      'sync_operations',
+      {
+        'payload_json': encodePayload(merged),
+        // Promote back to pending so grouped retries are not stuck in failed/conflict.
+        'status': 'pending',
+        'retry_count': 0,
+        'last_error': null,
+      },
+      where: 'id = ?',
+      whereArgs: [opId],
+    );
+  }
 
   // ─── MARK: Bagsakan Operations ──────────────────────────────────────────────
 
@@ -109,15 +303,12 @@ class BagsakanDao {
     );
 
     if (barcodes.isNotEmpty) {
-      await SyncOperationsDao.instance.insert(
-        SyncOperation(
-          id: const Uuid().v4(),
-          courierId: courierId,
-          barcode: 'BAGSAKAN_$groupId',
-          operationType: 'UNASSIGN_FROM_BAGSAKAN',
-          payloadJson: jsonEncode({'group_id': groupId, 'barcodes': barcodes}),
-          createdAt: now,
-        ),
+      await _upsertGroupedBagsakanOperation(
+        courierId: courierId,
+        groupId: groupId,
+        operationType: 'UNASSIGN_FROM_BAGSAKAN',
+        barcodes: barcodes,
+        createdAt: now,
       );
     }
   }
@@ -143,15 +334,12 @@ class BagsakanDao {
     }
     await batch.commit(noResult: true);
 
-    await SyncOperationsDao.instance.insert(
-      SyncOperation(
-        id: const Uuid().v4(),
-        courierId: courierId,
-        barcode: 'BAGSAKAN_$groupId',
-        operationType: 'ASSIGN_TO_BAGSAKAN',
-        payloadJson: jsonEncode({'group_id': groupId, 'barcodes': barcodes}),
-        createdAt: now,
-      ),
+    await _upsertGroupedBagsakanOperation(
+      courierId: courierId,
+      groupId: groupId,
+      operationType: 'ASSIGN_TO_BAGSAKAN',
+      barcodes: barcodes,
+      createdAt: now,
     );
   }
 
@@ -180,18 +368,12 @@ class BagsakanDao {
     );
 
     if (groupId != null) {
-      await SyncOperationsDao.instance.insert(
-        SyncOperation(
-          id: const Uuid().v4(),
-          courierId: courierId,
-          barcode: 'BAGSAKAN_$groupId',
-          operationType: 'UNASSIGN_FROM_BAGSAKAN',
-          payloadJson: jsonEncode({
-            'group_id': groupId,
-            'barcodes': [barcode],
-          }),
-          createdAt: now,
-        ),
+      await _upsertGroupedBagsakanOperation(
+        courierId: courierId,
+        groupId: groupId,
+        operationType: 'UNASSIGN_FROM_BAGSAKAN',
+        barcodes: [barcode],
+        createdAt: now,
       );
     }
   }
@@ -206,7 +388,11 @@ class BagsakanDao {
 
     return await db.rawQuery(
       '''
-      SELECT g.*, COUNT(d.barcode) as item_count
+      SELECT g.*, 
+             COUNT(d.barcode) as item_count,
+             (SELECT COUNT(*) FROM sync_operations s 
+              WHERE s.barcode = 'BAGSAKAN_' || g.id 
+                AND s.status IN ('pending', 'processing', 'failed', 'conflict')) as pending_sync_count
       FROM bagsakan_groups g
       LEFT JOIN local_deliveries d ON g.id = d.bagsakan_id
       WHERE COALESCE(g.is_archived, 0) = 0
@@ -236,21 +422,47 @@ class BagsakanDao {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     await db.transaction((txn) async {
-      // Verify not submitted
+      // Verify not submitted and get name
       final groups = await txn.query(
         'bagsakan_groups',
-        columns: ['status'],
+        columns: ['status', 'name'],
         where: 'id = ?',
         whereArgs: [groupId],
       );
-      if (groups.isNotEmpty && groups.first['status'] == 'submitted') {
+      if (groups.isEmpty) throw Exception('Group not found');
+      if (groups.first['status'] == 'submitted') {
         throw Exception('Cannot delete a submitted bagsakan group');
       }
+      final groupName = groups.first['name']?.toString() ?? 'Unknown';
 
-      // Get all barcodes currently in the group to unassign them on server
-      final items = await getBagsakanItems(groupId);
-      final barcodes = items.map((e) => e.barcode).toList();
+      // IMPORTANT: stay on the transaction handle only to avoid DB lock
+      // contention (sqflite warns if we call root DB methods while txn is open).
+      final itemRows = await txn.query(
+        'local_deliveries',
+        columns: ['barcode'],
+        where: 'bagsakan_id = ?',
+        whereArgs: [groupId],
+      );
+      final barcodes = itemRows
+          .map((e) => (e['barcode']?.toString() ?? '').trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
 
+      // Check if this group exists on the server yet by looking for pending CREATE/UPDATE operations.
+      // If the group is purely local (CREATE is still pending), we can cancel everything
+      // without hitting the server.
+      final groupBarcode = 'BAGSAKAN_$groupId';
+      final pendingOps = await txn.query(
+        'sync_operations',
+        columns: ['id', 'status'],
+        where:
+            'barcode = ? AND operation_type = ? AND status IN (\'pending\', \'failed\', \'conflict\', \'processing\')',
+        whereArgs: [groupBarcode, 'CREATE_BAGSAKAN'],
+      );
+
+      final isLocalOnly = pendingOps.isNotEmpty;
+
+      // 1. Unassign local deliveries
       await txn.update(
         'local_deliveries',
         {'bagsakan_id': null, 'updated_at': now, 'sync_status': 'dirty'},
@@ -258,22 +470,43 @@ class BagsakanDao {
         whereArgs: [groupId],
       );
 
+      // 2. Delete the group locally
       await txn.delete(
         'bagsakan_groups',
         where: 'id = ?',
         whereArgs: [groupId],
       );
 
-      await SyncOperationsDao.instance.insert(
-        SyncOperation(
-          id: const Uuid().v4(),
-          courierId: courierId,
-          barcode: 'BAGSAKAN_$groupId',
-          operationType: 'DELETE_BAGSAKAN_GROUP',
-          payloadJson: jsonEncode({'id': groupId, 'barcodes': barcodes}),
-          createdAt: now,
-        ),
-      );
+      if (isLocalOnly) {
+        // 3a. ATOMIC CANCELLATION: Delete ALL pending operations for this local group.
+        // This includes CREATE, ASSIGN, UNASSIGN, etc.
+        await txn.delete(
+          'sync_operations',
+          where: 'barcode = ?',
+          whereArgs: [groupBarcode],
+        );
+        debugPrint(
+          '[DAO] deleteBagsakanGroup: atomic cancellation for local-only group $groupId',
+        );
+      } else {
+        // 3b. Queue a server-side delete operation for existing groups.
+        await txn.insert(
+          'sync_operations',
+          SyncOperation(
+            id: const Uuid().v4(),
+            courierId: courierId,
+            barcode: groupBarcode,
+            operationType: 'DELETE_BAGSAKAN_GROUP',
+            payloadJson: jsonEncode({
+              'id': groupId,
+              'group_name': groupName,
+              'barcodes': barcodes,
+            }),
+            createdAt: now,
+          ).toDb(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
     });
   }
 
@@ -282,8 +515,9 @@ class BagsakanDao {
   Future<void> submitBagsakanGroup(
     int groupId,
     String sourceBarcode,
-    String courierId,
-  ) async {
+    String courierId, {
+    String? propagationStatus,
+  }) async {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
 
@@ -299,6 +533,13 @@ class BagsakanDao {
 
       final source = LocalDelivery.fromDb(sourceRows.first);
       final sourceMap = source.toDeliveryMap();
+      final sourceStatus = DeliveryStatus.fromString(
+        propagationStatus ?? source.deliveryStatus,
+      );
+      if (!sourceStatus.isFinal) {
+        throw Exception('Source delivery must be in a final status');
+      }
+      final sourceStatusApi = sourceStatus.toApiString();
 
       // 2. Update all other deliveries in the group
       final otherRows = await txn.query(
@@ -311,29 +552,44 @@ class BagsakanDao {
         final item = LocalDelivery.fromDb(row);
         final itemMap = item.toDeliveryMap();
 
-        // Merge delivery details from source into itemMap
-        // Requirement: Copy POD image, transaction date, and all delivery details.
+        // Merge delivery details from source into itemMap.
+        // Status propagation is based on the chosen source update.
         final Map<String, dynamic> updatedMap = {
           ...itemMap,
-          'delivery_status': 'DELIVERED',
-          'delivered_at': source.deliveredAt,
-          'completed_at': source.completedAt,
-          // Copy POD specific fields
-          'proof_of_delivery': sourceMap['proof_of_delivery'],
-          'signature_image': sourceMap['signature_image'],
-          'photo_image': sourceMap['photo_image'],
-          'recipient_relation': sourceMap['recipient_relation'],
-          'recipient_type': sourceMap['recipient_type'],
+          'delivery_status': sourceStatusApi,
+          'delivered_at': sourceStatus == DeliveryStatus.delivered
+              ? source.deliveredAt
+              : null,
+          'completed_at': source.completedAt ?? now,
+          'note': sourceMap['note'],
+          'reason': sourceMap['reason'],
+          'transaction_at': sourceMap['transaction_at'],
+          'delivered_date': sourceMap['delivered_date'],
           'latitude': sourceMap['latitude'],
           'longitude': sourceMap['longitude'],
+          'geo_accuracy': sourceMap['geo_accuracy'],
+          'delivery_confirmation_code': sourceMap['delivery_confirmation_code'],
         };
+
+        if (sourceStatus == DeliveryStatus.delivered) {
+          updatedMap['proof_of_delivery'] = sourceMap['proof_of_delivery'];
+          updatedMap['signature_image'] = sourceMap['signature_image'];
+          updatedMap['photo_image'] = sourceMap['photo_image'];
+          updatedMap['recipient_relation'] = sourceMap['recipient_relation'];
+          updatedMap['recipient_type'] = sourceMap['recipient_type'];
+          updatedMap['recipient'] = sourceMap['recipient'];
+          updatedMap['relationship'] = sourceMap['relationship'];
+          updatedMap['placement_type'] = sourceMap['placement_type'];
+        }
 
         await txn.update(
           'local_deliveries',
           {
-            'delivery_status': 'DELIVERED',
-            'delivered_at': source.deliveredAt,
-            'completed_at': source.completedAt,
+            'delivery_status': sourceStatusApi,
+            'delivered_at': sourceStatus == DeliveryStatus.delivered
+                ? source.deliveredAt
+                : null,
+            'completed_at': source.completedAt ?? now,
             'raw_json': jsonEncode(updatedMap),
             'sync_status': 'dirty',
             'updated_at': now,
@@ -351,8 +607,9 @@ class BagsakanDao {
         whereArgs: [groupId],
       );
 
-      // 4. Queue sync operation
-      await SyncOperationsDao.instance.insert(
+      // 4. Queue sync operation on the same transaction to avoid DB lock.
+      await txn.insert(
+        'sync_operations',
         SyncOperation(
           id: const Uuid().v4(),
           courierId: courierId,
@@ -361,10 +618,12 @@ class BagsakanDao {
           payloadJson: jsonEncode({
             'group_id': groupId,
             'source_barcode': sourceBarcode,
+            'propagation_status': sourceStatusApi,
             'barcodes': otherRows.map((e) => e['barcode']).toList(),
           }),
           createdAt: now,
-        ),
+        ).toDb(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
       );
     });
   }
@@ -424,16 +683,57 @@ class BagsakanDao {
   }
 
   /// Synchronizes Bagsakan groups from the server.
-  /// Archived groups are deleted locally.
+  /// Archived groups are deleted locally. Also reconciles local_deliveries.bagsakan_id
+  /// from the server's barcodes payload so the mobile stays consistent even when
+  /// ASSIGN_TO_BAGSAKAN operations haven't synced yet.
   Future<void> upsertGroupsFromSync(List<Map<String, dynamic>> groups) async {
     if (groups.isEmpty) return;
     final db = await _db;
 
+    int? toInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) {
+        final s = value.trim();
+        if (s.isEmpty) return null;
+        return int.tryParse(s);
+      }
+      return null;
+    }
+
+    int? toEpochMs(dynamic value) {
+      final asInt = toInt(value);
+      if (asInt != null) return asInt;
+      if (value is String) {
+        final dt = DateTime.tryParse(value.trim());
+        if (dt != null) return dt.millisecondsSinceEpoch;
+      }
+      return null;
+    }
+
+    bool toBoolish(dynamic value) {
+      if (value == true) return true;
+      if (value == false || value == null) return false;
+      if (value is num) return value.toInt() == 1;
+      if (value is String) {
+        final s = value.trim().toLowerCase();
+        return s == '1' || s == 'true' || s == 'yes';
+      }
+      return false;
+    }
+
     await db.transaction((txn) async {
       for (final group in groups) {
-        final id = group['id'];
-        final isArchived =
-            group['is_archived'] == true || group['is_archived'] == 1;
+        final id = toInt(group['id']);
+        if (id == null) {
+          debugPrint(
+            '[DAO] upsertGroupsFromSync: Skipping group with invalid id: ${group['id']}',
+          );
+          continue;
+        }
+
+        final isArchived = toBoolish(group['is_archived']);
 
         if (isArchived) {
           // Delete locally if archived on server
@@ -451,7 +751,7 @@ class BagsakanDao {
           // confirms it (terminal status wins).
           final existing = await txn.query(
             'bagsakan_groups',
-            columns: ['status'],
+            columns: ['status', 'submitted_at', 'created_at'],
             where: 'id = ?',
             whereArgs: [id],
           );
@@ -468,15 +768,32 @@ class BagsakanDao {
             }
           }
 
+          final now = DateTime.now().millisecondsSinceEpoch;
+          final createdAtFromServer = toEpochMs(group['created_at']);
+          final existingCreatedAt = existing.isNotEmpty
+              ? toEpochMs(existing.first['created_at'])
+              : null;
+
+          final submittedAtFromServer = toEpochMs(group['submitted_at']);
+          final serverStatus =
+              (group['status']?.toString().trim().isNotEmpty ?? false)
+              ? group['status'].toString()
+              : 'pending';
+          final groupName =
+              (group['name']?.toString().trim().isNotEmpty ?? false)
+              ? group['name'].toString()
+              : 'BAGSAKAN_$id';
+
           // Upsert group metadata
           final data = {
             'id': id,
-            'name': group['name'],
-            'description': group['description'],
-            'status': group['status'] ?? 'pending',
-            'submitted_at': group['submitted_at'],
-            'is_archived': 0,
-            'updated_at': DateTime.now().millisecondsSinceEpoch,
+            'name': groupName,
+            'description': group['description']?.toString(),
+            'status': serverStatus,
+            'submitted_at': submittedAtFromServer,
+            'is_archived': group['is_archived'] == true ? 1 : 0,
+            'created_at': createdAtFromServer ?? existingCreatedAt ?? now,
+            'updated_at': now,
           };
 
           // If we are protecting a submitted status, ensure we don't overwrite it.
@@ -494,8 +811,184 @@ class BagsakanDao {
             data,
             conflictAlgorithm: ConflictAlgorithm.replace,
           );
+
+          // ── KEY FIX: Reconcile local_deliveries.bagsakan_id from server payload ──
+          // The server includes a 'barcodes' list in the sync payload.
+          // 1. If archived: unassign ALL local items.
+          // 2. If active: reconcile to match server list exactly.
+          if (data['is_archived'] == 1) {
+            await txn.update(
+              'local_deliveries',
+              {'bagsakan_id': null, 'updated_at': now},
+              where: 'bagsakan_id = ?',
+              whereArgs: [id],
+            );
+            debugPrint(
+              '[DAO] upsertGroupsFromSync: unassigned all items for ARCHIVED group $id',
+            );
+          } else {
+            final serverBarcodes = group['barcodes'];
+            if (serverBarcodes is List) {
+              final barcodeList = serverBarcodes
+                  .map((e) => e.toString().trim())
+                  .where((e) => e.isNotEmpty)
+                  .toList();
+
+              // A. Unassign items that are NO LONGER in this group on the server.
+              if (barcodeList.isEmpty) {
+                await txn.update(
+                  'local_deliveries',
+                  {'bagsakan_id': null, 'updated_at': now},
+                  where: 'bagsakan_id = ?',
+                  whereArgs: [id],
+                );
+              } else {
+                final placeholders = barcodeList.map((_) => '?').join(', ');
+                await txn.rawUpdate(
+                  'UPDATE local_deliveries '
+                  'SET bagsakan_id = NULL, updated_at = ? '
+                  'WHERE bagsakan_id = ? AND barcode COLLATE NOCASE NOT IN ($placeholders)',
+                  [now, id, ...barcodeList],
+                );
+
+                // B. Assign items that ARE in this group on the server.
+                await txn.rawUpdate(
+                  'UPDATE local_deliveries '
+                  'SET bagsakan_id = ?, updated_at = ? '
+                  'WHERE barcode COLLATE NOCASE IN ($placeholders)',
+                  [id, now, ...barcodeList],
+                );
+              }
+              debugPrint(
+                '[DAO] upsertGroupsFromSync: reconciled ${barcodeList.length} items for group $id',
+              );
+            }
+          }
         }
       }
     });
+  }
+
+  /// Re-maps a local temporary group id to the authoritative server id.
+  ///
+  /// This keeps local deliveries and queued sync operations consistent when the
+  /// server does not preserve client-provided ids during CREATE_BAGSAKAN.
+  Future<void> remapGroupId({
+    required int fromGroupId,
+    required int toGroupId,
+  }) async {
+    if (fromGroupId == toGroupId) return;
+
+    final db = await _db;
+    await db.transaction((txn) async {
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      // Move deliveries first so UI and subsequent queue operations point to
+      // the server-backed id.
+      await txn.update(
+        'local_deliveries',
+        {'bagsakan_id': toGroupId, 'updated_at': now},
+        where: 'bagsakan_id = ?',
+        whereArgs: [fromGroupId],
+      );
+
+      final sourceRows = await txn.query(
+        'bagsakan_groups',
+        where: 'id = ?',
+        whereArgs: [fromGroupId],
+        limit: 1,
+      );
+      if (sourceRows.isNotEmpty) {
+        final source = Map<String, dynamic>.from(sourceRows.first);
+        source['id'] = toGroupId;
+        source['updated_at'] = now;
+
+        final targetRows = await txn.query(
+          'bagsakan_groups',
+          where: 'id = ?',
+          whereArgs: [toGroupId],
+          limit: 1,
+        );
+        if (targetRows.isEmpty) {
+          await txn.insert(
+            'bagsakan_groups',
+            source,
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+
+        await txn.delete(
+          'bagsakan_groups',
+          where: 'id = ?',
+          whereArgs: [fromGroupId],
+        );
+      }
+
+      final legacyBarcode = 'BAGSAKAN_$fromGroupId';
+      final canonicalBarcode = 'BAGSAKAN_$toGroupId';
+      final rows = await txn.query(
+        'sync_operations',
+        columns: ['id', 'operation_type', 'payload_json', 'status'],
+        where:
+            'barcode = ? AND status IN (\'pending\', \'processing\', \'failed\', \'conflict\')',
+        whereArgs: [legacyBarcode],
+      );
+
+      for (final row in rows) {
+        final opId = row['id']?.toString() ?? '';
+        if (opId.isEmpty) continue;
+
+        final opType = row['operation_type']?.toString() ?? '';
+        final payloadStr = row['payload_json']?.toString();
+        Map<String, dynamic> payload = {};
+        if (payloadStr != null && payloadStr.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(payloadStr);
+            if (decoded is Map<String, dynamic>) {
+              payload = Map<String, dynamic>.from(decoded);
+            }
+          } catch (_) {
+            payload = {};
+          }
+        }
+
+        if (opType == 'CREATE_BAGSAKAN' ||
+            opType == 'UPDATE_BAGSAKAN_GROUP' ||
+            opType == 'DELETE_BAGSAKAN_GROUP') {
+          payload['id'] = toGroupId;
+        } else if (opType == 'ASSIGN_TO_BAGSAKAN' ||
+            opType == 'UNASSIGN_FROM_BAGSAKAN' ||
+            opType == 'SUBMIT_BAGSAKAN') {
+          payload['group_id'] = toGroupId;
+        }
+
+        await txn.update(
+          'sync_operations',
+          {
+            'barcode': canonicalBarcode,
+            if (payload.isNotEmpty) 'payload_json': jsonEncode(payload),
+          },
+          where: 'id = ?',
+          whereArgs: [opId],
+        );
+      }
+    });
+  }
+
+  /// Forces a specific item to point to a specific bagsakan group.
+  /// Used by [SyncManager] during post-sync cleanup to ensure consistency
+  /// even if concurrent background syncs cleared the assignment.
+  Future<void> forceReconcileItemAssignment(
+    String barcode,
+    int? groupId,
+  ) async {
+    final db = await _db;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.update(
+      'local_deliveries',
+      {'bagsakan_id': groupId, 'updated_at': now},
+      where: 'barcode COLLATE NOCASE = ?',
+      whereArgs: [barcode],
+    );
   }
 }

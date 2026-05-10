@@ -596,7 +596,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   Future<void> _submit() async {
     if (!_validate()) return;
     setState(() => _loading = true);
-    if (checkIsLockedFromMap(_delivery)) {
+    final isBagsakanDelivery = _delivery['bagsakan_id'] != null;
+    if (!isBagsakanDelivery && checkIsLockedFromMap(_delivery)) {
       setState(() => _loading = false);
       showInfoNotification(context, 'delivery_update.status.locked'.tr());
       return;
@@ -894,6 +895,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isBagsakanDelivery = _delivery['bagsakan_id'] != null;
 
     final List<String> notePresets;
     if (_isDelivered) {
@@ -1067,7 +1069,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       confirmationCodeFocusNode:
                                           _confirmationCodeFocus,
                                       relationship: _relationship,
-                                      recipientIsOwner: _recipientIsOwner,
+                                      recipientIsOwner:
+                                          _recipientIsOwner &&
+                                          !isBagsakanDelivery,
                                       placement: _placement,
                                       isExpress: _isExpress,
                                       errors: _errors,
@@ -1076,7 +1080,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         _recipient.text = name;
                                         setState(() {
                                           _relationship = rel;
-                                          _recipientIsOwner = rel == 'OWNER';
+                                          _recipientIsOwner =
+                                              rel == 'OWNER' &&
+                                              !isBagsakanDelivery;
                                           _errors.remove('recipient');
                                           _errors.remove('relationship');
                                         });

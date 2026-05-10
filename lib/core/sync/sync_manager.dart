@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retry/retry.dart';
 
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
@@ -183,6 +184,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     );
 
     int successCount = 0;
+    final bagsakanIdRemap = <int, int>{};
 
     for (final entry in pending) {
       if (_disposed) break;
@@ -226,6 +228,58 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
       try {
         final payload = jsonDecode(entry.payloadJson) as Map<String, dynamic>;
+
+        _applyInMemoryBagsakanRemap(payload, bagsakanIdRemap);
+
+        final groupIdForOp = _extractBagsakanGroupId(entry, payload);
+        final isDependentBagsakanOp =
+            entry.operationType == 'ASSIGN_TO_BAGSAKAN' ||
+            entry.operationType == 'UNASSIGN_FROM_BAGSAKAN' ||
+            entry.operationType == 'DELETE_BAGSAKAN_GROUP' ||
+            entry.operationType == 'SUBMIT_BAGSAKAN';
+
+        if (isDependentBagsakanOp && groupIdForOp != null) {
+          final waitingForCreate = await ref
+              .read(syncOperationsDaoProvider)
+              .hasUnfinishedCreateBagsakan(
+                courierId,
+                groupIdForOp,
+                excludeOperationId: entry.id,
+              );
+          if (waitingForCreate) {
+            await ref
+                .read(syncOperationsDaoProvider)
+                .updateStatus(entry.id, 'pending', lastAttemptAt: attemptAt);
+            state = state.copyWith(
+              processed: state.processed + 1,
+              lastMessage:
+                  'Waiting for bagsakan group $groupIdForOp creation to sync first.',
+            );
+            continue;
+          }
+        }
+
+        // Defer SUBMIT_BAGSAKAN until the propagation source's own status update is synced.
+        // This ensures the server has the source data ready for propagation.
+        if (entry.operationType == 'SUBMIT_BAGSAKAN') {
+          final sourceBarcode = payload['source_barcode']?.toString();
+          if (sourceBarcode != null && sourceBarcode.isNotEmpty) {
+            final waitingForSource = await ref
+                .read(syncOperationsDaoProvider)
+                .hasPendingSync(sourceBarcode);
+            if (waitingForSource) {
+              await ref
+                  .read(syncOperationsDaoProvider)
+                  .updateStatus(entry.id, 'pending', lastAttemptAt: attemptAt);
+              state = state.copyWith(
+                processed: state.processed + 1,
+                lastMessage:
+                    'Waiting for $sourceBarcode status sync before submitting group.',
+              );
+              continue;
+            }
+          }
+        }
 
         // ── Upload any pending media (stored offline as local files) ────────────
         if (entry.mediaPathsJson != null && entry.mediaPathsJson!.isNotEmpty) {
@@ -499,7 +553,15 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                 'Rate limited — retried after ${waitSecs}s: ${_errorMessage(res)}',
               );
             }
-            if (res is ApiNetworkError || res is ApiServerError) {
+            final isBagsakanNotFound =
+                entry.operationType != 'CREATE_BAGSAKAN' &&
+                entry.barcode.startsWith('BAGSAKAN_') &&
+                _errorMessage(
+                  res,
+                ).toLowerCase().contains('bagsakan group not found');
+
+            if ((res is ApiNetworkError || res is ApiServerError) &&
+                !isBagsakanNotFound) {
               throw Exception(
                 'Transient error during PATCH: ${_errorMessage(res)}',
               );
@@ -514,6 +576,36 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
         if (result is ApiSuccess<Map<String, dynamic>>) {
           final now = DateTime.now().millisecondsSinceEpoch;
+
+          if (entry.operationType == 'CREATE_BAGSAKAN') {
+            final localGroupId = (payload['id'] as num?)?.toInt();
+            final responseData = result.data['data'];
+            final serverGroupId = responseData is Map
+                ? (responseData['id'] as num?)?.toInt()
+                : null;
+
+            if (localGroupId != null &&
+                serverGroupId != null &&
+                localGroupId != serverGroupId) {
+              await ref
+                  .read(bagsakanDaoProvider)
+                  .remapGroupId(
+                    fromGroupId: localGroupId,
+                    toGroupId: serverGroupId,
+                  );
+              bagsakanIdRemap[localGroupId] = serverGroupId;
+
+              // Also update the UI-facing remap provider so open screens can redirect
+              // to the new server-backed ID immediately.
+              ref
+                  .read(bagsakanIdRemapProvider.notifier)
+                  .updateRemap(localGroupId, serverGroupId);
+              debugPrint(
+                '[SYNC] remapped local bagsakan id $localGroupId -> server id $serverGroupId',
+              );
+            }
+          }
+
           await ref
               .read(syncOperationsDaoProvider)
               .updateStatus(entry.id, 'synced', lastAttemptAt: now);
@@ -555,7 +647,8 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           );
         } else if (result is ApiConflict<Map<String, dynamic>> ||
             result is ApiBadRequest<Map<String, dynamic>> ||
-            result is ApiValidationError<Map<String, dynamic>>) {
+            result is ApiValidationError<Map<String, dynamic>> ||
+            result is ApiNotFound<Map<String, dynamic>>) {
           // Terminal conflicts/errors from server -> abandon retry, mark as conflict or resolve automatically
           final errorMsg = _errorMessage(result);
 
@@ -603,12 +696,18 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               (errorMsg.toLowerCase().contains('maximum') ||
                   errorMsg.toLowerCase().contains('attempts'));
 
+          // Case 5 — Resource already gone (404). For DELETE operations, this is success.
+          final isAlreadyDeleted =
+              result is ApiNotFound<Map<String, dynamic>> &&
+              entry.operationType == 'DELETE_BAGSAKAN_GROUP';
+
           final shouldAutoResolve =
               isImmutableStop ||
               isDeliveredImmutableLegacy ||
               isSameStatusTransitionCode ||
               isDuplicateRequestCode ||
-              isMaxAttemptsReached;
+              isMaxAttemptsReached ||
+              isAlreadyDeleted;
 
           if (shouldAutoResolve) {
             final now = DateTime.now().millisecondsSinceEpoch;
@@ -649,22 +748,100 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                   'Delivery ${entry.barcode} already updated on server.',
             );
           } else {
+            String conflictDisplayError = errorMsg;
+            String? conflictPayloadJson;
+
+            if (result is ApiConflict<Map<String, dynamic>>) {
+              final responseData = result.data;
+              if (responseData is Map) {
+                final rawConflicts = responseData['already_assigned_barcodes'];
+                if (rawConflicts is List && rawConflicts.isNotEmpty) {
+                  final conflicts = rawConflicts
+                      .map((e) => asStringDynamicMap(e))
+                      .where((e) => e.isNotEmpty)
+                      .toList();
+
+                  if (conflicts.isNotEmpty) {
+                    final mergedPayload = <String, dynamic>{
+                      ...payload,
+                      'conflict_details': conflicts,
+                    };
+                    conflictPayloadJson = jsonEncode(mergedPayload);
+
+                    final compactSummary = conflicts
+                        .take(3)
+                        .map((c) {
+                          final bc = (c['barcode']?.toString() ?? '').trim();
+                          final group = (c['group_name']?.toString() ?? '')
+                              .trim();
+                          if (bc.isEmpty) return '';
+                          return group.isNotEmpty ? '$bc ($group)' : bc;
+                        })
+                        .where((s) => s.isNotEmpty)
+                        .join(', ');
+
+                    if (compactSummary.isNotEmpty) {
+                      conflictDisplayError = '$errorMsg [$compactSummary]';
+                    }
+                  }
+                }
+              }
+            }
+
             await ref
                 .read(syncOperationsDaoProvider)
-                .updateStatus(entry.id, 'conflict', lastError: errorMsg);
+                .updateStatus(
+                  entry.id,
+                  'conflict',
+                  lastError: conflictDisplayError,
+                  payloadJson: conflictPayloadJson,
+                );
             await ErrorLogService.warning(
               context: 'sync',
               message: 'Conflict on ${entry.barcode}',
-              detail: errorMsg,
+              detail: conflictDisplayError,
               barcode: entry.barcode,
             );
             state = state.copyWith(
               processed: state.processed + 1,
-              lastMessage: 'Conflict on ${entry.barcode}: $errorMsg',
+              lastMessage:
+                  'Conflict on ${entry.barcode}: $conflictDisplayError',
             );
           }
         } else {
           final errorMsg = _errorMessage(result);
+          final isBagsakanNotFound =
+              entry.operationType != 'CREATE_BAGSAKAN' &&
+              entry.barcode.startsWith('BAGSAKAN_') &&
+              errorMsg.toLowerCase().contains('bagsakan group not found');
+
+          if (isBagsakanNotFound) {
+            final groupId = _extractBagsakanGroupId(entry, payload);
+            final localGroup = groupId == null
+                ? null
+                : await ref.read(bagsakanDaoProvider).getBagsakanGroup(groupId);
+
+            if (localGroup == null) {
+              final now = DateTime.now().millisecondsSinceEpoch;
+              _cleanupBagsakanItems(payload, entry.operationType);
+              await ref
+                  .read(syncOperationsDaoProvider)
+                  .updateStatus(
+                    entry.id,
+                    'synced',
+                    lastAttemptAt: now,
+                    lastError: 'Resolved stale operation: $errorMsg',
+                  );
+              successCount++;
+              state = state.copyWith(
+                processed: state.processed + 1,
+                lastMessage:
+                    'Resolved stale bagsakan operation for ${entry.barcode}.',
+              );
+              continue;
+            }
+          }
+
           final newRetryCount = entry.retryCount + 1;
           await ref
               .read(syncOperationsDaoProvider)
@@ -811,6 +988,37 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     } catch (_) {}
   }
 
+  int? _extractBagsakanGroupId(
+    SyncOperation entry,
+    Map<String, dynamic> payload,
+  ) {
+    final fromPayload =
+        (payload['group_id'] as num?)?.toInt() ??
+        (payload['id'] as num?)?.toInt();
+    if (fromPayload != null) return fromPayload;
+
+    if (!entry.barcode.startsWith('BAGSAKAN_')) return null;
+    final raw = entry.barcode.substring('BAGSAKAN_'.length);
+    return int.tryParse(raw);
+  }
+
+  void _applyInMemoryBagsakanRemap(
+    Map<String, dynamic> payload,
+    Map<int, int> remap,
+  ) {
+    if (remap.isEmpty) return;
+
+    final id = (payload['id'] as num?)?.toInt();
+    if (id != null && remap.containsKey(id)) {
+      payload['id'] = remap[id];
+    }
+
+    final groupId = (payload['group_id'] as num?)?.toInt();
+    if (groupId != null && remap.containsKey(groupId)) {
+      payload['group_id'] = remap[groupId];
+    }
+  }
+
   String _errorMessage(ApiResult<Map<String, dynamic>> result) {
     return switch (result) {
       ApiNetworkError<Map<String, dynamic>>(:final message) => message,
@@ -841,16 +1049,46 @@ class SyncManagerNotifier extends Notifier<SyncState> {
   ) async {
     try {
       final barcodes = payload['barcodes'] as List?;
+      final groupId =
+          (payload['group_id'] as num?)?.toInt() ??
+          (payload['id'] as num?)?.toInt();
+
       if (barcodes != null) {
         for (final b in barcodes) {
-          await ref.read(localDeliveryDaoProvider).markClean(b.toString());
+          final barcodeStr = b.toString();
+          final hasPending = await ref
+              .read(syncOperationsDaoProvider)
+              .hasPendingSync(barcodeStr);
+
+          // Force reconcile bagsakan_id during cleanup to ensure consistency
+          // even if a concurrent sync-from-api pass cleared it locally.
+          if (operationType == 'ASSIGN_TO_BAGSAKAN' && groupId != null) {
+            await ref
+                .read(bagsakanDaoProvider)
+                .forceReconcileItemAssignment(barcodeStr, groupId);
+          } else if (operationType == 'UNASSIGN_FROM_BAGSAKAN' ||
+              operationType == 'DELETE_BAGSAKAN_GROUP') {
+            await ref
+                .read(bagsakanDaoProvider)
+                .forceReconcileItemAssignment(barcodeStr, null);
+          }
+
+          if (!hasPending) {
+            await ref.read(localDeliveryDaoProvider).markClean(barcodeStr);
+          }
         }
       }
 
       if (operationType == 'SUBMIT_BAGSAKAN') {
         final source = payload['source_barcode'];
         if (source != null) {
-          await ref.read(localDeliveryDaoProvider).markClean(source.toString());
+          final sourceStr = source.toString();
+          final hasPending = await ref
+              .read(syncOperationsDaoProvider)
+              .hasPendingSync(sourceStr);
+          if (!hasPending) {
+            await ref.read(localDeliveryDaoProvider).markClean(sourceStr);
+          }
         }
       }
     } catch (e) {

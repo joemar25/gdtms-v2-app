@@ -1,6 +1,8 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/bagsakan.md — update that file when you edit this one.
 
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -11,14 +13,18 @@ import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_submit_fab.dart';
+import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
+import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/ds_segmented_selector.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
+import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 
 enum BagsakanSearchMode { barcode, accountName }
 
@@ -106,10 +112,46 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
     }
     setState(() => _isSearching = true);
     try {
-      final results = _searchMode == BagsakanSearchMode.barcode
-          ? await ref.read(bagsakanDaoProvider).searchByBarcodeLike(query)
-          : await ref.read(bagsakanDaoProvider).searchByAccountName(query);
-      if (mounted) setState(() => _searchResults = results);
+      List<LocalDelivery> results = [];
+
+      // Prefer server-qualified results when online so eligibility logic stays
+      // aligned with backend rules (v3.8: eligible_for_bagsakan flag).
+      final isOnline =
+          ref.read(connectionStatusProvider) == ConnectionStatus.online;
+      if (isOnline) {
+        final apiResult = await ref
+            .read(apiClientProvider)
+            .get<Map<String, dynamic>>(
+              '/deliveries/search',
+              queryParameters: {
+                'q': query,
+                'eligible_for_bagsakan': 1,
+                'per_page': 50,
+              },
+              parser: parseApiMap,
+            );
+
+        if (apiResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
+          final serverItems = listOfMapsFromKey(data, 'data');
+          results = serverItems
+              .map((e) => LocalDelivery.fromApiItem(e))
+              .toList();
+        }
+      }
+
+      // Offline or API fallback: local search remains available.
+      if (results.isEmpty) {
+        results = _searchMode == BagsakanSearchMode.barcode
+            ? await ref.read(bagsakanDaoProvider).searchByBarcodeLike(query)
+            : await ref.read(bagsakanDaoProvider).searchByAccountName(query);
+      }
+
+      final existingBarcodes = _groupItems.map((e) => e.barcode).toSet();
+      final filtered = results
+          .where((e) => !existingBarcodes.contains(e.barcode))
+          .toList();
+
+      if (mounted) setState(() => _searchResults = filtered);
     } finally {
       if (mounted) setState(() => _isSearching = false);
     }
@@ -171,6 +213,23 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
         courierId: courierId,
       );
       await ref.read(syncManagerProvider.notifier).loadEntries();
+
+      // When online, immediately flush queued Bagsakan operations so the
+      // backend has the group before users open group details.
+      final isOnline =
+          ref.read(connectionStatusProvider) == ConnectionStatus.online;
+      if (isOnline) {
+        unawaited(
+          ref.read(syncManagerProvider.notifier).processQueue().catchError((
+            e,
+            st,
+          ) {
+            debugPrint(
+              '[BAGSAKAN] immediate queue flush failed (non-blocking): $e',
+            );
+          }),
+        );
+      }
 
       if (mounted) {
         showSuccessNotification(
@@ -381,6 +440,8 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
         isLoading: _isSearching || _isSaving || _isLoadingGroup,
         child: Column(
           children: [
+            // ── CONNECTION STATUS BANNER ────────────────────────────────────
+            const ConnectionStatusBanner(isMinimal: true),
             // ── PREMIUM SUB-HEADER ──────────────────────────────────────────
             Container(
               width: double.infinity,

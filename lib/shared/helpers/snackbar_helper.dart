@@ -94,56 +94,60 @@ class AppNotificationManager {
     if (_overlayEntry == null) {
       _overlayEntry = OverlayEntry(
         builder: (context) {
-          final top = MediaQuery.of(context).padding.top;
-          return Positioned(
-            top: top + 8,
-            left: 0,
-            right: 0,
-            child: Material(
-              color: DSColors.transparent,
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.topCenter,
-                children: _entries
-                    .asMap()
-                    .entries
-                    .map((kv) {
-                      int i = kv.key;
-                      var entry = kv.value;
+          return SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: DSSpacing.sm),
+                child: Material(
+                  color: DSColors.transparent,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.topCenter,
+                    children: _entries
+                        .asMap()
+                        .entries
+                        .map((kv) {
+                          int i = kv.key;
+                          var entry = kv.value;
 
-                      return AnimatedContainer(
-                        key: ValueKey(entry.id),
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutCubic,
-                        margin: EdgeInsets.only(top: i * DSSpacing.sm),
-                        padding: EdgeInsets.symmetric(horizontal: DSSpacing.md),
-                        child: AnimatedScale(
-                          scale: DSAnimations.scaleNormal - (i * 0.05),
-                          alignment: Alignment.topCenter,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutCubic,
-                          child: IgnorePointer(
-                            ignoring:
-                                i !=
-                                0, // Only the top notification is interactive
-                            child: Dismissible(
-                              key: ValueKey('dismiss_up_${entry.id}'),
-                              direction: DismissDirection.up,
-                              onDismissed: (_) => _dismiss(entry.id),
-                              child: Dismissible(
-                                key: ValueKey('dismiss_horiz_${entry.id}'),
-                                direction: DismissDirection.horizontal,
-                                onDismissed: (_) => _dismiss(entry.id),
-                                child: entry.banner,
+                          return AnimatedContainer(
+                            key: ValueKey(entry.id),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                            margin: EdgeInsets.only(top: i * DSSpacing.sm),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: DSSpacing.md,
+                            ),
+                            child: AnimatedScale(
+                              scale: DSAnimations.scaleNormal - (i * 0.05),
+                              alignment: Alignment.topCenter,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              child: IgnorePointer(
+                                ignoring:
+                                    i !=
+                                    0, // Only the top notification is interactive
+                                child: Dismissible(
+                                  key: ValueKey('dismiss_up_${entry.id}'),
+                                  direction: DismissDirection.up,
+                                  onDismissed: (_) => _dismiss(entry.id),
+                                  child: Dismissible(
+                                    key: ValueKey('dismiss_horiz_${entry.id}'),
+                                    direction: DismissDirection.horizontal,
+                                    onDismissed: (_) => _dismiss(entry.id),
+                                    child: entry.banner,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                    })
-                    .toList()
-                    .reversed
-                    .toList(),
+                          );
+                        })
+                        .toList()
+                        .reversed
+                        .toList(),
+                  ),
+                ),
               ),
             ),
           );

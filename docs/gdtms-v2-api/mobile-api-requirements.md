@@ -8,39 +8,113 @@
 
 ## 🏗️ Active Requirements (v3.8)
 
-### v3.8 — Bagsakan Module Integration [PENDING]
+### v3.8 — Bagsakan Module Integration [COMPLETED]
+
+**Mobile Integration Audit (May 8, 2026)**
+
+Status: **Aligned**. Mobile now consumes the remaining v3.8 Bagsakan endpoints and response fields.
+
+#### Endpoint Consumption Matrix (Mobile App)
+
+- [x] `GET /api/mbl/bagsakan/groups` — retained as fallback bootstrap path (`DeliveryBootstrapService._syncBagsakanGroupsLegacy`).
+- [x] `POST /api/mbl/bagsakan/groups` — consumed via offline queue flush (`CREATE_BAGSAKAN` in `SyncManagerNotifier`).
+- [x] `PATCH /api/mbl/bagsakan/groups/{id}` — consumed via offline queue flush (`UPDATE_BAGSAKAN_GROUP`).
+- [x] `DELETE /api/mbl/bagsakan/groups/{id}` — consumed via offline queue flush (`DELETE_BAGSAKAN_GROUP`).
+- [x] `POST /api/mbl/bagsakan/groups/{id}/assign` — consumed via offline queue flush (`ASSIGN_TO_BAGSAKAN`).
+- [x] `POST /api/mbl/bagsakan/groups/{id}/unassign` — consumed via offline queue flush (`UNASSIGN_FROM_BAGSAKAN`).
+- [x] `POST /api/mbl/bagsakan/groups/{id}/submit` — consumed via offline queue flush (`SUBMIT_BAGSAKAN`).
+- [x] `GET /api/mbl/bagsakan/groups/{id}` — consumed in group-details screen to read `deliveries` and `propagation_source`.
+- [x] `POST /api/mbl/bagsakan/groups/{id}/assign-account` — consumed in group-details UI flow with online validation and refresh.
+
+#### v3.8 Contract Alignment Notes
+
+- [x] `bagsakan_id` is modeled/parsed in `LocalDelivery` and persisted locally.
+- [x] Local visibility hard-gate is enforced in DAO queries (`bagsakan_id IS NULL` on standard delivery/dashboard counters).
+- [x] Soft deletion signal (`is_archived`) is handled in Bagsakan group upsert/purge logic.
+- [x] Unified sync contract (`GET /api/mbl/sync` carrying `bagsakan_groups`) is consumed during bootstrap, with fallback to legacy groups endpoint.
+- [x] `GET /api/mbl/deliveries/search?eligible_for_bagsakan=1` is now consumed by Bagsakan search when online, with local DAO fallback when offline/API fails.
+- [x] Conflict intelligence payload details (`already_assigned_barcodes`, `group_name`) are surfaced in Sync UI from persisted conflict payload data.
+- [x] Propagation preview flag (`propagation_source`) from group-detail API is consumed and used to prefer submit source selection.
+- [x] Dispatch Bagsakan metadata (`bagsakan_id`, `is_bagsakan`) is explicitly consumed and displayed in dispatch list UI metadata.
+
+#### Mobile App TODO (Our Side)
+
+- [x] Integrate `GET /api/mbl/bagsakan/groups/{id}` in Bagsakan group details screen (consume server `deliveries` payload and `propagation_source`).
+- [x] Add UI + API flow for `POST /api/mbl/bagsakan/groups/{id}/assign-account` (account input, submit, success/error handling, refresh sync queue).
+- [x] Surface assign conflict details in UI from sync responses (`already_assigned_barcodes`, `group_name`) instead of generic conflict text.
+- [x] Consume `bagsakan_groups` from `GET /api/mbl/sync` during bootstrap with a safe legacy fallback.
+
+#### API Team TODO (Backend Side)
+
+- [x] Confirmed `GET /api/mbl/deliveries/search` accepts both `eligible_for_bagsakan=1` and `eligible_for_bagsakan=true`.
+- [x] Confirmed `GET /api/mbl/sync` always includes `bagsakan_groups` in production contract.
+- [x] Confirmed assign conflict payload is stable and complete: `error_code`, `already_assigned_barcodes[]`, and per-item `group_name`.
+- [x] Confirmed `GET /api/mbl/bagsakan/groups/{id}` includes `propagation_source` for each delivery item.
+- [x] Confirmed `POST /api/mbl/bagsakan/groups/{id}/assign-account` validation/error contract in production (`BAGSAKAN_LOCKED`, `NO_ELIGIBLE_DELIVERIES`, etc.).
+- [ ] **Regression fix required**: `POST /api/mbl/bagsakan/groups/{id}/submit` must propagate source delivery update to all group members, not only set group `status=submitted`.
+
+Propagation acceptance criteria (backend):
+
+1. For each target delivery in the submitted group, `deliveries.delivery_status` must be updated to the propagated final status (e.g., `DELIVERED`).
+2. A `delivery_timeline` row must be created per propagated target delivery (audit trail cannot be null after propagation).
+3. `delivery_media` for propagated DELIVERED items must be available in one of the approved ways:
+  - clone/copy media records to each propagated target delivery, or
+  - persist a server-defined linkage/reference to the source delivery media that mobile can resolve via API.
+4. `GET /api/mbl/bagsakan/groups/{id}` and `GET /api/mbl/sync` must return the propagated statuses immediately after submit sync.
+5. Submit endpoint response should include counts (`updated_deliveries`, `timeline_created`, `media_attached`) for QA observability.
+
+Backend verification notes (May 8, 2026):
+
+- Bagsakan API feature suite passed: 70 tests, 189 assertions.
+- Formatter run completed via duster.
+- Backend team marked v3.8 API-side contracts complete and verified.
+
+#### Recommendation
+
+Keep regression tests around Bagsakan sync, assign conflict rendering, and propagation source selection to protect this now-complete v3.8 integration.
+
+#### Backend Contract Status (Per Postman v3.8)
+
+Latest `Courier-Mobile-API.postman_collection.json` now documents the previously flagged contracts:
+
+1. `GET /api/mbl/bagsakan/groups/{id}` with `propagation_source` in delivery items.
+2. `POST /api/mbl/bagsakan/groups/{id}/assign-account` endpoint and sample responses.
+3. Assign conflict payload with `already_assigned_barcodes` and `group_name`.
+4. `GET /api/mbl/sync` response sample that includes `bagsakan_groups` + `is_archived`.
+
+Action now shifts to **mobile consumption/integration** of these documented contracts.
 
 **Request**: Implement backend support for the Bagsakan (Group Delivery) module to synchronize group metadata and delivery assignments.
 
-1.  **Schema Update**:
-    - Add `bagsakan_id` (nullable integer) to the `deliveries` table.
-    - Create `bagsakan_groups` table with: `id`, `name`, `description`, `status` (enum: `pending`, `submitted`), `created_at`, `updated_at`.
-2.  **New Endpoints**:
-    - `GET /api/mbl/bagsakan/groups`: Fetch all active groups for the courier.
-    - `POST /api/mbl/bagsakan/groups`: Create a new group (Defaults to `status: 'pending'`).
-    - `PATCH /api/mbl/bagsakan/groups/{id}`: Update group metadata (Only if `pending`).
-    - `DELETE /api/mbl/bagsakan/groups/{id}`: Delete group and **unassign** all deliveries associated with it.
-    - `POST /api/mbl/bagsakan/groups/{id}/assign`: Bulk assign barcodes (List of strings) to a group.
-    - `POST /api/mbl/bagsakan/groups/{id}/unassign`: Bulk unassign barcodes from a group.
-    - `POST /api/mbl/bagsakan/groups/{id}/submit`: Finalize the Bagsakan group. All associated deliveries should be marked for bulk processing on the server.
-3.  **Sync Integration**:
-    - Include Bagsakan groups in the `GET /api/mbl/sync` payload.
-    - Support **Soft Deletion**: Include `is_archived` (boolean) for groups to allow the mobile app to purge deleted groups during sync.
-    - Ensure `bagsakan_id` is present in the `LocalDelivery` response objects in both standard and group-specific contexts.
-4.  **Dispatch Acceptance**:
-    - `GET /api/mbl/dispatches`: Include `bagsakan_id` and `is_bagsakan: true` flag for pre-grouped dispatches.
-    - `POST /api/mbl/dispatches/{id}/accept`: When accepting a Bagsakan dispatch, the server must automatically link all associated deliveries to the `bagsakan_id` in the courier's context.
-5.  **Visibility Hard Gate (MANDATORY)**:
-    - **Dashboard Summary**: `GET /api/mbl/dashboard-summary` must exclude deliveries with a `bagsakan_id` from standard counts (Pending, Failed, etc.).
-    - **Deliveries List**: `GET /api/mbl/deliveries` must strictly exclude items assigned to any `bagsakan_id` to prevent redundant courier workflow.
-6.  **Case-Insensitivity**:
-    - All barcode matching for assignment/unassignment must use `COLLATE NOCASE` (or equivalent) to ensure resilience against scanner case discrepancies.
-7.  **Mobile Developer & UX Conveniences**:
-    - **Computed Counts**: `GET /api/mbl/bagsakan/groups` must return `item_count` and `delivered_count` per group to avoid client-side tallying.
-    - **Eligibility Flag**: `GET /api/mbl/deliveries/search` should support an `eligible_for_bagsakan=1` flag to offload complex status/attempt filtering to the server.
-    - **Conflict Intelligence**: The `assign` endpoint should return a `409 Conflict` with a list of `already_assigned_barcodes` and their current `group_name` if any barcode is already part of another group.
-    - **Bulk Account Assignment**: `POST /api/mbl/bagsakan/groups/{id}/assign-account` (Payload: `account_name`) to instantly group all eligible deliveries for a client.
-    - **Propagation Preview**: When querying a group, if any item is `DELIVERED`, the API should flag it as the `propagation_source: true` to help the UI highlight which data will be copied.
+1. **Schema Update**:
+   - Add `bagsakan_id` (nullable integer) to the `deliveries` table.
+   - Create `bagsakan_groups` table with: `id`, `name`, `description`, `status` (enum: `pending`, `submitted`), `created_at`, `updated_at`.
+2. **New Endpoints**:
+   - `GET /api/mbl/bagsakan/groups`: Fetch all active groups for the courier.
+   - `POST /api/mbl/bagsakan/groups`: Create a new group (Defaults to `status: 'pending'`).
+   - `PATCH /api/mbl/bagsakan/groups/{id}`: Update group metadata (Only if `pending`).
+   - `DELETE /api/mbl/bagsakan/groups/{id}`: Delete group and **unassign** all deliveries associated with it.
+   - `POST /api/mbl/bagsakan/groups/{id}/assign`: Bulk assign barcodes (List of strings) to a group.
+   - `POST /api/mbl/bagsakan/groups/{id}/unassign`: Bulk unassign barcodes from a group.
+   - `POST /api/mbl/bagsakan/groups/{id}/submit`: Finalize the Bagsakan group. All associated deliveries should be marked for bulk processing on the server.
+3. **Sync Integration**:
+   - Include Bagsakan groups in the `GET /api/mbl/sync` payload.
+   - Support **Soft Deletion**: Include `is_archived` (boolean) for groups to allow the mobile app to purge deleted groups during sync.
+   - Ensure `bagsakan_id` is present in the `LocalDelivery` response objects in both standard and group-specific contexts.
+4. **Dispatch Acceptance**:
+   - `GET /api/mbl/dispatches`: Include `bagsakan_id` and `is_bagsakan: true` flag for pre-grouped dispatches.
+   - `POST /api/mbl/dispatches/{id}/accept`: When accepting a Bagsakan dispatch, the server must automatically link all associated deliveries to the `bagsakan_id` in the courier's context.
+5. **Visibility Hard Gate (MANDATORY)**:
+   - **Dashboard Summary**: `GET /api/mbl/dashboard-summary` must exclude deliveries with a `bagsakan_id` from standard counts (Pending, Failed, etc.).
+   - **Deliveries List**: `GET /api/mbl/deliveries` must strictly exclude items assigned to any `bagsakan_id` to prevent redundant courier workflow.
+6. **Case-Insensitivity**:
+   - All barcode matching for assignment/unassignment must use `COLLATE NOCASE` (or equivalent) to ensure resilience against scanner case discrepancies.
+7. **Mobile Developer & UX Conveniences**:
+   - **Computed Counts**: `GET /api/mbl/bagsakan/groups` must return `item_count` and `delivered_count` per group to avoid client-side tallying.
+   - **Eligibility Flag**: `GET /api/mbl/deliveries/search` should support an `eligible_for_bagsakan=1` flag to offload complex status/attempt filtering to the server.
+   - **Conflict Intelligence**: The `assign` endpoint should return a `409 Conflict` with a list of `already_assigned_barcodes` and their current `group_name` if any barcode is already part of another group.
+   - **Bulk Account Assignment**: `POST /api/mbl/bagsakan/groups/{id}/assign-account` (Payload: `account_name`) to instantly group all eligible deliveries for a client.
+   - **Propagation Preview**: When querying a group, if any item is `DELIVERED`, the API should flag it as the `propagation_source: true` to help the UI highlight which data will be copied.
 
 - **Priority**: High (Blocking v3.8 stabilization).
 - **Deadline**: May 15, 2026.
@@ -104,7 +178,174 @@ The mobile app now handles all S3 uploads **client-side** using AWS Signature V4
 
 ---
 
-## 🛠️ Compliance Standards (v3.7)
+## � Offline-First Sync Strategy (Bagsakan & All Features)
+
+### Core Principles
+
+The mobile app implements **offline-first** architecture across all features, including Bagsakan:
+
+1. **Local-first operations**: All data mutations (create, update, assign, unassign, submit, delete) are queued locally in SQLite before transmission.
+2. **No data loss**: Operations persist across app crashes and network interruptions.
+3. **Transparent sync**: Users see "PENDING SYNC" badges on affected items when offline.
+4. **Strong conflict resolution**: When online, the sync manager processes operations with retry logic and conflict intelligence.
+
+### Bagsakan Offline Behavior
+
+#### When Offline:
+
+- **No LOCAL persistence**: Bagsakan groups and assignments are NOT stored locally as separate records beyond the sync queue.
+- **Operations queued**: Any action (create group, assign items, unassign, submit, delete) is captured as a `SyncOperation` entry with status `pending`.
+- **Read-only access**: Users can view previously-synced bagsakan groups (from the last online sync) but cannot modify them until connectivity is restored.
+- **Preview UI disabled**: Form submission buttons show an offline indicator and prompt for retry when online.
+
+#### When Online:
+
+- **Automatic sync initiation**: On app startup or reconnect, the `SyncManagerNotifier` processes all pending bagsakan operations.
+- **Ordered execution**: Operations are executed in creation order to maintain referential integrity:
+  1. `CREATE_BAGSAKAN` (new groups)
+  2. `UPDATE_BAGSAKAN_GROUP` (metadata updates)
+  3. `ASSIGN_TO_BAGSAKAN` (add items to groups)
+  4. `UNASSIGN_FROM_BAGSAKAN` (remove items from groups)
+  5. `SUBMIT_BAGSAKAN` (finalize groups)
+  6. `DELETE_BAGSAKAN_GROUP` (cleanup)
+
+- **Server state merge**: After sync, fresh bagsakan groups are fetched via `GET /api/mbl/sync` (with fallback to `GET /api/mbl/bagsakan/groups`) and upserted into the local database.
+
+### Sync Operation Schema
+
+All bagsakan mutations are stored in the `sync_operations` table:
+
+```sql
+CREATE TABLE sync_operations (
+  id TEXT PRIMARY KEY,
+  courier_id TEXT,
+  barcode TEXT,                    -- 'BAGSAKAN_<groupId>' for group ops
+  operation_type TEXT,             -- CREATE_BAGSAKAN, ASSIGN_TO_BAGSAKAN, etc.
+  payload_json TEXT,               -- Operation-specific data (see below)
+  media_paths_json TEXT,           -- N/A for bagsakan
+  status TEXT,                     -- 'pending', 'processing', 'completed', 'failed', 'conflict'
+  retry_count INTEGER,
+  last_error TEXT,
+  created_at INTEGER,
+  last_attempt_at INTEGER
+);
+```
+
+### Payload Structure Examples
+
+#### CREATE_BAGSAKAN
+
+```json
+{
+  "id": 42,
+  "name": "Metro Manila Q1 Batch",
+  "description": "High-priority medical supplies"
+}
+```
+
+#### ASSIGN_TO_BAGSAKAN
+
+```json
+{
+  "group_id": 42,
+  "group_name": "Metro Manila Q1 Batch",
+  "barcodes": ["PKG001", "PKG002", "PKG003"]
+}
+```
+
+#### UNASSIGN_FROM_BAGSAKAN
+
+```json
+{
+  "group_id": 42,
+  "group_name": "Metro Manila Q1 Batch",
+  "barcodes": ["PKG001"]
+}
+```
+
+#### SUBMIT_BAGSAKAN
+
+```json
+{
+  "group_id": 42,
+  "source_barcode": "PKG001",
+  "propagation_status": "DELIVERED",
+  "barcodes": ["PKG002", "PKG003"]
+}
+```
+
+#### DELETE_BAGSAKAN_GROUP
+
+```json
+{
+  "id": 42,
+  "group_name": "Metro Manila Q1 Batch",
+  "barcodes": ["PKG001", "PKG002", "PKG003"]
+}
+```
+
+### Conflict & Retry Handling
+
+#### Idempotency
+
+- Every bagsakan operation includes a unique `X-Request-ID` header (UUID from `SyncOperation.id`).
+- Server deduplicates retries by this ID.
+
+#### Conflict Resolution (`409 Conflict`)
+
+- **Already assigned barcodes**: Server returns list of conflicting barcodes + their current group.
+  - Local queue remains `conflict` status.
+  - UI shows inline conflict details and offers manual resolution (move, unassign, skip).
+  - On user action, conflict is either resolved (operation requeued) or deleted.
+
+- **Deleted groups**: If server rejects because group no longer exists:
+  - Operation automatically cleaned up from queue.
+  - User is notified via toast.
+
+#### Transient Failures (`5xx`, network timeout)
+
+- Automatic exponential backoff (default: up to 3 retries).
+- Operation remains in `failed` state until next online sync trigger.
+
+### UI Indicators
+
+#### Bagsakan Group Cards
+
+- **"✓ Synced"** badge: Group exists on server.
+- **"⏳ Pending Sync"** badge: Create/update operations in queue.
+- **"⚠️ Sync Error"** badge: Last sync failed (with error details in popover).
+- **Action buttons disabled** while offline or during sync.
+
+#### Group Items (Deliveries)
+
+- **"📍 In Bagsakan"**: Item assigned to group (locally or on server).
+- **"⏳ Pending Assignment"**: ASSIGN operation queued.
+- **"⚠️ Assignment Failed"**: Retry available.
+
+### Connection Status Detection
+
+The app uses `connectionStatusProvider` (Riverpod) to determine state:
+
+```dart
+enum ConnectionStatus { online, offline, apiUnreachable }
+
+// Polled every 10 seconds:
+// - NetworkConnectivity.none → offline
+// - Network present + API reachability check → online or apiUnreachable
+```
+
+- **UI response**: Forms lock, sync triggers, offline banner displayed.
+- **No optimistic UI**: Forms require online confirmation before showing success states.
+
+### Data Retention & Cleanup
+
+- **Synced operations**: Deleted after `sync_retention_days` (configurable via `GET /api/mbl/app-config`).
+- **Pending operations**: Retained indefinitely until sync succeeds.
+- **Conflict operations**: Retained until user resolves (max 7 days, then auto-cleaned).
+
+---
+
+## �🛠️ Compliance Standards (v3.7)
 
 - **Source of Truth**: `docs/gdtms-v2-api/Courier-Mobile-API.postman_collection.json`
 - **Auth**: Laravel Sanctum (Bearer Token)

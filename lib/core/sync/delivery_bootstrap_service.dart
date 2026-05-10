@@ -52,6 +52,18 @@ class DeliveryBootstrapService {
     DeliveryStatus.delivered.toApiString(), // 'DELIVERED'
   ];
 
+  int _asPositiveInt(dynamic value, {int fallback = 1}) {
+    if (value is num) {
+      final v = value.toInt();
+      return v > 0 ? v : fallback;
+    }
+    if (value is String) {
+      final v = int.tryParse(value.trim());
+      if (v != null && v > 0) return v;
+    }
+    return fallback;
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
 
   /// Full sync with progress callbacks. Used by [InitialSyncScreen] to show
@@ -96,7 +108,10 @@ class DeliveryBootstrapService {
 
     // ── Phase 1b: Sync Bagsakan Groups ───────────────────────────────────────
     onProgress?.call('Syncing bagsakan groups...');
-    await _syncBagsakanGroups(client);
+    await _syncBagsakanGroupsFromUnifiedSync(
+      client,
+      updatedSince: updatedSince,
+    );
 
     onProgress?.call('Cleaning up stale data...');
     try {
@@ -184,7 +199,10 @@ class DeliveryBootstrapService {
     }
 
     // ── Phase 1b: Sync Bagsakan Groups ───────────────────────────────────────
-    await _syncBagsakanGroups(client);
+    await _syncBagsakanGroupsFromUnifiedSync(
+      client,
+      updatedSince: updatedSince,
+    );
 
     // ── Phase 2: Remove stale local pending items ─────────────────────────────
     // Skip if delta sync (see rule 4 in syncFromApiWithProgress).
@@ -352,7 +370,7 @@ class DeliveryBootstrapService {
 
         final meta = data['pagination'] ?? data['meta'];
         if (meta is Map<String, dynamic>) {
-          lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
+          lastPage = _asPositiveInt(meta['last_page']);
           debugPrint('[SYNC] _syncStatus($status) page=$page/$lastPage');
         } else {
           debugPrint(
@@ -430,7 +448,7 @@ class DeliveryBootstrapService {
 
         final meta = data['pagination'] ?? data['meta'];
         if (meta is Map<String, dynamic>) {
-          lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
+          lastPage = _asPositiveInt(meta['last_page']);
         } else {
           break;
         }
@@ -446,8 +464,74 @@ class DeliveryBootstrapService {
     return allBarcodes;
   }
 
-  /// Fetches all active bagsakan groups and upserts them locally.
-  Future<void> _syncBagsakanGroups(ApiClient client) async {
+  /// Fetches bagsakan groups from the unified `/sync` stream and upserts them
+  /// locally. Falls back to legacy `GET /bagsakan/groups` when unavailable.
+  Future<void> _syncBagsakanGroupsFromUnifiedSync(
+    ApiClient client, {
+    int? updatedSince,
+  }) async {
+    final groupsById = <Object, Map<String, dynamic>>{};
+    int page = 1;
+    int lastPage = 1;
+
+    try {
+      do {
+        final query = <String, dynamic>{'page': page, 'per_page': 100};
+        if (updatedSince != null && updatedSince > 0) {
+          query['updated_since'] = DateTime.fromMillisecondsSinceEpoch(
+            updatedSince,
+          ).toUtc().toIso8601String();
+        }
+
+        final result = await client.get<Map<String, dynamic>>(
+          '/sync',
+          queryParameters: query,
+          parser: parseApiMap,
+        );
+
+        if (result is! ApiSuccess<Map<String, dynamic>>) {
+          debugPrint('[SYNC] /sync groups fetch failed on page=$page: $result');
+          break;
+        }
+
+        final rawGroups = result.data['bagsakan_groups'];
+        if (rawGroups is List) {
+          for (final item in rawGroups) {
+            final map = item is Map<String, dynamic>
+                ? item
+                : (item is Map ? Map<String, dynamic>.from(item) : null);
+            if (map == null) continue;
+            final id = map['id'];
+            if (id != null) groupsById[id] = map;
+          }
+        }
+
+        final meta = result.data['pagination'] ?? result.data['meta'];
+        if (meta is Map<String, dynamic>) {
+          lastPage = _asPositiveInt(meta['last_page']);
+        } else {
+          lastPage = page;
+        }
+        page++;
+      } while (page <= lastPage);
+
+      if (groupsById.isNotEmpty) {
+        final groups = groupsById.values.toList(growable: false);
+        debugPrint('[SYNC] fetched ${groups.length} bagsakan groups via /sync');
+        await BagsakanDao.instance.upsertGroupsFromSync(groups);
+        return;
+      }
+
+      // Fallback for environments that have not yet exposed groups in /sync.
+      await _syncBagsakanGroupsLegacy(client);
+    } catch (e) {
+      debugPrint('[SYNC] _syncBagsakanGroupsFromUnifiedSync exception: $e');
+      await _syncBagsakanGroupsLegacy(client);
+    }
+  }
+
+  /// Legacy groups fetch path, kept as fallback safety net.
+  Future<void> _syncBagsakanGroupsLegacy(ApiClient client) async {
     try {
       final result = await client.get<Map<String, dynamic>>(
         'bagsakan/groups',
@@ -469,14 +553,16 @@ class DeliveryBootstrapService {
         }
 
         if (groups.isNotEmpty) {
-          debugPrint('[SYNC] fetched ${groups.length} bagsakan groups');
+          debugPrint(
+            '[SYNC] fetched ${groups.length} bagsakan groups (legacy)',
+          );
           await BagsakanDao.instance.upsertGroupsFromSync(groups);
         }
       } else {
-        debugPrint('[SYNC] _syncBagsakanGroups failed: $result');
+        debugPrint('[SYNC] _syncBagsakanGroupsLegacy failed: $result');
       }
     } catch (e) {
-      debugPrint('[SYNC] _syncBagsakanGroups exception: $e');
+      debugPrint('[SYNC] _syncBagsakanGroupsLegacy exception: $e');
     }
   }
 }

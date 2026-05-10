@@ -254,6 +254,7 @@ class PushNotificationService {
       ApiRateLimited(:final message) => message,
       ApiConflict(:final message) => message,
       ApiServerError(:final message) => message,
+      ApiNotFound(:final message) => message,
     };
 
     if (errorMessage != null) {

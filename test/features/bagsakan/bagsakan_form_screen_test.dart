@@ -47,7 +47,9 @@ void main() {
     mockBagsakanDao = MockBagsakanDao();
   });
 
-  Widget createWidgetUnderTest() {
+  Widget createWidgetUnderTest({
+    ConnectionStatus connectionStatus = ConnectionStatus.online,
+  }) {
     final router = GoRouter(
       initialLocation: '/',
       routes: [
@@ -60,7 +62,7 @@ void main() {
 
     return ProviderScope(
       overrides: [
-        connectionStatusProvider.overrideWith((ref) => ConnectionStatus.online),
+        connectionStatusProvider.overrideWith((ref) => connectionStatus),
         authProvider.overrideWith(MockAuthNotifier.new),
         updateProvider.overrideWith(MockUpdateNotifier.new),
         notificationsUnreadCountProvider.overrideWithValue(0),
@@ -123,7 +125,11 @@ void main() {
         () => mockBagsakanDao.searchByBarcodeLike(any()),
       ).thenAnswer((_) async => []);
 
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(
+        createWidgetUnderTest(
+          connectionStatus: ConnectionStatus.networkOffline,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Enter name and go to step 2

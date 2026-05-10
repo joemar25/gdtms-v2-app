@@ -173,6 +173,12 @@ class ApiClient {
       return ApiUnauthorized<T>(_extractMessage(response.data));
     }
 
+    if (status == 404) {
+      return ApiNotFound<T>(
+        _extractMessage(response.data, fallback: 'Resource not found.'),
+      );
+    }
+
     return ApiServerError<T>(_extractMessage(response.data));
   }
 
@@ -201,6 +207,11 @@ class ApiClient {
           return ApiConflict<T>(
             _extractMessage(response.data, fallback: 'Conflict error.'),
             data: response.data,
+          );
+        }
+        if (status == 404) {
+          return ApiNotFound<T>(
+            _extractMessage(response.data, fallback: 'Resource not found.'),
           );
         }
         if (status == 422) {

@@ -15,7 +15,6 @@ bool checkIsLocked({
   required String status,
   required String rtsVerificationStatus,
   int attempts = 0,
-  int? bagsakanId,
 }) {
   final ds = DeliveryStatus.fromString(status);
   final rv = FailedDeliveryVerificationStatus.fromString(rtsVerificationStatus);
@@ -23,8 +22,7 @@ bool checkIsLocked({
   return ds == DeliveryStatus.delivered ||
       ds == DeliveryStatus.osa ||
       (ds == DeliveryStatus.failedDelivery && rv.isVerified) ||
-      (ds == DeliveryStatus.failedDelivery && attempts >= 3) ||
-      bagsakanId != null;
+      (ds == DeliveryStatus.failedDelivery && attempts >= 3);
 }
 
 /// Returns the number of failed delivery attempts for a delivery map.
@@ -81,7 +79,6 @@ bool checkIsLockedFromMap(Map<String, dynamic> delivery) {
     status: status,
     rtsVerificationStatus: failedDeliveryVerif,
     attempts: attempts,
-    bagsakanId: delivery['bagsakan_id'] as int?,
   );
 }
 
