@@ -151,9 +151,15 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
           .where((e) => !existingBarcodes.contains(e.barcode))
           .toList();
 
-      if (mounted) setState(() => _searchResults = filtered);
-    } finally {
+      if (mounted) {
+        setState(() {
+          _searchResults = filtered;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
       if (mounted) setState(() => _isSearching = false);
+      rethrow;
     }
   }
 
@@ -182,12 +188,11 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
     setState(() => _isSaving = true);
     try {
       final dao = ref.read(bagsakanDaoProvider);
+      final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
       final int groupId;
 
       if (widget.groupId != null) {
         groupId = widget.groupId!;
-        final courierId =
-            ref.read(authProvider).courier?['id']?.toString() ?? '';
         await dao.updateBagsakanGroup(
           groupId: groupId,
           name: name,
@@ -197,8 +202,6 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
         // Clear current items to handle removals properly
         await dao.clearBagsakanGroup(groupId, courierId);
       } else {
-        final courierId =
-            ref.read(authProvider).courier?['id']?.toString() ?? '';
         groupId = await dao.createBagsakanGroup(
           name: name,
           description: description,
@@ -206,7 +209,6 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
         );
       }
 
-      final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
       await dao.assignToBagsakan(
         groupId: groupId,
         barcodes: _groupItems.map((e) => e.barcode).toList(),
@@ -243,7 +245,11 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showErrorNotification(context, 'bagsakan.error_failed'.tr());
+        setState(() => _isSaving = false);
+        showErrorNotification(
+          context,
+          'bagsakan.error_saving'.tr(args: [e.toString()]),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

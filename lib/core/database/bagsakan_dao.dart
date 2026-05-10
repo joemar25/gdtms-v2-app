@@ -6,6 +6,7 @@ import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:uuid/uuid.dart';
 
 class BagsakanDao {
@@ -652,7 +653,19 @@ class BagsakanDao {
       whereArgs: [q],
       limit: 20,
     );
-    return maps.map((e) => LocalDelivery.fromDb(e)).toList();
+
+    final deliveries = maps.map((e) => LocalDelivery.fromDb(e)).toList();
+
+    if (eligibleOnly) {
+      // Post-filter: enforce "< 3 attempts" for failed deliveries.
+      // This logic is mirrored from LocalDeliveryDao.searchVisibleByQuery.
+      return deliveries.where((d) {
+        if (d.deliveryStatus.toUpperCase() != 'FAILED_DELIVERY') return true;
+        return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
+      }).toList();
+    }
+
+    return deliveries;
   }
 
   /// Search for deliveries by account name.
@@ -679,7 +692,18 @@ class BagsakanDao {
       whereArgs: [q],
       limit: 50,
     );
-    return maps.map((e) => LocalDelivery.fromDb(e)).toList();
+
+    final deliveries = maps.map((e) => LocalDelivery.fromDb(e)).toList();
+
+    if (eligibleOnly) {
+      // Post-filter: enforce "< 3 attempts" for failed deliveries.
+      return deliveries.where((d) {
+        if (d.deliveryStatus.toUpperCase() != 'FAILED_DELIVERY') return true;
+        return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
+      }).toList();
+    }
+
+    return deliveries;
   }
 
   /// Synchronizes Bagsakan groups from the server.

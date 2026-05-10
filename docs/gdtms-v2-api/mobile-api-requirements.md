@@ -58,8 +58,8 @@ Propagation acceptance criteria (backend):
 1. For each target delivery in the submitted group, `deliveries.delivery_status` must be updated to the propagated final status (e.g., `DELIVERED`).
 2. A `delivery_timeline` row must be created per propagated target delivery (audit trail cannot be null after propagation).
 3. `delivery_media` for propagated DELIVERED items must be available in one of the approved ways:
-  - clone/copy media records to each propagated target delivery, or
-  - persist a server-defined linkage/reference to the source delivery media that mobile can resolve via API.
+   - clone/copy media records to each propagated target delivery, or
+   - persist a server-defined linkage/reference to the source delivery media that mobile can resolve via API.
 4. `GET /api/mbl/bagsakan/groups/{id}` and `GET /api/mbl/sync` must return the propagated statuses immediately after submit sync.
 5. Submit endpoint response should include counts (`updated_deliveries`, `timeline_created`, `media_attached`) for QA observability.
 
