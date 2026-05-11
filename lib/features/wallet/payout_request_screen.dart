@@ -37,7 +37,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';

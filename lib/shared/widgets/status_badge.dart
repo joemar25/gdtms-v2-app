@@ -31,9 +31,7 @@ class StatusBadge extends StatelessWidget {
     return Chip(
       label: Text(displayStatus),
       backgroundColor: color.withValues(alpha: DSStyles.alphaSoft),
-      labelStyle: DSTypography.label(
-        color: color,
-      ),
+      labelStyle: DSTypography.label(color: color),
       side: BorderSide(color: color.withValues(alpha: DSStyles.alphaMuted)),
     );
   }

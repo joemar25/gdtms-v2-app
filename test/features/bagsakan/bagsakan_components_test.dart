@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_components.dart';
 
 Map<String, dynamic> _group({
@@ -31,6 +32,10 @@ Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() {
+    EasyLocalization.logger.printer = (object, {level, name, stackTrace}) {};
+  });
 
   group('BagsakanGroupCard', () {
     testWidgets('renders draft group without semantics assertion', (

@@ -130,7 +130,8 @@ class _DeliveryCardState extends State<DeliveryCard> {
         widget.onRemoveFromBagsakanTap != null &&
         isNotUpdated &&
         !widget.isChecking &&
-        !widget.isPropagationSource;
+        !widget.isPropagationSource &&
+        !widget.isForAssigning;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
