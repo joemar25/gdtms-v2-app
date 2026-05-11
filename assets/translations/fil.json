@@ -82,6 +82,8 @@
     "group_description_hint": "Ilagay ang description ng bagsakan",
     "create": "Gumawa ng Bagsakan",
     "edit": "I-edit ang Bagsakan",
+    "edit_confirm_title": "I-edit ang Bagsakan?",
+    "edit_confirm_message": "Ang grupong ito ay mayroon nang propagation source. Ang pagdaragdag o pag-aalis ng mga item ngayon ay maaaring hindi magandang ideya. Sigurado ka bang gusto mong magpatuloy?",
     "coming_soon": "Ang tampok na ito ay malapit na!",
     "under_development": "Nasa Pagpapaunlad",
     "create_group": "GUMAWA NG BAGSAKAN",

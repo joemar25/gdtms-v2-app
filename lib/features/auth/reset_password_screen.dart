@@ -33,6 +33,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
@@ -60,6 +61,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _errors = <String, String>{};
 
   bool _loading = false;
+  bool _isDeveloperMode = false;
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
@@ -67,6 +69,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   void initState() {
     super.initState();
+    _isDeveloperMode = RuntimeEnvironmentService.instance.isDeveloperMode;
     // Pre-fill courier code for authenticated users (read-only).
     if (widget.authenticatedMode) {
       final courier = ref.read(authProvider).courier ?? {};
@@ -261,13 +264,13 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
                   // ── Courier Code ───────────────────────────────────
                   // Only visible in Debug mode (completely removed in Production)
-                  if (kDebugMode) ...[
+                  if (kDebugMode || _isDeveloperMode) ...[
                     // Label changes dynamically based on authenticatedMode
                     _fieldLabel(
                       context,
                       isDark,
                       widget.authenticatedMode
-                          ? 'Courier Code (Debug)'
+                          ? 'Courier Code (${kDebugMode ? 'Debug' : 'Dev'})'
                           : 'Courier Code',
                     ),
                     DSSpacing.hSm,
@@ -343,7 +346,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       ),
                     ).dsFieldEntry(
                       delay: DSAnimations.stagger(
-                        widget.authenticatedMode && kDebugMode ? 6 : 4,
+                        widget.authenticatedMode &&
+                                (kDebugMode || _isDeveloperMode)
+                            ? 6
+                            : 4,
                         step: DSAnimations.staggerNormal,
                       ),
                     ),
@@ -353,7 +359,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   // ── New Password ───────────────────────────────────
                   _fieldLabel(context, isDark, 'New Password').dsFadeEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? (kDebugMode ? 7 : 5) : 3,
+                      widget.authenticatedMode
+                          ? (kDebugMode || _isDeveloperMode ? 7 : 5)
+                          : 3,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),
@@ -381,7 +389,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                   ).dsFieldEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? (kDebugMode ? 8 : 6) : 4,
+                      widget.authenticatedMode
+                          ? (kDebugMode || _isDeveloperMode ? 8 : 6)
+                          : 4,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),
@@ -394,7 +404,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     'Confirm New Password',
                   ).dsFadeEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? (kDebugMode ? 9 : 7) : 5,
+                      widget.authenticatedMode
+                          ? (kDebugMode || _isDeveloperMode ? 9 : 7)
+                          : 5,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),
@@ -422,7 +434,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                   ).dsFieldEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? (kDebugMode ? 10 : 8) : 6,
+                      widget.authenticatedMode
+                          ? (kDebugMode || _isDeveloperMode ? 10 : 8)
+                          : 6,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),
@@ -446,7 +460,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                   ).dsCtaEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? (kDebugMode ? 11 : 9) : 7,
+                      widget.authenticatedMode
+                          ? (kDebugMode || _isDeveloperMode ? 11 : 9)
+                          : 7,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),

@@ -82,6 +82,8 @@
     "group_description_hint": "Enter bagsakan description",
     "create": "Create Bagsakan",
     "edit": "Edit Bagsakan",
+    "edit_confirm_title": "Edit Bagsakan?",
+    "edit_confirm_message": "This group already has a propagation source. Adding or removing items now might not be a good idea. Are you sure you want to continue?",
     "coming_soon": "This feature is coming soon!",
     "under_development": "Under Development",
     "create_group": "CREATE BAGSAKAN",

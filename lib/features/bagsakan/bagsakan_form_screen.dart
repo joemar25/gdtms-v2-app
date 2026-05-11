@@ -753,7 +753,9 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
             ],
           ),
           _kInnerGap,
-          ..._searchResults.map((delivery) {
+          ..._searchResults.asMap().entries.map((entry) {
+            final index = entry.key;
+            final delivery = entry.value;
             final isAdded = _groupItems.any(
               (e) => e.barcode == delivery.barcode,
             );
@@ -765,7 +767,7 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
               onAddToBagsakanTap: () => _onAddToBagsakan(delivery),
               onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
               compact: false,
-            );
+            ).dsCardEntry(delay: DSAnimations.stagger(index));
           }),
         ] else if (_searchController.text.isNotEmpty && !_isSearching) ...[
           _kSectionGap,
@@ -808,18 +810,22 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
               : 'bagsakan.new_items_header'.tr(),
         ),
         _kInnerGap,
-        ...itemsToShow.map(
-          (delivery) => Padding(
-            padding: const EdgeInsets.only(bottom: DSSpacing.md),
-            child: DeliveryCard(
-              delivery: delivery.toDeliveryMap(),
-              onTap: null,
-              isForAssigning: true,
-              isInBagsakan: true,
-              onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
-              compact: false,
-            ),
-          ),
+        ...itemsToShow.asMap().entries.map(
+          (entry) {
+            final index = entry.key;
+            final delivery = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: DSSpacing.md),
+              child: DeliveryCard(
+                delivery: delivery.toDeliveryMap(),
+                onTap: null,
+                isForAssigning: true,
+                isInBagsakan: true,
+                onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
+                compact: false,
+              ),
+            ).dsCardEntry(delay: DSAnimations.stagger(index));
+          },
         ),
       ],
     );

@@ -478,6 +478,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   branchName: branchName,
                   isDark: isDark,
                   isOnline: isOnline,
+                  isDeveloperMode: _isDeveloperMode,
                 ).dsHeroEntry(),
                 DSSpacing.hMd,
 
@@ -623,8 +624,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
 
-                    // Debug-only: Sync Retention
-                    if (kDebugMode) ...[
+                    // Debug/developer-only: Sync Retention
+                    if (kDebugMode || _isDeveloperMode) ...[
                       _CardDivider(isDark: isDark),
                       _SyncRetentionTile(
                         syncRetentionDays: _syncRetentionDays,
@@ -900,12 +901,14 @@ class _ProfileHeroCard extends StatelessWidget {
     required this.branchName,
     required this.isDark,
     required this.isOnline,
+    required this.isDeveloperMode,
   });
 
   final Map<String, dynamic> courier;
   final String branchName;
   final bool isDark;
   final bool isOnline;
+  final bool isDeveloperMode;
 
   @override
   Widget build(BuildContext context) {
@@ -991,7 +994,7 @@ class _ProfileHeroCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     DSSpacing.hXs,
-                    if (kDebugMode)
+                    if (kDebugMode || isDeveloperMode)
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: DSSpacing.sm,
@@ -1013,7 +1016,7 @@ class _ProfileHeroCard extends StatelessWidget {
                             ),
                             DSSpacing.wXs,
                             Text(
-                              '$courierCode (Debug)',
+                              '$courierCode (${kDebugMode ? 'Debug' : 'Dev'})',
                               style: DSTypography.label().copyWith(
                                 fontSize: DSTypography.sizeXs,
                                 fontWeight: FontWeight.w600,

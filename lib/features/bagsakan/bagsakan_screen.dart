@@ -121,7 +121,7 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                               iconColor: isDark
                                   ? DSColors.labelSecondaryDark
                                   : DSColors.labelSecondary,
-                            ),
+                            ).dsFadeEntry(),
                           ),
                         ],
                       );
@@ -254,7 +254,7 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                                 }
                               }
                             },
-                          ),
+                          ).dsCardEntry(delay: DSAnimations.stagger(index)),
                         );
                       },
                     );

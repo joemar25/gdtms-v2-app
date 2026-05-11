@@ -25,6 +25,7 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_components.dart';
+import 'package:fsi_courier_app/features/delivery/widgets/delivery_submit_fab.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:go_router/go_router.dart';
 
@@ -108,98 +109,6 @@ class _BagsakanGroupItemsScreenState
     setState(() {
       _propagationSourceBarcode = sourceBarcode;
     });
-  }
-
-  Future<void> _onAssignAccount() async {
-    final accountController = TextEditingController();
-    final accountName = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Assign account to this Bagsakan'),
-        content: TextField(
-          controller: accountController,
-          autofocus: true,
-          textInputAction: TextInputAction.done,
-          decoration: const InputDecoration(
-            labelText: 'Account name',
-            hintText: 'e.g. SBC',
-          ),
-          onSubmitted: (_) => Navigator.pop(context, accountController.text),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('common.cancel'.tr()),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, accountController.text),
-            child: const Text('Assign'),
-          ),
-        ],
-      ),
-    );
-
-    final account = (accountName ?? '').trim();
-    if (account.isEmpty || !mounted) return;
-
-    final isOnline =
-        ref.read(connectionStatusProvider) == ConnectionStatus.online;
-    if (!isOnline) {
-      showErrorNotification(
-        context,
-        'Account assignment requires an online connection.',
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final result = await ref
-          .read(apiClientProvider)
-          .post<Map<String, dynamic>>(
-            '/bagsakan/groups/$_activeGroupId/assign-account',
-            data: {'account_name': account},
-            parser: parseApiMap,
-          );
-
-      if (result is ApiSuccess<Map<String, dynamic>>) {
-        final root = result.data;
-        final data = mapFromKey(root, 'data');
-        final assignedCount =
-            (data['assigned_count'] as num?)?.toInt() ??
-            (root['assigned_count'] as num?)?.toInt() ??
-            0;
-
-        await DeliveryBootstrapService.instance.syncFromApi(
-          ref.read(apiClientProvider),
-        );
-        await ref.read(syncManagerProvider.notifier).loadEntries();
-        await _loadData();
-        ref.read(deliveryRefreshProvider.notifier).increment();
-
-        if (mounted) {
-          showSuccessNotification(
-            context,
-            assignedCount > 0
-                ? 'Assigned $assignedCount delivery item${assignedCount == 1 ? '' : 's'} from account $account.'
-                : 'Account $account assignment completed.',
-          );
-        }
-      } else {
-        final errorMessage = switch (result) {
-          ApiBadRequest(:final message) => message,
-          ApiValidationError(:final message) => message ?? 'Validation error',
-          ApiConflict(:final message) => message,
-          ApiServerError(:final message) => message,
-          ApiNetworkError(:final message) => message,
-          ApiRateLimited(:final message) => message,
-          _ => 'Failed to assign account to bagsakan.',
-        };
-        if (mounted) showErrorNotification(context, errorMessage);
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   Future<void> _onSubmitBagsakan() async {
@@ -455,16 +364,64 @@ class _BagsakanGroupItemsScreenState
             : groupName,
         actions: [
           BagsakanHeaderInfoButton(onTap: _showPropagationHelpBottomSheet),
-          if (!isSubmitted)
-            HeaderIconButton(
-              icon: Icons.group_add_rounded,
-              onTap: _onAssignAccount,
-              isFlat: true,
-            ),
+
           if (!isSubmitted)
             HeaderIconButton(
               icon: Icons.edit_rounded,
-              onTap: () => context.push('/bagsakan/edit/$_activeGroupId'),
+              onTap: () async {
+                if (_propagationSourceBarcode != null) {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text(
+                        'bagsakan.edit_confirm_title'.tr(),
+                        style: DSTypography.heading(
+                          color: isDark
+                              ? DSColors.labelPrimaryDark
+                              : DSColors.labelPrimary,
+                        ),
+                      ),
+                      content: Text(
+                        'bagsakan.edit_confirm_message'.tr(),
+                        style: DSTypography.body(
+                          color: isDark
+                              ? DSColors.labelSecondaryDark
+                              : DSColors.labelSecondary,
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text(
+                            'common.cancel'.tr(),
+                            style: DSTypography.body(
+                              color: DSColors.primary,
+                            ).copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: Text(
+                            'common.confirm'.tr(),
+                            style: DSTypography.body(
+                              color: DSColors.primary,
+                            ).copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                      backgroundColor: isDark
+                          ? DSColors.cardDark
+                          : DSColors.cardLight,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: DSStyles.cardRadius,
+                      ),
+                    ),
+                  );
+                  if (confirmed != true) return;
+                }
+                if (!mounted) return;
+                context.push('/bagsakan/edit/$_activeGroupId');
+              },
               isFlat: true,
             ),
         ],
@@ -506,7 +463,7 @@ class _BagsakanGroupItemsScreenState
                               iconColor: isDark
                                   ? DSColors.labelSecondaryDark
                                   : DSColors.labelSecondary,
-                            ),
+                            ).dsFadeEntry(),
                           ),
                         ],
                       )
@@ -515,7 +472,7 @@ class _BagsakanGroupItemsScreenState
                           DSSpacing.md,
                           DSSpacing.sm,
                           DSSpacing.md,
-                          DSSpacing.sm,
+                          100, // Bottom padding for FAB
                         ),
                         physics: const AlwaysScrollableScrollPhysics(),
                         itemCount: _items.length,
@@ -578,7 +535,7 @@ class _BagsakanGroupItemsScreenState
                             onRemoveFromBagsakanTap: isSubmitted
                                 ? null
                                 : () => _onRemoveFromBagsakan(delivery),
-                          );
+                          ).dsCardEntry(delay: DSAnimations.stagger(index));
                         },
                       ),
               ),
@@ -586,33 +543,12 @@ class _BagsakanGroupItemsScreenState
           ),
         ],
       ),
-      bottomNavigationBar: canSubmit
-          ? Container(
-              padding: const EdgeInsets.all(DSSpacing.md),
-              decoration: BoxDecoration(
-                color: isDark ? DSColors.cardDark : DSColors.cardLight,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: FilledButton.icon(
-                  onPressed: _isLoading ? null : _onSubmitBagsakan,
-                  icon: const Icon(Icons.check_circle_outline_rounded),
-                  label: Text('bagsakan.submit_button'.tr().toUpperCase()),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: DSColors.primary,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: DSStyles.cardRadius,
-                    ),
-                  ),
-                ),
-              ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: canSubmit
+          ? DeliverySubmitFab(
+              isLoading: _isLoading,
+              onPressed: _onSubmitBagsakan,
+              label: 'bagsakan.submit_button'.tr().toUpperCase(),
             )
           : null,
     );
