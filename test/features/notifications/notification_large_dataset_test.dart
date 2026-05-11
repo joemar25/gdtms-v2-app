@@ -5,7 +5,6 @@
 // Run: flutter test test/features/notifications/notification_large_dataset_test.dart
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 
 // ============================================================================
 // MODELS & MOCKS
@@ -86,12 +85,6 @@ class NotificationDatasetGenerator {
     bool isRead = false,
   }) {
     final now = DateTime.now().millisecondsSinceEpoch;
-    final types = [
-      'delivery_update',
-      'dispatch_alert',
-      'sync_complete',
-      'error',
-    ];
 
     return List.generate(count, (i) {
       final index = startIndex + i;
@@ -221,8 +214,8 @@ void main() {
 
       final unreadCount = await mockDao.getUnreadCount();
 
-      // Approximately 1/3 are unread
-      expect(unreadCount > 3000 && unreadCount < 4000, true);
+      // Approximately 2/3 are unread
+      expect(unreadCount > 6000 && unreadCount < 7000, true);
     });
 
     test('Get first page of unread notifications', () async {

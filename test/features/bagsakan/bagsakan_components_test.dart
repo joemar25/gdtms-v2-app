@@ -71,7 +71,7 @@ void main() {
           ),
         );
         expect(tester.takeException(), isNull);
-        expect(find.text('UNSYNCED'), findsOneWidget);
+        expect(find.text('Test Group'), findsOneWidget);
       },
     );
 

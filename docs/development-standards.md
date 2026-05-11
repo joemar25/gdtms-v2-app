@@ -47,6 +47,7 @@ The GDTMS v2 Courier Mobile App is an **enterprise courier management platform**
 2. **Immutable Final States**: Once a delivery is marked as Delivered or Failed Verification, it is locked locally.
 3. **Data Integrity**: Local database operations must be transactional where applicable.
 4. **Single Device Session**: One active session per courier enforced by device fingerprinting.
+5. **Contextual Interaction Locking**: For secondary workflows (e.g., Bagsakan), destructive actions (Delete, Remove) must be hidden or disabled once a group or item reaches a terminal/submitted state. The UI should always reflect the authoritative state (DRAFT vs SUBMITTED).
 
 ---
 
@@ -180,6 +181,12 @@ Every public class, method, and property **MUST** have a triple-slash DartDoc co
 ### 10 — Inline Comments: The WHY, Not the WHAT
 
 > ⚠️ **Rule**: If your inline comment describes **WHAT** the code does, delete it. The code does that. Comments explain **WHY**.
+
+### 10.1 — No Dangling Doc Comments (`///`)
+
+- Triple-slash `///` comments are strictly for public API documentation (classes, methods, properties).
+- **NEVER** use `///` for file header blocks in test files or private internal files. Use standard double-slash `//` instead.
+- `flutter analyze` will flag dangling `///` as warnings; they must be resolved by converting to `//`.
 
 ### 11 — Section Dividers for Large Files
 
@@ -451,6 +458,13 @@ To ensure a premium feel across all device sizes, UI components must be **defens
 
    **Detection**: repeated `!semantics.parentDataDirty` assertion in the debug console almost always points to `IntrinsicHeight` nested inside a semantics-annotating widget (`Material`, `InkWell`, `Semantics`, `MergeSemantics`).
 
+4. **Feature UI Parity**: New features or modernized modules must inherit the visual language of the core system. For example, the **Bagsakan Management** module must mirror the `DeliveryCard` patterns:
+   - Standardized `DeliveryStatusBadge` for state.
+   - `InfoChip` and `DeliveryTinyPill` for metrics (counts, sync status).
+   - Shadow tokens (`DSStyles.shadowSM`) for depth.
+   - Standardized accent bars (left or top) for status-based visual hierarchy.
+   - Dual-timestamp audit trails (e.g., Created vs Submitted) using standard typography tokens.
+
 ---
 
 ## Separation of Concerns & Logic Mapping
@@ -467,4 +481,4 @@ To maintain a scalable codebase, we enforce a strict separation between **Defini
 
 **This is your source of truth for the Courier Mobile App. Consult it before every coding session.**
 
-Last Updated: April 30, 2026
+Last Updated: May 11, 2026

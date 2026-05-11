@@ -54,6 +54,16 @@ The bagsakan remains in the courier's bagsakan list until it is submitted/delive
 **Updating a delivery**
 The courier selects one delivery from the bagsakan list to update and marks it as delivered. This is the source record that the operator will later use to propagate data to the rest of the group.
 
+### UI Standards (Modernization Parity)
+
+To maintain a premium and consistent feel, the **Bagsakan List** must adhere to the core design system's high-fidelity patterns:
+
+- **Visual Alignment**: Bagsakan group cards must mirror the layout of the `DeliveryCard`, including the use of `DSStyles.shadowSM` and rounded corner tokens.
+- **Status Accent Bars**: Each card should feature a status-colored accent bar (left-aligned) that dynamically updates based on whether the group is a `DRAFT` or `SUBMITTED`.
+- **Audit Trail (Dual Timestamps)**: For transparency, cards must display both the **Creation Date** (indicated by an "add" icon) and the **Submission Date** (indicated by a "check" icon in `DSColors.success`), if applicable.
+- **Metrics Visibility**: Use the standard `InfoChip` pattern to display item counts and sync statuses (e.g., the "UNSYNCED" badge).
+- **Physical Feedback**: Cards must provide high-quality touch feedback using `Material` splashes and the `BouncingCardWrapper` component.
+
 ---
 
 ## Deletion

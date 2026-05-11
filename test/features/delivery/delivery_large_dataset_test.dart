@@ -7,13 +7,20 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
-import 'package:fsi_courier_app/core/database/delivery_dao.dart';
 
 // ============================================================================
 // MOCKS & DATA GENERATORS
 // ============================================================================
 
-class MockDeliveryDao extends Mock implements DeliveryDao {}
+abstract class DeliveryDataSource {
+  Future<List<LocalDelivery>> getDeliveries({
+    required String status,
+    required int offset,
+    required int limit,
+  });
+}
+
+class MockDeliveryDao extends Mock implements DeliveryDataSource {}
 
 class DeliveryDatasetGenerator {
   static List<LocalDelivery> generateDeliveries({
@@ -29,7 +36,7 @@ class DeliveryDatasetGenerator {
         deliveryStatus: status,
         jobOrder: 'JO_${index.toString().padLeft(8, '0')}',
         recipientName: 'Recipient ${index.toString().padLeft(8, '0')}',
-        deliveryAddress: '${index} Test Street, City',
+        deliveryAddress: '$index Test Street, City',
         rawJson: '{}',
         createdAt: now,
         updatedAt: now,
@@ -104,12 +111,10 @@ void main() {
       expect(result.length, equals(100));
       expect(stopwatch.elapsedMilliseconds < 500, true);
 
-      final totalPages = (itemCount / pageSize).ceil();
-      expect(totalPages, equals(500));
+      expect((itemCount / pageSize).ceil(), equals(500));
     });
 
     test('Pagination: 50K items, 100 per page', () async {
-      const totalPages = 500;
       var requestCount = 0;
 
       when(
@@ -270,7 +275,7 @@ void main() {
     });
 
     test('Search within 100K items by barcode', () async {
-      const searchBarcode = 'DELIVERY_00050000';
+      const searchBarcode = 'DELIVERY_00000500';
       final allItems = DeliveryDatasetGenerator.generateDeliveries(
         count: 1000,
         status: 'FOR_DELIVERY',
@@ -298,7 +303,6 @@ void main() {
   group('Delivery Multi-Status Handling (Large Datasets)', () {
     test('Load all status lists simultaneously', () async {
       const statuses = ['FOR_DELIVERY', 'DELIVERED', 'RTS', 'OSA'];
-      const itemsPerStatus = 10000;
 
       when(
         () => mockDeliveryDao.getDeliveries(
@@ -396,9 +400,7 @@ void main() {
       );
 
       final stopwatch = Stopwatch()..start();
-      final delivered = allItems
-          .where((item) => item.deliveryStatus == 'DELIVERED')
-          .toList();
+      allItems.where((item) => item.deliveryStatus == 'DELIVERED').toList();
       stopwatch.stop();
 
       expect(stopwatch.elapsedMilliseconds < 2000, true);
@@ -425,7 +427,6 @@ void main() {
     });
 
     test('Last page with partial items', () async {
-      const totalItems = 250;
       const pageSize = 100;
       const lastPageSize = 50;
 

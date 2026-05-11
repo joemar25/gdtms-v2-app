@@ -5,7 +5,6 @@
 // Run: flutter test test/features/dispatch/dispatch_large_dataset_test.dart
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 
 // ============================================================================
 // MODELS
@@ -342,7 +341,7 @@ void main() {
           .where((d) => d.branchName == branchName)
           .toList();
 
-      expect(branchDispatches.length > 0, true);
+      expect(branchDispatches.isNotEmpty, true);
       expect(branchDispatches.every((d) => d.branchName == branchName), true);
     });
 
@@ -480,7 +479,7 @@ void main() {
           )
           .toList();
 
-      expect(dueTomorrow.length > 0, true);
+      expect(dueTomorrow.isNotEmpty, true);
     });
 
     test('Sort dispatches by TAT date', () async {
