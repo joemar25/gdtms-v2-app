@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
+
+class MockSyncOperationsDao extends Mock implements SyncOperationsDao {}
 
 void main() {
   group('Bagsakan Sync Operation Ordering Tests', () {
@@ -13,14 +15,6 @@ void main() {
       mockDao = MockSyncOperationsDao();
     });
 
-    /// Tests the core requirement:
-    /// Operations must execute in this order:
-    /// 1. CREATE_BAGSAKAN
-    /// 2. UPDATE_BAGSAKAN_GROUP
-    /// 3. ASSIGN_TO_BAGSAKAN
-    /// 4. UNASSIGN_FROM_BAGSAKAN
-    /// 5. SUBMIT_BAGSAKAN
-    /// 6. DELETE_BAGSAKAN_GROUP
     test('Operations execute in required precedence order', () async {
       final operations = [
         SyncOperation(
@@ -68,7 +62,9 @@ void main() {
         ),
       ];
 
-      when(mockDao.getPending('courier-1')).thenAnswer((_) async => operations);
+      when(
+        () => mockDao.getPending('courier-1'),
+      ).thenAnswer((_) async => operations);
 
       final pending = await mockDao.getPending('courier-1');
 
@@ -90,11 +86,8 @@ void main() {
     });
 
     test('ASSIGN operation blocked if CREATE not synced', () async {
-      // Scenario: User created group offline, tried to assign items,
-      // then came online. ASSIGN should wait for CREATE to complete first.
-
       when(
-        mockDao.hasUnfinishedCreateBagsakan(
+        () => mockDao.hasUnfinishedCreateBagsakan(
           'courier-1',
           1,
           excludeOperationId: 'op-assign',
@@ -108,15 +101,10 @@ void main() {
       );
 
       expect(waiting, true);
-      // In real sync, ASSIGN operation would be requeued until CREATE completes
     });
 
     test('DELETE operation blocks dependent operations', () async {
-      // If DELETE is encountered before ASSIGN completes,
-      // ASSIGN for that group should not proceed
-
-      // This is handled by getAll() with status filtering
-      when(mockDao.getAll('courier-1')).thenAnswer(
+      when(() => mockDao.getAll('courier-1')).thenAnswer(
         (_) async => [
           SyncOperation(
             id: 'op-assign',
@@ -141,7 +129,6 @@ void main() {
 
       final all = await mockDao.getAll('courier-1');
 
-      // ASSIGN comes before DELETE, so it should proceed
       expect(all[0].operationType, 'ASSIGN_TO_BAGSAKAN');
       expect(all[1].operationType, 'DELETE_BAGSAKAN_GROUP');
     });
@@ -149,9 +136,7 @@ void main() {
     test(
       'Multiple groups can be processed in parallel (independent)',
       () async {
-        // Group 1 and Group 2 are independent and can sync in any order
         final operations = [
-          // Group 1 operations
           SyncOperation(
             id: 'g1-create',
             courierId: 'courier-1',
@@ -161,7 +146,6 @@ void main() {
             status: 'pending',
             createdAt: 1000,
           ),
-          // Group 2 operations
           SyncOperation(
             id: 'g2-create',
             courierId: 'courier-1',
@@ -171,7 +155,6 @@ void main() {
             status: 'pending',
             createdAt: 1100,
           ),
-          // Group 1 assign (depends on Group 1 create)
           SyncOperation(
             id: 'g1-assign',
             courierId: 'courier-1',
@@ -184,18 +167,14 @@ void main() {
         ];
 
         when(
-          mockDao.getPending('courier-1'),
+          () => mockDao.getPending('courier-1'),
         ).thenAnswer((_) async => operations);
 
         final pending = await mockDao.getPending('courier-1');
 
-        // Verify mixed-group operations are in creation order
         expect(pending[0].barcode, 'BAGSAKAN_1');
         expect(pending[1].barcode, 'BAGSAKAN_2');
         expect(pending[2].barcode, 'BAGSAKAN_1');
-
-        // But sync logic should handle group 1 create before group 1 assign
-        // and group 2 create independently
       },
     );
 
@@ -218,27 +197,25 @@ void main() {
 
       expect(payload['group_id'], 5);
       expect(payload['barcodes'], ['PKG001', 'PKG002']);
-      // group_id is used to detect and wait for CREATE dependency
     });
 
     test('Deleted synced operations removed from queue', () async {
       when(
-        mockDao.deleteByStatus('courier-1', 'synced'),
+        () => mockDao.deleteByStatus('courier-1', 'synced'),
       ).thenAnswer((_) async => 3);
 
       final deleted = await mockDao.deleteByStatus('courier-1', 'synced');
 
       expect(deleted, 3);
-      // Synced operations cleaned up after retention period
     });
 
     test('Retry count incremented on failure', () async {
       when(
-        mockDao.updateStatus(
-          'op-assign',
-          'failed',
-          retryCount: 1,
-          lastError: 'Transient error',
+        () => mockDao.updateStatus(
+          any(),
+          any(),
+          retryCount: any(named: 'retryCount'),
+          lastError: any(named: 'lastError'),
         ),
       ).thenAnswer((_) async {});
 
@@ -250,11 +227,11 @@ void main() {
       );
 
       verify(
-        mockDao.updateStatus(
+        () => mockDao.updateStatus(
           'op-assign',
           'failed',
           retryCount: 1,
-          lastError: any,
+          lastError: any(named: 'lastError'),
         ),
       ).called(1);
     });
@@ -274,14 +251,10 @@ void main() {
         createdAt: 0,
       );
 
-      // Conflict operations require user intervention, not auto-retry
       expect(conflictOp.status, 'conflict');
       expect(conflictOp.lastError, isNotNull);
 
-      // Sync manager would skip conflict operations in auto-retry loop
-      when(mockDao.getPending('courier-1')).thenAnswer(
-        (_) async => [], // Pending status excludes 'conflict'
-      );
+      when(() => mockDao.getPending('courier-1')).thenAnswer((_) async => []);
 
       final pending = await mockDao.getPending('courier-1');
       expect(pending.isEmpty, true);
@@ -289,33 +262,23 @@ void main() {
 
     test('Processing state prevents duplicate concurrent syncs', () async {
       when(
-        mockDao.updateStatus('op-assign', 'processing', lastAttemptAt: any),
+        () => mockDao.updateStatus(
+          any(),
+          any(),
+          lastAttemptAt: any(named: 'lastAttemptAt'),
+        ),
       ).thenAnswer((_) async {});
 
-      // Mark operation as processing
       await mockDao.updateStatus(
         'op-assign',
         'processing',
         lastAttemptAt: DateTime.now().millisecondsSinceEpoch,
       );
 
-      // getPending should not return processing operations
-      when(mockDao.getPending('courier-1')).thenAnswer((_) async => []);
+      when(() => mockDao.getPending('courier-1')).thenAnswer((_) async => []);
 
       final pending = await mockDao.getPending('courier-1');
       expect(pending.isEmpty, true);
     });
   });
-}
-
-// ── Mock ───────────────────────────────────────────────────────────────────
-
-class MockSyncOperationsDao extends Mock implements SyncOperationsDao {
-  @override
-  Future<void> insert(SyncOperation? operation) =>
-      super.noSuchMethod(Invocation.method(#insert, [operation]));
-
-  @override
-  Future<int> deleteByStatus(String? courierId, String? status) => super
-      .noSuchMethod(Invocation.method(#deleteByStatus, [courierId, status]));
 }

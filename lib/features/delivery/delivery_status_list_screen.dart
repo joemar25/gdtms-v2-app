@@ -673,7 +673,7 @@ class _DeliveryStatusListScreenState
                                         } else if (ds ==
                                             DeliveryStatus.delivered) {
                                           msg =
-                                              'This item has already been delivered and is sealed.';
+                                              'This item has already been delivered and is locked.';
                                         } else if (ds ==
                                                 DeliveryStatus.failedDelivery &&
                                             attemptsCount >= 3) {

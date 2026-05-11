@@ -3,13 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mockito/mockito.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/core/providers/notifications_provider.dart';
-import 'package:fsi_courier_app/core/sync/sync_manager.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_form_screen.dart';
+import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -211,16 +210,4 @@ void main() {
   });
 }
 
-// ── Helper Widget ──────────────────────────────────────────────────────────
-
-/// Mock banner widget that mimics ConnectionStatusBanner behavior
-class ConnectionStatusBanner extends StatelessWidget {
-  final bool isMinimal;
-
-  const ConnectionStatusBanner({super.key, this.isMinimal = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(height: 0, width: 0);
-  }
-}
+// Removed mock ConnectionStatusBanner class to use the real one.

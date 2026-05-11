@@ -98,10 +98,19 @@ When viewing items in a Bagsakan group (Group Items screen), removal of an item 
 
 - **Add/Edit Screen**: Assignment toggles are direct and do not require confirmation (bulk selection phase).
 - **Group Items List**: Individual removals require a confirmation dialog ("Remove from Bagsakan?").
+- **Propagation Source Protection**: Items designated as the "Propagation Source" (the basis for the group's status) cannot be removed from the group to maintain data integrity.
 
 ### 3. Immediate Sync
 
 Similar to group deletion, individual item removal triggers an immediate background sync (`processQueue`) to ensure the server is notified and the item re-appears in the correct lists across all devices.
+
+### 4. Default Update State
+
+When opening the delivery update screen for any item within a Bagsakan group (or recovered failed deliveries), the form **always defaults to the "Delivered" status**. This allows couriers to immediately see and fill out completion details without manually switching tabs, even if the item was previously in a failed or misrouted state.
+
+### 5. Individual Item Locking
+
+Once an item within a Bagsakan group reaches a terminal status (e.g., **Delivered**, **OSA**, or **Verified Failed**), it is individually "sealed" and locked from further updates. Couriers are prevented from re-opening the delivery update screen for these items, and any attempt to do so will trigger an "Interaction Locked" notification. This ensures that the basis for propagation (the source record) remains stable and consistent.
 
 ---
 

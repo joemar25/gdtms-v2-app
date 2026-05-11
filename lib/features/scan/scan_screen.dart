@@ -601,7 +601,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       return 'This item is marked OSA and cannot be opened.';
     }
     if (s == 'DELIVERED') {
-      return 'This item has already been delivered and is sealed.';
+      return 'This item has already been delivered and is locked.';
     }
     if (s == 'FAILED_DELIVERY' &&
         (v == 'verified_with_pay' || v == 'verified_no_pay')) {

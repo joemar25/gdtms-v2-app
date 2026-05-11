@@ -234,13 +234,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         final item = mapFromKey(data, 'data');
         // Standardise via model to ensure v3.6 canonical keys
         _delivery = LocalDelivery.fromApiItem(item).toDeliveryMap();
-        final currentStatus =
-            _delivery['delivery_status']?.toString().toUpperCase() ??
-            'DELIVERED';
         setState(() {
-          _status = kUpdateStatuses.contains(currentStatus)
-              ? currentStatus
-              : kUpdateStatuses.first;
+          // ALWAYS default to DELIVERED when opening the update screen
+          // as per user requirement to see the delivered form first.
+          _status = 'DELIVERED';
           _loadingDelivery = false;
         });
         return;
@@ -253,12 +250,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     if (local != null) {
       _delivery = local.toDeliveryMap();
     }
-    final currentStatus =
-        _delivery['delivery_status']?.toString().toUpperCase() ?? 'DELIVERED';
     setState(() {
-      _status = kUpdateStatuses.contains(currentStatus)
-          ? currentStatus
-          : kUpdateStatuses.first;
+      // ALWAYS default to DELIVERED when opening the update screen
+      // as per user requirement to see the delivered form first.
+      _status = 'DELIVERED';
       _loadingDelivery = false;
     });
   }
@@ -596,8 +591,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   Future<void> _submit() async {
     if (!_validate()) return;
     setState(() => _loading = true);
-    final isBagsakanDelivery = _delivery['bagsakan_id'] != null;
-    if (!isBagsakanDelivery && checkIsLockedFromMap(_delivery)) {
+    // RULE: Even if it's a Bagsakan delivery, we must lock it if the individual
+    // item is already in a terminal/sealed state (Delivered, OSA, Verified Failed).
+    final testMap = Map<String, dynamic>.from(_delivery)..remove('bagsakan_id');
+    if (checkIsLockedFromMap(testMap)) {
       setState(() => _loading = false);
       showInfoNotification(context, 'delivery_update.status.locked'.tr());
       return;

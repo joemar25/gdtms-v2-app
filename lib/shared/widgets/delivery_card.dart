@@ -119,6 +119,17 @@ class _DeliveryCardState extends State<DeliveryCard> {
         ds == DeliveryStatus.failedDelivery &&
         rv == FailedDeliveryVerificationStatus.verifiedNoPay;
     final isLocked = checkIsLockedFromMap(delivery);
+    final isPrivacyLocked = checkIsLocked(
+      status: status,
+      rtsVerificationStatus: failedDeliveryVerifStatus,
+      attempts: attemptsCount,
+    );
+    final isNotUpdated = ds != DeliveryStatus.delivered && !isPrivacyLocked;
+    final shouldShowRemovalAction =
+        widget.onRemoveFromBagsakanTap != null &&
+        isNotUpdated &&
+        !widget.isChecking &&
+        !widget.isPropagationSource;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -161,7 +172,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
     final canViewInfo =
         !widget.isPrivacyMode &&
         !widget.isChecking &&
-        !isLocked &&
+        !isPrivacyLocked &&
         ds != DeliveryStatus.unknown;
 
     if (widget.compact) {
@@ -176,6 +187,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
         isFailedWithPay: isFailedWithPay,
         isFailedNoPay: isFailedNoPay,
         isLocked: isLocked,
+        isPrivacyLocked: isPrivacyLocked,
         isVisible: isVisible,
         inSyncQueue: inSyncQueue,
         product: product,
@@ -309,30 +321,6 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  if (widget.onRemoveFromBagsakanTap != null &&
-                                      !widget.isForAssigning)
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        right: DSSpacing.xs,
-                                      ),
-                                      child: InkWell(
-                                        onTap: () {
-                                          HapticFeedback.lightImpact();
-                                          widget.onRemoveFromBagsakanTap!();
-                                        },
-                                        borderRadius: DSStyles.pillRadius,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(
-                                            DSSpacing.xs,
-                                          ),
-                                          child: const Icon(
-                                            Icons.remove_circle_outline_rounded,
-                                            size: DSIconSize.md,
-                                            color: DSColors.error,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
                                   if (attemptsCount > 0)
                                     Padding(
                                       padding: EdgeInsets.only(
@@ -428,7 +416,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
 
                           // ── Row 3: Recipient name ────────────────────────────
                           if (!widget.isPrivacyMode &&
-                              !isLocked &&
+                              !isPrivacyLocked &&
                               name.isNotEmpty) ...[
                             DSSpacing.hXs,
                             Row(
@@ -461,7 +449,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
 
                           // ── Row 4: Address ───────────────────────────────────
                           if (!widget.isPrivacyMode &&
-                              !isLocked &&
+                              !isPrivacyLocked &&
                               address.isNotEmpty) ...[
                             DSSpacing.hXs,
                             Row(
@@ -494,7 +482,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
 
                           // ── Metadata chips ───────────────────────────────────
                           if (!widget.isPrivacyMode &&
-                              !isLocked &&
+                              !isPrivacyLocked &&
                               delivery['metadata'] is List) ...[
                             DSSpacing.hMd,
                             Wrap(
@@ -592,25 +580,33 @@ class _DeliveryCardState extends State<DeliveryCard> {
                               rv: rv,
                             ),
 
-                          if (widget.isForAssigning) ...[
+                          if (widget.isForAssigning ||
+                              shouldShowRemovalAction) ...[
                             DSSpacing.hMd,
                             SizedBox(
                               width: double.infinity,
                               child: FilledButton.icon(
                                 label: Text(
-                                  widget.isInBagsakan
+                                  widget.isInBagsakan ||
+                                          (shouldShowRemovalAction &&
+                                              !widget.isForAssigning)
                                       ? 'REMOVE FROM BAGSAKAN'
                                       : 'ADD TO BAGSAKAN',
                                 ),
-                                onPressed: widget.isInBagsakan
+                                onPressed:
+                                    (widget.isInBagsakan ||
+                                        shouldShowRemovalAction)
                                     ? widget.onRemoveFromBagsakanTap
                                     : widget.onAddToBagsakanTap,
                                 icon: Icon(
-                                  widget.isInBagsakan
+                                  (widget.isInBagsakan ||
+                                          shouldShowRemovalAction)
                                       ? Icons.delete_outline_rounded
                                       : Icons.add_rounded,
                                 ),
-                                style: widget.isInBagsakan
+                                style:
+                                    (widget.isInBagsakan ||
+                                        shouldShowRemovalAction)
                                     ? FilledButton.styleFrom(
                                         backgroundColor: DSColors.error,
                                         foregroundColor: DSColors.white,
@@ -660,8 +656,10 @@ class _DeliveryCardState extends State<DeliveryCard> {
     final transactionAt = delivery['transaction_at']?.toString() ?? '';
     final deliveredAtMs = delivery['_delivered_at'] as int?;
     final deliveredDate = delivery['delivered_date']?.toString() ?? '';
-    final isLocked = checkIsLockedFromMap(delivery);
-
+    final isPrivacyLocked = checkIsLocked(
+      status: ds.toString(),
+      rtsVerificationStatus: rv.toString(),
+    );
     final hasDetails =
         (transactionAt.isNotEmpty && ds != DeliveryStatus.pending) ||
         product.isNotEmpty ||
@@ -724,7 +722,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                   subtextColor: subtextColor,
                 ),
               ),
-              if (ds == DeliveryStatus.failedDelivery && !isLocked)
+              if (ds == DeliveryStatus.failedDelivery && !isPrivacyLocked)
                 _buildVerificationPill(rv),
             ],
           ),
@@ -754,6 +752,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
     required bool isFailedWithPay,
     required bool isFailedNoPay,
     required bool isLocked,
+    required bool isPrivacyLocked,
     required bool isVisible,
     required bool inSyncQueue,
     required String product,
@@ -835,7 +834,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               if (!widget.isPrivacyMode &&
-                                  !isLocked &&
+                                  !isPrivacyLocked &&
                                   name.isNotEmpty) ...[
                                 Row(
                                   children: [
@@ -908,7 +907,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                   DSSpacing.wXs,
                                   Flexible(
                                     child: Text(
-                                      (widget.isPrivacyMode || isLocked)
+                                      (widget.isPrivacyMode || isPrivacyLocked)
                                           ? (product.isNotEmpty
                                                 ? product
                                                 : 'DELIVERY ITEM')
@@ -932,7 +931,8 @@ class _DeliveryCardState extends State<DeliveryCard> {
                         ),
                       ),
                       DSSpacing.wSm,
-                      if (widget.onRemoveFromBagsakanTap != null)
+                      if (widget.onRemoveFromBagsakanTap != null &&
+                          !widget.isPropagationSource)
                         IconButton(
                           onPressed: widget.onRemoveFromBagsakanTap,
                           icon: const Icon(Icons.remove_circle_outline_rounded),
@@ -963,7 +963,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                     : DSColors.pending,
                               ),
                             if (ds == DeliveryStatus.failedDelivery &&
-                                !isLocked)
+                                !isPrivacyLocked)
                               DeliveryTinyPill(
                                 label: (isFailedWithPay || isFailedNoPay)
                                     ? 'ITEM RETURNED'

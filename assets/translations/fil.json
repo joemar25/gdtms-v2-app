@@ -117,7 +117,7 @@
     "submit_confirm_title": "Isumite ang Bagsakan?",
     "submit_confirm_message": "Ikakalat nito ang data ng delivery sa lahat ng item sa grupo. Pakisiguradong naalis mo na ang anumang failed deliveries sa grupo bago magpatuloy.",
     "submit_confirm_message_status": "Sigurado ka ba? Ia-update nito ang lahat ng deliveries sa grupong ito sa {}.",
-    "submit_confirm_message_status_reminder": "Sigurado ka ba? Ia-update nito ang lahat ng deliveries sa grupong ito sa {}. Pakisiguradong naalis mo muna ang lahat ng returned items sa bagsakan na ito.",
+    "submit_confirm_message_status_reminder": "Sigurado ka ba? Ia-update nito ang lahat ng deliveries sa grupong ito sa <b>{}</b>.\n\n<warn>Pakisiguradong naalis mo muna ang lahat ng returned items sa bagsakan na ito.</warn>",
     "submit_confirm_confirm": "Isumite",
     "submit_block_failed_in_group": "Hindi puwedeng i-submit bilang DELIVERED habang may failed deliveries pa sa grupong ito. Alisin muna ang failed deliveries.",
     "success_submitted": "Naisumite na ang Bagsakan at kumalat na ang data.",

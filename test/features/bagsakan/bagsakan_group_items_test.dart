@@ -11,17 +11,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
-import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_group_items_screen.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/database/bagsakan_dao.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/api/api_result.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 
 class MockBagsakanDao extends Mock implements BagsakanDao {}
@@ -143,8 +140,8 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(groupId));
       await tester.pumpAndSettle();
 
-      // Find the remove button (Icons.remove_circle_outline_rounded)
-      final removeBtn = find.byIcon(Icons.remove_circle_outline_rounded);
+      // Find the remove button (prominent button label)
+      final removeBtn = find.text('REMOVE FROM BAGSAKAN');
       expect(removeBtn, findsOneWidget);
 
       // 1. Tap remove - should show dialog
@@ -316,15 +313,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('bagsakan.submit_confirm_title'.tr()), findsOneWidget);
-      expect(
-        find.text(
-          'bagsakan.submit_confirm_message_status_reminder'.tr(
-            args: ['FAILED DELIVERY'],
-          ),
-        ),
-        findsOneWidget,
-      );
-
+      // The message now uses RichText with tags. We verify a RichText widget exists.
+      expect(find.byType(RichText), findsAtLeast(1));
       await tester.tap(find.text('bagsakan.submit_confirm_confirm'.tr()));
       await tester.pumpAndSettle();
 

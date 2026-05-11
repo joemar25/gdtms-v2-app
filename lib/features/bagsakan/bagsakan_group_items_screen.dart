@@ -19,6 +19,7 @@ import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
@@ -215,10 +216,63 @@ class _BagsakanGroupItemsScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: Text('bagsakan.submit_confirm_title'.tr()),
-        content: Text(
-          'bagsakan.submit_confirm_message_status_reminder'.tr(
-            args: [sourceStatusLabel],
-          ),
+        content: Builder(
+          builder: (ctx) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            final fullText = 'bagsakan.submit_confirm_message_status_reminder'
+                .tr(args: [sourceStatusLabel]);
+
+            final spans = <InlineSpan>[];
+            final regex = RegExp(r'<b>(.*?)</b>|<warn>(.*?)</warn>');
+            int lastMatchEnd = 0;
+
+            for (final match in regex.allMatches(fullText)) {
+              if (match.start > lastMatchEnd) {
+                spans.add(
+                  TextSpan(text: fullText.substring(lastMatchEnd, match.start)),
+                );
+              }
+
+              final boldText = match.group(1);
+              final warnText = match.group(2);
+
+              if (boldText != null) {
+                spans.add(
+                  TextSpan(
+                    text: boldText,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                );
+              } else if (warnText != null) {
+                spans.add(
+                  TextSpan(
+                    text: warnText,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: DSColors.error,
+                    ),
+                  ),
+                );
+              }
+
+              lastMatchEnd = match.end;
+            }
+
+            if (lastMatchEnd < fullText.length) {
+              spans.add(TextSpan(text: fullText.substring(lastMatchEnd)));
+            }
+
+            return RichText(
+              text: TextSpan(
+                style: DSTypography.body(
+                  color: isDark
+                      ? DSColors.labelPrimaryDark
+                      : DSColors.labelPrimary,
+                ),
+                children: spans,
+              ),
+            );
+          },
         ),
         actions: [
           TextButton(
@@ -481,6 +535,42 @@ class _BagsakanGroupItemsScreenState
                             onTap: isSubmitted
                                 ? null
                                 : () {
+                                    // RULE: If an individual item is already delivered/sealed,
+                                    // prevent re-updating it to avoid data corruption.
+                                    final dMap = delivery.toDeliveryMap();
+
+                                    // We temporarily ignore the bagsakan_id for the lock check because we are
+                                    // explicitly managing the group here; we only care about the delivery status lock.
+                                    final testMap = Map<String, dynamic>.from(
+                                      dMap,
+                                    )..remove('bagsakan_id');
+                                    final isItemLocked = checkIsLockedFromMap(
+                                      testMap,
+                                    );
+
+                                    if (isItemLocked) {
+                                      final status = delivery.deliveryStatus
+                                          .toUpperCase();
+                                      final ds = DeliveryStatus.fromString(
+                                        status,
+                                      );
+                                      String msg =
+                                          'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
+                                      if (ds == DeliveryStatus.delivered) {
+                                        msg =
+                                            'This item has already been delivered and is locked.';
+                                      } else if (ds == DeliveryStatus.osa) {
+                                        msg =
+                                            'This item is marked OSA and cannot be opened.';
+                                      } else if (ds ==
+                                          DeliveryStatus.failedDelivery) {
+                                        msg =
+                                            'This failed delivery is no longer actionable.';
+                                      }
+                                      showInfoNotification(context, msg);
+                                      return;
+                                    }
+
                                     context.push(
                                       '/deliveries/${delivery.barcode}/update',
                                     );

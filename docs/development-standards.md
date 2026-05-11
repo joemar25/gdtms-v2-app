@@ -44,7 +44,7 @@ The GDTMS v2 Courier Mobile App is an **enterprise courier management platform**
 **Business Critical Rules** (Never violate):
 
 1. **Offline-First Resilience**: The app must operate without internet access. All actions write to the local SQLite database first, then sync to the server when connectivity is restored.
-2. **Immutable Final States**: Once a delivery is marked as Delivered or Failed Verification, it is sealed locally.
+2. **Immutable Final States**: Once a delivery is marked as Delivered or Failed Verification, it is locked locally.
 3. **Data Integrity**: Local database operations must be transactional where applicable.
 4. **Single Device Session**: One active session per courier enforced by device fingerprinting.
 

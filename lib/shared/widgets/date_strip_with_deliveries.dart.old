@@ -512,7 +512,7 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                         msg = 'This item is marked OSA and cannot be opened.';
                       } else if (s == 'DELIVERED') {
                         msg =
-                            'This item has already been delivered and is sealed.';
+                            'This item has already been delivered and is locked.';
                       } else if (s == 'FAILED_DELIVERY' &&
                           (v == 'verified_with_pay' ||
                               v == 'verified_no_pay')) {

@@ -399,10 +399,6 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
                   ),
                 ),
               ],
-              backgroundColor: Theme.of(context).brightness == Brightness.dark
-                  ? DSColors.cardDark
-                  : DSColors.cardLight,
-              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
             ),
           ) ??
           false;
@@ -767,6 +763,7 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
               isForAssigning: true,
               isInBagsakan: isAdded,
               onAddToBagsakanTap: () => _onAddToBagsakan(delivery),
+              onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
               compact: false,
             );
           }),
@@ -819,6 +816,7 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
               onTap: null,
               isForAssigning: true,
               isInBagsakan: true,
+              onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
               compact: false,
             ),
           ),
