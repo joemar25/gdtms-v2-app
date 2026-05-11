@@ -233,6 +233,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
         final groupIdForOp = _extractBagsakanGroupId(entry, payload);
         final isDependentBagsakanOp =
+            entry.operationType == 'UPDATE_BAGSAKAN_GROUP' ||
             entry.operationType == 'ASSIGN_TO_BAGSAKAN' ||
             entry.operationType == 'UNASSIGN_FROM_BAGSAKAN' ||
             entry.operationType == 'DELETE_BAGSAKAN_GROUP' ||
@@ -1074,7 +1075,15 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           }
 
           if (!hasPending) {
-            await ref.read(localDeliveryDaoProvider).markClean(barcodeStr);
+            if (operationType == 'SUBMIT_BAGSAKAN') {
+              // After group submit the server has propagated the source's
+              // status/timeline/media to all siblings. Re-fetch each sibling
+              // so local DB reflects the server-confirmed state (delivery_status,
+              // raw_json, timestamps) and is marked clean in one pass.
+              await _refreshDeliveryFromServer(barcodeStr);
+            } else {
+              await ref.read(localDeliveryDaoProvider).markClean(barcodeStr);
+            }
           }
         }
       }
@@ -1094,6 +1103,41 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     } catch (e) {
       debugPrint('[SYNC] Failed to cleanup Bagsakan items: $e');
     }
+  }
+
+  /// Fetches the latest delivery data for [barcode] from the server and
+  /// applies it to the local record via [updateFromJson], which also marks
+  /// the row clean. Falls back to [markClean] if the fetch fails so the
+  /// sync lock is never left dangling.
+  Future<void> _refreshDeliveryFromServer(String barcode) async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final result = await api.get<Map<String, dynamic>>(
+        '/deliveries/$barcode',
+        parser: parseApiMap,
+      );
+      if (result is ApiSuccess<Map<String, dynamic>>) {
+        final data = result.data['data'];
+        if (data is Map<String, dynamic>) {
+          await ref
+              .read(localDeliveryDaoProvider)
+              .updateFromJson(barcode, data);
+          debugPrint(
+            '[SYNC] refreshed $barcode from server after group submit',
+          );
+          return;
+        }
+      }
+      debugPrint(
+        '[SYNC] refresh $barcode non-success: $result — falling back to markClean',
+      );
+    } catch (e) {
+      debugPrint(
+        '[SYNC] refresh $barcode error: $e — falling back to markClean',
+      );
+    }
+    // Fallback: at minimum remove the sync lock so the delivery is usable.
+    await ref.read(localDeliveryDaoProvider).markClean(barcode);
   }
 
   void _runCleanupSilently() {

@@ -12,7 +12,28 @@ import 'dart:convert';
 
 class MockApiClient extends Mock implements ApiClient {}
 
-class MockSyncOperationsDao extends Mock implements SyncOperationsDao {}
+class MockSyncOperationsDao extends Mock implements SyncOperationsDao {
+  @override
+  Future<void> updateStatus(
+    String? id,
+    String? status, {
+    String? lastError,
+    int? retryCount,
+    int? lastAttemptAt,
+    String? payloadJson,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #updateStatus,
+      [id, status],
+      {
+        #lastError: lastError,
+        #retryCount: retryCount,
+        #lastAttemptAt: lastAttemptAt,
+        #payloadJson: payloadJson,
+      },
+    ),
+  );
+}
 
 class MockBagsakanDao extends Mock implements BagsakanDao {}
 

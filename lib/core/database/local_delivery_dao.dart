@@ -272,11 +272,17 @@ class LocalDeliveryDao {
     // Collect all local records so we can decide what to do per-item.
     final existingRows = await db.query(
       'local_deliveries',
-      columns: ['barcode', 'sync_status'],
+      columns: ['barcode', 'sync_status', 'bagsakan_id'],
     );
     final syncStatusByBarcode = <String, String?>{
       for (final row in existingRows)
         row['barcode'] as String: row['sync_status'] as String?,
+    };
+    // The server delivery-list response never includes bagsakan_id.
+    // Preserve the local assignment so ConflictAlgorithm.replace doesn't wipe it.
+    final bagsakanIdByBarcode = <String, int?>{
+      for (final row in existingRows)
+        row['barcode'] as String: row['bagsakan_id'] as int?,
     };
 
     final terminalStatuses = {'DELIVERED', 'FAILED_DELIVERY', 'OSA'};
@@ -368,9 +374,16 @@ class LocalDeliveryDao {
 
       // Default for pending items: upsert the record (new item or same-status update).
       // Since it's pending on the server, it's safe to replace.
+      // Preserve local bagsakan_id — the server delivery-list response never
+      // returns this field, so replace would wipe any existing group assignment.
+      final dbMap = Map<String, dynamic>.from(delivery.toDb());
+      final existingBagsakanId = bagsakanIdByBarcode[delivery.barcode];
+      if (existingBagsakanId != null) {
+        dbMap['bagsakan_id'] = existingBagsakanId;
+      }
       batch.insert(
         'local_deliveries',
-        delivery.toDb(),
+        dbMap,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }

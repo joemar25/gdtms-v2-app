@@ -160,7 +160,7 @@ class SyncOperationsDao {
     final db = await _db;
     final rows = await db.rawQuery(
       "SELECT COUNT(DISTINCT barcode) as c FROM sync_operations "
-      "WHERE courier_id = ? AND status IN ('pending', 'processing', 'failed', 'conflict')",
+      "WHERE courier_id = ? AND status IN ('pending', 'processing', 'error', 'failed', 'conflict')",
       [courierId],
     );
     return Sqflite.firstIntValue(rows) ?? 0;
@@ -202,7 +202,7 @@ class SyncOperationsDao {
   Future<int> getSyncedCount(String courierId) async {
     final db = await _db;
     final rows = await db.rawQuery(
-      "SELECT COUNT(*) as c FROM sync_operations "
+      "SELECT COUNT(DISTINCT barcode) as c FROM sync_operations "
       "WHERE courier_id = ? AND status = 'synced'",
       [courierId],
     );
@@ -254,5 +254,26 @@ class SyncOperationsDao {
       whereArgs,
     );
     return (Sqflite.firstIntValue(rows) ?? 0) > 0;
+  }
+
+  /// Deletes all pending/failed/error/conflict operations for a specific barcode.
+  Future<int> deleteByBarcode(String barcode) async {
+    final db = await _db;
+    return await db.delete(
+      'sync_operations',
+      where:
+          "barcode = ? AND status IN ('pending', 'processing', 'error', 'failed', 'conflict')",
+      whereArgs: [barcode],
+    );
+  }
+
+  /// Deletes all operations with a specific status for [courierId].
+  Future<int> deleteByStatus(String courierId, String status) async {
+    final db = await _db;
+    return await db.delete(
+      'sync_operations',
+      where: 'courier_id = ? AND status = ?',
+      whereArgs: [courierId, status],
+    );
   }
 }

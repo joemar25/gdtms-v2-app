@@ -108,10 +108,12 @@ class DeliveryBootstrapService {
 
     // ── Phase 1b: Sync Bagsakan Groups (Authoritative) ───────────────────────
     onProgress?.call('Syncing bagsakan groups...');
-    // We always perform a full sweep for groups to ensure "Online Priority"
-    // and purge any stale local records that don't exist on the current server.
+    // Returns null when the network was unreachable — skip stale purge in that
+    // case to avoid deleting groups that are merely temporarily inaccessible.
     final serverGroupIds = await _syncBagsakanGroupsFromUnifiedSync(client);
-    await BagsakanDao.instance.removeStaleGroups(serverGroupIds);
+    if (serverGroupIds != null) {
+      await BagsakanDao.instance.removeStaleGroups(serverGroupIds);
+    }
 
     onProgress?.call('Cleaning up stale data...');
     try {
@@ -159,6 +161,7 @@ class DeliveryBootstrapService {
   Future<void> clearAndSyncFromApi(ApiClient client) async {
     await AuthStorage().setLastSyncTime(0); // Force full sync
     await LocalDeliveryDao.instance.deleteAll();
+    await BagsakanDao.instance.deleteAllGroups();
     await syncFromApi(client);
   }
 
@@ -171,6 +174,7 @@ class DeliveryBootstrapService {
     onProgress?.call('Clearing local data...');
     await AuthStorage().setLastSyncTime(0); // Force full sync
     await LocalDeliveryDao.instance.deleteAll();
+    await BagsakanDao.instance.deleteAllGroups();
     await syncFromApiWithProgress(client, onProgress: onProgress);
   }
 
@@ -199,10 +203,12 @@ class DeliveryBootstrapService {
     }
 
     // ── Phase 1b: Sync Bagsakan Groups (Authoritative) ───────────────────────
-    // We always perform a full sweep for groups to ensure "Online Priority"
-    // and purge any stale local records that don't exist on the current server.
+    // Returns null when the network was unreachable — skip stale purge in that
+    // case to avoid deleting groups that are merely temporarily inaccessible.
     final serverGroupIds = await _syncBagsakanGroupsFromUnifiedSync(client);
-    await BagsakanDao.instance.removeStaleGroups(serverGroupIds);
+    if (serverGroupIds != null) {
+      await BagsakanDao.instance.removeStaleGroups(serverGroupIds);
+    }
 
     // ── Phase 2: Remove stale local pending items ─────────────────────────────
     // Skip if delta sync (see rule 4 in syncFromApiWithProgress).
@@ -466,12 +472,9 @@ class DeliveryBootstrapService {
 
   /// Fetches bagsakan groups from the unified `/sync` stream and upserts them
   /// locally. Falls back to legacy `GET /bagsakan/groups` when unavailable.
-  /// Note: We intentionally ignore updatedSince here to perform an 
-  /// authoritative full-sweep of active groups.
-  Future<Set<int>> _syncBagsakanGroupsFromUnifiedSync(
-    ApiClient client,
-  ) async {
-    int? updatedSince; // Explicitly ignored for group authoritative sync
+  /// Returns null when both fetches fail (network unreachable) so callers
+  /// can skip stale-group purge rather than wiping all locally-synced groups.
+  Future<Set<int>?> _syncBagsakanGroupsFromUnifiedSync(ApiClient client) async {
     final groupsById = <Object, Map<String, dynamic>>{};
     int page = 1;
     int lastPage = 1;
@@ -479,11 +482,7 @@ class DeliveryBootstrapService {
     try {
       do {
         final query = <String, dynamic>{'page': page, 'per_page': 100};
-        if (updatedSince != null && updatedSince > 0) {
-          query['updated_since'] = DateTime.fromMillisecondsSinceEpoch(
-            updatedSince,
-          ).toUtc().toIso8601String();
-        }
+        // authoritative group sync ignores delta updatedSince flags.
 
         final result = await client.get<Map<String, dynamic>>(
           '/sync',
@@ -520,7 +519,8 @@ class DeliveryBootstrapService {
       if (groupsById.isNotEmpty) {
         final groups = groupsById.values.toList(growable: false);
         debugPrint('[SYNC] fetched ${groups.length} bagsakan groups via /sync');
-        await BagsakanDao.instance.upsertGroupsFromSync(groups);
+        final enriched = await _enrichGroupsWithBarcodes(client, groups);
+        await BagsakanDao.instance.upsertGroupsFromSync(enriched);
         return groupsById.keys.map((k) => int.parse(k.toString())).toSet();
       }
 
@@ -533,48 +533,178 @@ class DeliveryBootstrapService {
   }
 
   /// Legacy groups fetch path, kept as fallback safety net.
-  Future<Set<int>> _syncBagsakanGroupsLegacy(ApiClient client) async {
-    final serverIds = <int>{};
+  /// Returns null when the server is unreachable so callers skip stale purge.
+  /// Returns an empty set when the server responds but the user has no groups.
+  Future<Set<int>?> _syncBagsakanGroupsLegacy(ApiClient client) async {
     try {
       final result = await client.get<Map<String, dynamic>>(
-        'bagsakan/groups',
+        '/bagsakan/groups',
         parser: parseApiMap,
       );
 
-      if (result is ApiSuccess<Map<String, dynamic>>) {
-        final rawData = result.data['data'];
-        final List<Map<String, dynamic>> groups = [];
-
-        if (rawData is List) {
-          for (final item in rawData) {
-            if (item is Map<String, dynamic>) {
-              groups.add(item);
-            } else if (item is Map) {
-              groups.add(Map<String, dynamic>.from(item));
-            }
-          }
-        }
-
-        if (groups.isNotEmpty) {
-          debugPrint(
-            '[SYNC] fetched ${groups.length} bagsakan groups (legacy)',
-          );
-          await BagsakanDao.instance.upsertGroupsFromSync(groups);
-          for (final g in groups) {
-            final id = g['id'];
-            if (id is int) serverIds.add(id);
-            if (id is String) {
-              final parsed = int.tryParse(id);
-              if (parsed != null) serverIds.add(parsed);
-            }
-          }
-        }
-      } else {
+      if (result is! ApiSuccess<Map<String, dynamic>>) {
         debugPrint('[SYNC] _syncBagsakanGroupsLegacy failed: $result');
+        return null;
       }
+
+      final rawData = result.data['data'];
+      final serverIds = <int>{};
+      final List<Map<String, dynamic>> groups = [];
+
+      if (rawData is List) {
+        for (final item in rawData) {
+          if (item is Map<String, dynamic>) {
+            groups.add(item);
+          } else if (item is Map) {
+            groups.add(Map<String, dynamic>.from(item));
+          }
+        }
+      }
+
+      if (groups.isNotEmpty) {
+        debugPrint('[SYNC] fetched ${groups.length} bagsakan groups (legacy)');
+        final enriched = await _enrichGroupsWithBarcodes(client, groups);
+        await BagsakanDao.instance.upsertGroupsFromSync(enriched);
+        for (final g in enriched) {
+          final id = g['id'];
+          if (id is int) serverIds.add(id);
+          if (id is String) {
+            final parsed = int.tryParse(id);
+            if (parsed != null) serverIds.add(parsed);
+          }
+        }
+      }
+      return serverIds;
     } catch (e) {
       debugPrint('[SYNC] _syncBagsakanGroupsLegacy exception: $e');
+      return null;
     }
-    return serverIds;
+  }
+
+  /// Enriches a list of group metadata maps with a `barcodes` field by
+  /// calling GET /bagsakan/groups/{id} for each non-archived group.
+  ///
+  /// The list endpoints (/sync bagsakan_groups, /bagsakan/groups) return only
+  /// metadata (id, name, status, item_count …). The detail endpoint is the
+  /// only source that returns the `deliveries` array with individual barcodes,
+  /// which is what upsertGroupsFromSync needs to reconcile bagsakan_id on
+  /// local_deliveries rows.
+  ///
+  /// Archived groups are passed through as-is — upsertGroupsFromSync unassigns
+  /// their items without needing a barcode list.
+  Future<List<Map<String, dynamic>>> _enrichGroupsWithBarcodes(
+    ApiClient client,
+    List<Map<String, dynamic>> groups,
+  ) async {
+    final enriched = <Map<String, dynamic>>[];
+    for (final group in groups) {
+      final id = group['id'];
+      if (id == null) {
+        enriched.add(group);
+        continue;
+      }
+
+      final isArchived = group['is_archived'];
+      if (isArchived == true || isArchived == 1) {
+        enriched.add(group);
+        continue;
+      }
+
+      try {
+        final result = await client.get<Map<String, dynamic>>(
+          '/bagsakan/groups/$id',
+          parser: parseApiMap,
+        );
+
+        if (result is ApiSuccess<Map<String, dynamic>>) {
+          final detail = result.data['data'];
+          if (detail is Map<String, dynamic>) {
+            final deliveries = detail['deliveries'];
+            final barcodes = deliveries is List
+                ? deliveries
+                      .whereType<Map>()
+                      .map((e) => e['barcode']?.toString().trim() ?? '')
+                      .where((b) => b.isNotEmpty)
+                      .toList()
+                : <String>[];
+
+            // Fetch and insert full delivery rows for each barcode.
+            // The server hard-gates bagsakan-assigned deliveries out of
+            // GET /deliveries?status=FOR_DELIVERY (WHERE bagsakan_id IS NULL),
+            // so these rows never land in local_deliveries via the standard
+            // _syncStatus sweep. We must seed them here so that the subsequent
+            // upsertGroupsFromSync UPDATE finds rows to stamp with bagsakan_id.
+            await _fetchAndInsertGroupDeliveries(client, barcodes, id);
+
+            enriched.add({...group, 'barcodes': barcodes});
+            debugPrint(
+              '[SYNC] group $id enriched with ${barcodes.length} barcodes',
+            );
+            continue;
+          }
+        }
+        debugPrint(
+          '[SYNC] group $id: detail fetch non-success — using metadata only',
+        );
+      } catch (e) {
+        debugPrint('[SYNC] group $id: detail fetch error: $e');
+      }
+
+      enriched.add(group);
+    }
+    return enriched;
+  }
+
+  /// Fetches full delivery data for each [barcode] via GET /deliveries/{barcode}
+  /// and upserts the rows into local_deliveries.
+  ///
+  /// The server excludes bagsakan-assigned deliveries from the standard delivery
+  /// list (hard gate: `WHERE deliveries.bagsakan_id IS NULL`). This method
+  /// bridges that gap so upsertGroupsFromSync can find existing rows to update.
+  Future<void> _fetchAndInsertGroupDeliveries(
+    ApiClient client,
+    List<String> barcodes,
+    dynamic groupId,
+  ) async {
+    if (barcodes.isEmpty) return;
+
+    final deliveryItems = <Map<String, dynamic>>[];
+
+    for (final barcode in barcodes) {
+      try {
+        final result = await client.get<Map<String, dynamic>>(
+          '/deliveries/$barcode',
+          parser: parseApiMap,
+        );
+
+        if (result is ApiSuccess<Map<String, dynamic>>) {
+          final data = result.data['data'];
+          if (data is Map<String, dynamic>) {
+            deliveryItems.add(data);
+            debugPrint('[SYNC] group $groupId: fetched delivery $barcode');
+          } else {
+            debugPrint(
+              '[SYNC] group $groupId: delivery $barcode — unexpected data shape',
+            );
+          }
+        } else {
+          debugPrint(
+            '[SYNC] group $groupId: delivery $barcode fetch non-success: $result',
+          );
+        }
+      } catch (e) {
+        debugPrint('[SYNC] group $groupId: delivery $barcode fetch error: $e');
+      }
+    }
+
+    if (deliveryItems.isNotEmpty) {
+      await LocalDeliveryDao.instance.insertAllFromApiItems(
+        deliveryItems,
+        serverStatus: 'FOR_DELIVERY',
+      );
+      debugPrint(
+        '[SYNC] group $groupId: seeded ${deliveryItems.length} group deliveries into local_deliveries',
+      );
+    }
   }
 }

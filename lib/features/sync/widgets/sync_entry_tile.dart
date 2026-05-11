@@ -62,7 +62,10 @@ class SyncEntryTile extends StatelessWidget {
             ? 'Remove $count item${count == 1 ? '' : 's'}'
             : 'Remove items';
       case 'DELETE_BAGSAKAN':
+      case 'DELETE_BAGSAKAN_GROUP':
         return 'Delete group';
+      case 'SUBMIT_BAGSAKAN':
+        return 'Submit group';
       default:
         return entry.operationType.replaceAll('_', ' ').toLowerCase();
     }
@@ -179,39 +182,39 @@ class SyncEntryTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(DSStyles.radiusMD),
         boxShadow: DSStyles.shadowXS(context),
       ),
-      child: Material(
-        color: DSColors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(DSStyles.radiusMD),
-          onTap: isLocked
-              ? () {
-                  final s = currentStatus.toUpperCase();
-                  final v = currentFailedDeliveryVerif;
-                  String msg = 'sync.list.locked_general'.tr(
-                    args: [currentStatus.toLowerCase()],
-                  );
-                  if (s == 'OSA') {
-                    msg = 'sync.list.locked_osa'.tr();
-                  } else if (s == 'DELIVERED') {
-                    msg = 'sync.list.locked_delivered'.tr();
-                  } else if (s == 'FAILED_DELIVERY' && attemptsCount >= 3) {
-                    msg = 'sync.list.locked_failed_max'.tr();
-                  } else if (s == 'FAILED_DELIVERY' &&
-                      (v == 'verified_with_pay' || v == 'verified_no_pay')) {
-                    msg = 'sync.list.locked_failed_verified'.tr();
+      child: IntrinsicHeight(
+        child: Material(
+          color: DSColors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+            onTap: isLocked
+                ? () {
+                    final s = currentStatus.toUpperCase();
+                    final v = currentFailedDeliveryVerif;
+                    String msg = 'sync.list.locked_general'.tr(
+                      args: [currentStatus.toLowerCase()],
+                    );
+                    if (s == 'OSA') {
+                      msg = 'sync.list.locked_osa'.tr();
+                    } else if (s == 'DELIVERED') {
+                      msg = 'sync.list.locked_delivered'.tr();
+                    } else if (s == 'FAILED_DELIVERY' && attemptsCount >= 3) {
+                      msg = 'sync.list.locked_failed_max'.tr();
+                    } else if (s == 'FAILED_DELIVERY' &&
+                        (v == 'verified_with_pay' || v == 'verified_no_pay')) {
+                      msg = 'sync.list.locked_failed_verified'.tr();
+                    }
+                    showInfoNotification(context, msg);
                   }
-                  showInfoNotification(context, msg);
-                }
-              : (entry.operationType == 'UPDATE_PROFILE')
-              ? () => showInfoNotification(
-                  context,
-                  'sync.list.profile_update_info'.tr(),
-                )
-              : _isBagsakan
-              ? null
-              : () => context.push('/deliveries/${entry.barcode}/update'),
-          onLongPress: onDelete,
-          child: IntrinsicHeight(
+                : (entry.operationType == 'UPDATE_PROFILE')
+                ? () => showInfoNotification(
+                    context,
+                    'sync.list.profile_update_info'.tr(),
+                  )
+                : _isBagsakan
+                ? null
+                : () => context.push('/deliveries/${entry.barcode}/update'),
+            onLongPress: onDelete,
             child: Row(
               children: [
                 // ── Status Indicator Bar ─────────────────────────────────

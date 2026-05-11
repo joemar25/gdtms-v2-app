@@ -28,7 +28,11 @@ class MockBagsakanDao extends Mock implements BagsakanDao {}
 
 class MockApiClient extends Mock implements ApiClient {}
 
-class MockSyncOperationsDao extends Mock implements SyncOperationsDao {}
+class MockSyncOperationsDao extends Mock implements SyncOperationsDao {
+  @override
+  Future<bool> hasPendingSync(String? barcode) =>
+      super.noSuchMethod(Invocation.method(#hasPendingSync, [barcode]));
+}
 
 class MockSyncManagerNotifier extends SyncManagerNotifier {
   @override

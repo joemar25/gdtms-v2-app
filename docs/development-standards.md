@@ -158,6 +158,7 @@ Automated tests are your safety net. You must run `flutter test` before every co
 ### 10 — The Trinity of Code Health (Pre-Commit Checklist)
 
 Before every commit, you **MUST** run these three commands in order:
+
 1. `flutter analyze` — Catch static errors and lint warnings.
 2. `flutter test` — Verify logic and prevent regressions. **(flutter test --reporter json > test_results.json)**
 3. `dart format .` — Keep the codebase clean and consistent.
@@ -222,7 +223,7 @@ This app supports **English (EN)** and **Filipino (FIL)** via the `easy_localiza
 
 Translation files live in:
 
-```
+```text
 assets/translations/
   ├── en.json    ← English (source of truth)
   └── fil.json   ← Filipino
@@ -425,6 +426,30 @@ To ensure a premium feel across all device sizes, UI components must be **defens
 ### Goal: Zero `RenderFlex` Overflows
 
 1. **Flexible Text**: **NEVER** place a `Text` widget inside a `Row` or `Column` without considering its potential length. Wrap in `Flexible` or `Expanded`.
+
+2. **Expanded inside Row requires bounded parent width**: Any widget whose subtree contains `Row` + `Expanded` (or `Flexible`) **must** be wrapped in `Expanded` or `Flexible` before being placed as a direct child of another `Row`. Placing it without a flex wrapper gives it unconstrained width, causing `RenderFlex children have non-zero flex but incoming width constraints are unbounded`.
+
+   ```dart
+   // ❌ CRASH — DeliverySectionHeader contains Row+Expanded internally
+   Row(children: [DeliverySectionHeader(...), TextButton(...)]);
+
+   // ✅ CORRECT — give it a bounded slice of the Row
+   Row(children: [Expanded(child: DeliverySectionHeader(...)), TextButton(...)]);
+   ```
+
+   **Detection**: if `flutter analyze` or a widget test reports `unbounded constraints`, check whether the widget uses `Expanded` internally and its call-site is inside a `Row`.
+
+3. **Never nest `IntrinsicHeight` inside `Material` or `InkWell`**: `IntrinsicHeight` runs a two-pass layout that marks child `parentData` as dirty during the measurement pass. When `Material`/`InkWell`'s semantics system traverses its children immediately after, it hits the dirty flag and throws `!semantics.parentDataDirty`. Always place `IntrinsicHeight` **outside** (wrapping) `Material`/`InkWell`, not inside.
+
+   ```dart
+   // ❌ CRASH — IntrinsicHeight inside InkWell pollutes the semantics pass
+   Material(child: InkWell(child: IntrinsicHeight(child: Row(...))));
+
+   // ✅ CORRECT — IntrinsicHeight resolves layout before semantics touch Material
+   IntrinsicHeight(child: Material(child: InkWell(child: Row(...))));
+   ```
+
+   **Detection**: repeated `!semantics.parentDataDirty` assertion in the debug console almost always points to `IntrinsicHeight` nested inside a semantics-annotating widget (`Material`, `InkWell`, `Semantics`, `MergeSemantics`).
 
 ---
 

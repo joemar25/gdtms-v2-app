@@ -429,5 +429,6 @@ class AppDatabase {
     await db.delete('delivery_update_queue');
     await db.delete('sync_operations');
     await db.delete('error_logs');
+    await db.delete('bagsakan_groups');
   }
 }

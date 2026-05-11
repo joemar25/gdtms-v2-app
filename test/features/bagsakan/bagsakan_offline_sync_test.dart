@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/bagsakan_dao.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
-import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
-import 'package:fsi_courier_app/core/sync/sync_manager.dart';
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -28,6 +26,19 @@ class MockAuthNotifier extends AuthNotifier {
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(
+      SyncOperation(
+        id: 'fake',
+        courierId: 'fake',
+        barcode: 'fake',
+        operationType: 'fake',
+        payloadJson: '{}',
+        createdAt: 0,
+      ),
+    );
+  });
+
   group('Bagsakan Offline-First Sync Tests', () {
     late MockBagsakanDao mockBagsakanDao;
     late MockSyncOperationsDao mockSyncOpsDao;
@@ -44,6 +55,9 @@ void main() {
           authProvider.overrideWith(MockAuthNotifier.new),
         ],
       );
+
+      // Default stubs
+      when(() => mockSyncOpsDao.insert(any())).thenAnswer((_) async {});
     });
 
     tearDown(() => container.dispose());
@@ -53,19 +67,26 @@ void main() {
     test('CREATE_BAGSAKAN operation queues locally when offline', () async {
       const groupName = 'Metro Manila Q1 Batch';
       const groupDescription = 'High-priority medical supplies';
-      final capturedOp = <SyncOperation>[];
-
-      when(mockSyncOpsDao.insert(any)).thenAnswer((realInvocation) async {
-        capturedOp.add(realInvocation.positionalArguments[0]);
-      });
 
       when(
-        mockBagsakanDao.createBagsakanGroup(
+        () => mockBagsakanDao.createBagsakanGroup(
           name: groupName,
           description: groupDescription,
           courierId: 'test_courier_123',
         ),
-      ).thenAnswer((_) async => 42);
+      ).thenAnswer((_) async {
+        await mockSyncOpsDao.insert(
+          SyncOperation(
+            id: 'op1',
+            courierId: 'test_courier_123',
+            barcode: 'BAGSAKAN_42',
+            operationType: 'CREATE_BAGSAKAN',
+            payloadJson: '{}',
+            createdAt: 0,
+          ),
+        );
+        return 42;
+      });
 
       final groupId = await mockBagsakanDao.createBagsakanGroup(
         name: groupName,
@@ -74,7 +95,7 @@ void main() {
       );
 
       expect(groupId, 42);
-      verify(mockSyncOpsDao.insert(any)).called(1);
+      verify(() => mockSyncOpsDao.insert(any())).called(1);
     });
 
     test('CREATE_BAGSAKAN payload contains group metadata', () async {
@@ -82,17 +103,30 @@ void main() {
       const groupDesc = 'Test Description';
       final capturedOps = <SyncOperation>[];
 
-      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
-        capturedOps.add(inv.positionalArguments[0]);
+      when(() => mockSyncOpsDao.insert(any())).thenAnswer((inv) async {
+        capturedOps.add(inv.positionalArguments[0] as SyncOperation);
       });
 
       when(
-        mockBagsakanDao.createBagsakanGroup(
+        () => mockBagsakanDao.createBagsakanGroup(
           name: groupName,
           description: groupDesc,
           courierId: 'test_courier_123',
         ),
-      ).thenAnswer((_) async => 10);
+      ).thenAnswer((_) async {
+        await mockSyncOpsDao.insert(
+          SyncOperation(
+            id: 'op1',
+            courierId: 'test_courier_123',
+            barcode: 'BAGSAKAN_10',
+            operationType: 'CREATE_BAGSAKAN',
+            payloadJson: '{}',
+            status: 'pending',
+            createdAt: 0,
+          ),
+        );
+        return 10;
+      });
 
       await mockBagsakanDao.createBagsakanGroup(
         name: groupName,
@@ -111,19 +145,25 @@ void main() {
 
     test('ASSIGN_TO_BAGSAKAN queues assignments locally', () async {
       final barcodes = ['PKG001', 'PKG002', 'PKG003'];
-      final capturedOp = <SyncOperation>[];
-
-      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
-        capturedOp.add(inv.positionalArguments[0]);
-      });
 
       when(
-        mockBagsakanDao.assignToBagsakan(
+        () => mockBagsakanDao.assignToBagsakan(
           groupId: 42,
           barcodes: barcodes,
           courierId: 'test_courier_123',
         ),
-      ).thenAnswer((_) async {});
+      ).thenAnswer((_) async {
+        await mockSyncOpsDao.insert(
+          SyncOperation(
+            id: 'op1',
+            courierId: 'test_courier_123',
+            barcode: 'BAGSAKAN_42',
+            operationType: 'ASSIGN_TO_BAGSAKAN',
+            payloadJson: '{}',
+            createdAt: 0,
+          ),
+        );
+      });
 
       await mockBagsakanDao.assignToBagsakan(
         groupId: 42,
@@ -131,7 +171,7 @@ void main() {
         courierId: 'test_courier_123',
       );
 
-      verify(mockSyncOpsDao.insert(any)).called(1);
+      verify(() => mockSyncOpsDao.insert(any())).called(1);
     });
 
     // ── Offline Queuing Tests ──────────────────────────────────────────────
@@ -139,25 +179,48 @@ void main() {
     test('Multiple operations queue in order when offline', () async {
       final operations = <SyncOperation>[];
 
-      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
-        operations.add(inv.positionalArguments[0]);
+      when(() => mockSyncOpsDao.insert(any())).thenAnswer((inv) async {
+        operations.add(inv.positionalArguments[0] as SyncOperation);
       });
 
       when(
-        mockBagsakanDao.createBagsakanGroup(
+        () => mockBagsakanDao.createBagsakanGroup(
           name: 'Group 1',
           description: 'Desc 1',
           courierId: 'test_courier_123',
         ),
-      ).thenAnswer((_) async => 1);
+      ).thenAnswer((_) async {
+        await mockSyncOpsDao.insert(
+          SyncOperation(
+            id: 'op1',
+            courierId: 'test_courier_123',
+            barcode: 'BAGSAKAN_1',
+            operationType: 'CREATE_BAGSAKAN',
+            payloadJson: '{}',
+            createdAt: 1000,
+          ),
+        );
+        return 1;
+      });
 
       when(
-        mockBagsakanDao.assignToBagsakan(
+        () => mockBagsakanDao.assignToBagsakan(
           groupId: 1,
           barcodes: ['PKG001'],
           courierId: 'test_courier_123',
         ),
-      ).thenAnswer((_) async {});
+      ).thenAnswer((_) async {
+        await mockSyncOpsDao.insert(
+          SyncOperation(
+            id: 'op2',
+            courierId: 'test_courier_123',
+            barcode: 'BAGSAKAN_1',
+            operationType: 'ASSIGN_TO_BAGSAKAN',
+            payloadJson: '{}',
+            createdAt: 2000,
+          ),
+        );
+      });
 
       // Simulate offline user: create group, then assign
       await mockBagsakanDao.createBagsakanGroup(
@@ -182,10 +245,10 @@ void main() {
 
     test('ASSIGN operation waits for CREATE to sync first', () async {
       when(
-        mockSyncOpsDao.hasUnfinishedCreateBagsakan(
+        () => mockSyncOpsDao.hasUnfinishedCreateBagsakan(
           'test_courier_123',
           42,
-          excludeOperationId: any,
+          excludeOperationId: any(named: 'excludeOperationId'),
         ),
       ).thenAnswer((_) async => true);
 
@@ -200,7 +263,7 @@ void main() {
     test('Dependent operations are requeued when dependency not met', () async {
       // Simulate: CREATE is still pending, ASSIGN should be requeued
       when(
-        mockSyncOpsDao.hasUnfinishedCreateBagsakan(
+        () => mockSyncOpsDao.hasUnfinishedCreateBagsakan(
           'test_courier_123',
           42,
           excludeOperationId: 'assign_op_id',
@@ -208,10 +271,10 @@ void main() {
       ).thenAnswer((_) async => true);
 
       when(
-        mockSyncOpsDao.updateStatus(
+        () => mockSyncOpsDao.updateStatus(
           'assign_op_id',
           'pending',
-          lastAttemptAt: any,
+          lastAttemptAt: any(named: 'lastAttemptAt'),
         ),
       ).thenAnswer((_) async {});
 
@@ -231,10 +294,10 @@ void main() {
       }
 
       verify(
-        mockSyncOpsDao.updateStatus(
+        () => mockSyncOpsDao.updateStatus(
           'assign_op_id',
           'pending',
-          lastAttemptAt: any,
+          lastAttemptAt: any(named: 'lastAttemptAt'),
         ),
       ).called(1);
     });
@@ -242,15 +305,14 @@ void main() {
     // ── Conflict Handling Tests ────────────────────────────────────────────
 
     test('Barcode conflict detected in ASSIGN operation', () async {
-      final barcodes = ['PKG001', 'PKG002'];
       const conflictMessage =
           'already_assigned_barcodes: [PKG001], group_name: Other Group';
 
       when(
-        mockSyncOpsDao.updateStatus(
-          any,
-          'conflict',
-          lastError: conflictMessage,
+        () => mockSyncOpsDao.updateStatus(
+          any(),
+          any(),
+          lastError: any(named: 'lastError'),
         ),
       ).thenAnswer((_) async {});
 
@@ -262,7 +324,7 @@ void main() {
       );
 
       verify(
-        mockSyncOpsDao.updateStatus(
+        () => mockSyncOpsDao.updateStatus(
           'op_id_123',
           'conflict',
           lastError: conflictMessage,
@@ -276,13 +338,13 @@ void main() {
       const retentionDays = 7;
 
       when(
-        mockSyncOpsDao.deleteOldSynced(retentionDays),
+        () => mockSyncOpsDao.deleteOldSynced(retentionDays),
       ).thenAnswer((_) async => 3);
 
       final deletedCount = await mockSyncOpsDao.deleteOldSynced(retentionDays);
 
       expect(deletedCount, 3);
-      verify(mockSyncOpsDao.deleteOldSynced(retentionDays)).called(1);
+      verify(() => mockSyncOpsDao.deleteOldSynced(retentionDays)).called(1);
     });
 
     test(
@@ -290,7 +352,7 @@ void main() {
       () async {
         // Pending operations should be retained indefinitely
         // This is validated by the cleanup logic only targeting 'synced' status
-        when(mockSyncOpsDao.deleteOldSynced(7)).thenAnswer(
+        when(() => mockSyncOpsDao.deleteOldSynced(7)).thenAnswer(
           (_) async => 0, // Only synced ops deleted, pending retained
         );
 
@@ -304,7 +366,7 @@ void main() {
     test('No local persistence for bagsakan groups when offline', () async {
       // Verify groups are NOT cached separately from sync operations
       // Only sync_operations table stores pending actions
-      when(mockSyncOpsDao.getPending('test_courier_123')).thenAnswer(
+      when(() => mockSyncOpsDao.getPending('test_courier_123')).thenAnswer(
         (_) async => [
           SyncOperation(
             id: '1',
@@ -329,9 +391,7 @@ void main() {
     test(
       'Operations sync in correct order: CREATE → ASSIGN → SUBMIT',
       () async {
-        final syncSequence = <String>[];
-
-        when(mockSyncOpsDao.getPending('test_courier_123')).thenAnswer(
+        when(() => mockSyncOpsDao.getPending('test_courier_123')).thenAnswer(
           (_) async => [
             SyncOperation(
               id: 'op1',
@@ -375,7 +435,7 @@ void main() {
     // ── Idempotency Tests ──────────────────────────────────────────────────
 
     test('Each operation has unique X-Request-ID for idempotency', () async {
-      when(mockSyncOpsDao.getPending('test_courier_123')).thenAnswer(
+      when(() => mockSyncOpsDao.getPending('test_courier_123')).thenAnswer(
         (_) async => [
           SyncOperation(
             id: 'uuid-001',
@@ -411,11 +471,11 @@ void main() {
       int retryCount = 0;
 
       when(
-        mockSyncOpsDao.updateStatus(
-          any,
+        () => mockSyncOpsDao.updateStatus(
+          any(),
           'failed',
-          retryCount: anyNamed('retryCount'),
-          lastError: any,
+          retryCount: any(named: 'retryCount'),
+          lastError: any(named: 'lastError'),
         ),
       ).thenAnswer((_) async {
         retryCount++;
@@ -433,11 +493,11 @@ void main() {
 
       expect(retryCount, 3);
       verify(
-        mockSyncOpsDao.updateStatus(
+        () => mockSyncOpsDao.updateStatus(
           'op_123',
           'failed',
-          retryCount: any,
-          lastError: any,
+          retryCount: any(named: 'retryCount'),
+          lastError: any(named: 'lastError'),
         ),
       ).called(3);
     });
@@ -448,11 +508,10 @@ void main() {
       'DELETE_BAGSAKAN allows atomic cancellation for local-only groups',
       () async {
         const groupId = 1;
-        const courierId = 'test_courier_123';
 
         // Simulate a CREATE operation that hasn't synced yet
         when(
-          mockSyncOpsDao.deleteByBarcode('BAGSAKAN_$groupId'),
+          () => mockSyncOpsDao.deleteByBarcode('BAGSAKAN_$groupId'),
         ).thenAnswer((_) async => 5);
 
         final deleted = await mockSyncOpsDao.deleteByBarcode(
@@ -467,18 +526,29 @@ void main() {
     test('UPDATE_BAGSAKAN_GROUP operation queues correctly', () async {
       final capturedOps = <SyncOperation>[];
 
-      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
-        capturedOps.add(inv.positionalArguments[0]);
+      when(() => mockSyncOpsDao.insert(any())).thenAnswer((inv) async {
+        capturedOps.add(inv.positionalArguments[0] as SyncOperation);
       });
 
       when(
-        mockBagsakanDao.updateBagsakanGroup(
+        () => mockBagsakanDao.updateBagsakanGroup(
           groupId: 1,
           name: 'Updated Name',
           description: 'Updated Desc',
           courierId: 'test_courier_123',
         ),
-      ).thenAnswer((_) async {});
+      ).thenAnswer((_) async {
+        await mockSyncOpsDao.insert(
+          SyncOperation(
+            id: 'op1',
+            courierId: 'test_courier_123',
+            barcode: 'BAGSAKAN_1',
+            operationType: 'UPDATE_BAGSAKAN_GROUP',
+            payloadJson: '{}',
+            createdAt: 0,
+          ),
+        );
+      });
 
       await mockBagsakanDao.updateBagsakanGroup(
         groupId: 1,
@@ -487,7 +557,7 @@ void main() {
         courierId: 'test_courier_123',
       );
 
-      verify(mockSyncOpsDao.insert(any)).called(1);
+      verify(() => mockSyncOpsDao.insert(any())).called(1);
       if (capturedOps.isNotEmpty) {
         expect(capturedOps.first.operationType, 'UPDATE_BAGSAKAN_GROUP');
       }
@@ -496,7 +566,7 @@ void main() {
     // ── UI Status Tests ────────────────────────────────────────────────────
 
     test('UI displays "⏳ Pending Sync" badge for queued operations', () async {
-      when(mockSyncOpsDao.getPending('test_courier_123')).thenAnswer(
+      when(() => mockSyncOpsDao.getPending('test_courier_123')).thenAnswer(
         (_) async => [
           SyncOperation(
             id: '1',
@@ -516,7 +586,7 @@ void main() {
     });
 
     test('UI displays "✓ Synced" badge when operation completed', () async {
-      when(mockSyncOpsDao.getAll('test_courier_123')).thenAnswer(
+      when(() => mockSyncOpsDao.getAll('test_courier_123')).thenAnswer(
         (_) async => [
           SyncOperation(
             id: '1',

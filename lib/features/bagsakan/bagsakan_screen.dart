@@ -59,7 +59,8 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
             ? DSColors.scaffoldDark
             : DSColors.scaffoldLight,
         appBar: AppHeaderBar(
-          title: 'nav.bagsakan'.tr(),
+          title: 'bagsakan.title'.tr(),
+          pageIcon: Icons.inventory_2_rounded,
           actions: [
             HeaderIconButton(
               icon: Icons.add_rounded,

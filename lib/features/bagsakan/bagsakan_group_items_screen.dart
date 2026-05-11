@@ -3,6 +3,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -15,7 +16,6 @@ import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
-import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
@@ -23,6 +23,7 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
+import 'package:fsi_courier_app/features/bagsakan/bagsakan_components.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:go_router/go_router.dart';
 
@@ -357,6 +358,18 @@ class _BagsakanGroupItemsScreenState
     }
   }
 
+  void _showPropagationHelpBottomSheet() {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: DSColors.transparent,
+      isScrollControlled: true,
+      builder: (_) =>
+          const SafeArea(top: false, child: BagsakanPropagationHelpSheet()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Listen for remaps
@@ -387,6 +400,7 @@ class _BagsakanGroupItemsScreenState
             ? 'bagsakan.group_items_header'.tr()
             : groupName,
         actions: [
+          BagsakanHeaderInfoButton(onTap: _showPropagationHelpBottomSheet),
           if (!isSubmitted)
             HeaderIconButton(
               icon: Icons.group_add_rounded,
@@ -443,59 +457,37 @@ class _BagsakanGroupItemsScreenState
                         ],
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.all(DSSpacing.md),
+                        padding: const EdgeInsets.fromLTRB(
+                          DSSpacing.md,
+                          DSSpacing.sm,
+                          DSSpacing.md,
+                          DSSpacing.sm,
+                        ),
                         physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount:
-                            _items.length +
-                            (_propagationSourceBarcode != null ? 1 : 0),
+                        itemCount: _items.length,
                         itemBuilder: (context, index) {
-                          if (_propagationSourceBarcode != null && index == 0) {
-                            return Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: DSSpacing.md,
-                              ),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(DSSpacing.md),
-                                decoration: BoxDecoration(
-                                  color: DSColors.primary.withValues(
-                                    alpha: 0.08,
-                                  ),
-                                  borderRadius: DSStyles.cardRadius,
-                                ),
-                                child: Text(
-                                  'Propagation source: $_propagationSourceBarcode',
-                                  style: DSTypography.caption(
-                                    color: DSColors.primary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
+                          final delivery = _items[index];
+                          final isPropagationSource =
+                              _propagationSourceBarcode != null &&
+                              delivery.barcode.toUpperCase() ==
+                                  _propagationSourceBarcode!
+                                      .trim()
+                                      .toUpperCase();
 
-                          final itemIndex = _propagationSourceBarcode != null
-                              ? index - 1
-                              : index;
-                          final delivery = _items[itemIndex];
-                          return Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: DSSpacing.md,
-                            ),
-                            child: DeliveryCard(
-                              delivery: delivery.toDeliveryMap(),
-                              compact: false,
-                              onTap: isSubmitted
-                                  ? null
-                                  : () {
-                                      context.push(
-                                        '/deliveries/${delivery.barcode}/update',
-                                      );
-                                    },
-                              onRemoveFromBagsakanTap: isSubmitted
-                                  ? null
-                                  : () => _onRemoveFromBagsakan(delivery),
-                            ),
+                          return DeliveryCard(
+                            delivery: delivery.toDeliveryMap(),
+                            compact: false,
+                            isPropagationSource: isPropagationSource,
+                            onTap: isSubmitted
+                                ? null
+                                : () {
+                                    context.push(
+                                      '/deliveries/${delivery.barcode}/update',
+                                    );
+                                  },
+                            onRemoveFromBagsakanTap: isSubmitted
+                                ? null
+                                : () => _onRemoveFromBagsakan(delivery),
                           );
                         },
                       ),

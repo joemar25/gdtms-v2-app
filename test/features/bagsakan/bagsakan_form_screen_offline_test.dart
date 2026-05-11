@@ -61,13 +61,15 @@ void main() {
             updateProvider.overrideWith(MockUpdateNotifier.new),
             notificationsUnreadCountProvider.overrideWithValue(0),
             connectionStatusProvider.overrideWith(
-              (ref) => ConnectionStatus.offline,
+              (ref) => ConnectionStatus.networkOffline,
             ),
           ],
           child: MaterialApp.router(
-            localizationsDelegates:
-                EasyLocalization.of(null)?.localizationsDelegates ?? [],
-            supportedLocales: [const Locale('en', 'US')],
+            localizationsDelegates: const [
+              DefaultMaterialLocalizations.delegate,
+              DefaultWidgetsLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en', 'US')],
             routerConfig: router,
           ),
         ),
@@ -102,9 +104,11 @@ void main() {
             ),
           ],
           child: MaterialApp.router(
-            localizationsDelegates:
-                EasyLocalization.of(null)?.localizationsDelegates ?? [],
-            supportedLocales: [const Locale('en', 'US')],
+            localizationsDelegates: const [
+              DefaultMaterialLocalizations.delegate,
+              DefaultWidgetsLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en', 'US')],
             routerConfig: router,
           ),
         ),
@@ -139,9 +143,11 @@ void main() {
             ),
           ],
           child: MaterialApp.router(
-            localizationsDelegates:
-                EasyLocalization.of(null)?.localizationsDelegates ?? [],
-            supportedLocales: [const Locale('en', 'US')],
+            localizationsDelegates: const [
+              DefaultMaterialLocalizations.delegate,
+              DefaultWidgetsLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en', 'US')],
             routerConfig: router,
           ),
         ),
@@ -172,13 +178,15 @@ void main() {
             updateProvider.overrideWith(MockUpdateNotifier.new),
             notificationsUnreadCountProvider.overrideWithValue(0),
             connectionStatusProvider.overrideWith(
-              (ref) => ConnectionStatus.offline,
+              (ref) => ConnectionStatus.networkOffline,
             ),
           ],
           child: MaterialApp.router(
-            localizationsDelegates:
-                EasyLocalization.of(null)?.localizationsDelegates ?? [],
-            supportedLocales: [const Locale('en', 'US')],
+            localizationsDelegates: const [
+              DefaultMaterialLocalizations.delegate,
+              DefaultWidgetsLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en', 'US')],
             routerConfig: router,
           ),
         ),

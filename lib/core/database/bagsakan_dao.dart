@@ -264,27 +264,65 @@ class BagsakanDao {
   }) async {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
-    await db.update(
-      'bagsakan_groups',
-      {'name': name, 'description': description, 'updated_at': now},
-      where: 'id = ?',
-      whereArgs: [groupId],
-    );
+    final barcode = 'BAGSAKAN_$groupId';
 
-    await SyncOperationsDao.instance.insert(
-      SyncOperation(
-        id: const Uuid().v4(),
-        courierId: courierId,
-        barcode: 'BAGSAKAN_$groupId',
-        operationType: 'UPDATE_BAGSAKAN_GROUP',
-        payloadJson: jsonEncode({
-          'id': groupId,
-          'name': name,
-          'description': description,
-        }),
-        createdAt: now,
-      ),
-    );
+    await db.transaction((txn) async {
+      // 1. Update local metadata
+      await txn.update(
+        'bagsakan_groups',
+        {'name': name, 'description': description, 'updated_at': now},
+        where: 'id = ?',
+        whereArgs: [groupId],
+      );
+
+      // 2. Collapse/Upsert sync operation
+      // If there's already a pending/failed/conflict UPDATE_BAGSAKAN_GROUP for this barcode,
+      // update its payload instead of inserting a new one.
+      final existing = await txn.query(
+        'sync_operations',
+        columns: ['id'],
+        where:
+            "courier_id = ? AND barcode = ? AND operation_type = ? "
+            "AND status IN ('pending', 'failed', 'conflict')",
+        whereArgs: [courierId, barcode, 'UPDATE_BAGSAKAN_GROUP'],
+        limit: 1,
+      );
+
+      final payloadJson = jsonEncode({
+        'id': groupId,
+        'name': name,
+        'description': description,
+      });
+
+      if (existing.isNotEmpty) {
+        final opId = existing.first['id'] as String;
+        await txn.update(
+          'sync_operations',
+          {
+            'payload_json': payloadJson,
+            'status':
+                'pending', // Re-promote to pending if it was failed/conflict
+            'retry_count': 0,
+            'last_error': null,
+            'created_at':
+                now, // Update timestamp so it stays fresh in queue order
+          },
+          where: 'id = ?',
+          whereArgs: [opId],
+        );
+      } else {
+        await SyncOperationsDao.instance.insert(
+          SyncOperation(
+            id: const Uuid().v4(),
+            courierId: courierId,
+            barcode: barcode,
+            operationType: 'UPDATE_BAGSAKAN_GROUP',
+            payloadJson: payloadJson,
+            createdAt: now,
+          ),
+        );
+      }
+    });
   }
 
   /// Unlinks all deliveries from a specific bagsakan group.
@@ -829,6 +867,10 @@ class BagsakanDao {
             data['submitted_at'] ??= existing.first['submitted_at'];
           }
 
+          // ── KEY FIX 2: Reconcile redundant sync operations ──
+          // If the server state already matches a pending operation, mark it as synced.
+          await _reconcileRedundantOperations(txn, id, group);
+
           // Use insert with conflict replace to upsert
           await txn.insert(
             'bagsakan_groups',
@@ -1015,6 +1057,18 @@ class BagsakanDao {
     );
   }
 
+  /// Deletes ALL bagsakan groups and clears bagsakan_id from all deliveries.
+  /// Used by clearAndSync operations (which must not touch sync_operations).
+  Future<void> deleteAllGroups() async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      await txn.rawUpdate(
+        'UPDATE local_deliveries SET bagsakan_id = NULL WHERE bagsakan_id IS NOT NULL',
+      );
+      await txn.delete('bagsakan_groups');
+    });
+  }
+
   /// Removes local bagsakan groups that are not in the provided set of server IDs,
   /// provided they have no pending sync operations.
   /// This ensures "Online Priority" by purging stale local records that don't
@@ -1023,9 +1077,11 @@ class BagsakanDao {
     final db = await _db;
     await db.transaction((txn) async {
       // Find all groups not in the server list
-      final placeholders = serverIds.isEmpty ? '' : serverIds.map((_) => '?').join(', ');
+      final placeholders = serverIds.isEmpty
+          ? ''
+          : serverIds.map((_) => '?').join(', ');
       final where = serverIds.isEmpty ? '1=1' : 'id NOT IN ($placeholders)';
-      
+
       final staleGroups = await txn.query(
         'bagsakan_groups',
         columns: ['id'],
@@ -1035,20 +1091,23 @@ class BagsakanDao {
 
       for (final g in staleGroups) {
         final id = g['id'] as int;
-        
+
         // Safety: check if there are pending sync operations for this group
         // If it's pending, it means it's a new local-only group; keep it.
         final pending = await txn.query(
           'sync_operations',
           columns: ['id'],
-          where: "barcode = ? AND status IN ('pending', 'processing', 'failed', 'conflict')",
+          where:
+              "barcode = ? AND status IN ('pending', 'processing', 'failed', 'conflict')",
           whereArgs: ['BAGSAKAN_$id'],
           limit: 1,
         );
 
         if (pending.isEmpty) {
-          debugPrint('[DAO] removeStaleGroups: purging stale group $id (not on server, no pending sync)');
-          
+          debugPrint(
+            '[DAO] removeStaleGroups: purging stale group $id (not on server, no pending sync)',
+          );
+
           // 1. Unassign items
           await txn.update(
             'local_deliveries',
@@ -1056,15 +1115,102 @@ class BagsakanDao {
             where: 'bagsakan_id = ?',
             whereArgs: [id],
           );
-          
+
           // 2. Delete group
-          await txn.delete(
-            'bagsakan_groups',
-            where: 'id = ?',
-            whereArgs: [id],
-          );
+          await txn.delete('bagsakan_groups', where: 'id = ?', whereArgs: [id]);
         }
       }
     });
+  }
+
+  /// Aggressively reconciles pending sync operations against authoritative server data.
+  /// This prevents "ghost" unsynced statuses when the server already has the data.
+  Future<void> _reconcileRedundantOperations(
+    Transaction txn,
+    int groupId,
+    Map<String, dynamic> serverGroup,
+  ) async {
+    final barcode = 'BAGSAKAN_$groupId';
+    final ops = await txn.query(
+      'sync_operations',
+      where: "barcode = ? AND status IN ('pending', 'failed', 'conflict')",
+      whereArgs: [barcode],
+    );
+
+    if (ops.isEmpty) return;
+
+    final serverName = serverGroup['name']?.toString() ?? '';
+    final serverDesc = serverGroup['description']?.toString() ?? '';
+    final serverStatus = serverGroup['status']?.toString() ?? 'pending';
+    final serverBarcodes =
+        (serverGroup['barcodes'] as List?)
+            ?.map((e) => e.toString().toUpperCase())
+            .toSet() ??
+        {};
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    for (final op in ops) {
+      final opId = op['id'] as String;
+      final type = op['operation_type'] as String;
+      final payloadJson = op['payload_json'] as String?;
+      if (payloadJson == null) continue;
+
+      bool isRedundant = false;
+      try {
+        final payload = jsonDecode(payloadJson) as Map<String, dynamic>;
+
+        if (type == 'CREATE_BAGSAKAN' || type == 'UPDATE_BAGSAKAN_GROUP') {
+          final pName = payload['name']?.toString() ?? '';
+          final pDesc = payload['description']?.toString() ?? '';
+          // If server matches what we want to update, it's redundant.
+          if (pName == serverName && pDesc == serverDesc) {
+            isRedundant = true;
+          }
+        } else if (type == 'SUBMIT_BAGSAKAN') {
+          if (serverStatus == 'submitted') {
+            isRedundant = true;
+          }
+        } else if (type == 'ASSIGN_TO_BAGSAKAN') {
+          final pBarcodes =
+              (payload['barcodes'] as List?)
+                  ?.map((e) => e.toString().toUpperCase())
+                  .toList() ??
+              [];
+          if (pBarcodes.isNotEmpty &&
+              pBarcodes.every((b) => serverBarcodes.contains(b))) {
+            isRedundant = true;
+          }
+        } else if (type == 'UNASSIGN_FROM_BAGSAKAN') {
+          final pBarcodes =
+              (payload['barcodes'] as List?)
+                  ?.map((e) => e.toString().toUpperCase())
+                  .toList() ??
+              [];
+          if (pBarcodes.isNotEmpty &&
+              pBarcodes.every((b) => !serverBarcodes.contains(b))) {
+            isRedundant = true;
+          }
+        }
+      } catch (e) {
+        debugPrint('[DAO] Error parsing payload for reconciliation: $e');
+      }
+
+      if (isRedundant) {
+        debugPrint(
+          '[DAO] _reconcileRedundantOperations: marking $type for $barcode as synced (server already matches)',
+        );
+        await txn.update(
+          'sync_operations',
+          {
+            'status': 'synced',
+            'last_attempt_at': now,
+            'last_error': 'Resolved via authoritative sync sweep.',
+          },
+          where: 'id = ?',
+          whereArgs: [opId],
+        );
+      }
+    }
   }
 }

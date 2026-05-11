@@ -32,6 +32,7 @@ class DeliveryCard extends StatefulWidget {
     this.onAddToBagsakanTap,
     this.onRemoveFromBagsakanTap,
     this.isInBagsakan = false,
+    this.isPropagationSource = false,
   });
 
   final Map<String, dynamic> delivery;
@@ -53,6 +54,7 @@ class DeliveryCard extends StatefulWidget {
   final VoidCallback? onAddToBagsakanTap;
   final VoidCallback? onRemoveFromBagsakanTap;
   final bool isInBagsakan;
+  final bool isPropagationSource;
 
   // ─── MARK: Status Helpers ──────────────────────────────────────────────────
 
@@ -181,14 +183,19 @@ class _DeliveryCardState extends State<DeliveryCard> {
         address: address,
         attemptsCount: attemptsCount,
         isInBagsakan: delivery['bagsakan_id'] != null,
+        isPropagationSource: widget.isPropagationSource,
       );
     }
 
     // ── Colors ──────────────────────────────────────────────────────────────
-    final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final cardBorder = isDark
-        ? DSColors.separatorDark
-        : DSColors.separatorLight;
+    final cardBg = widget.isPropagationSource
+        ? (isDark
+              ? DSColors.primary.withValues(alpha: 0.15)
+              : DSColors.primary.withValues(alpha: 0.08))
+        : (isDark ? DSColors.cardDark : DSColors.cardLight);
+    final cardBorder = widget.isPropagationSource
+        ? DSColors.primary.withValues(alpha: 0.3)
+        : (isDark ? DSColors.separatorDark : DSColors.separatorLight);
     final subtextColor = isDark
         ? DSColors.labelSecondaryDark
         : DSColors.labelSecondary;
@@ -286,6 +293,12 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                         label: 'GROUP DELIVERY',
                                         color: DSColors.accent,
                                         icon: Icons.inventory_2_rounded,
+                                      ),
+                                    if (widget.isPropagationSource)
+                                      DeliveryStatusBadge(
+                                        label: 'PROPAGATION SOURCE',
+                                        color: DSColors.primary,
+                                        icon: Icons.hub_rounded,
                                       ),
                                   ],
                                 ),
@@ -414,7 +427,9 @@ class _DeliveryCardState extends State<DeliveryCard> {
                           ),
 
                           // ── Row 3: Recipient name ────────────────────────────
-                          if (!widget.isPrivacyMode && name.isNotEmpty) ...[
+                          if (!widget.isPrivacyMode &&
+                              !isLocked &&
+                              name.isNotEmpty) ...[
                             DSSpacing.hXs,
                             Row(
                               children: [
@@ -445,7 +460,9 @@ class _DeliveryCardState extends State<DeliveryCard> {
                           ],
 
                           // ── Row 4: Address ───────────────────────────────────
-                          if (!widget.isPrivacyMode && address.isNotEmpty) ...[
+                          if (!widget.isPrivacyMode &&
+                              !isLocked &&
+                              address.isNotEmpty) ...[
                             DSSpacing.hXs,
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,6 +494,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
 
                           // ── Metadata chips ───────────────────────────────────
                           if (!widget.isPrivacyMode &&
+                              !isLocked &&
                               delivery['metadata'] is List) ...[
                             DSSpacing.hMd,
                             Wrap(
@@ -743,15 +761,20 @@ class _DeliveryCardState extends State<DeliveryCard> {
     required String address,
     required int attemptsCount,
     required bool isInBagsakan,
+    required bool isPropagationSource,
   }) {
     final ds = DeliveryStatus.fromString(status);
-    final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
+    final cardBg = isPropagationSource
+        ? (isDark
+              ? DSColors.primary.withValues(alpha: 0.15)
+              : DSColors.primary.withValues(alpha: 0.08))
+        : (isDark ? DSColors.cardDark : DSColors.cardLight);
     final subtextColor = isDark
         ? DSColors.labelSecondaryDark
         : DSColors.labelSecondary;
-    final cardBorder = isDark
-        ? DSColors.separatorDark
-        : DSColors.separatorLight;
+    final cardBorder = isPropagationSource
+        ? DSColors.primary.withValues(alpha: 0.3)
+        : (isDark ? DSColors.separatorDark : DSColors.separatorLight);
 
     return Container(
       width: double.infinity,
@@ -811,7 +834,9 @@ class _DeliveryCardState extends State<DeliveryCard> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              if (!widget.isPrivacyMode && name.isNotEmpty) ...[
+                              if (!widget.isPrivacyMode &&
+                                  !isLocked &&
+                                  name.isNotEmpty) ...[
                                 Row(
                                   children: [
                                     Icon(
@@ -883,7 +908,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                   DSSpacing.wXs,
                                   Flexible(
                                     child: Text(
-                                      widget.isPrivacyMode
+                                      (widget.isPrivacyMode || isLocked)
                                           ? (product.isNotEmpty
                                                 ? product
                                                 : 'DELIVERY ITEM')
@@ -951,6 +976,11 @@ class _DeliveryCardState extends State<DeliveryCard> {
                               DeliveryTinyPill(
                                 label: 'GD',
                                 color: DSColors.accent,
+                              ),
+                            if (widget.isPropagationSource)
+                              DeliveryTinyPill(
+                                label: 'SOURCE',
+                                color: DSColors.primary,
                               ),
                           ],
                         ),

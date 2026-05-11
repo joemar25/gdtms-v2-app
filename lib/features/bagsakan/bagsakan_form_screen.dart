@@ -53,6 +53,8 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
   List<LocalDelivery> _searchResults = [];
   final List<LocalDelivery> _groupItems = [];
   final Set<String> _initialBarcodes = {};
+  String _initialName = '';
+  String _initialDescription = '';
 
   @override
   void initState() {
@@ -80,6 +82,8 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
           _groupNameController.text = localGroup['name'] as String? ?? '';
           _groupDescriptionController.text =
               localGroup['description'] as String? ?? '';
+          _initialName = _groupNameController.text;
+          _initialDescription = _groupDescriptionController.text;
         });
         final localItems = await dao.getBagsakanItems(widget.groupId!);
         if (mounted) {
@@ -117,6 +121,8 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
                       syncedGroup['name'] as String? ?? '';
                   _groupDescriptionController.text =
                       syncedGroup['description'] as String? ?? '';
+                  _initialName = _groupNameController.text;
+                  _initialDescription = _groupDescriptionController.text;
                   _groupItems.clear();
                   _groupItems.addAll(syncedItems);
                   _initialBarcodes.clear();
@@ -232,27 +238,49 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
 
       if (widget.groupId != null) {
         groupId = widget.groupId!;
-        await dao.updateBagsakanGroup(
-          groupId: groupId,
-          name: name,
-          description: description,
-          courierId: courierId,
-        );
-        // Clear current items to handle removals properly
-        await dao.clearBagsakanGroup(groupId, courierId);
+        final currentBarcodes = _groupItems.map((e) => e.barcode).toSet();
+        final hasMetadataChange =
+            name != _initialName || description != _initialDescription;
+        final hasItemChange =
+            currentBarcodes.length != _initialBarcodes.length ||
+            currentBarcodes.any((b) => !_initialBarcodes.contains(b));
+
+        if (hasMetadataChange) {
+          await dao.updateBagsakanGroup(
+            groupId: groupId,
+            name: name,
+            description: description,
+            courierId: courierId,
+          );
+        }
+
+        if (hasItemChange) {
+          // Clear current items to handle removals properly
+          await dao.clearBagsakanGroup(groupId, courierId);
+          await dao.assignToBagsakan(
+            groupId: groupId,
+            barcodes: currentBarcodes.toList(),
+            courierId: courierId,
+          );
+        }
+
+        if (!hasMetadataChange && !hasItemChange) {
+          debugPrint('[BAGSAKAN] No changes detected, skipping save.');
+          if (mounted) context.pop();
+          return;
+        }
       } else {
         groupId = await dao.createBagsakanGroup(
           name: name,
           description: description,
           courierId: courierId,
         );
+        await dao.assignToBagsakan(
+          groupId: groupId,
+          barcodes: _groupItems.map((e) => e.barcode).toList(),
+          courierId: courierId,
+        );
       }
-
-      await dao.assignToBagsakan(
-        groupId: groupId,
-        barcodes: _groupItems.map((e) => e.barcode).toList(),
-        courierId: courierId,
-      );
       await ref.read(syncManagerProvider.notifier).loadEntries();
 
       // When online, immediately flush queued Bagsakan operations.
@@ -689,9 +717,11 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              DeliverySectionHeader(
-                label: 'bagsakan.search_results_header'.tr(
-                  args: [_searchResults.length.toString()],
+              Expanded(
+                child: DeliverySectionHeader(
+                  label: 'bagsakan.search_results_header'.tr(
+                    args: [_searchResults.length.toString()],
+                  ),
                 ),
               ),
               TextButton.icon(
@@ -737,7 +767,6 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
               isForAssigning: true,
               isInBagsakan: isAdded,
               onAddToBagsakanTap: () => _onAddToBagsakan(delivery),
-              onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
               compact: false,
             );
           }),
@@ -790,7 +819,6 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
               onTap: null,
               isForAssigning: true,
               isInBagsakan: true,
-              onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
               compact: false,
             ),
           ),

@@ -24,7 +24,7 @@ void main() {
       const courierId = 'courier-123';
       final capturedOps = <SyncOperation>[];
 
-      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
+      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) async {
         capturedOps.add(inv.positionalArguments[0] as SyncOperation);
       });
 
@@ -68,7 +68,7 @@ void main() {
       const courierId = 'courier-123';
       final capturedOps = <SyncOperation>[];
 
-      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
+      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) async {
         capturedOps.add(inv.positionalArguments[0] as SyncOperation);
       });
 
@@ -157,7 +157,7 @@ void main() {
         const courierId = 'courier-123';
         final capturedOps = <SyncOperation>[];
 
-        when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
+        when(mockSyncOpsDao.insert(any)).thenAnswer((inv) async {
           capturedOps.add(inv.positionalArguments[0] as SyncOperation);
         });
 
@@ -202,7 +202,7 @@ void main() {
         const courierId = 'courier-123';
         final capturedOps = <SyncOperation>[];
 
-        when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
+        when(mockSyncOpsDao.insert(any)).thenAnswer((inv) async {
           capturedOps.add(inv.positionalArguments[0] as SyncOperation);
         });
 
@@ -246,7 +246,7 @@ void main() {
         const courierId = 'courier-123';
         final capturedOps = <SyncOperation>[];
 
-        when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
+        when(mockSyncOpsDao.insert(any)).thenAnswer((inv) async {
           capturedOps.add(inv.positionalArguments[0] as SyncOperation);
         });
 
@@ -274,7 +274,7 @@ void main() {
       const courierId = 'courier-123';
       final capturedOps = <SyncOperation>[];
 
-      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
+      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) async {
         capturedOps.add(inv.positionalArguments[0] as SyncOperation);
       });
 
@@ -308,7 +308,7 @@ void main() {
       final beforeTime = DateTime.now().millisecondsSinceEpoch;
       final capturedOps = <SyncOperation>[];
 
-      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
+      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) async {
         capturedOps.add(inv.positionalArguments[0] as SyncOperation);
       });
 
@@ -348,7 +348,7 @@ void main() {
     test('Each operation has unique UUID for idempotency', () async {
       final ops = <SyncOperation>[];
 
-      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) {
+      when(mockSyncOpsDao.insert(any)).thenAnswer((inv) async {
         ops.add(inv.positionalArguments[0] as SyncOperation);
       });
 
@@ -424,4 +424,25 @@ void main() {
 
 class MockBagsakanDao extends Mock implements BagsakanDao {}
 
-class MockSyncOperationsDao extends Mock implements SyncOperationsDao {}
+class MockSyncOperationsDao extends Mock implements SyncOperationsDao {
+  @override
+  Future<void> insert(SyncOperation? operation) =>
+      super.noSuchMethod(Invocation.method(#insert, [operation]));
+
+  @override
+  Future<int> deleteByBarcode(String? barcode) =>
+      super.noSuchMethod(Invocation.method(#deleteByBarcode, [barcode]));
+
+  @override
+  Future<bool> hasUnfinishedCreateBagsakan(
+    String? courierId,
+    int? groupId, {
+    String? excludeOperationId,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #hasUnfinishedCreateBagsakan,
+      [courierId, groupId],
+      {#excludeOperationId: excludeOperationId},
+    ),
+  );
+}

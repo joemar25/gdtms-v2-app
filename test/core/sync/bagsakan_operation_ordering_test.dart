@@ -222,9 +222,11 @@ void main() {
     });
 
     test('Deleted synced operations removed from queue', () async {
-      when(mockDao.deleteByStatus('synced')).thenAnswer((_) async => 3);
+      when(
+        mockDao.deleteByStatus('courier-1', 'synced'),
+      ).thenAnswer((_) async => 3);
 
-      final deleted = await mockDao.deleteByStatus('synced');
+      final deleted = await mockDao.deleteByStatus('courier-1', 'synced');
 
       expect(deleted, 3);
       // Synced operations cleaned up after retention period
@@ -308,4 +310,12 @@ void main() {
 
 // ── Mock ───────────────────────────────────────────────────────────────────
 
-class MockSyncOperationsDao extends Mock implements SyncOperationsDao {}
+class MockSyncOperationsDao extends Mock implements SyncOperationsDao {
+  @override
+  Future<void> insert(SyncOperation? operation) =>
+      super.noSuchMethod(Invocation.method(#insert, [operation]));
+
+  @override
+  Future<int> deleteByStatus(String? courierId, String? status) => super
+      .noSuchMethod(Invocation.method(#deleteByStatus, [courierId, status]));
+}
