@@ -33,7 +33,7 @@ class StatusBadge extends StatelessWidget {
       backgroundColor: color.withValues(alpha: DSStyles.alphaSoft),
       labelStyle: DSTypography.label(
         color: color,
-      ).copyWith(fontWeight: FontWeight.w600),
+      ),
       side: BorderSide(color: color.withValues(alpha: DSStyles.alphaMuted)),
     );
   }

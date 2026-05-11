@@ -128,7 +128,7 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
                           color: isDark
                               ? DSColors.labelPrimaryDark
                               : DSColors.labelPrimary,
-                        ).copyWith(fontWeight: FontWeight.w600),
+                        ).copyWith(fontWeight: FontWeight.w800),
                       ),
                       DSSpacing.hXs,
                       Text(
@@ -166,7 +166,7 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
                                 ? DSColors.error
                                 : DSColors.warning,
                           ).copyWith(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w900,
                             fontSize: DSTypography.sizeXs,
                           ),
                     ),
@@ -364,7 +364,7 @@ class _UpdateActionArea extends StatelessWidget {
                   color: isDark
                       ? DSColors.labelSecondaryDark
                       : DSColors.labelSecondary,
-                ).copyWith(fontWeight: FontWeight.w600),
+                ).copyWith(fontWeight: FontWeight.w800),
               ),
               Text(
                 '$pct%',

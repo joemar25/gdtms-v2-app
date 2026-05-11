@@ -30,7 +30,6 @@ class DSTheme {
       primaryColor: activePrimary,
       scaffoldBackgroundColor: scaffoldColor,
       dividerColor: isDark ? DSColors.separatorDark : DSColors.separatorLight,
-      fontFamily: 'Montserrat',
 
       colorScheme: ColorScheme.fromSeed(
         seedColor: DSColors.primary,
@@ -56,7 +55,7 @@ class DSTheme {
         iconTheme: IconThemeData(color: primaryLabel),
         titleTextStyle: DSTypography.subTitle(
           color: primaryLabel,
-        ).copyWith(fontSize: DSTypography.sizeMd),
+        ).copyWith(fontSize: DSTypography.sizeLg),
       ),
 
       actionIconTheme: ActionIconThemeData(
@@ -64,13 +63,44 @@ class DSTheme {
             const Icon(Icons.arrow_back_ios_new_rounded),
       ),
 
-      // Text Theme
       textTheme: TextTheme(
-        bodyLarge: DSTypography.body(color: primaryLabel),
+        // Display Styles (Hero/Large Text)
+        displayLarge: DSTypography.display(color: primaryLabel),
+        displayMedium: DSTypography.heading(color: primaryLabel),
+        displaySmall: DSTypography.title(color: primaryLabel),
+
+        // Heading Styles
+        headlineLarge: DSTypography.heading(color: primaryLabel),
+        headlineMedium: DSTypography.heading(
+          color: primaryLabel,
+          fontSize: DSTypography.sizeLg,
+        ),
+        headlineSmall: DSTypography.title(color: primaryLabel),
+
+        // Title Styles
+        titleLarge: DSTypography.title(color: primaryLabel),
+        titleMedium: DSTypography.subTitle(color: primaryLabel),
+        titleSmall: DSTypography.subTitle(
+          color: primaryLabel,
+          fontSize: DSTypography.sizeSm,
+          fontWeight: FontWeight.w700,
+        ),
+
+        // Body Styles
+        bodyLarge: DSTypography.body(
+          color: primaryLabel,
+          fontWeight: FontWeight.w800,
+        ),
         bodyMedium: DSTypography.body(color: primaryLabel),
         bodySmall: DSTypography.caption(color: secondaryLabel),
-        titleLarge: DSTypography.heading(color: primaryLabel),
-        titleMedium: DSTypography.subTitle(color: primaryLabel),
+
+        // Label Styles
+        labelLarge: DSTypography.button(color: primaryLabel),
+        labelMedium: DSTypography.label(color: primaryLabel),
+        labelSmall: DSTypography.label(
+          color: secondaryLabel,
+          fontSize: DSTypography.sizeXs,
+        ),
       ),
 
       // Card Theme
@@ -148,7 +178,7 @@ class DSTheme {
         shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
         titleTextStyle: DSTypography.heading(
           color: primaryLabel,
-        ).copyWith(fontSize: DSTypography.sizeMd),
+        ).copyWith(fontSize: DSTypography.sizeLg),
         contentTextStyle: DSTypography.body(color: secondaryLabel),
       ),
 
@@ -176,7 +206,7 @@ class DSTheme {
         contentPadding: EdgeInsets.symmetric(horizontal: DSSpacing.md),
         titleTextStyle: DSTypography.body(
           color: primaryLabel,
-        ).copyWith(fontWeight: FontWeight.w600),
+        ).copyWith(fontWeight: FontWeight.w700),
         subtitleTextStyle: DSTypography.caption(color: secondaryLabel),
         iconColor: secondaryLabel,
       ),

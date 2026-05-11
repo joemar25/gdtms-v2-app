@@ -30,6 +30,8 @@ Map<String, dynamic> _group({
 Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('BagsakanGroupCard', () {
     testWidgets('renders draft group without semantics assertion', (
       tester,

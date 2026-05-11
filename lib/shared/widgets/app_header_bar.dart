@@ -725,7 +725,8 @@ class _PersonalizedTitle extends StatelessWidget {
               DSTypography.caption(
                 color: DSColors.white.withValues(alpha: 0.55),
               ).copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w900,
+                fontSize: DSTypography.sizeXs,
                 letterSpacing: DSTypography.lsLoose,
               ),
         ).animate().fadeIn(duration: DSAnimations.dFast),
@@ -734,7 +735,7 @@ class _PersonalizedTitle extends StatelessWidget {
           name,
           style: DSTypography.heading(
             color: DSColors.white,
-          ).copyWith(height: DSStyles.heightTight),
+          ).copyWith(height: DSStyles.heightTight, fontWeight: FontWeight.w900),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ).animate().fadeIn(duration: DSAnimations.dFast, delay: 50.ms),

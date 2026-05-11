@@ -116,6 +116,8 @@
     "error_delete_failed": "Failed to delete this bagsakan.",
     "success_removed": "Item \"{}\" removed from bagsakan successfully.",
     "status_submitted": "SUBMITTED",
+    "status_draft": "DRAFT",
+    "status_unsync": "UNSYNC",
     "submit_confirm_title": "Submit Bagsakan?",
     "submit_confirm_message": "This will propagate delivery data to all items in the group. Please ensure you have removed any failed deliveries from the group before proceeding.",
     "submit_confirm_message_status": "Are you sure? This will update all deliveries in this group to {}.",

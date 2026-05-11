@@ -242,7 +242,7 @@ class EarningsCard extends StatelessWidget {
                                                 alpha: DSStyles.alphaDisabled,
                                               ),
                                             ).copyWith(
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w800,
                                               fontSize: DSTypography.sizeMd,
                                             ),
                                         maxLines: 1,

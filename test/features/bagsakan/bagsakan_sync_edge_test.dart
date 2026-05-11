@@ -9,6 +9,7 @@ import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MockApiClient extends Mock implements ApiClient {}
 
@@ -40,6 +41,7 @@ class MockBagsakanDao extends Mock implements BagsakanDao {}
 class MockLocalDeliveryDao extends Mock implements LocalDeliveryDao {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late MockApiClient mockApi;
   late MockSyncOperationsDao mockSyncDao;
   late MockBagsakanDao mockBagsakanDao;
@@ -47,6 +49,7 @@ void main() {
   late ProviderContainer container;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     mockApi = MockApiClient();
     mockSyncDao = MockSyncOperationsDao();
     mockBagsakanDao = MockBagsakanDao();

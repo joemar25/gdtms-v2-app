@@ -156,8 +156,30 @@ build/run time via `--dart-define` or `--dart-define-from-file`.
 
    ```bash
    flutter run --dart-define-from-file=dart_defines.json
-   flutter build apk --dart-define-from-file=dart_defines.json
    ```
+
+### Production Build Standard
+
+For official releases, use these optimized commands to ensure the smallest possible size and code protection.
+
+**For Google Play Store (App Bundle):**
+```bash
+flutter build appbundle --release \
+  --dart-define-from-file=dart_defines.json \
+  --tree-shake-icons \
+  --obfuscate \
+  --split-debug-info=build/app/outputs/symbols
+```
+
+**For Direct APK Distribution (Smallest APKs):**
+```bash
+flutter build apk --release \
+  --dart-define-from-file=dart_defines.json \
+  --split-per-abi \
+  --tree-shake-icons \
+  --obfuscate \
+  --split-debug-info=build/app/outputs/symbols
+```
 
 ### Available keys
 
@@ -219,9 +241,12 @@ flutter build apk --dart-define-from-file=dart_defines.json
 
 ```
 
-### Icon & Asset Troubleshooting
+### Icon & Asset Optimization
 
-If icons fail to load or assets are outdated:
+The project follows a strict asset optimization policy:
+- **Fonts**: Handled via `google_fonts` package (no `.ttf` assets).
+- **Images**: New assets should use `.webp` format.
+- **Clean Code**: Redundant web assets (favicons, manifest) and manual font files are purged to keep the repository lean.
 
 1. **Rebuild Icons**: Run `dart run flutter_launcher_icons`.
 2. **Clear Cache**: Run `flutter clean` then `flutter pub get`.

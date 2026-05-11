@@ -1,7 +1,7 @@
 # Development Standards for GDTMS v2 Mobile App
 
 > **Reference Guide for Developers & AI Assistants**  
-> Last Updated: May 4, 2026  
+> Last Updated: May 11, 2026  
 > Focus: Flutter / Dart Mobile Development
 
 **Quick Start:** For day-to-day development, refer to this document. It outlines the core architecture, rules, and best practices for the FSI Courier Mobile App.
@@ -22,6 +22,8 @@
 10. [Documentation Standards](#documentation-standards)
 11. [Security & Data Protection](#security--data-protection)
 12. [Performance & Optimization](#performance--optimization)
+    - [12.1 Widget Rebuilds](#widget-rebuilds)
+    - [12.2 Asset Optimization & Clean Code](#asset-optimization--clean-code)
 13. [File Management & Navigation](#file-management--navigation)
 14. [Error Handling & Recovery](#error-handling--recovery)
 15. [Dynamic Design & Overflow Prevention](#dynamic-design--overflow-prevention)
@@ -402,12 +404,29 @@ Use sparingly — only for end-to-end flows that span multiple providers and scr
 
 ---
 
-## Performance & Optimization
-
-### Widget Rebuilds
+### 12.1 Widget Rebuilds
 
 - Use `Consumer` localized to the exact widget tree that needs rebuilding.
 - Use `select` in Riverpod to listen only to specific property changes.
+
+### 12.2 Asset Optimization & Clean Code
+
+To keep the APK/App Bundle size minimal and the codebase clean, follow these asset rules:
+
+1.  **Google Fonts Over Local Assets**: **NEVER** add `.ttf` or `.otf` files to the `assets/fonts/` directory. Use the `google_fonts` package. This reduces the base app size by 3MB–10MB.
+    - Implementation: Use `GoogleFonts.montserratTextTheme()` in the global `ThemeData`.
+    - Fallback: The system will automatically fetch fonts on first run and cache them.
+
+2.  **WebP for Images**: All new UI images (onboarding, backgrounds, empty states) **MUST** be in `.webp` format. Avoid `.png` or `.jpg` unless transparency requirements dictate otherwise.
+    - Standard: Use lossy WebP at 75-80% quality for the best balance.
+
+3.  **No Dead Assets**: If an icon or image is no longer used in the code, **DELETE IT** immediately from the `assets/images/` directory.
+
+4.  **Folder Structure**:
+    - `assets/images/`: UI images and icons.
+    - `assets/legal/`: Regulatory and legal markdown files.
+    - `assets/translations/`: i18n JSON files.
+    - **DELETE** `assets/fonts/` and any web-specific assets (`favicon`, `manifest.json`, etc.) if found.
 
 ---
 

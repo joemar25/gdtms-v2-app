@@ -152,7 +152,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                   boxShadow: DSStyles.shadowXL(context),
                                 ),
                                 child: Image.asset(
-                                  'assets/android-chrome-512x512.png',
+                                  'assets/images/app_icon.png',
                                   fit: BoxFit.contain,
                                 ),
                               )

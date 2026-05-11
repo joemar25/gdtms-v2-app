@@ -444,7 +444,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                               : DSColors.labelPrimary,
                                         ).copyWith(
                                           fontSize: DSTypography.sizeSm,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.w800,
                                         ),
                                   ),
                                 ),

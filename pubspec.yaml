@@ -70,6 +70,7 @@ dependencies:
   screen_protector: ^1.5.1
   open_filex: ^4.3.4
   flutter_native_splash: ^2.4.1
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -85,69 +86,26 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/
+    - assets/images/
     - assets/legal/
     - assets/translations/
-
-  fonts:
-    - family: Montserrat
-      fonts:
-        - asset: assets/fonts/Montserrat-Thin.ttf
-          weight: 100
-        - asset: assets/fonts/Montserrat-ThinItalic.ttf
-          weight: 100
-          style: italic
-        - asset: assets/fonts/Montserrat-ExtraLight.ttf
-          weight: 200
-        - asset: assets/fonts/Montserrat-ExtraLightItalic.ttf
-          weight: 200
-          style: italic
-        - asset: assets/fonts/Montserrat-Light.ttf
-          weight: 300
-        - asset: assets/fonts/Montserrat-LightItalic.ttf
-          weight: 300
-          style: italic
-        - asset: assets/fonts/Montserrat-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/Montserrat-Italic.ttf
-          weight: 400
-          style: italic
-        - asset: assets/fonts/Montserrat-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Montserrat-MediumItalic.ttf
-          weight: 500
-          style: italic
-        - asset: assets/fonts/Montserrat-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Montserrat-SemiBoldItalic.ttf
-          weight: 600
-          style: italic
-        - asset: assets/fonts/Montserrat-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/Montserrat-BoldItalic.ttf
-          weight: 700
-          style: italic
-        - asset: assets/fonts/Montserrat-ExtraBold.ttf
-          weight: 800
-        - asset: assets/fonts/Montserrat-ExtraBoldItalic.ttf
-          weight: 800
-          style: italic
-        - asset: assets/fonts/Montserrat-Black.ttf
-          weight: 900
-        - asset: assets/fonts/Montserrat-BlackItalic.ttf
-          weight: 900
-          style: italic
 
 # flutter pub run flutter_launcher_icons:main
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/android-chrome-512x512.png"
+  image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/app_icon.png"
 
 flutter_native_splash:
   color: "#FFFFFF"
   color_dark: "#020617"
-  image: "assets/android-chrome-512x512.png"
+  image: "assets/images/splash_logo.png"
   android: true
   ios: true
   fullscreen: true
+  android_12:
+    image: "assets/images/splash_logo.png"
+    color: "#FFFFFF"
+    dark_color: "#020617"

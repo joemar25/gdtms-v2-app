@@ -58,7 +58,7 @@ class EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: DSTypography.label().copyWith(
                 fontSize: DSTypography.sizeMd,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
                 color: isDark
                     ? DSColors.labelPrimaryDark
                     : DSColors.labelPrimary,

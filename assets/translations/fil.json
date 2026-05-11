@@ -116,6 +116,8 @@
     "error_delete_failed": "Nabigong burahin ang bagsakan na ito.",
     "success_removed": "Ang item na \"{}\" ay naalis na sa bagsakan.",
     "status_submitted": "NAISUMITE",
+    "status_draft": "DRAFT",
+    "status_unsync": "UNSYNC",
     "submit_confirm_title": "Isumite ang Bagsakan?",
     "submit_confirm_message": "Ikakalat nito ang data ng delivery sa lahat ng item sa grupo. Pakisiguradong naalis mo na ang anumang failed deliveries sa grupo bago magpatuloy.",
     "submit_confirm_message_status": "Sigurado ka ba? Ia-update nito ang lahat ng deliveries sa grupong ito sa {}.",

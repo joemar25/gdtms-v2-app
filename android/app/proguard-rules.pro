@@ -18,3 +18,13 @@
 -keepclasseswithmembernames class * {
     native <methods>;
 }
+
+# Moon Design & Lucide Icons (Tree-shaking preservation)
+-keep class com.moon_design.** { *; }
+-keep class lucide_icons.** { *; }
+
+# If icons are accessed via dynamic keys/strings, prevent obfuscation of those names
+-keepclassmembers class * extends java.lang.Enum {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}

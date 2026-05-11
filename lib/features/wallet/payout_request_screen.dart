@@ -316,16 +316,14 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
     // Standard scaffolding following FSI Design System rules.
     final scaffoldBg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
-    final appBarBg = isDark ? DSColors.cardDark : DSColors.cardLight;
 
     return SecureView(
       child: Scaffold(
         backgroundColor: scaffoldBg,
         appBar: AppHeaderBar(
-          title: kAppDebugMode
-              ? 'wallet.request.appbar_title_debug'.tr()
+          title: widget.isConsolidation
+              ? 'wallet.request.appbar_title_consolidate'.tr()
               : 'wallet.request.appbar_title'.tr(),
-          backgroundColor: appBarBg,
         ),
         bottomNavigationBar: SafeArea(
           child: Padding(
@@ -377,7 +375,12 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
           children: [
             const ConnectionStatusBanner(
               isMinimal: true,
-              margin: EdgeInsets.only(bottom: DSSpacing.sm),
+              margin: EdgeInsets.fromLTRB(
+                DSSpacing.md,
+                DSSpacing.md,
+                DSSpacing.md,
+                DSSpacing.sm,
+              ),
             ),
             Expanded(
               child: RefreshIndicator(

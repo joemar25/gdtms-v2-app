@@ -10,7 +10,8 @@ import 'package:flutter/foundation.dart';
 /// - Note: This will not work for web builds.
 /// - Combination: flutter analyze; flutter test; dart format .
 /// - Run :  flutter run --dart-define-from-file=dart_defines.json
-/// - Prod:  flutter build apk --dart-define-from-file=dart_defines.json
+/// - Prod:  flutter build apk --release --dart-define-from-file=dart_defines.json
+/// - Playstore: flutter build appbundle --release --dart-define-from-file=dart_defines.json --tree-shake-icons --obfuscate --split-debug-info=build/app/outputs/symbols
 // ─────────────────────────────────────────────────────────────────────────────
 //  FSI Courier App Configuration
 // ─────────────────────────────────────────────────────────────────────────────

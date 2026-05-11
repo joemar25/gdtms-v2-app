@@ -257,7 +257,7 @@ class DeliveryDetailCell extends StatelessWidget {
                         : DSColors.labelPrimary),
               ).copyWith(
                 fontSize: DSTypography.sizeSm,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
                 fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
               ),
         ),

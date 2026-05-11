@@ -96,14 +96,14 @@ class BagsakanGroupCard extends StatelessWidget {
                                 )
                               else
                                 DeliveryStatusBadge(
-                                  label: 'DRAFT',
+                                  label: 'bagsakan.status_draft'.tr(),
                                   color: DSColors.primary,
                                   icon: Icons.edit_note_rounded,
                                 ),
                               if (pendingSyncCount > 0) ...[
                                 DSSpacing.wXs,
                                 DeliveryTinyPill(
-                                  label: 'UNSYNC',
+                                  label: 'bagsakan.status_unsync'.tr(),
                                   color: DSColors.warning,
                                 ),
                               ],
