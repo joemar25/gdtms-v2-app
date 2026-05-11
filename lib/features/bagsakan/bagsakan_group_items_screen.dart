@@ -419,7 +419,7 @@ class _BagsakanGroupItemsScreenState
                   );
                   if (confirmed != true) return;
                 }
-                if (!mounted) return;
+                if (!context.mounted) return;
                 context.push('/bagsakan/edit/$_activeGroupId');
               },
               isFlat: true,

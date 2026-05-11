@@ -28,6 +28,7 @@
 //   Pushes to: ResetPasswordScreen, ProfileEditScreen
 // =============================================================================
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -89,11 +90,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _developerCountdown = 0;
   bool _isDeveloperMode = false;
   bool _isDeveloperModeFlowBusy = false;
+  OverlayEntry? _toastEntry;
 
   @override
   void initState() {
     super.initState();
-    _isDeveloperMode = RuntimeEnvironmentService.instance.isDeveloperMode;
+    _isDeveloperMode =
+        kDebugMode || RuntimeEnvironmentService.instance.isDeveloperMode;
     _loadSettings();
     _loadDeviceSpecs();
     _loadErrorLogCount();
@@ -231,6 +234,50 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   String get _nextModeLabel => _isDeveloperMode ? 'production' : 'developer';
 
+  Future<void> _showToast(String message) async {
+    _toastEntry?.remove();
+    _toastEntry = null;
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
+        bottom: 80,
+        left: 0,
+        right: 0,
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DSSpacing.lg,
+                vertical: DSSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: DSColors.black.withValues(alpha: 0.8),
+                borderRadius: DSStyles.pillRadius,
+              ),
+              child: Text(
+                message,
+                style: DSTypography.body().copyWith(
+                  color: DSColors.white,
+                  fontSize: DSTypography.sizeMd,
+                  fontWeight: FontWeight.w500,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    _toastEntry = entry;
+    overlay.insert(entry);
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    if (_toastEntry == entry) {
+      entry.remove();
+      _toastEntry = null;
+    }
+  }
+
   Future<void> _handleVersionTap() async {
     // Rockstar rule: no secret handshake in debug builds; devs are already in.
     if (kDebugMode) return;
@@ -239,7 +286,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (_developerCountdown > 0) {
       final currentCount = _developerCountdown;
       setState(() => _developerCountdown = _developerCountdown - 1);
-      showSuccessNotification(context, '$currentCount');
+      unawaited(_showToast('$currentCount'));
 
       if (_developerCountdown == 0) {
         await _toggleDeveloperMode();
@@ -254,10 +301,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         _versionTapCount = 0;
         _developerCountdown = 3;
       });
-      showSuccessNotification(
-        context,
-        'Tap 3 more times to enter $_nextModeLabel mode.',
-      );
+      unawaited(_showToast('Tap 3 more times to enter $_nextModeLabel mode.'));
     }
   }
 
@@ -690,7 +734,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _ModernCard(
                   isDark: isDark,
                   children: [
-                    if (kAppDebugMode) ...[
+                    if (kAppDebugMode || _isDeveloperMode) ...[
                       DSDetailTile(
                         icon: Icons.cloud_outlined,
                         iconColor: DSColors.success,
@@ -733,7 +777,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       title: AppVersionService.displayVersion,
                       isSubtitleTop: true,
                     ),
-                    if (kAppDebugMode) ...[
+                    if (kAppDebugMode || _isDeveloperMode) ...[
                       _CardDivider(isDark: isDark),
                       DSDetailTile(
                         icon: Icons.code_rounded,

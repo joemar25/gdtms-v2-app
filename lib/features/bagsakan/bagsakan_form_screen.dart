@@ -810,23 +810,21 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
               : 'bagsakan.new_items_header'.tr(),
         ),
         _kInnerGap,
-        ...itemsToShow.asMap().entries.map(
-          (entry) {
-            final index = entry.key;
-            final delivery = entry.value;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: DSSpacing.md),
-              child: DeliveryCard(
-                delivery: delivery.toDeliveryMap(),
-                onTap: null,
-                isForAssigning: true,
-                isInBagsakan: true,
-                onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
-                compact: false,
-              ),
-            ).dsCardEntry(delay: DSAnimations.stagger(index));
-          },
-        ),
+        ...itemsToShow.asMap().entries.map((entry) {
+          final index = entry.key;
+          final delivery = entry.value;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: DSSpacing.md),
+            child: DeliveryCard(
+              delivery: delivery.toDeliveryMap(),
+              onTap: null,
+              isForAssigning: true,
+              isInBagsakan: true,
+              onRemoveFromBagsakanTap: () => _onRemoveFromBagsakan(delivery),
+              compact: false,
+            ),
+          ).dsCardEntry(delay: DSAnimations.stagger(index));
+        }),
       ],
     );
   }
