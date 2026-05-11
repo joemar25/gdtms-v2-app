@@ -68,7 +68,7 @@ void main() {
       () => mockLocalDeliveryDao.countVisibleFailedDelivery(),
     ).thenAnswer((_) async => 0);
     when(
-      () => mockLocalDeliveryDao.countVisibleOsa(),
+      () => mockLocalDeliveryDao.countVisibleMisrouted(),
     ).thenAnswer((_) async => 0);
     when(
       () => mockLocalDeliveryDao.countByStatus(any()),
@@ -93,7 +93,7 @@ void main() {
       ),
     ).thenAnswer((_) async => []);
     when(
-      () => mockLocalDeliveryDao.getVisibleOsaPaged(
+      () => mockLocalDeliveryDao.getVisibleMisroutedPaged(
         limit: any(named: 'limit'),
         offset: any(named: 'offset'),
       ),

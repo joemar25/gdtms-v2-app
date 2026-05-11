@@ -28,6 +28,7 @@
 //   Pushes to: DeliveryUpdateScreen on successful barcode match
 // =============================================================================
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -39,6 +40,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
@@ -401,7 +403,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     // Check eligibility: status must be FOR_DELIVERY or FAILED_DELIVERY
     final status = match.deliveryStatus.toUpperCase();
-    final isEligible = status == 'FOR_DELIVERY' || status == 'FAILED_DELIVERY';
+    final isEligible =
+        status == kStatusForDelivery || status == kStatusFailedDelivery;
 
     if (!isEligible) {
       final msg = 'Delivery status "$status" is not eligible for Bagsakan.';
@@ -445,7 +448,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   Future<void> _handlePod(String code) async {
     // ── SCAN GATE (pre-filter) ────────────────────────────────────────────────
     // Only PENDING and unverified FAILED_DELIVERY are valid delivery targets.
-    // DELIVERED and OSA are excluded — they are not actionable here.
+    // DELIVERED and MISROUTED are excluded — they are not actionable here.
     // DeliveryUpdateScreen._load() runs isVisibleToRider again as the canonical
     // HARD GATE — this pre-filter is a UX layer that gives a meaningful error
     // message before ever navigating, and avoids N+1 per-row checks.
@@ -591,19 +594,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   /// visibility check, based on its [status] and [failedDeliveryVerifStatus].
   ///
   /// Rule mapping (mirrors isVisibleToRider):
-  ///   OSA                          → locked, never tappable
+  ///   MISROUTED                    → locked, never tappable
   ///   FAILED_DELIVERY + verified (any) → fully settled, no action needed
   ///   anything else / out-of-date  → not in today's active window
   String _blockedMessage(String status, String? failedDeliveryVerifStatus) {
     final s = status.toUpperCase();
     final v = (failedDeliveryVerifStatus ?? 'unvalidated').toLowerCase();
-    if (s == 'OSA') {
-      return 'This item is marked OSA and cannot be opened.';
+    if (s == kStatusMisrouted) {
+      return 'sync.list.locked_misrouted'.tr();
     }
-    if (s == 'DELIVERED') {
+    if (s == kStatusDelivered) {
       return 'This item has already been delivered and is locked.';
     }
-    if (s == 'FAILED_DELIVERY' &&
+    if (s == kStatusFailedDelivery &&
         (v == 'verified_with_pay' || v == 'verified_no_pay')) {
       return 'This failed delivery has already been verified and is no longer actionable.';
     }
@@ -1337,7 +1340,7 @@ class _SearchResultsSheet extends StatelessWidget {
                   final name = (d['recipient_name'] ?? '').toString();
                   final address = (d['recipient_address'] ?? '').toString();
                   final status =
-                      d['delivery_status']?.toString() ?? 'FOR_DELIVERY';
+                      d['delivery_status']?.toString() ?? kStatusForDelivery;
 
                   return ListTile(
                     leading: Container(

@@ -29,7 +29,7 @@ Fastrak Services Inc. ("FSI", "we", "us", or "our") is committed to protecting t
 ### 2.4 Delivery Records
 - Proof-of-delivery photos (package photos, selfies).
 - Recipient signatures captured digitally.
-- Delivery status updates (delivered, RTS, OSA) including timestamp, geolocation, and recipient details.
+- Delivery status updates (delivered, RTS, Misrouted) including timestamp, geolocation, and recipient details.
 
 ### 2.5 Diagnostic Data
 - Automated crash reports via Sentry to monitor app stability and performance.

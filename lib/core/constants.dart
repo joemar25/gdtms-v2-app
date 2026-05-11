@@ -54,7 +54,7 @@ const int kMaxPlacementTypeLength = 100;
 final List<String> kUpdateStatuses = [
   DeliveryStatus.delivered.toApiString(),
   DeliveryStatus.failedDelivery.toApiString(),
-  DeliveryStatus.osa.toApiString(),
+  DeliveryStatus.misrouted.toApiString(),
 ];
 
 /// Full set of delivery statuses known to the app.
@@ -63,7 +63,7 @@ final List<String> kAllDeliveryStatuses = [
   DeliveryStatus.pending.toApiString(),
   DeliveryStatus.delivered.toApiString(),
   DeliveryStatus.failedDelivery.toApiString(),
-  DeliveryStatus.osa.toApiString(),
+  DeliveryStatus.misrouted.toApiString(),
 ];
 
 /// Pre-defined photo types for delivered POD capture.
@@ -266,8 +266,10 @@ const Map<String, ReasonConfig> kReasonConfigs = {
 /// Derived from [kReasonConfigs] — do not hardcode separately.
 final List<String> kReasons = kReasonConfigs.keys.toList()..sort();
 
-/// Config for the OSA (Misrouted) status — no reason picker, mailpack photo required.
-const ReasonConfig kOsaConfig = ReasonConfig(remarksPresets: kRemarksMisrouted);
+/// Config for the MISROUTED status — no reason picker, mailpack photo required.
+const ReasonConfig kMisroutedConfig = ReasonConfig(
+  remarksPresets: kRemarksMisrouted,
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DELIVERED NOTE PRESETS

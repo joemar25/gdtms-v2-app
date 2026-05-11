@@ -22,6 +22,7 @@ import 'package:retry/retry.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
@@ -688,7 +689,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           //   the machine-readable code. Only auto-resolve for DELIVERED intent.
           final wasIntendingToDeliver =
               payload['delivery_status']?.toString().toUpperCase() ==
-              'DELIVERED';
+              kStatusDelivered;
           final isDeliveredImmutableLegacy =
               !isImmutableStop &&
               errorMsg.toLowerCase().contains('delivered') &&

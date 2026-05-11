@@ -10,7 +10,7 @@
 //                    locked (not interactable via POD) when attempts >= 3
 //                    removed from DB only when verified OR server no longer
 //                    returns it (removeStaleLocalPending archives it)
-//   OSA            → visible while not archived (no date window)
+//   MISROUTED            → visible while not archived (no date window)
 //                    removed from DB only when server stops returning it
 //   DELIVERED      → visible only on the day of delivery (today-only window)
 //
@@ -64,7 +64,7 @@ int? _windowMs(int minutes) {
 }
 
 /// Returns true if [completedAt] is within a [windowMinutes] rolling window.
-/// Mirrors the logic in isVisibleToRider for FAILED_DELIVERY / OSA.
+/// Mirrors the logic in isVisibleToRider for FAILED_DELIVERY / MISROUTED.
 bool _withinWindow(int? completedAt, int windowMinutes) {
   final ms = _windowMs(windowMinutes);
   if (ms == null) return true; // no window = always within
@@ -78,7 +78,7 @@ bool _isVisible(
   LocalDelivery d, {
   int forDeliveryWindowMinutes = 0,
   int failedDeliveryWindowMinutes = 0,
-  int osaWindowMinutes = 0,
+  int misroutedWindowMinutes = 0,
 }) {
   if (d.isArchived) return false;
 
@@ -116,9 +116,9 @@ bool _isVisible(
       }
       // Visible even at 3+ attempts — locked but still shown in list.
       return true;
-    case 'OSA':
+    case 'MISROUTED':
       // Apply window if set (testing mode).
-      if (!_withinWindow(d.completedAt, osaWindowMinutes)) return false;
+      if (!_withinWindow(d.completedAt, misroutedWindowMinutes)) return false;
       return true;
     default:
       return false;
@@ -322,21 +322,21 @@ void main() {
     });
   });
 
-  // ── OSA ───────────────────────────────────────────────────────────────────
+  // ── MISROUTED ───────────────────────────────────────────────────────────────────
 
-  group('OSA (misrouted) visibility rules', () {
+  group('MISROUTED (misrouted) visibility rules', () {
     test('is visible when not archived', () {
-      final d = _makeDelivery(status: 'OSA');
+      final d = _makeDelivery(status: 'MISROUTED');
       expect(_isVisible(d), isTrue);
     });
 
     test('is NOT visible when archived (reassigned to another courier)', () {
-      final d = _makeDelivery(status: 'OSA', isArchived: true);
+      final d = _makeDelivery(status: 'MISROUTED', isArchived: true);
       expect(
         _isVisible(d),
         isFalse,
         reason:
-            'Archived OSA means the server no longer returns it — another '
+            'Archived MISROUTED means the server no longer returns it — another '
             'courier owns it',
       );
     });
@@ -344,17 +344,17 @@ void main() {
     test('persists across midnight — no date filter applied', () {
       final yesterday = DateTime.now().subtract(const Duration(days: 1));
       final yesterdayMs = yesterday.millisecondsSinceEpoch;
-      final d = _makeDelivery(status: 'OSA', completedAt: yesterdayMs);
+      final d = _makeDelivery(status: 'MISROUTED', completedAt: yesterdayMs);
       expect(
         _isVisible(d),
         isTrue,
-        reason: 'OSA items must not disappear after midnight',
+        reason: 'MISROUTED items must not disappear after midnight',
       );
     });
 
     test('persists even with completedAt from multiple days ago', () {
       final oldMs = DateTime(2026, 4, 15, 17, 40).millisecondsSinceEpoch;
-      final d = _makeDelivery(status: 'OSA', completedAt: oldMs);
+      final d = _makeDelivery(status: 'MISROUTED', completedAt: oldMs);
       expect(_isVisible(d), isTrue);
     });
   });
@@ -378,7 +378,7 @@ void main() {
 
   group('removeStaleLocalPending rules (pure-Dart simulation)', () {
     /// Simulates what removeStaleLocalPending does: archives barcodes for
-    /// FOR_DELIVERY, FAILED_DELIVERY, OSA that are absent from serverBarcodes,
+    /// FOR_DELIVERY, FAILED_DELIVERY, MISROUTED that are absent from serverBarcodes,
     /// skipping dirty records and DELIVERED items.
     Set<String> staleBarcodes({
       required Map<String, String> localItems, // barcode → status
@@ -386,7 +386,7 @@ void main() {
       required Set<String> serverBarcodes,
     }) {
       final stale = <String>{};
-      final actionable = {'FOR_DELIVERY', 'FAILED_DELIVERY', 'OSA'};
+      final actionable = {'FOR_DELIVERY', 'FAILED_DELIVERY', 'MISROUTED'};
       for (final entry in localItems.entries) {
         final barcode = entry.key;
         final status = entry.value.toUpperCase();
@@ -415,9 +415,9 @@ void main() {
       expect(stale, equals({'Y'}));
     });
 
-    test('OSA absent from server is stale', () {
+    test('MISROUTED absent from server is stale', () {
       final stale = staleBarcodes(
-        localItems: {'M': 'OSA', 'N': 'OSA'},
+        localItems: {'M': 'MISROUTED', 'N': 'MISROUTED'},
         dirtyBarcodes: {},
         serverBarcodes: {'M'},
       );
@@ -452,7 +452,11 @@ void main() {
 
     test('items present on server are NOT stale', () {
       final stale = staleBarcodes(
-        localItems: {'A': 'FOR_DELIVERY', 'B': 'FAILED_DELIVERY', 'C': 'OSA'},
+        localItems: {
+          'A': 'FOR_DELIVERY',
+          'B': 'FAILED_DELIVERY',
+          'C': 'MISROUTED',
+        },
         dirtyBarcodes: {},
         serverBarcodes: {'A', 'B', 'C'},
       );
@@ -466,7 +470,7 @@ void main() {
           localItems: {
             'GONE_PENDING': 'FOR_DELIVERY', // absent → stale
             'GONE_FAILED': 'FAILED_DELIVERY', // absent → stale
-            'GONE_OSA': 'OSA', // absent → stale
+            'GONE_MISROUTED': 'MISROUTED', // absent → stale
             'STILL_PENDING': 'FOR_DELIVERY', // present → safe
             'DELIVERED_ITEM': 'DELIVERED', // DELIVERED → never stale
             'DIRTY_GONE': 'FOR_DELIVERY', // dirty → never stale
@@ -474,96 +478,96 @@ void main() {
           dirtyBarcodes: {'DIRTY_GONE'},
           serverBarcodes: {'STILL_PENDING'},
         );
-        expect(stale, equals({'GONE_PENDING', 'GONE_FAILED', 'GONE_OSA'}));
+        expect(
+          stale,
+          equals({'GONE_PENDING', 'GONE_FAILED', 'GONE_MISROUTED'}),
+        );
       },
     );
   });
 
   // ── LocalDelivery.fromApiItem — completedAt for terminal statuses ────────
 
-  group(
-    'LocalDelivery.fromApiItem — completedAt is set for terminal statuses',
-    () {
-      final beforeCall = DateTime.now().millisecondsSinceEpoch;
+  group('LocalDelivery.fromApiItem — completedAt is set for terminal statuses', () {
+    final beforeCall = DateTime.now().millisecondsSinceEpoch;
 
-      test('FAILED_DELIVERY sets completedAt to now', () {
-        final d = LocalDelivery.fromApiItem({
-          'barcode': 'FD001',
-          'delivery_status': 'FAILED_DELIVERY',
-        }, serverStatus: 'FAILED_DELIVERY');
-        expect(d.completedAt, isNotNull);
-        expect(d.completedAt, greaterThanOrEqualTo(beforeCall));
-      });
+    test('FAILED_DELIVERY sets completedAt to now', () {
+      final d = LocalDelivery.fromApiItem({
+        'barcode': 'FD001',
+        'delivery_status': 'FAILED_DELIVERY',
+      }, serverStatus: 'FAILED_DELIVERY');
+      expect(d.completedAt, isNotNull);
+      expect(d.completedAt, greaterThanOrEqualTo(beforeCall));
+    });
 
-      test('OSA sets completedAt to now', () {
-        final d = LocalDelivery.fromApiItem({
-          'barcode': 'OSA001',
-          'delivery_status': 'OSA',
-        }, serverStatus: 'OSA');
-        expect(d.completedAt, isNotNull);
-        expect(d.completedAt, greaterThanOrEqualTo(beforeCall));
-      });
+    test('MISROUTED sets completedAt to now', () {
+      final d = LocalDelivery.fromApiItem({
+        'barcode': 'MISROUTED001',
+        'delivery_status': 'MISROUTED',
+      }, serverStatus: 'MISROUTED');
+      expect(d.completedAt, isNotNull);
+      expect(d.completedAt, greaterThanOrEqualTo(beforeCall));
+    });
 
-      test('DELIVERED sets completedAt and deliveredAt', () {
-        final d = LocalDelivery.fromApiItem({
-          'barcode': 'DEL001',
-          'delivery_status': 'DELIVERED',
-          'delivered_date': '2026-04-28T23:34:55.000000Z',
-        }, serverStatus: 'DELIVERED');
-        expect(d.completedAt, isNotNull);
-        expect(d.deliveredAt, isNotNull);
-      });
+    test('DELIVERED sets completedAt and deliveredAt', () {
+      final d = LocalDelivery.fromApiItem({
+        'barcode': 'DEL001',
+        'delivery_status': 'DELIVERED',
+        'delivered_date': '2026-04-28T23:34:55.000000Z',
+      }, serverStatus: 'DELIVERED');
+      expect(d.completedAt, isNotNull);
+      expect(d.deliveredAt, isNotNull);
+    });
 
-      test('FOR_DELIVERY does NOT set completedAt', () {
-        final d = LocalDelivery.fromApiItem({
-          'barcode': 'FWD001',
-          'delivery_status': 'FOR_DELIVERY',
-        }, serverStatus: 'FOR_DELIVERY');
-        expect(d.completedAt, isNull);
-      });
+    test('FOR_DELIVERY does NOT set completedAt', () {
+      final d = LocalDelivery.fromApiItem({
+        'barcode': 'FWD001',
+        'delivery_status': 'FOR_DELIVERY',
+      }, serverStatus: 'FOR_DELIVERY');
+      expect(d.completedAt, isNull);
+    });
 
-      // Critical regression: completedAt being set to "old date" must not cause
-      // items to disappear. Since we removed the completed_at date filter for
-      // FAILED_DELIVERY and OSA, this is now safe — but test it anyway.
-      test(
-        'OSA with old completedAt (April) remains visible — no date filter',
-        () {
-          final aprilMs = DateTime(
-            2026,
-            4,
-            15,
-            17,
-            40,
-            52,
-          ).millisecondsSinceEpoch;
-          final d = _makeDelivery(status: 'OSA', completedAt: aprilMs);
-          // The visibility helper does not check completedAt for OSA.
-          expect(_isVisible(d), isTrue);
-        },
-      );
+    // Critical regression: completedAt being set to "old date" must not cause
+    // items to disappear. Since we removed the completed_at date filter for
+    // FAILED_DELIVERY and MISROUTED, this is now safe — but test it anyway.
+    test(
+      'MISROUTED with old completedAt (April) remains visible — no date filter',
+      () {
+        final aprilMs = DateTime(
+          2026,
+          4,
+          15,
+          17,
+          40,
+          52,
+        ).millisecondsSinceEpoch;
+        final d = _makeDelivery(status: 'MISROUTED', completedAt: aprilMs);
+        // The visibility helper does not check completedAt for MISROUTED.
+        expect(_isVisible(d), isTrue);
+      },
+    );
 
-      test(
-        'FAILED_DELIVERY with old completedAt (April) remains visible — no date filter',
-        () {
-          final aprilMs = DateTime(
-            2026,
-            4,
-            15,
-            17,
-            44,
-            37,
-          ).millisecondsSinceEpoch;
-          final d = _makeDelivery(
-            status: 'FAILED_DELIVERY',
-            failedDeliveryCount: 2,
-            rtsVerificationStatus: 'unvalidated',
-            completedAt: aprilMs,
-          );
-          expect(_isVisible(d), isTrue);
-        },
-      );
-    },
-  );
+    test(
+      'FAILED_DELIVERY with old completedAt (April) remains visible — no date filter',
+      () {
+        final aprilMs = DateTime(
+          2026,
+          4,
+          15,
+          17,
+          44,
+          37,
+        ).millisecondsSinceEpoch;
+        final d = _makeDelivery(
+          status: 'FAILED_DELIVERY',
+          failedDeliveryCount: 2,
+          rtsVerificationStatus: 'unvalidated',
+          completedAt: aprilMs,
+        );
+        expect(_isVisible(d), isTrue);
+      },
+    );
+  });
 
   // ── API data from user report ──────────────────────────────────────────────
 
@@ -616,24 +620,24 @@ void main() {
       });
     }
 
-    // OSA items from the live API
-    final osaItems = [
+    // MISROUTED items from the live API
+    final misroutedItems = [
       'B281613SA47002', // transaction_at: 2026-04-15 (old date!)
       'B281613SO47017', // transaction_at: 2026-04-28
     ];
 
-    for (final barcode in osaItems) {
+    for (final barcode in misroutedItems) {
       test(
-        'OSA $barcode is visible (regardless of original transaction date)',
+        'MISROUTED $barcode is visible (regardless of original transaction date)',
         () {
           // Simulate old completedAt from April
           final aprilMs = DateTime(2026, 4, 15).millisecondsSinceEpoch;
-          final d = _makeDelivery(status: 'OSA', completedAt: aprilMs);
+          final d = _makeDelivery(status: 'MISROUTED', completedAt: aprilMs);
           expect(
             _isVisible(d),
             isTrue,
             reason:
-                'OSA items from April must still show in May since they are '
+                'MISROUTED items from April must still show in May since they are '
                 'not yet reassigned',
           );
         },
@@ -643,7 +647,7 @@ void main() {
 
   // ── Visibility window config (dart-define / config.dart) ─────────────────
   //
-  // Tests for kFailedDeliveryVisibilityWindowMinutes / kOsaVisibilityWindowMinutes.
+  // Tests for kFailedDeliveryVisibilityWindowMinutes / kMisroutedVisibilityWindowMinutes.
   // These run against the pure-Dart mirrors of the DAO logic (_withinWindow,
   // _windowMs) because the actual constants are compile-time (dart-define).
   //
@@ -845,13 +849,13 @@ void main() {
     );
   });
 
-  group('Visibility window — OSA (testing mode simulation)', () {
+  group('Visibility window — MISROUTED (testing mode simulation)', () {
     test(
       'window=0 min: item from April still visible (production behaviour)',
       () {
         final aprilMs = DateTime(2026, 4, 15).millisecondsSinceEpoch;
-        final d = _makeDelivery(status: 'OSA', completedAt: aprilMs);
-        expect(_isVisible(d, osaWindowMinutes: 0), isTrue);
+        final d = _makeDelivery(status: 'MISROUTED', completedAt: aprilMs);
+        expect(_isVisible(d, misroutedWindowMinutes: 0), isTrue);
       },
     );
 
@@ -859,54 +863,63 @@ void main() {
       final thirtyMinAgo = DateTime.now()
           .subtract(const Duration(minutes: 30))
           .millisecondsSinceEpoch;
-      final d = _makeDelivery(status: 'OSA', completedAt: thirtyMinAgo);
-      expect(_isVisible(d, osaWindowMinutes: 60), isTrue);
+      final d = _makeDelivery(status: 'MISROUTED', completedAt: thirtyMinAgo);
+      expect(_isVisible(d, misroutedWindowMinutes: 60), isTrue);
     });
 
     test('window=60 min: item completed 2h ago is NOT visible', () {
       final twoHoursAgo = DateTime.now()
           .subtract(const Duration(hours: 2))
           .millisecondsSinceEpoch;
-      final d = _makeDelivery(status: 'OSA', completedAt: twoHoursAgo);
+      final d = _makeDelivery(status: 'MISROUTED', completedAt: twoHoursAgo);
       expect(
-        _isVisible(d, osaWindowMinutes: 60),
+        _isVisible(d, misroutedWindowMinutes: 60),
         isFalse,
-        reason: 'Window expired — OSA should disappear from list',
+        reason: 'Window expired — MISROUTED should disappear from list',
       );
     });
 
-    test('window active: archived OSA is still NOT visible (archive wins)', () {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final d = _makeDelivery(
-        status: 'OSA',
-        completedAt: nowMs,
-        isArchived: true,
-      );
-      expect(_isVisible(d, osaWindowMinutes: 60), isFalse);
-    });
+    test(
+      'window active: archived MISROUTED is still NOT visible (archive wins)',
+      () {
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final d = _makeDelivery(
+          status: 'MISROUTED',
+          completedAt: nowMs,
+          isArchived: true,
+        );
+        expect(_isVisible(d, misroutedWindowMinutes: 60), isFalse);
+      },
+    );
 
     test('window=30 min: item completed 29 min ago is visible', () {
       final twentyNineMinAgo = DateTime.now()
           .subtract(const Duration(minutes: 29))
           .millisecondsSinceEpoch;
-      final d = _makeDelivery(status: 'OSA', completedAt: twentyNineMinAgo);
-      expect(_isVisible(d, osaWindowMinutes: 30), isTrue);
+      final d = _makeDelivery(
+        status: 'MISROUTED',
+        completedAt: twentyNineMinAgo,
+      );
+      expect(_isVisible(d, misroutedWindowMinutes: 30), isTrue);
     });
 
     test('window=30 min: item completed 31 min ago is NOT visible', () {
       final thirtyOneMinAgo = DateTime.now()
           .subtract(const Duration(minutes: 31))
           .millisecondsSinceEpoch;
-      final d = _makeDelivery(status: 'OSA', completedAt: thirtyOneMinAgo);
-      expect(_isVisible(d, osaWindowMinutes: 30), isFalse);
+      final d = _makeDelivery(
+        status: 'MISROUTED',
+        completedAt: thirtyOneMinAgo,
+      );
+      expect(_isVisible(d, misroutedWindowMinutes: 30), isFalse);
     });
 
     test('window=1 min: item completed 30 s ago is visible', () {
       final thirtySecAgo = DateTime.now()
           .subtract(const Duration(seconds: 30))
           .millisecondsSinceEpoch;
-      final d = _makeDelivery(status: 'OSA', completedAt: thirtySecAgo);
-      expect(_isVisible(d, osaWindowMinutes: 1), isTrue);
+      final d = _makeDelivery(status: 'MISROUTED', completedAt: thirtySecAgo);
+      expect(_isVisible(d, misroutedWindowMinutes: 1), isTrue);
     });
   });
 
@@ -928,14 +941,14 @@ void main() {
       );
     });
 
-    test('default kOsaVisibilityWindowMinutes is 0 (no window)', () {
+    test('default kMisroutedVisibilityWindowMinutes is 0 (no window)', () {
       expect(
         _windowMs(0),
         isNull,
         reason:
             'Production default must be 0 (no expiry). '
             'If this fails, check dart_defines.json and ensure '
-            'OSA_VISIBILITY_MINUTES is 0.',
+            'MISROUTED_VISIBILITY_MINUTES is 0.',
       );
     });
 
@@ -956,15 +969,15 @@ void main() {
       );
     });
 
-    test('OSA with April completedAt and window=0 is visible', () {
+    test('MISROUTED with April completedAt and window=0 is visible', () {
       // Regression lock: this exact scenario was the original bug.
       final aprilMs = DateTime(2026, 4, 15, 17, 40, 52).millisecondsSinceEpoch;
-      final d = _makeDelivery(status: 'OSA', completedAt: aprilMs);
+      final d = _makeDelivery(status: 'MISROUTED', completedAt: aprilMs);
       expect(
-        _isVisible(d, osaWindowMinutes: 0),
+        _isVisible(d, misroutedWindowMinutes: 0),
         isTrue,
         reason:
-            'With no window (production default), April OSA items must '
+            'With no window (production default), April MISROUTED items must '
             'still be visible in May.',
       );
     });

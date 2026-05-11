@@ -14,9 +14,12 @@ void main() {
         );
       });
 
-      test('Given status OSA, when checked, then returns true', () {
+      test('Given status MISROUTED, when checked, then returns true', () {
         expect(
-          checkIsLocked(status: 'OSA', rtsVerificationStatus: 'unvalidated'),
+          checkIsLocked(
+            status: 'MISROUTED',
+            rtsVerificationStatus: 'unvalidated',
+          ),
           true,
         );
       });

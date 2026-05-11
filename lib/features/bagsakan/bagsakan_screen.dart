@@ -8,8 +8,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
+
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -111,19 +111,8 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                   ),
                   data: (groups) {
                     if (groups.isEmpty) {
-                      return ListView(
-                        children: [
-                          SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.7,
-                            child: EmptyState(
-                              message: 'bagsakan.empty_list'.tr(),
-                              icon: Icons.inventory_2_outlined,
-                              iconColor: isDark
-                                  ? DSColors.labelSecondaryDark
-                                  : DSColors.labelSecondary,
-                            ).dsFadeEntry(),
-                          ),
-                        ],
+                      return BagsakanListEmptyState(
+                        message: 'bagsakan.empty_list'.tr(),
                       );
                     }
 

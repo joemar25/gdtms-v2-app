@@ -508,8 +508,8 @@ class _DateStripWithDeliveriesState extends State<DateStripWithDeliveries> {
                               .toLowerCase();
                       String msg =
                           'This delivery is ${s.toLowerCase()} and cannot be opened.';
-                      if (s == 'OSA') {
-                        msg = 'This item is marked OSA and cannot be opened.';
+                      if (s == 'MISROUTED') {
+                        msg = 'This item is marked MISROUTED and cannot be opened.';
                       } else if (s == 'DELIVERED') {
                         msg =
                             'This item has already been delivered and is locked.';

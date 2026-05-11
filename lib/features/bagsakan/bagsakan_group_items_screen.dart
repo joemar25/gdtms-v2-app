@@ -9,7 +9,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
-import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
@@ -452,20 +451,9 @@ class _BagsakanGroupItemsScreenState
                   ref.read(deliveryRefreshProvider.notifier).increment();
                 },
                 child: _items.isEmpty && !_isLoading
-                    ? ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: [
-                          SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.7,
-                            child: EmptyState(
-                              message: 'bagsakan.no_items'.tr(),
-                              icon: Icons.inventory_2_outlined,
-                              iconColor: isDark
-                                  ? DSColors.labelSecondaryDark
-                                  : DSColors.labelSecondary,
-                            ).dsFadeEntry(),
-                          ),
-                        ],
+                    ? BagsakanListEmptyState(
+                        message: 'bagsakan.no_items'.tr(),
+                        subMessage: 'bagsakan.no_items_hint'.tr(),
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(
@@ -516,9 +504,9 @@ class _BagsakanGroupItemsScreenState
                                       if (ds == DeliveryStatus.delivered) {
                                         msg =
                                             'This item has already been delivered and is locked.';
-                                      } else if (ds == DeliveryStatus.osa) {
-                                        msg =
-                                            'This item is marked OSA and cannot be opened.';
+                                      } else if (ds ==
+                                          DeliveryStatus.misrouted) {
+                                        msg = 'sync.list.locked_misrouted'.tr();
                                       } else if (ds ==
                                           DeliveryStatus.failedDelivery) {
                                         msg =

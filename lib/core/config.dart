@@ -146,20 +146,20 @@ const bool kEnableGlobalSearch = bool.fromEnvironment(
 //
 //   FOR_DELIVERY   → visible forever until archived by the server.
 //   FAILED_DELIVERY→ visible forever until verified by hub OR archived.
-//   OSA            → visible forever until archived by the server.
+//   MISROUTED      → visible forever until archived by the server.
 //   DELIVERED      → ALWAYS today-only (not configurable — payout law).
 //
 // ## Testing rules (set window > 0)
 //
 //   A positive value N means: show the item for N hours from its
-//   `completed_at` timestamp (FAILED_DELIVERY, OSA) or from `created_at`
+//   `completed_at` timestamp (FAILED_DELIVERY, MISROUTED) or from `created_at`
 //   (FOR_DELIVERY). After N hours the item is filtered from the list query
 //   as if it had been archived, without touching the database.
 //
 //   Example — simulate midnight clearing at 1 hour window:
 //     dart_defines.json:
 //       "FAILED_DELIVERY_VISIBILITY_MINUTES": 60
-//       "OSA_VISIBILITY_MINUTES": 60
+//       "MISROUTED_VISIBILITY_MINUTES": 60
 //
 //   Example — simulate a 1-minute test window (fastest test):
 //     flutter run --dart-define=FAILED_DELIVERY_VISIBILITY_MINUTES=1 ...
@@ -184,12 +184,12 @@ const int kFailedDeliveryVisibilityWindowMinutes = int.fromEnvironment(
   defaultValue: 0,
 );
 
-/// Visibility window for OSA items, in **minutes**.
+/// Visibility window for MISROUTED items, in **minutes**.
 ///
 /// - `0` = no window (production default — items persist until archived).
 /// - `60` = items disappear 60 min after their `completed_at` timestamp.
-const int kOsaVisibilityWindowMinutes = int.fromEnvironment(
-  'OSA_VISIBILITY_MINUTES',
+const int kMisroutedVisibilityWindowMinutes = int.fromEnvironment(
+  'MISROUTED_VISIBILITY_MINUTES',
   defaultValue: 0,
 );
 
@@ -208,7 +208,7 @@ const int kForDeliveryVisibilityWindowMinutes = int.fromEnvironment(
 /// Useful for logging / asserting that production builds are always clean.
 const bool kVisibilityWindowsActive =
     kFailedDeliveryVisibilityWindowMinutes > 0 ||
-    kOsaVisibilityWindowMinutes > 0 ||
+    kMisroutedVisibilityWindowMinutes > 0 ||
     kForDeliveryVisibilityWindowMinutes > 0;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -218,6 +218,44 @@ const String kDeveloperPassword = String.fromEnvironment(
   'PASSWORD',
   defaultValue: '',
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Delivery Rules
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Maximum number of delivery attempts allowed for an item to remain
+/// "valid for delivery".
+///
+/// If an item reaches this number of attempts in FAILED_DELIVERY status,
+/// it becomes terminal (RTS).
+const int kMaxDeliveryAttempts = 3;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Delivery Status Codes (Canonical)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const String kStatusForDelivery = 'FOR_DELIVERY';
+const String kStatusForRedelivery = 'FOR_REDELIVERY';
+const String kStatusFailedDelivery = 'FAILED_DELIVERY';
+const String kStatusDelivered = 'DELIVERED';
+const String kStatusMisrouted = 'MISROUTED';
+const String kStatusDispatched = 'DISPATCHED';
+const String kStatusPending = 'PENDING';
+const String kStatusRts = 'RTS';
+
+/// Statuses that are potentially valid for delivery.
+/// Note: FAILED_DELIVERY is only valid if attempts < [kMaxDeliveryAttempts].
+const List<String> kValidForDeliveryStatuses = [
+  kStatusForDelivery,
+  kStatusForRedelivery,
+  kStatusFailedDelivery,
+];
+
+/// Statuses that are considered terminal and no longer valid for delivery.
+const List<String> kTerminalDeliveryStatuses = [
+  kStatusDelivered,
+  kStatusMisrouted,
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Debug Mode

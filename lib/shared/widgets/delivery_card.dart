@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
@@ -67,7 +68,7 @@ class DeliveryCard extends StatefulWidget {
       DeliveryStatus.pending => Icons.schedule_rounded,
       DeliveryStatus.delivered => Icons.check_circle_rounded,
       DeliveryStatus.failedDelivery => Icons.assignment_return_rounded,
-      DeliveryStatus.osa => Icons.inventory_2_rounded,
+      DeliveryStatus.misrouted => Icons.inventory_2_rounded,
       _ => Icons.help_outline_rounded,
     };
   }
@@ -161,7 +162,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
             completedAt < tomorrowStart &&
             !isFailedWithPay &&
             !isFailedNoPay;
-      } else if (ds == DeliveryStatus.osa) {
+      } else if (ds == DeliveryStatus.misrouted) {
         final completedAt = delivery['_completed_at'] as int? ?? 0;
         isVisible = completedAt >= todayStart && completedAt < tomorrowStart;
       }
@@ -332,20 +333,24 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                             : 'ATTEMPTS: $attemptsCount',
                                         icon: Icons.autorenew_rounded,
                                         bg:
-                                            (attemptsCount >= 3
+                                            (attemptsCount >=
+                                                        kMaxDeliveryAttempts
                                                     ? DSColors.error
                                                     : DSColors.warning)
                                                 .withValues(
                                                   alpha: DSStyles.alphaSubtle,
                                                 ),
                                         border:
-                                            (attemptsCount >= 3
+                                            (attemptsCount >=
+                                                        kMaxDeliveryAttempts
                                                     ? DSColors.error
                                                     : DSColors.warning)
                                                 .withValues(
                                                   alpha: DSStyles.alphaMuted,
                                                 ),
-                                        fg: attemptsCount >= 3
+                                        fg:
+                                            attemptsCount >=
+                                                kMaxDeliveryAttempts
                                             ? DSColors.error
                                             : DSColors.warning,
                                       ),
@@ -958,7 +963,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                 label: ds == DeliveryStatus.delivered
                                     ? 'FA:$attemptsCount'
                                     : 'A:$attemptsCount',
-                                color: attemptsCount >= 3
+                                color: attemptsCount >= kMaxDeliveryAttempts
                                     ? DSColors.error
                                     : DSColors.pending,
                               ),

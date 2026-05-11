@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card_components.dart';
+import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 
 /// A premium card representing a Bagsakan group, following the DeliveryCard UI style.
 class BagsakanGroupCard extends StatelessWidget {
@@ -448,6 +449,52 @@ class _BagsakanHelpItem extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────
+// MARK: Empty State
+// ─────────────────────────────────────────────────
+
+/// Empty / no-results placeholder for Bagsakan screens.
+///
+/// Wrapped in a scrollable [ListView] so pull-to-refresh works even when
+/// there are zero items. Matches the standard [DeliveryListEmptyState] style.
+class BagsakanListEmptyState extends StatelessWidget {
+  const BagsakanListEmptyState({
+    super.key,
+    required this.message,
+    this.subMessage,
+    this.isSearching = false,
+  });
+
+  final String message;
+  final String? subMessage;
+  final bool isSearching;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final statusColor = DSColors.primary;
+    final iconData = isSearching
+        ? Icons.search_off_rounded
+        : Icons.inventory_2_outlined;
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: EmptyState(
+            message: message,
+            subMessage: subMessage ?? 'empty_states.pull_to_refresh'.tr(),
+            icon: iconData,
+            iconColor: isDark ? DSColors.primaryDark : statusColor,
+          ).dsFadeEntry(),
         ),
       ],
     );

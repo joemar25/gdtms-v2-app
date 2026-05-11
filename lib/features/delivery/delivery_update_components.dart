@@ -47,7 +47,7 @@ final _kStatusMeta = {
     icon: Icons.keyboard_return_rounded,
     color: DSColors.error,
   ),
-  DeliveryStatus.osa.toApiString(): (
+  DeliveryStatus.misrouted.toApiString(): (
     label: 'MISROUTED',
     icon: Icons.inbox_rounded,
     color: DSColors.warning,

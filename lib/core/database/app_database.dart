@@ -212,7 +212,7 @@ class AppDatabase {
     }
     if (oldVersion < 6) {
       // v6: add completed_at to local_deliveries.
-      // This timestamp is used for all terminal statuses (delivered, failed-delivery, osa)
+      // This timestamp is used for all terminal statuses (delivered, failed-delivery, misrouted)
       // so that the today-only filter can be applied consistently across
       // all of them.
       await addColumn(
@@ -222,7 +222,7 @@ class AppDatabase {
       try {
         await db.execute(
           "UPDATE local_deliveries SET completed_at = COALESCE(delivered_at, updated_at) "
-          "WHERE delivery_status IN ('delivered', 'FAILED_DELIVERY', 'osa')",
+          "WHERE delivery_status IN ('delivered', 'FAILED_DELIVERY', 'MISROUTED')",
         );
       } catch (e) {
         debugPrint('[DB] Migration warning (backfill completed_at): $e');

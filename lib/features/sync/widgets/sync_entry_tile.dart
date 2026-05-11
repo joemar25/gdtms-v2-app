@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -194,11 +195,12 @@ class SyncEntryTile extends StatelessWidget {
                     String msg = 'sync.list.locked_general'.tr(
                       args: [currentStatus.toLowerCase()],
                     );
-                    if (s == 'OSA') {
-                      msg = 'sync.list.locked_osa'.tr();
+                    if (s == kStatusMisrouted) {
+                      msg = 'sync.list.locked_misrouted'.tr();
                     } else if (s == 'DELIVERED') {
                       msg = 'sync.list.locked_delivered'.tr();
-                    } else if (s == 'FAILED_DELIVERY' && attemptsCount >= 3) {
+                    } else if (s == 'FAILED_DELIVERY' &&
+                        attemptsCount >= kMaxDeliveryAttempts) {
                       msg = 'sync.list.locked_failed_max'.tr();
                     } else if (s == 'FAILED_DELIVERY' &&
                         (v == 'verified_with_pay' || v == 'verified_no_pay')) {
@@ -558,7 +560,7 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ds = DeliveryStatus.fromString(status);
-    final (bg, fg, label) = switch (ds) {
+    final (Color bg, Color fg, String label) = switch (ds) {
       DeliveryStatus.delivered => (
         DSColors.successSurface,
         DSColors.successText,
@@ -574,10 +576,10 @@ class _StatusBadge extends StatelessWidget {
         DSColors.errorText,
         DeliveryStatus.failedDelivery.displayName.toUpperCase(),
       ),
-      DeliveryStatus.osa => (
+      DeliveryStatus.misrouted => (
         DSColors.warningSurface,
         DSColors.warningText,
-        DeliveryStatus.osa.displayName.toUpperCase(),
+        DeliveryStatus.misrouted.displayName.toUpperCase(),
       ),
       _ => (
         Theme.of(context).brightness == Brightness.dark

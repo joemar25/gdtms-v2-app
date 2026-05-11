@@ -104,7 +104,7 @@ Action now shifts to **mobile consumption/integration** of these documented cont
    - `GET /api/mbl/dispatches`: Include `bagsakan_id` and `is_bagsakan: true` flag for pre-grouped dispatches.
    - `POST /api/mbl/dispatches/{id}/accept`: When accepting a Bagsakan dispatch, the server must automatically link all associated deliveries to the `bagsakan_id` in the courier's context.
 5. **Visibility Hard Gate (MANDATORY)**:
-   - **Dashboard Summary**: `GET /api/mbl/dashboard-summary` must exclude deliveries with a `bagsakan_id` from standard counts (Pending, Failed, etc.).
+   - **Dashboard Summary**: `GET /api/mbl/dashboard-summary` must exclude deliveries with a `bagsakan_id` from standard counts (Pending, Failed, Misrouted, etc.).
    - **Deliveries List**: `GET /api/mbl/deliveries` must strictly exclude items assigned to any `bagsakan_id` to prevent redundant courier workflow.
 6. **Case-Insensitivity**:
    - All barcode matching for assignment/unassignment must use `COLLATE NOCASE` (or equivalent) to ensure resilience against scanner case discrepancies.

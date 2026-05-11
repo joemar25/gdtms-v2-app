@@ -12,7 +12,7 @@
 //
 // Components:
 //   • [DeliveryListEmptyState]      — empty / no-results placeholder
-//   • [DeliveryStatusInfoBanner]    — immutable-status info strip (OSA / Delivered)
+//   • [DeliveryStatusInfoBanner]    — immutable-status info strip (Misrouted / Delivered)
 //   • [FailedDeliveryHelpSheet]     — bottom sheet explaining FD workflow & payments
 // =============================================================================
 
@@ -74,7 +74,7 @@ class DeliveryListEmptyState extends StatelessWidget {
 // ─────────────────────────────────────────────────
 
 /// Inline banner shown at the top of a delivery list to communicate that
-/// items in that status are immutable (OSA, Delivered).
+/// items in that status are immutable (Misrouted, Delivered).
 class DeliveryStatusInfoBanner extends StatelessWidget {
   const DeliveryStatusInfoBanner({
     super.key,

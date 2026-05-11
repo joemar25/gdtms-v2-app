@@ -697,12 +697,9 @@ class BagsakanDao {
     final deliveries = maps.map((e) => LocalDelivery.fromDb(e)).toList();
 
     if (eligibleOnly) {
-      // Post-filter: enforce "< 3 attempts" for failed deliveries.
+      // Post-filter: enforce "< kMaxDeliveryAttempts attempts" for failed deliveries.
       // This logic is mirrored from LocalDeliveryDao.searchVisibleByQuery.
-      return deliveries.where((d) {
-        if (d.deliveryStatus.toUpperCase() != 'FAILED_DELIVERY') return true;
-        return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
-      }).toList();
+      return deliveries.where((d) => d.isValidForDelivery).toList();
     }
 
     return deliveries;
@@ -736,11 +733,8 @@ class BagsakanDao {
     final deliveries = maps.map((e) => LocalDelivery.fromDb(e)).toList();
 
     if (eligibleOnly) {
-      // Post-filter: enforce "< 3 attempts" for failed deliveries.
-      return deliveries.where((d) {
-        if (d.deliveryStatus.toUpperCase() != 'FAILED_DELIVERY') return true;
-        return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
-      }).toList();
+      // Post-filter: enforce "< kMaxDeliveryAttempts attempts" for failed deliveries.
+      return deliveries.where((d) => d.isValidForDelivery).toList();
     }
 
     return deliveries;

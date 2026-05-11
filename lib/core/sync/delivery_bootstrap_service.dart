@@ -18,18 +18,18 @@ import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 /// When online, every locally-pending barcode is checked against the server
 /// immediately before the full sync. If the server's current pending list does
 /// NOT contain a barcode, its individual detail is fetched (GET /deliveries/:barcode)
-/// to determine whether it was updated (delivered/failed-delivery/osa) or removed entirely.
+/// to determine whether it was updated (delivered/failed-delivery/misrouted) or removed entirely.
 /// This ensures that manual web-app status changes are reflected without waiting
 /// for the full status sweep.
 ///
 /// ### Rule 2 — Never downgrade a courier's local delivery
-/// If the courier has recorded a terminal status (delivered/failed-delivery/osa) locally,
+/// If the courier has recorded a terminal status (delivered/failed-delivery/misrouted) locally,
 /// a server-returning-pending response does NOT overwrite it. The courier's
 /// own action is trusted until the server's terminal record wins.
 ///
 /// ### Rule 3 — Accept server authority for terminal status changes
 /// If the SERVER returns an item with a different terminal status than what is
-/// stored locally (e.g., web admin changed failed_delivery → osa), the local record is
+/// stored locally (e.g., web admin changed failed_delivery → misrouted), the local record is
 /// updated to match.
 ///
 /// ### Rule 4 — Remove genuinely gone items
@@ -48,7 +48,7 @@ class DeliveryBootstrapService {
   static final List<String> _statuses = [
     DeliveryStatus.pending.toApiString(), // 'FOR_DELIVERY' — new standard
     DeliveryStatus.failedDelivery.toApiString(), // 'FAILED_DELIVERY'
-    DeliveryStatus.osa.toApiString(), // 'OSA'
+    DeliveryStatus.misrouted.toApiString(), // 'MISROUTED'
     DeliveryStatus.delivered.toApiString(), // 'DELIVERED'
   ];
 
@@ -94,7 +94,7 @@ class DeliveryBootstrapService {
       const statusLabels = {
         'FOR_DELIVERY': 'Fetching for-delivery items...',
         'FAILED_DELIVERY': 'Fetching failed deliveries...',
-        'OSA': 'Fetching OSA orders...',
+        'MISROUTED': 'Fetching MISROUTED orders...',
         'DELIVERED': 'Fetching delivered orders...',
       };
 

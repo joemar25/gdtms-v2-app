@@ -7,7 +7,7 @@
 //
 // Purpose:
 //   The primary action screen where a courier marks a delivery as DELIVERED,
-//   FAILED_DELIVERY (Failed Delivery), or OSA (Out of Serviceable Area). All form data is
+//   FAILED_DELIVERY (Failed Delivery), or MISROUTED. All form data is
 //   immediately persisted to the local sync queue — no live network call is
 //   made at submission time — making the flow fully offline-capable.
 //
@@ -15,7 +15,7 @@
 //   DELIVERED — Recipient name, relationship, placement type, POD photo,
 //               selfie photo, recipient signature (optional), note.
 //   FAILED_DELIVERY — Reason, selfie photo, note.
-//   OSA             — Reason, selfie photo, note.
+//   MISROUTED       — Reason, selfie photo, note.
 //
 // Offline-first flow:
 //   1. Courier fills the form and taps SUBMIT.
@@ -136,10 +136,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   DeliveryStatus get _ds => DeliveryStatus.fromString(_status);
   bool get _isDelivered => _ds == DeliveryStatus.delivered;
   bool get _isFailedDelivery => _ds == DeliveryStatus.failedDelivery;
-  bool get _isOsa => _ds == DeliveryStatus.osa;
+  bool get _isMisrouted => _ds == DeliveryStatus.misrouted;
 
   /// True for statuses that require a non-delivery reason + selfie.
-  bool get _isNonDelivered => _isFailedDelivery || _isOsa;
+  bool get _isNonDelivered => _isFailedDelivery || _isMisrouted;
 
   /// Returns true if this is an EXPRESS delivery.
   /// EXPRESS deliveries have restricted placement types (e.g. no mailbox).
@@ -169,7 +169,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   PhotoEntry? _podPhoto;
   PhotoEntry? _selfiePhoto;
 
-  // Non-delivered photos (failed delivery / osa) — camera + gallery, free type
+  // Non-delivered photos (failed delivery / misrouted) — camera + gallery, free type
   final _photos = <PhotoEntry>[];
 
   // Signature file path for delivered status
@@ -181,7 +181,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   // "According to" informant name (required for FAILED_DELIVERY reasons with requiresAccordingTo)
   final _accordingTo = TextEditingController();
 
-  // OSA mailpack photo (required for MISROUTED)
+  // Misrouted mailpack photo (required for MISROUTED)
   PhotoEntry? _mailpackPhoto;
 
   // Delivery confirmation code (required for DELIVERED, 6-char alphanumeric, all caps)
@@ -500,7 +500,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     }
   }
 
-  Future<void> _pickSelfieForFailedDeliveryOsa() async =>
+  Future<void> _pickSelfieForFailedDelivery() async =>
       _pickPhotoForSlot('selfie', source: ImageSource.camera);
 
   // ── Signature capture ─────────────────────────────────────────────────────
@@ -562,7 +562,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             'delivery_update.validation.confirmation_code_required'.tr();
       }
     }
-    if (_isOsa && _mailpackPhoto == null) {
+    if (_isMisrouted && _mailpackPhoto == null) {
       _errors['mailpack_photo'] =
           'delivery_update.validation.mailpack_photo_required'.tr();
     }
@@ -592,7 +592,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     if (!_validate()) return;
     setState(() => _loading = true);
     // RULE: Even if it's a Bagsakan delivery, we must lock it if the individual
-    // item is already in a terminal/sealed state (Delivered, OSA, Verified Failed).
+    // item is already in a terminal/sealed state (Delivered, Misrouted, Verified Failed).
     final testMap = Map<String, dynamic>.from(_delivery)..remove('bagsakan_id');
     if (checkIsLockedFromMap(testMap)) {
       setState(() => _loading = false);
@@ -644,7 +644,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       payload['relationship'] = resolvedRelationship;
       payload['placement_type'] = _placement;
       payload['delivery_confirmation_code'] = _confirmationCode.text.trim();
-    } else if (_isOsa) {
+    } else if (_isMisrouted) {
       if (_mailpackPhoto != null) {
         pendingMediaPaths['mailpack'] = _mailpackPhoto!.file;
       }
@@ -897,8 +897,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     final List<String> notePresets;
     if (_isDelivered) {
       notePresets = kDeliveredNotePresets;
-    } else if (_isOsa) {
-      notePresets = kOsaConfig.remarksPresets;
+    } else if (_isMisrouted) {
+      notePresets = kMisroutedConfig.remarksPresets;
     } else {
       notePresets =
           (_reason != null ? kReasonConfigs[_reason]?.remarksPresets : null) ??
@@ -1182,8 +1182,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     ),
                                   ],
 
-                                  // ── MAILPACK PHOTO (misrouted / osa) ─────────────────
-                                  if (_isOsa) ...[
+                                  // ── MAILPACK PHOTO (misrouted) ─────────────────
+                                  if (_isMisrouted) ...[
                                     _kSectionGap,
                                     DeliverySectionHeader(
                                       label:
@@ -1226,7 +1226,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       color: DSColors.labelSecondary,
                                       isDark: isDark,
                                       hasError: _errors['selfie_photo'] != null,
-                                      onTap: _pickSelfieForFailedDeliveryOsa,
+                                      onTap: _pickSelfieForFailedDelivery,
                                       onClear: () => setState(() {
                                         _selfiePhoto = null;
                                         _errors.remove('selfie_photo');

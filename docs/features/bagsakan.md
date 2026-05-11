@@ -120,7 +120,7 @@ When opening the delivery update screen for any item within a Bagsakan group (or
 
 ### 5. Individual Item Locking
 
-Once an item within a Bagsakan group reaches a terminal status (e.g., **Delivered**, **OSA**, or **Verified Failed**), it is individually "sealed" and locked from further updates. Couriers are prevented from re-opening the delivery update screen for these items, and any attempt to do so will trigger an "Interaction Locked" notification. This ensures that the basis for propagation (the source record) remains stable and consistent.
+Once an item within a Bagsakan group reaches a terminal status (e.g., **Delivered**, **Misrouted**, or **Verified Failed**), it is individually "sealed" and locked from further updates. Couriers are prevented from re-opening the delivery update screen for these items, and any attempt to do so will trigger an "Interaction Locked" notification. This ensures that the basis for propagation (the source record) remains stable and consistent.
 
 ---
 
@@ -214,7 +214,7 @@ Modified to include a reference to a group.
 
 Deliveries assigned to a bagsakan group (`bagsakan_id IS NOT NULL`) are **excluded** from the following views:
 
-- Dashboard status counts (`FOR_DELIVERY`, `DELIVERED`, `FAILED_DELIVERY`, `OSA`)
+- Dashboard status counts (`FOR_DELIVERY`, `DELIVERED`, `FAILED_DELIVERY`, `MISROUTED`)
 - Main delivery status lists (`/deliveries?status=...`)
 - Global search results (unless specifically searching within bagsakan)
 

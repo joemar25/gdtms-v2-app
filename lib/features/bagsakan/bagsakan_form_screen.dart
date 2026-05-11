@@ -776,9 +776,7 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
             child: EmptyState(
               message: 'bagsakan.no_results'.tr(),
               icon: Icons.search_off_rounded,
-              iconColor: isDark
-                  ? DSColors.labelSecondaryDark
-                  : DSColors.labelSecondary,
+              iconColor: isDark ? DSColors.primaryDark : DSColors.primary,
             ),
           ),
         ],

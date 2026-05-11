@@ -34,7 +34,7 @@ class LocalDeliveryDao {
   /// visibility window, or an empty string + empty list when no window is set.
   ///
   /// The [timestampColumn] is the column to compare against (usually
-  /// `completed_at` for FAILED_DELIVERY / OSA, `created_at` for FOR_DELIVERY).
+  /// `completed_at` for FAILED_DELIVERY / MISROUTED, `created_at` for FOR_DELIVERY).
   ///
   /// Usage:
   /// ```dart
@@ -108,10 +108,10 @@ class LocalDeliveryDao {
       {
         'delivery_status': status.toUpperCase(),
         'updated_at': now,
-        if (status.toUpperCase() == 'DELIVERED') 'delivered_at': now,
-        if (status.toUpperCase() == 'DELIVERED' ||
-            status.toUpperCase() == 'FAILED_DELIVERY' ||
-            status.toUpperCase() == 'OSA')
+        if (status.toUpperCase() == kStatusDelivered) 'delivered_at': now,
+        if (status.toUpperCase() == kStatusDelivered ||
+            status.toUpperCase() == kStatusFailedDelivery ||
+            status.toUpperCase() == kStatusMisrouted)
           'completed_at': now,
         'sync_status': 'dirty',
       },
@@ -165,9 +165,9 @@ class LocalDeliveryDao {
           json['data_checksum']?.toString() ?? existing?.dataChecksum,
     };
 
-    if (status == 'DELIVERED' ||
-        status == 'FAILED_DELIVERY' ||
-        status == 'OSA') {
+    if (status == kStatusDelivered ||
+        status == kStatusFailedDelivery ||
+        status == kStatusMisrouted) {
       values['completed_at'] = now;
     }
 
@@ -247,7 +247,7 @@ class LocalDeliveryDao {
   /// ## Reconciliation Rules
   ///
   /// - If the SERVER returns an item with a *terminal* status (`delivered`,
-  ///   `failed_delivery`, `osa`) the local record is **always** updated so that
+  ///   `failed_delivery`, `misrouted`) the local record is **always** updated so that
   ///   manual web-app status changes are reflected on the mobile device.
   ///
   /// - If the SERVER returns an item with a *pending* status, local terminal
@@ -285,7 +285,11 @@ class LocalDeliveryDao {
         row['barcode'] as String: row['bagsakan_id'] as int?,
     };
 
-    final terminalStatuses = {'DELIVERED', 'FAILED_DELIVERY', 'OSA'};
+    final terminalStatuses = {
+      kStatusDelivered,
+      kStatusFailedDelivery,
+      kStatusMisrouted,
+    };
     final batch = db.batch();
     final serverStatusUpper = serverStatus.toUpperCase();
 
@@ -522,23 +526,23 @@ class LocalDeliveryDao {
     return rows.map(LocalDelivery.fromDb).toList();
   }
 
-  /// Paginated variant of [getVisibleOsa].
+  /// Paginated variant of [getVisibleMisrouted].
   ///
   /// NOTE: This excludes deliveries assigned to a Bagsakan group (bagsakan_id IS NOT NULL).
-  Future<List<LocalDelivery>> getVisibleOsaPaged({
+  Future<List<LocalDelivery>> getVisibleMisroutedPaged({
     int limit = 30,
     int offset = 0,
   }) async {
     final db = await _db;
     // Production: no date filter — items persist until archived by the server.
-    // Testing: apply rolling window from kOsaVisibilityWindowMinutes.
+    // Testing: apply rolling window from kMisroutedVisibilityWindowMinutes.
     final (windowClause, windowArgs) = _windowClause(
-      kOsaVisibilityWindowMinutes,
+      kMisroutedVisibilityWindowMinutes,
     );
     final rows = await db.query(
       'local_deliveries',
       where:
-          "delivery_status COLLATE NOCASE = 'OSA' "
+          "delivery_status COLLATE NOCASE IN ('$kStatusMisrouted') "
           'AND COALESCE(is_archived, 0) = 0 '
           'AND bagsakan_id IS NULL '
           '$windowClause',
@@ -630,8 +634,8 @@ class LocalDeliveryDao {
           'AND bagsakan_id IS NULL '
           '$wClause';
       whereArgs = [q, q, ...wArgs];
-    } else if (status.toUpperCase() == 'OSA') {
-      final (wClause, wArgs) = _windowClause(kOsaVisibilityWindowMinutes);
+    } else if (status.toUpperCase() == kStatusMisrouted) {
+      final (wClause, wArgs) = _windowClause(kMisroutedVisibilityWindowMinutes);
       where =
           "(barcode LIKE ? OR recipient_name LIKE ? COLLATE NOCASE) "
           "AND delivery_status COLLATE NOCASE = ? "
@@ -704,14 +708,14 @@ class LocalDeliveryDao {
   /// Variant of [searchByQuery] restricted to deliveries that are actionable
   /// for delivery — PENDING or unverified FAILED_DELIVERY only.
   ///
-  /// Used by the scan (POD) screen as a UX pre-filter. DELIVERED and OSA are
+  /// Used by the scan (POD) screen as a UX pre-filter. DELIVERED and MISROUTED are
   /// intentionally excluded: they are not valid delivery targets.
   ///
   ///   - `PENDING`          — any non-archived pending record
   ///   - `FAILED_DELIVERY` (RTS) — completed_at is today AND
-  ///     rts_verification_status is NOT verified AND attempts < 3
+  ///     rts_verification_status is NOT verified AND attempts < kMaxDeliveryAttempts
   ///
-  /// OSA, DELIVERED, and RTS with 3+ attempts are intentionally excluded —
+  /// MISROUTED, DELIVERED, and RTS with $kMaxDeliveryAttempts+ attempts are intentionally excluded —
   /// those are terminal states the courier cannot act on via POD scan.
   ///
   /// [DeliveryUpdateScreen._load] still calls [isVisibleToRider] as the
@@ -734,7 +738,7 @@ class LocalDeliveryDao {
           -- FOR_DELIVERY: any non-archived pending record
           (delivery_status COLLATE NOCASE IN ('FOR_DELIVERY','FOR_REDELIVERY'))
 
-          -- FAILED_DELIVERY: include unverified failed deliveries (attempts >= 3 are
+          -- FAILED_DELIVERY: include unverified failed deliveries (attempts >= $kMaxDeliveryAttempts are
           -- excluded by the Dart post-filter below because attempts live in raw_json).
           OR (delivery_status COLLATE NOCASE = 'FAILED_DELIVERY'
               AND COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay'))
@@ -747,12 +751,9 @@ class LocalDeliveryDao {
 
     final deliveries = rows.map(LocalDelivery.fromDb).toList();
 
-    // Post-filter: exclude RTS with 3+ attempts.
-    // OSA and DELIVERED are already excluded by the SQL WHERE clause.
-    return deliveries.where((d) {
-      if (d.deliveryStatus.toUpperCase() != 'FAILED_DELIVERY') return true;
-      return getAttemptsCountFromMap(d.toDeliveryMap()) < 3;
-    }).toList();
+    // Post-filter: exclude RTS with $kMaxDeliveryAttempts+ attempts.
+    // MISROUTED and DELIVERED are already excluded by the SQL WHERE clause.
+    return deliveries.where((d) => d.isValidForDelivery).toList();
   }
 
   /// Returns delivered items whose [delivered_at] falls within today
@@ -855,19 +856,19 @@ class LocalDeliveryDao {
     return Sqflite.firstIntValue(res) ?? 0;
   }
 
-  /// Returns the count of OSA (misrouted) items in the local DB.
+  /// Returns the count of MISROUTED items in the local DB.
   ///
   /// Visibility rule: items remain until the server stops returning them
   /// (i.e., they have been reassigned to another courier → is_archived).
   ///
-  /// When [kOsaVisibilityWindowMinutes] > 0 (testing mode), items
-  /// older than the window are excluded.
-  Future<int> countVisibleOsa() async {
+  /// When [kMisroutedVisibilityWindowMinutes] > 0 (testing mode), items
+  /// disappear from the list after N minutes from [completed_at].
+  Future<int> countVisibleMisrouted() async {
     final db = await _db;
-    final (wClause, wArgs) = _windowClause(kOsaVisibilityWindowMinutes);
+    final (wClause, wArgs) = _windowClause(kMisroutedVisibilityWindowMinutes);
     final res = await db.rawQuery(
       'SELECT COUNT(*) FROM local_deliveries '
-      "WHERE delivery_status COLLATE NOCASE = 'OSA' "
+      "WHERE delivery_status COLLATE NOCASE IN ('$kStatusMisrouted') "
       'AND COALESCE(is_archived, 0) = 0 '
       'AND bagsakan_id IS NULL '
       '$wClause',
@@ -884,12 +885,12 @@ class LocalDeliveryDao {
   ///
   /// | Status          | Visible when                                                                    |
   /// |-----------------|---------------------------------------------------------------------------------|
-  /// | FOR_DELIVERY    | Not archived. Remains until delivered / failed / OSA by the server.             |
+  /// | FOR_DELIVERY    | Not archived. Remains until delivered / failed / MISROUTED by the server.             |
   /// | DELIVERED       | `delivered_at` is today (today-only — payout tracking window).                  |
   /// | FAILED_DELIVERY | Not verified (`rts_verification_status` is `unvalidated`). Remains until       |
-  /// |                 | verified by hub OR status changes to DELIVERED / OSA.                           |
-  /// |                 | Items with 3+ attempts are still visible but locked (cannot act via POD scan).  |
-  /// | OSA             | Not archived. Remains until the server stops returning it                       |
+  /// |                 | verified by hub OR status changes to DELIVERED / MISROUTED.                           |
+  /// |                 | Items with $kMaxDeliveryAttempts+ attempts are still visible but locked (cannot act via POD scan).  |
+  /// | MISROUTED       | Not archived. Remains until the server stops returning it                       |
   /// |                 | (i.e., reassigned to another courier → is_archived by removeStaleLocalPending). |
   /// | other           | Never visible.                                                                  |
   ///
@@ -991,7 +992,7 @@ class LocalDeliveryDao {
           final ld = LocalDelivery.fromDb(row);
           final attempts = getAttemptsCountFromMap(ld.toDeliveryMap());
           debugPrint(
-            '[DAO] isVisibleToRider($barcode) -> failedDelivery attempts=$attempts -> visible=true (locked if >=3)',
+            '[DAO] isVisibleToRider($barcode) -> failedDelivery attempts=$attempts -> visible=true (locked if >=$kMaxDeliveryAttempts)',
           );
           return true;
         } catch (e) {
@@ -1001,21 +1002,22 @@ class LocalDeliveryDao {
           return false;
         }
 
-      case DeliveryStatus.osa:
+      case DeliveryStatus.misrouted:
         // Testing window: if set, apply rolling hour filter on completed_at.
-        final osaWindowMs = _windowMs(kOsaVisibilityWindowMinutes);
-        if (osaWindowMs != null) {
+        final misroutedWindowMs = _windowMs(kMisroutedVisibilityWindowMinutes);
+        if (misroutedWindowMs != null) {
           final completedAt = row['completed_at'] as int? ?? 0;
-          final cutoff = DateTime.now().millisecondsSinceEpoch - osaWindowMs;
+          final cutoff =
+              DateTime.now().millisecondsSinceEpoch - misroutedWindowMs;
           if (completedAt < cutoff) {
             debugPrint(
-              '[DAO] isVisibleToRider($barcode) -> OSA window expired '
+              '[DAO] isVisibleToRider($barcode) -> MISROUTED window expired '
               '(completedAt=$completedAt cutoff=$cutoff) -> false',
             );
             return false;
           }
         }
-        debugPrint('[DAO] isVisibleToRider($barcode) -> OSA -> true');
+        debugPrint('[DAO] isVisibleToRider($barcode) -> MISROUTED -> true');
         return true;
 
       default:
@@ -1048,7 +1050,7 @@ class LocalDeliveryDao {
   ///   barcode at all, it has been reassigned to another courier or removed
   ///   from the system. Archive it so the courier cannot interact with it.
   ///
-  /// - **OSA** (Misrouted): If the server no longer returns an OSA barcode,
+  /// - **MISROUTED**: If the server no longer returns a MISROUTED barcode,
   ///   the item has been reassigned to the correct branch/courier. Archive it.
   ///
   /// ## What this does NOT touch
@@ -1072,7 +1074,7 @@ class LocalDeliveryDao {
       'local_deliveries',
       columns: ['barcode'],
       where:
-          "delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FAILED_DELIVERY', 'OSA') "
+          "delivery_status COLLATE NOCASE IN ('$kStatusForDelivery', '$kStatusFailedDelivery', '$kStatusMisrouted') "
           "AND COALESCE(sync_status, '') != 'dirty' "
           "AND bagsakan_id IS NULL",
     );
@@ -1094,15 +1096,15 @@ class LocalDeliveryDao {
     for (var i = 0; i < staleBarcodes.length; i += chunkSize) {
       final chunk = staleBarcodes.skip(i).take(chunkSize).toList();
       final placeholders = List.filled(chunk.length, '?').join(',');
-      // Archive all three actionable statuses — not just FOR_DELIVERY.
-      // FAILED_DELIVERY and OSA items absent from the server have been
+      // Archive all actionable statuses — not just FOR_DELIVERY.
+      // FAILED_DELIVERY and MISROUTED items absent from the server have been
       // reassigned or removed and must not remain accessible to this courier.
       await db.update(
         'local_deliveries',
         {'is_archived': 1},
         where:
             "barcode IN ($placeholders) "
-            "AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FAILED_DELIVERY', 'OSA')",
+            "AND delivery_status COLLATE NOCASE IN ('$kStatusForDelivery', '$kStatusFailedDelivery', '$kStatusMisrouted')",
         whereArgs: chunk,
       );
     }
@@ -1119,7 +1121,7 @@ class LocalDeliveryDao {
     // captured photos and delivery data are never lost before a successful sync.
     final count = await db.rawDelete(
       "DELETE FROM local_deliveries "
-      "WHERE delivery_status COLLATE NOCASE IN ('DELIVERED', 'FAILED_DELIVERY', 'OSA') "
+      "WHERE delivery_status COLLATE NOCASE IN ('$kStatusDelivered', '$kStatusFailedDelivery', '$kStatusMisrouted') "
       "AND updated_at < ? "
       "AND barcode NOT IN ("
       "  SELECT DISTINCT barcode FROM sync_operations "

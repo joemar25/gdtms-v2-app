@@ -17,7 +17,7 @@ class StatusBadge extends StatelessWidget {
       DeliveryStatus.pending => DSColors.pending,
       DeliveryStatus.delivered => DSColors.success,
       DeliveryStatus.failedDelivery => DSColors.error,
-      DeliveryStatus.osa => DSColors.warning,
+      DeliveryStatus.misrouted => DSColors.warning,
       _ =>
         Theme.of(context).brightness == Brightness.dark
             ? DSColors.labelSecondaryDark

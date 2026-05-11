@@ -1,6 +1,8 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/core/models.md — update that file when you edit this one.
 
+import 'package:fsi_courier_app/core/config.dart';
+
 // =============================================================================
 // delivery_status.dart — Single source of truth for all delivery status values
 // =============================================================================
@@ -31,8 +33,8 @@ enum DeliveryStatus {
   /// API contract: FAILED_DELIVERY.
   failedDelivery,
 
-  /// Out of Serviceable Area — package misrouted and being resent.
-  osa,
+  /// Misrouted — package misrouted and being resent.
+  misrouted,
 
   /// Fallback for any unrecognised value returned by the API.
   unknown;
@@ -46,22 +48,22 @@ enum DeliveryStatus {
     final v = value?.trim().toUpperCase() ?? '';
 
     // Common canonical values
-    if (v == 'PENDING' || v == 'FOR_DELIVERY') return pending;
+    if (v == kStatusPending || v == kStatusForDelivery) return pending;
 
     // Server aliases / legacy values that should be treated as pending/actionable
-    if (v == 'FOR_REDELIVERY' ||
+    if (v == kStatusForRedelivery ||
         v == 'REDELIVERY' ||
         v == 'FOR_REATTEMPT' ||
         v == 'REATTEMPT') {
       return pending;
     }
 
-    if (v == 'DELIVERED') return delivered;
+    if (v == kStatusDelivered) return delivered;
 
     // Accept both the new contract and legacy RTS token for failed delivery
-    if (v == 'FAILED_DELIVERY' || v == 'RTS') return failedDelivery;
+    if (v == kStatusFailedDelivery || v == kStatusRts) return failedDelivery;
 
-    if (v == 'OSA') return osa;
+    if (v == kStatusMisrouted) return misrouted;
 
     return unknown;
   }
@@ -71,10 +73,10 @@ enum DeliveryStatus {
   /// The string value sent to the backend API and stored in SQLite.
   /// Emits 'FAILED_DELIVERY' per the v2.7 contract.
   String toApiString() => switch (this) {
-    pending => 'FOR_DELIVERY',
-    delivered => 'DELIVERED',
-    failedDelivery => 'FAILED_DELIVERY',
-    osa => 'OSA',
+    pending => kStatusForDelivery,
+    delivered => kStatusDelivered,
+    failedDelivery => kStatusFailedDelivery,
+    misrouted => kStatusMisrouted,
     unknown => '',
   };
 
@@ -88,7 +90,7 @@ enum DeliveryStatus {
     pending => 'For Delivery',
     delivered => 'Delivered',
     failedDelivery => 'Failed Delivery',
-    osa => 'Out of Service Area',
+    misrouted => 'Misrouted',
     unknown => '—',
   };
 
@@ -96,7 +98,7 @@ enum DeliveryStatus {
 
   /// True when the delivery lifecycle is complete — no further courier action.
   bool get isFinal => switch (this) {
-    delivered || failedDelivery || osa => true,
+    delivered || failedDelivery || misrouted => true,
     _ => false,
   };
 

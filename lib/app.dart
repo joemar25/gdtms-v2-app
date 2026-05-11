@@ -250,7 +250,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
   ///   The server must have the courier's latest offline updates before we
   ///   pull from it, otherwise bootstrap would fetch stale server state.
   ///
-  /// Step 2 — Pull all server statuses (pending / delivered / rts / osa)
+  /// Step 2 — Pull all server statuses (pending / delivered / failed delivery / misrouted)
   ///   and reconcile with SQLite. Because the queue is now drained, the
   ///   server reflects the courier's true current state, making this pull
   ///   authoritative.

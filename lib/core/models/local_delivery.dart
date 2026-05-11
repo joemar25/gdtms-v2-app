@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/core/config.dart';
 
 /// A delivery record stored locally in SQLite after dispatch acceptance.
 ///
@@ -63,8 +64,7 @@ class LocalDelivery {
   /// Millisecond timestamp when this delivery transitioned to [delivered] status.
   final int? deliveredAt;
 
-  /// Millisecond timestamp when this delivery transitioned to any terminal
-  /// status (delivered, failedDelivery, osa). used for today-only filtering.
+  /// status (delivered, failedDelivery, misrouted). used for today-only filtering.
   final int? completedAt;
 
   /// Timestamp of last server-side update.
@@ -120,7 +120,7 @@ class LocalDelivery {
       recipientName: _str(json, 'recipient_name') ?? _str(json, 'name'),
       deliveryAddress: _str(json, 'recipient_address') ?? _str(json, 'address'),
       deliveryStatus: DeliveryStatus.fromString(
-        _str(json, 'delivery_status') ?? 'FOR_DELIVERY',
+        _str(json, 'delivery_status') ?? kStatusForDelivery,
       ).toDbString(),
       mailType: _str(json, 'mail_type'),
       dispatchCode: dispatchCode,
@@ -177,7 +177,7 @@ class LocalDelivery {
     final product = _str(json, 'product');
 
     // serverStatus is the endpoint bucket we fetched from ('FOR_DELIVERY', 'DELIVERED',
-    // 'FAILED_DELIVERY', 'OSA'). We previously used it as the primary status, which caused
+    // 'FAILED_DELIVERY', 'MISROUTED'). We previously used it as the primary status, which caused
     // issues when the API item contains a more specific state like 'DISPATCHED'.
     //
     // New Rule: If the JSON contains a non-pending status, we trust it over the
@@ -189,9 +189,9 @@ class LocalDelivery {
     // → pending) so no raw string comparisons are needed below.
     final jsonStatus = (_str(json, 'delivery_status') ?? '').toUpperCase();
     final rawStatus =
-        (jsonStatus.isNotEmpty && jsonStatus != 'FOR_DELIVERY'
+        (jsonStatus.isNotEmpty && jsonStatus != kStatusForDelivery
                 ? jsonStatus
-                : (serverStatus.isNotEmpty ? serverStatus : 'FOR_DELIVERY'))
+                : (serverStatus.isNotEmpty ? serverStatus : kStatusForDelivery))
             .toUpperCase();
     // Normalise through the enum so any future API aliases are handled centrally.
     final status = DeliveryStatus.fromString(rawStatus).toDbString();
@@ -206,7 +206,7 @@ class LocalDelivery {
     // it would set delivered_at to a past date, causing the today-filter in
     // countVisibleDelivered / getVisibleDeliveredPaged to exclude the item.
     int? deliveredAt;
-    if (status == 'DELIVERED') {
+    if (status == kStatusDelivered) {
       final dateStr = _str(json, 'delivered_date');
       if (dateStr != null) {
         final parsedDate = parseServerDate(dateStr);
@@ -220,7 +220,7 @@ class LocalDelivery {
       }
     }
 
-    // completedAt covers DELIVERED, failedDelivery, and OSA.
+    // completedAt covers DELIVERED, failedDelivery, and MISROUTED.
     final ds = DeliveryStatus.fromString(status);
     int? completedAt = deliveredAt;
     if (completedAt == null && ds.isFinal) {
@@ -265,7 +265,7 @@ class LocalDelivery {
       jobOrder: row['tracking_number'] as String?,
       recipientName: row['recipient_name'] as String?,
       deliveryAddress: row['delivery_address'] as String?,
-      deliveryStatus: row['delivery_status'] as String? ?? 'FOR_DELIVERY',
+      deliveryStatus: row['delivery_status'] as String? ?? kStatusForDelivery,
       mailType: row['mail_type'] as String?,
       product: row['product'] as String?,
       dispatchCode: row['dispatch_code'] as String?,

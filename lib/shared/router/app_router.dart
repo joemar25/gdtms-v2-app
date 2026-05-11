@@ -35,6 +35,7 @@ import 'package:fsi_courier_app/features/legal/terms_screen.dart';
 import 'package:fsi_courier_app/features/legal/privacy_screen.dart';
 import 'package:fsi_courier_app/features/report/report_issue_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:fsi_courier_app/shared/widgets/bottom_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -470,10 +471,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/osa',
+        path: '/misrouted',
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
-          child: const DeliveryStatusListScreen(status: 'osa', title: 'OSA'),
+          child: const DeliveryStatusListScreen(
+            status: kStatusMisrouted,
+            title: 'Misrouted',
+          ),
           extra: state.extra,
         ),
       ),

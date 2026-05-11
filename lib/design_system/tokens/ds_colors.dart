@@ -89,7 +89,7 @@ class DSColors {
       case 'failed_delivery':
       case 'failed':
         return isDark ? errorDark : error;
-      case 'osa':
+      case 'misrouted':
       case 'out_of_service_area':
         return isDark ? warningDark : warning;
       case 'for_delivery':

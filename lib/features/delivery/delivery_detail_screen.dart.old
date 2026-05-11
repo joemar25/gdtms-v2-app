@@ -313,7 +313,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     // (bgColor kept for in-screen Card/surface use only)
     // final bgColor = isDark ? _DS.bgDark : _DS.bg; // <- removed scaffold override
 
-    // RULE: If status is 'OSA', do not ever show update status button here.
+    // RULE: If status is 'MISROUTED', do not ever show update status button here.
     // NEW RULE: If status is 'FAILED_DELIVERY' and already verified OR attempts >= 3, hide the button.
     final isLockedGlobal = checkIsLockedFromMap(_delivery);
     // FAB shown for PENDING and unverified failedDelivery (courier can reattempt).
@@ -954,7 +954,7 @@ class _TimelineItem extends StatelessWidget {
       'delivered' => Icons.check_circle_rounded,
       'attempted' => Icons.redo_rounded,
       'failed_delivery' => Icons.keyboard_return_rounded,
-      'osa' => Icons.inventory_2_rounded,
+      'misrouted' => Icons.inventory_2_rounded,
       _ => Icons.radio_button_unchecked_rounded,
     };
   }

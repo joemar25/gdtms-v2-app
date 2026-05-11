@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/core/models/photo_entry.dart';
 import 'package:fsi_courier_app/features/delivery/delivery_update_components.dart';
 
-/// Single-slot photo section used for MAILPACK (OSA) and SELFIE (failed delivery).
+/// Single-slot photo section used for MAILPACK (Misrouted) and SELFIE (failed delivery).
 ///
 /// Renders one [DeliveryPhotoSlot] inside a [Row]. All state mutations are
 /// dispatched via callbacks so the parent retains ownership of [photo].

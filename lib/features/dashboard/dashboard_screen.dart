@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
@@ -53,10 +54,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     try {
       final dao = LocalDeliveryDao.instance;
-      final pending = await dao.countByStatus('FOR_DELIVERY');
+      final pending = await dao.countByStatus(kStatusForDelivery);
       final delivered = await dao.countVisibleDelivered();
       final failedDelivery = await dao.countVisibleFailedDelivery();
-      final osa = await dao.countVisibleOsa();
+      final misrouted = await dao.countVisibleMisrouted();
 
       int pendingDispatches = 0;
       final isOnline = ref.read(isOnlineProvider);
@@ -82,7 +83,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         'pending_deliveries': pending,
         'delivered_today': delivered,
         'failed_delivery': failedDelivery,
-        'osa': osa,
+        'misrouted': misrouted,
       };
     } catch (e, stack) {
       debugPrint('[DASH] Error loading initial data: $e\n$stack');

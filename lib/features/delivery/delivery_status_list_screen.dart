@@ -7,7 +7,7 @@
 //
 // Purpose:
 //   A single reusable paginated list screen that displays deliveries filtered
-//   by a specific status (PENDING, DELIVERED, FAILED_DELIVERY, OSA, DISPATCHED). It is
+//   by a specific status (PENDING, DELIVERED, FAILED_DELIVERY, MISROUTED, DISPATCHED). It is
 //   instantiated once per status tab on the dashboard.
 //
 // Key behaviours:
@@ -40,6 +40,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
@@ -62,7 +63,7 @@ import 'package:fsi_courier_app/features/delivery/delivery_status_list_component
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// A single list screen reused for every delivery status filter
-/// (pending, delivered, failed_delivery, osa, dispatched).
+/// (pending, delivered, failed_delivery, misrouted, dispatched).
 ///
 /// Data is always read from local SQLite — the app is offline-first.
 /// The list refreshes whenever [deliveryRefreshProvider] increments (on
@@ -102,7 +103,7 @@ class _DeliveryStatusListScreenState
       : kDeliveriesPerPage;
 
   bool get _isFailedDelivery =>
-      widget.status.toUpperCase() == 'FAILED_DELIVERY';
+      widget.status.toUpperCase() == kStatusFailedDelivery;
 
   int get _effectiveTotal => _isFailedDelivery
       ? (_failedSubFilter == 'rts' ? _totalRtsCount : _totalRedeliveryCount)
@@ -124,8 +125,8 @@ class _DeliveryStatusListScreenState
   Set<String> _queuedBarcodes = {};
 
   // ── Failed-delivery sub-filter ─────────────────────────────────────────────
-  /// 'redelivery' = attempts < 3 and not Failed Delivery-verified
-  /// 'rts'        = attempts >= 3 or Failed Delivery-verified
+  /// 'redelivery' = attempts < kMaxDeliveryAttempts and not Failed Delivery-verified
+  /// 'rts'        = attempts >= kMaxDeliveryAttempts or Failed Delivery-verified
   String _failedSubFilter = 'redelivery';
 
   /// Total counts across ALL pages — not just the current page.
@@ -146,7 +147,7 @@ class _DeliveryStatusListScreenState
           .toString()
           .toLowerCase();
       final rv = FailedDeliveryVerificationStatus.fromString(vStr);
-      final isRts = attempts >= 3 || rv.isVerified;
+      final isRts = attempts >= kMaxDeliveryAttempts || rv.isVerified;
       return _failedSubFilter == 'rts' ? isRts : !isRts;
     }).toList();
   }
@@ -199,11 +200,12 @@ class _DeliveryStatusListScreenState
 
     // 1. Get total count
     final total = switch (status) {
-      'DELIVERED' =>
+      kStatusDelivered =>
         await ref.read(localDeliveryDaoProvider).countVisibleDelivered(),
-      'FAILED_DELIVERY' =>
+      kStatusFailedDelivery =>
         await ref.read(localDeliveryDaoProvider).countVisibleFailedDelivery(),
-      'OSA' => await ref.read(localDeliveryDaoProvider).countVisibleOsa(),
+      kStatusMisrouted =>
+        await ref.read(localDeliveryDaoProvider).countVisibleMisrouted(),
       _ =>
         await ref.read(localDeliveryDaoProvider).countByStatus(widget.status),
     };
@@ -226,7 +228,7 @@ class _DeliveryStatusListScreenState
         final attempts = getAttemptsCountFromMap(row.toDeliveryMap());
         final vStr = (row.rtsVerificationStatus).toLowerCase();
         final rv = FailedDeliveryVerificationStatus.fromString(vStr);
-        final isRts = attempts >= 3 || rv.isVerified;
+        final isRts = attempts >= kMaxDeliveryAttempts || rv.isVerified;
         if (isRts) {
           rtsCount++;
         } else {
@@ -277,18 +279,18 @@ class _DeliveryStatusListScreenState
   Future<List<LocalDelivery>> _fetchPage({required int offset}) {
     final status = widget.status.toUpperCase();
     return switch (status) {
-      'DELIVERED' =>
+      kStatusDelivered =>
         ref
             .read(localDeliveryDaoProvider)
             .getVisibleDeliveredPaged(limit: _kPageSize, offset: offset),
-      'FAILED_DELIVERY' =>
+      kStatusFailedDelivery =>
         ref
             .read(localDeliveryDaoProvider)
             .getVisibleFailedDeliveryPaged(limit: _kPageSize, offset: offset),
-      'OSA' =>
+      kStatusMisrouted =>
         ref
             .read(localDeliveryDaoProvider)
-            .getVisibleOsaPaged(limit: _kPageSize, offset: offset),
+            .getVisibleMisroutedPaged(limit: _kPageSize, offset: offset),
       _ =>
         ref
             .read(localDeliveryDaoProvider)
@@ -377,7 +379,7 @@ class _DeliveryStatusListScreenState
     );
     final status = widget.status.toUpperCase();
     return switch (status) {
-      'FOR_DELIVERY' => [
+      kStatusForDelivery => [
         searchBtn,
         IconButton(
           icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -386,7 +388,7 @@ class _DeliveryStatusListScreenState
           onPressed: () => context.push('/scan', extra: {'mode': 'pod'}),
         ),
       ],
-      'FAILED_DELIVERY' => [
+      kStatusFailedDelivery => [
         searchBtn,
         IconButton(
           icon: const Icon(Icons.help_outline_rounded),
@@ -406,14 +408,14 @@ class _DeliveryStatusListScreenState
   }
 
   String _emptyMessage() => switch (widget.status.toUpperCase()) {
-    'FOR_DELIVERY' => 'empty_states.delivery.for_delivery'.tr(),
-    'DELIVERED' => 'empty_states.delivery.delivered'.tr(),
-    'DISPATCHED' => 'empty_states.delivery.dispatched'.tr(),
-    'FAILED_DELIVERY' =>
+    kStatusForDelivery => 'empty_states.delivery.for_delivery'.tr(),
+    kStatusDelivered => 'empty_states.delivery.delivered'.tr(),
+    kStatusDispatched => 'empty_states.delivery.dispatched'.tr(),
+    kStatusFailedDelivery =>
       _failedSubFilter == 'rts'
           ? 'empty_states.delivery.failed_rts'.tr()
           : 'empty_states.delivery.failed_redelivery'.tr(),
-    'OSA' => 'empty_states.delivery.osa'.tr(),
+    kStatusMisrouted => 'empty_states.delivery.misrouted'.tr(),
     _ => 'empty_states.delivery.generic'.tr(),
   };
 
@@ -630,12 +632,14 @@ class _DeliveryStatusListScreenState
                               final identifier = resolveDeliveryIdentifier(d);
                               final deliveryStatus =
                                   d['delivery_status']?.toString() ??
-                                  'FOR_DELIVERY';
+                                  kStatusForDelivery;
                               final isLocked = checkIsLockedFromMap(d);
                               final canUpdate =
                                   identifier.isNotEmpty &&
                                   !isLocked &&
-                                  deliveryStatus.toUpperCase() != 'OSA';
+                                  ![
+                                    kStatusMisrouted,
+                                  ].contains(deliveryStatus.toUpperCase());
 
                               return DeliveryCard(
                                 delivery: d,
@@ -667,16 +671,17 @@ class _DeliveryStatusListScreenState
                                             );
                                         String msg =
                                             'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
-                                        if (ds == DeliveryStatus.osa) {
+                                        if (ds == DeliveryStatus.misrouted) {
                                           msg =
-                                              'This item is marked OSA and cannot be opened.';
+                                              'This item is marked Misrouted and cannot be opened.';
                                         } else if (ds ==
                                             DeliveryStatus.delivered) {
                                           msg =
                                               'This item has already been delivered and is locked.';
                                         } else if (ds ==
                                                 DeliveryStatus.failedDelivery &&
-                                            attemptsCount >= 3) {
+                                            attemptsCount >=
+                                                kMaxDeliveryAttempts) {
                                           msg =
                                               'This failed delivery has reached the maximum number of attempts and is locked.';
                                         } else if (ds ==
@@ -731,7 +736,7 @@ class _DeliveryStatusListScreenState
     final ds = DeliveryStatus.fromString(widget.status);
     int count = 0;
     if (!isOnline) count++;
-    if (ds == DeliveryStatus.osa) count++;
+    if (ds == DeliveryStatus.misrouted) count++;
     if (ds == DeliveryStatus.failedDelivery) count++;
     if (ds == DeliveryStatus.delivered) count++;
     return count;
@@ -751,11 +756,11 @@ class _DeliveryStatusListScreenState
       slot++;
     }
 
-    if (ds == DeliveryStatus.osa && index == slot) {
+    if (ds == DeliveryStatus.misrouted && index == slot) {
       return DeliveryStatusInfoBanner(
         icon: Icons.inventory_2_rounded,
-        message: 'empty_states.delivery.info_osa'.tr(),
-        statusColor: DeliveryCard.statusColor('OSA'),
+        message: 'empty_states.delivery.info_misrouted'.tr(),
+        statusColor: DeliveryCard.statusColor(kStatusMisrouted),
         isDark: isDark,
       );
     }
@@ -763,7 +768,7 @@ class _DeliveryStatusListScreenState
       return DeliveryStatusInfoBanner(
         icon: Icons.check_circle_rounded,
         message: 'empty_states.delivery.info_delivered'.tr(),
-        statusColor: DeliveryCard.statusColor('DELIVERED'),
+        statusColor: DeliveryCard.statusColor(kStatusDelivered),
         isDark: isDark,
       );
     }

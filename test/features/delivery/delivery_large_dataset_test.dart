@@ -54,7 +54,7 @@ class DeliveryDatasetGenerator {
       'pending': status == 'FOR_DELIVERY' ? totalCount : 0,
       'delivered': status == 'DELIVERED' ? totalCount : 0,
       'rts': status == 'RTS' ? totalCount : 0,
-      'osa': status == 'OSA' ? totalCount : 0,
+      'misrouted': status == 'MISROUTED' ? totalCount : 0,
     };
   }
 }
@@ -146,7 +146,7 @@ void main() {
     });
 
     test('Filter by status efficiently', () async {
-      const statuses = ['FOR_DELIVERY', 'DELIVERED', 'RTS', 'OSA'];
+      const statuses = ['FOR_DELIVERY', 'DELIVERED', 'RTS', 'MISROUTED'];
       final allItems = statuses
           .map(
             (status) => DeliveryDatasetGenerator.generateDeliveries(
@@ -302,7 +302,7 @@ void main() {
 
   group('Delivery Multi-Status Handling (Large Datasets)', () {
     test('Load all status lists simultaneously', () async {
-      const statuses = ['FOR_DELIVERY', 'DELIVERED', 'RTS', 'OSA'];
+      const statuses = ['FOR_DELIVERY', 'DELIVERED', 'RTS', 'MISROUTED'];
 
       when(
         () => mockDeliveryDao.getDeliveries(
