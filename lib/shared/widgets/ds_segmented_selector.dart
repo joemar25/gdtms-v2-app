@@ -36,12 +36,20 @@ class DSSegmentedSelector<T> extends StatelessWidget {
     required this.options,
     required this.selected,
     required this.onChanged,
+    this.selectedTextColor,
+    this.unselectedTextColor,
+    this.backgroundColor,
+    this.showBorder = true,
     this.height = 72.0,
   }) : assert(options.length >= 2, 'Need at least 2 options');
 
   final List<DSSegmentOption<T>> options;
   final T selected;
   final void Function(T value) onChanged;
+  final Color? selectedTextColor;
+  final Color? unselectedTextColor;
+  final Color? backgroundColor;
+  final bool showBorder;
 
   /// Container height. Use ~72 when icons are present, ~56 for label-only.
   final double height;
@@ -60,15 +68,19 @@ class DSSegmentedSelector<T> extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: isDark
-            ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-            : DSColors.secondarySurfaceLight,
+        color:
+            backgroundColor ??
+            (isDark
+                ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                : DSColors.secondarySurfaceLight),
         borderRadius: DSStyles.cardRadius,
-        border: Border.all(
-          color: isDark
-              ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-              : DSColors.separatorLight,
-        ),
+        border: showBorder
+            ? Border.all(
+                color: isDark
+                    ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                    : DSColors.separatorLight,
+              )
+            : null,
       ),
       child: Stack(
         children: [
@@ -135,12 +147,13 @@ class DSSegmentedSelector<T> extends StatelessWidget {
                             child: Icon(
                               opt.icon,
                               color: isSelected
-                                  ? DSColors.white
-                                  : (isDark
-                                        ? DSColors.white.withValues(
-                                            alpha: DSStyles.alphaDisabled,
-                                          )
-                                        : DSColors.labelSecondary),
+                                  ? (selectedTextColor ?? DSColors.white)
+                                  : (unselectedTextColor ??
+                                        (isDark
+                                            ? DSColors.white.withValues(
+                                                alpha: DSStyles.alphaDisabled,
+                                              )
+                                            : DSColors.labelSecondary)),
                               size: isSelected ? DSIconSize.lg : DSIconSize.md,
                             ),
                           ),
@@ -157,10 +170,11 @@ class DSSegmentedSelector<T> extends StatelessWidget {
                                     : FontWeight.w600,
                                 fontSize: isSelected ? 11.0 : 10.0,
                                 color: isSelected
-                                    ? DSColors.white
-                                    : (isDark
-                                          ? DSColors.labelSecondaryDark
-                                          : DSColors.labelSecondary),
+                                    ? (selectedTextColor ?? DSColors.white)
+                                    : (unselectedTextColor ??
+                                          (isDark
+                                              ? DSColors.labelSecondaryDark
+                                              : DSColors.labelSecondary)),
                                 letterSpacing: DSTypography.lsLoose,
                               ),
                               child: FittedBox(
@@ -181,9 +195,10 @@ class DSSegmentedSelector<T> extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? DSColors.white.withValues(
-                                          alpha: DSStyles.alphaMuted,
-                                        )
+                                      ? (selectedTextColor ?? DSColors.white)
+                                            .withValues(
+                                              alpha: DSStyles.alphaMuted,
+                                            )
                                       : (isDark
                                             ? DSColors.white.withValues(
                                                 alpha: DSStyles.alphaSubtle,
@@ -197,7 +212,7 @@ class DSSegmentedSelector<T> extends StatelessWidget {
                                     fontSize: DSTypography.sizeXs,
                                     fontWeight: FontWeight.w700,
                                     color: isSelected
-                                        ? DSColors.white
+                                        ? (selectedTextColor ?? DSColors.white)
                                         : (isDark
                                               ? DSColors.labelSecondaryDark
                                               : DSColors.labelSecondary),

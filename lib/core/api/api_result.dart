@@ -47,3 +47,8 @@ final class ApiServerError<T> extends ApiResult<T> {
   const ApiServerError(this.message);
   final String message;
 }
+
+final class ApiNotFound<T> extends ApiResult<T> {
+  const ApiNotFound(this.message);
+  final String message;
+}

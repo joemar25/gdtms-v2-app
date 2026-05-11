@@ -173,6 +173,12 @@ class ApiClient {
       return ApiUnauthorized<T>(_extractMessage(response.data));
     }
 
+    if (status == 404) {
+      return ApiNotFound<T>(
+        _extractMessage(response.data, fallback: 'Resource not found.'),
+      );
+    }
+
     return ApiServerError<T>(_extractMessage(response.data));
   }
 
@@ -201,6 +207,11 @@ class ApiClient {
           return ApiConflict<T>(
             _extractMessage(response.data, fallback: 'Conflict error.'),
             data: response.data,
+          );
+        }
+        if (status == 404) {
+          return ApiNotFound<T>(
+            _extractMessage(response.data, fallback: 'Resource not found.'),
           );
         }
         if (status == 422) {
@@ -254,11 +265,19 @@ class ApiClient {
   Future<ApiResult<T>> post<T>(
     String path, {
     Map<String, dynamic>? data,
+    Map<String, dynamic>? extraHeaders,
     required T Function(dynamic) parser,
   }) async {
     final relativePath = path.startsWith('/') ? path.substring(1) : path;
     try {
-      final response = await _dio.post<dynamic>(relativePath, data: data);
+      final options = extraHeaders != null
+          ? Options(headers: extraHeaders)
+          : null;
+      final response = await _dio.post<dynamic>(
+        relativePath,
+        data: data,
+        options: options,
+      );
       return _mapResponse<T>(response, parser);
     } catch (e) {
       if (e is DioException && e.response != null) {
@@ -292,6 +311,31 @@ class ApiClient {
         debugPrint('[API] PATCH $relativePath ERROR DATA: ${e.response?.data}');
       }
       debugPrint('[API] PATCH error: $e');
+      return _mapError<T>(e);
+    }
+  }
+
+  Future<ApiResult<T>> delete<T>(
+    String path, {
+    Map<String, dynamic>? extraHeaders,
+    required T Function(dynamic) parser,
+  }) async {
+    final relativePath = path.startsWith('/') ? path.substring(1) : path;
+    try {
+      final options = extraHeaders != null
+          ? Options(headers: extraHeaders)
+          : null;
+      final response = await _dio.delete<dynamic>(
+        relativePath,
+        options: options,
+      );
+      return _mapResponse<T>(response, parser);
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        debugPrint(
+          '[API] DELETE $relativePath ERROR DATA: ${e.response?.data}',
+        );
+      }
       return _mapError<T>(e);
     }
   }

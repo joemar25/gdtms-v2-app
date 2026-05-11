@@ -539,10 +539,12 @@ class DeliveryStatusSelector extends StatefulWidget {
     super.key,
     required this.currentStatus,
     required this.onStatusChanged,
+    this.isHeaderIntegrated = false,
   });
 
   final String currentStatus;
   final Future<void> Function(String) onStatusChanged;
+  final bool isHeaderIntegrated;
 
   @override
   State<DeliveryStatusSelector> createState() => DeliveryStatusSelectorState();
@@ -572,16 +574,20 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
         Container(
           height: 80,
           decoration: BoxDecoration(
-            color: isDark
-                ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-                : DSColors.secondarySurfaceLight,
+            color: widget.isHeaderIntegrated
+                ? DSColors.white.withValues(alpha: 0.15)
+                : (isDark
+                      ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                      : DSColors.secondarySurfaceLight),
             borderRadius: DSStyles.cardRadius,
-            border: Border.all(
-              color: isDark
-                  ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-                  : DSColors.separatorLight,
-              width: DSStyles.borderWidth,
-            ),
+            border: widget.isHeaderIntegrated
+                ? null
+                : Border.all(
+                    color: isDark
+                        ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                        : DSColors.separatorLight,
+                    width: DSStyles.borderWidth,
+                  ),
           ),
           child: Stack(
             children: [
@@ -602,22 +608,29 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            activeMeta.color,
-                            activeMeta.color.withValues(
-                              alpha: DSStyles.alphaOpaque,
-                            ),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: widget.isHeaderIntegrated
+                            ? DSColors.white
+                            : null,
+                        gradient: widget.isHeaderIntegrated
+                            ? null
+                            : LinearGradient(
+                                colors: [
+                                  activeMeta.color,
+                                  activeMeta.color.withValues(
+                                    alpha: DSStyles.alphaOpaque,
+                                  ),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
                         borderRadius: DSStyles.cardRadius,
                         boxShadow: [
                           BoxShadow(
-                            color: activeMeta.color.withValues(
-                              alpha: DSStyles.alphaMuted,
-                            ),
+                            color:
+                                (widget.isHeaderIntegrated
+                                        ? DSColors.white
+                                        : activeMeta.color)
+                                    .withValues(alpha: 0.3),
                             blurRadius: DSStyles.radiusMD,
                             offset: const Offset(0, 4),
                           ),
@@ -651,12 +664,19 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
                               child: Icon(
                                 meta.icon,
                                 color: selected
-                                    ? DSColors.white
-                                    : (isDark
+                                    ? (widget.isHeaderIntegrated
+                                          ? Theme.of(context).primaryColor
+                                          : DSColors.white)
+                                    : (widget.isHeaderIntegrated
                                           ? DSColors.white.withValues(
-                                              alpha: DSStyles.alphaDisabled,
+                                              alpha: 0.7,
                                             )
-                                          : DSColors.labelSecondary),
+                                          : (isDark
+                                                ? DSColors.white.withValues(
+                                                    alpha:
+                                                        DSStyles.alphaDisabled,
+                                                  )
+                                                : DSColors.labelSecondary)),
                                 size: selected ? DSIconSize.xl : DSIconSize.lg,
                               ),
                             ),
@@ -669,10 +689,16 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
                                     : FontWeight.w600,
                                 fontSize: selected ? 11 : 10,
                                 color: selected
-                                    ? DSColors.white
-                                    : (isDark
-                                          ? DSColors.labelSecondaryDark
-                                          : DSColors.labelSecondary),
+                                    ? (widget.isHeaderIntegrated
+                                          ? Theme.of(context).primaryColor
+                                          : DSColors.white)
+                                    : (widget.isHeaderIntegrated
+                                          ? DSColors.white.withValues(
+                                              alpha: 0.7,
+                                            )
+                                          : (isDark
+                                                ? DSColors.labelSecondaryDark
+                                                : DSColors.labelSecondary)),
                                 letterSpacing: DSTypography.lsLoose,
                               ),
                               child: FittedBox(
@@ -711,9 +737,11 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
                   'delivery_update.header.tap_swipe_change_status'.tr(),
                   style: DSTypography.label().copyWith(
                     fontSize: DSTypography.sizeXs,
-                    color: isDark
-                        ? DSColors.labelTertiaryDark
-                        : DSColors.labelTertiary,
+                    color: widget.isHeaderIntegrated
+                        ? DSColors.white.withValues(alpha: 0.7)
+                        : (isDark
+                              ? DSColors.labelTertiaryDark
+                              : DSColors.labelTertiary),
                     letterSpacing: DSTypography.lsLoose,
                   ),
                 ),

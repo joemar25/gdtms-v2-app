@@ -234,13 +234,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         final item = mapFromKey(data, 'data');
         // Standardise via model to ensure v3.6 canonical keys
         _delivery = LocalDelivery.fromApiItem(item).toDeliveryMap();
-        final currentStatus =
-            _delivery['delivery_status']?.toString().toUpperCase() ??
-            'DELIVERED';
         setState(() {
-          _status = kUpdateStatuses.contains(currentStatus)
-              ? currentStatus
-              : kUpdateStatuses.first;
+          // ALWAYS default to DELIVERED when opening the update screen
+          // as per user requirement to see the delivered form first.
+          _status = 'DELIVERED';
           _loadingDelivery = false;
         });
         return;
@@ -253,12 +250,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     if (local != null) {
       _delivery = local.toDeliveryMap();
     }
-    final currentStatus =
-        _delivery['delivery_status']?.toString().toUpperCase() ?? 'DELIVERED';
     setState(() {
-      _status = kUpdateStatuses.contains(currentStatus)
-          ? currentStatus
-          : kUpdateStatuses.first;
+      // ALWAYS default to DELIVERED when opening the update screen
+      // as per user requirement to see the delivered form first.
+      _status = 'DELIVERED';
       _loadingDelivery = false;
     });
   }
@@ -596,7 +591,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   Future<void> _submit() async {
     if (!_validate()) return;
     setState(() => _loading = true);
-    if (checkIsLockedFromMap(_delivery)) {
+    // RULE: Even if it's a Bagsakan delivery, we must lock it if the individual
+    // item is already in a terminal/sealed state (Delivered, OSA, Verified Failed).
+    final testMap = Map<String, dynamic>.from(_delivery)..remove('bagsakan_id');
+    if (checkIsLockedFromMap(testMap)) {
       setState(() => _loading = false);
       showInfoNotification(context, 'delivery_update.status.locked'.tr());
       return;
@@ -894,6 +892,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isBagsakanDelivery = _delivery['bagsakan_id'] != null;
 
     final List<String> notePresets;
     if (_isDelivered) {
@@ -945,6 +944,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           onPressed: _submit,
         ),
         appBar: AppHeaderBar(
+          showBottomBorder: false,
           titleWidget: DeliveryUpdateAppBarTitle(
             barcode: widget.barcode,
             isInverse: true,
@@ -974,6 +974,40 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             },
             child: Column(
               children: [
+                // ── STATUS SELECTION SUB-HEADER ──────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(DSSpacing.xl),
+                      bottomRight: Radius.circular(DSSpacing.xl),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).primaryColor.withValues(alpha: 0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.fromLTRB(
+                    DSSpacing.md,
+                    0,
+                    DSSpacing.md,
+                    DSSpacing.lg,
+                  ),
+                  child: DeliveryStatusSection(
+                    statusSelectorKey: _statusSelectorKey,
+                    currentStatus: _status,
+                    onStatusChanged: _onStatusTap,
+                    error: _errors['delivery_status'],
+                    isHeaderIntegrated: true,
+                  ),
+                ),
+
                 Expanded(
                   child: LoadingOverlay(
                     isLoading: _loading,
@@ -1011,13 +1045,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                     ),
                                   ),
 
-                                  // ── STATUS SELECTION ────────────────────────────
-                                  DeliveryStatusSection(
-                                    statusSelectorKey: _statusSelectorKey,
-                                    currentStatus: _status,
-                                    onStatusChanged: _onStatusTap,
-                                    error: _errors['delivery_status'],
-                                  ),
+                                  // Removed old DeliveryStatusSection position
 
                                   // ── RECIPIENT INFO (delivered only) ──────────
                                   if (_isDelivered) ...[
@@ -1038,7 +1066,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                       confirmationCodeFocusNode:
                                           _confirmationCodeFocus,
                                       relationship: _relationship,
-                                      recipientIsOwner: _recipientIsOwner,
+                                      recipientIsOwner:
+                                          _recipientIsOwner &&
+                                          !isBagsakanDelivery,
                                       placement: _placement,
                                       isExpress: _isExpress,
                                       errors: _errors,
@@ -1047,7 +1077,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                         _recipient.text = name;
                                         setState(() {
                                           _relationship = rel;
-                                          _recipientIsOwner = rel == 'OWNER';
+                                          _recipientIsOwner =
+                                              rel == 'OWNER' &&
+                                              !isBagsakanDelivery;
                                           _errors.remove('recipient');
                                           _errors.remove('relationship');
                                         });

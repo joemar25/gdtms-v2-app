@@ -16,6 +16,8 @@ import 'package:sqflite/sqflite.dart';
 class AppDatabase {
   AppDatabase._();
 
+  static const int kVersion = 22;
+
   static Database? _instance;
   static Future<Database>? _openFuture;
 
@@ -43,7 +45,7 @@ class AppDatabase {
     final path = p.join(dir, 'fsi_courier.db');
     final db = await openDatabase(
       path,
-      version: 18,
+      version: kVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -95,7 +97,21 @@ class AppDatabase {
         piece_count      INTEGER NOT NULL DEFAULT 1,
         piece_index      INTEGER NOT NULL DEFAULT 1,
         allowed_statuses TEXT,
-        data_checksum    TEXT
+        data_checksum    TEXT,
+        bagsakan_id      INTEGER
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE bagsakan_groups (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        name         TEXT    NOT NULL,
+        description  TEXT,
+        status       TEXT    NOT NULL DEFAULT 'draft',
+        submitted_at INTEGER,
+        is_archived  INTEGER NOT NULL DEFAULT 0,
+        created_at   INTEGER NOT NULL,
+        updated_at   INTEGER NOT NULL
       )
     ''');
 
@@ -361,6 +377,47 @@ class AppDatabase {
     if (oldVersion < 18) {
       // v18: Preservation of version numbering (previously account_number).
     }
+    if (oldVersion < 19) {
+      // v19: Preservation of version numbering.
+    }
+    if (oldVersion < 20) {
+      // v20: Add bagsakan_groups table and bagsakan_id column to local_deliveries.
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS bagsakan_groups (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            name         TEXT    NOT NULL,
+            description  TEXT,
+            status       TEXT    NOT NULL DEFAULT 'draft',
+            submitted_at INTEGER,
+            created_at   INTEGER NOT NULL,
+            updated_at   INTEGER NOT NULL
+          )
+        ''');
+      } catch (e) {
+        debugPrint('[DB] Migration info (create bagsakan_groups): $e');
+      }
+      await addColumn(
+        "ALTER TABLE local_deliveries ADD COLUMN bagsakan_id INTEGER",
+      );
+    }
+
+    if (oldVersion < 21) {
+      // v21: Ensure status and submitted_at exist in bagsakan_groups (Fix for missing columns).
+      await addColumn(
+        "ALTER TABLE bagsakan_groups ADD COLUMN status TEXT NOT NULL DEFAULT 'draft'",
+      );
+      await addColumn(
+        "ALTER TABLE bagsakan_groups ADD COLUMN submitted_at INTEGER",
+      );
+    }
+
+    if (oldVersion < 22) {
+      // v22: Add is_archived column to bagsakan_groups
+      await db.execute(
+        'ALTER TABLE bagsakan_groups ADD COLUMN is_archived INTEGER DEFAULT 0',
+      );
+    }
   }
 
   /// Deletes ALL rows from [local_deliveries] and [delivery_update_queue].
@@ -372,5 +429,6 @@ class AppDatabase {
     await db.delete('delivery_update_queue');
     await db.delete('sync_operations');
     await db.delete('error_logs');
+    await db.delete('bagsakan_groups');
   }
 }

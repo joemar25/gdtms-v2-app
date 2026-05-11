@@ -208,6 +208,8 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                             branch['branch_name']?.toString() ?? '';
                         final volume = item['volume']?.toString() ?? '-';
                         final tat = item['tat']?.toString() ?? '';
+                        final isBagsakan = item['is_bagsakan'] == true;
+                        final bagsakanId = item['bagsakan_id']?.toString();
                         final isChecking = _checkingIndex == i;
 
                         // Add TAT label to reportingDate
@@ -220,6 +222,14 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
                           'barcode': maskedCode,
                           'delivery_status': '',
                           'metadata': [
+                            if (isBagsakan)
+                              {
+                                'icon': Icons.inventory_2_rounded,
+                                'label':
+                                    bagsakanId != null && bagsakanId.isNotEmpty
+                                    ? 'Bagsakan #$bagsakanId'
+                                    : 'Bagsakan Batch',
+                              },
                             {
                               'icon': Icons.store_outlined,
                               'label': branchName.isNotEmpty

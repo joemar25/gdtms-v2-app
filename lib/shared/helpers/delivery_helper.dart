@@ -73,11 +73,16 @@ bool checkIsLockedFromMap(Map<String, dynamic> delivery) {
 
   final ds = DeliveryStatus.fromString(status);
   final attempts = getAttemptsCountFromMap(delivery);
+
+  // RULE: Items assigned to a Bagsakan group are locked for individual action.
+  if (delivery['bagsakan_id'] != null) return true;
+
   if (ds == DeliveryStatus.failedDelivery && attempts >= 3) return true;
 
   return checkIsLocked(
     status: status,
     rtsVerificationStatus: failedDeliveryVerif,
+    attempts: attempts,
   );
 }
 

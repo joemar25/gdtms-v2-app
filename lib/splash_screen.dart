@@ -118,99 +118,127 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
           ).animate().fadeIn(duration: DSAnimations.dSlow),
 
-          // ── Center Brand ───────────────────────────────────────────────────
           SafeArea(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo Container (Netflix-style zoom entry)
-                  Container(
-                        width: DSIconSize.heroLg,
-                        height: DSIconSize.heroLg,
-                        padding: const EdgeInsets.all(DSSpacing.md),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? DSColors.cardElevatedDark
-                              : DSColors.white,
-                          borderRadius: DSStyles.sheetRadius,
-                          boxShadow: DSStyles.shadowXL(context),
-                        ),
-                        child: Image.asset(
-                          'assets/android-chrome-512x512.png',
-                          fit: BoxFit.contain,
-                        ),
-                      )
-                      .animate()
-                      .scale(
-                        begin: const Offset(0.8, 0.8),
-                        end: const Offset(1.0, 1.0),
-                        duration: DSAnimations.dSlow,
-                        curve: Curves.easeOutBack,
-                      )
-                      .fadeIn(duration: DSAnimations.dNormal),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isSmallScreen = constraints.maxHeight < 600;
+                final logoSize = isSmallScreen
+                    ? DSIconSize.heroMd * 1.8
+                    : DSIconSize.heroLg;
 
-                  DSSpacing.hXl,
-
-                  // App Name (Staggered entrance)
-                  Text(
-                        'splash.title'.tr(),
-                        style: DSTypography.display(color: textColor).copyWith(
-                          fontSize: DSTypography.sizeHero,
-                          letterSpacing: DSTypography.lsExtraLoose * 5,
-                        ),
-                      )
-                      .animate()
-                      .fadeIn(delay: 400.ms, duration: 600.ms)
-                      .slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
-
-                  DSSpacing.hSm,
-
-                  // Tagline
-                  Text(
-                    'splash.tagline'.tr(),
-                    style: DSTypography.label(color: subtitleColor),
-                  ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
-
-                  DSSpacing.hXl,
-                  DSSpacing.hLg,
-
-                  // Feature chips
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: DSSpacing.md,
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                    child: Wrap(
-                      spacing: DSSpacing.md,
-                      runSpacing: DSSpacing.md,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        _SplashChip(
-                              icon: LucideIcons.truck,
-                              label: 'splash.feature.accept'.tr(),
-                            )
-                            .animate()
-                            .fadeIn(delay: 800.ms)
-                            .scale(begin: const Offset(0.9, 0.9)),
-                        _SplashChip(
-                              icon: LucideIcons.package,
-                              label: 'splash.feature.deliver'.tr(),
-                            )
-                            .animate()
-                            .fadeIn(delay: 950.ms)
-                            .scale(begin: const Offset(0.9, 0.9)),
-                        _SplashChip(
-                              icon: LucideIcons.wallet,
-                              label: 'splash.feature.payout'.tr(),
-                            )
-                            .animate()
-                            .fadeIn(delay: 1100.ms)
-                            .scale(begin: const Offset(0.9, 0.9)),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: DSSpacing.xl,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Logo Container (Netflix-style zoom entry)
+                          Container(
+                                width: logoSize,
+                                height: logoSize,
+                                padding: const EdgeInsets.all(DSSpacing.md),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? DSColors.cardElevatedDark
+                                      : DSColors.white,
+                                  borderRadius: DSStyles.sheetRadius,
+                                  boxShadow: DSStyles.shadowXL(context),
+                                ),
+                                child: Image.asset(
+                                  'assets/android-chrome-512x512.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              )
+                              .animate()
+                              .scale(
+                                begin: const Offset(0.8, 0.8),
+                                end: const Offset(1.0, 1.0),
+                                duration: DSAnimations.dSlow,
+                                curve: Curves.easeOutBack,
+                              )
+                              .fadeIn(duration: DSAnimations.dNormal),
+
+                          isSmallScreen ? DSSpacing.hLg : DSSpacing.hXl,
+
+                          // App Name (Staggered entrance)
+                          Text(
+                                'splash.title'.tr(),
+                                style: DSTypography.display(color: textColor)
+                                    .copyWith(
+                                      fontSize: isSmallScreen
+                                          ? DSTypography.sizeXl * 1.5
+                                          : DSTypography.sizeHero,
+                                      letterSpacing:
+                                          DSTypography.lsExtraLoose *
+                                          (isSmallScreen ? 3 : 5),
+                                    ),
+                              )
+                              .animate()
+                              .fadeIn(delay: 400.ms, duration: 600.ms)
+                              .slideY(
+                                begin: 0.2,
+                                end: 0,
+                                curve: Curves.easeOutQuad,
+                              ),
+
+                          DSSpacing.hSm,
+
+                          // Tagline
+                          Text(
+                            'splash.tagline'.tr(),
+                            style: DSTypography.label(color: subtitleColor),
+                          ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+
+                          isSmallScreen ? DSSpacing.hLg : DSSpacing.hXl,
+                          if (!isSmallScreen) DSSpacing.hLg,
+
+                          // Feature chips
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: DSSpacing.md,
+                            ),
+                            child: Wrap(
+                              spacing: DSSpacing.md,
+                              runSpacing: DSSpacing.md,
+                              alignment: WrapAlignment.center,
+                              children: [
+                                _SplashChip(
+                                      icon: LucideIcons.truck,
+                                      label: 'splash.feature.accept'.tr(),
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 800.ms)
+                                    .scale(begin: const Offset(0.9, 0.9)),
+                                _SplashChip(
+                                      icon: LucideIcons.package,
+                                      label: 'splash.feature.deliver'.tr(),
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 950.ms)
+                                    .scale(begin: const Offset(0.9, 0.9)),
+                                _SplashChip(
+                                      icon: LucideIcons.wallet,
+                                      label: 'splash.feature.payout'.tr(),
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 1100.ms)
+                                    .scale(begin: const Offset(0.9, 0.9)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
 

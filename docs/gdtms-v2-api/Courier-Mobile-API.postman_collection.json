@@ -2,10 +2,10 @@
   "info": {
     "_postman_id": "892be2ca-d1ea-42c6-9b0a-5bcf348f74fd",
     "name": "Courier Mobile API",
-    "description": "# Courier Mobile API v3.7\n\nComplete mobile delivery management and payment API for courier operations.\n\n## Version History\n\n**v3.7** — Product metadata standardisation and media pipeline cleanup\n- `product` field now consistently present in GET /deliveries, GET /sync, GET /deliveries/{barcode}, and GET /eligibility responses\n- Decouples product branding from mail_type — mobile app can now route/brand independently\n- POST /deliveries/{barcode}/media deprecated (returns 410 Gone); direct S3 upload flow via GET /media/upload-params is now the only supported path\n\n**v3.6** — Rich recipient metadata and response enhancements\n- Pre-computed piece_count (always 1) and piece_index (always 1) as explicit integer fields\n- Allowed status transitions array showing valid next states for each delivery\n- Localized failed_delivery_reasons with {id, label} objects for FAILED_DELIVERY status\n- Rich recipient_metadata object including latitude, longitude, authorized_rep\n\n**v3.5** — Bulk operations and data integrity\n- Bulk delivery status update endpoint (50 deliveries per request)\n- Canonical field mapping: recipient_name, recipient_phone, recipient_address\n- SHA256 data_checksum field for sync validation and offline integrity checking\n- Enhanced recipient_metadata with geographic and authorization details\n\n**v3.4** — Advanced sync and configuration\n- Remote app configuration endpoint with device/upload constraints\n- Global delivery search across name, phone, and address fields\n- Unified sync stream with delta sync support via updated_since parameter\n- Optimized bandwidth usage for mobile reconnections (70-80% reduction possible)\n\n**v3.3** — Batch verification and media uploads\n- Batch delivery status verification (500 barcodes per request)\n- Direct S3 signed URL generation for media uploads (photos, proofs of delivery)\n- Standardized conflict error codes (MAX_ATTEMPTS_REACHED, DELIVERY_IMMUTABLE, INVALID_STATUS_TRANSITION, etc.)\n\n**v3.2** — Initial mobile API\n- Courier profile and authentication via Sanctum tokens\n- Real-time location tracking\n- Individual delivery status updates\n- Payment preview and request submission\n- Notification retrieval\n- Removed payment-related fields from dashboard summary",
+    "description": "# Courier Mobile API v3.8\n\nComplete mobile delivery management and payment API for courier operations.\n\n## Version History\n\n**v3.8** — Bagsakan (Group Delivery) module integration\n- Added Bagsakan group endpoints: list/create/show/update/delete/assign/unassign/submit/assign-account\n- Added hard-gate visibility: bagsakan-tagged deliveries are excluded from standard deliveries list, dashboard counters, and default search\n- Added sync contract for groups: GET /sync now includes `bagsakan_groups` with `is_archived` soft-delete signaling\n- Added dispatch metadata: `bagsakan_id` and `is_bagsakan` in pending dispatches\n- Added conflict intelligence on assign: `409` + `already_assigned_barcodes`\n- Added server-side eligibility search switch: `eligible_for_bagsakan=1`\n\n**v3.7** — Product metadata standardisation and media pipeline cleanup\n- `product` field now consistently present in GET /deliveries, GET /sync, GET /deliveries/{barcode}, and GET /eligibility responses\n- Decouples product branding from mail_type — mobile app can now route/brand independently\n- POST /deliveries/{barcode}/media deprecated (returns 410 Gone); direct S3 upload flow via GET /media/upload-params is now the only supported path\n\n**v3.6** — Rich recipient metadata and response enhancements\n- Pre-computed piece_count (always 1) and piece_index (always 1) as explicit integer fields\n- Allowed status transitions array showing valid next states for each delivery\n- Localized failed_delivery_reasons with {id, label} objects for FAILED_DELIVERY status\n- Rich recipient_metadata object including latitude, longitude, authorized_rep\n\n**v3.5** — Bulk operations and data integrity\n- Bulk delivery status update endpoint (50 deliveries per request)\n- Canonical field mapping: recipient_name, recipient_phone, recipient_address\n- SHA256 data_checksum field for sync validation and offline integrity checking\n- Enhanced recipient_metadata with geographic and authorization details\n\n**v3.4** — Advanced sync and configuration\n- Remote app configuration endpoint with device/upload constraints\n- Global delivery search across name, phone, and address fields\n- Unified sync stream with delta sync support via updated_since parameter\n- Optimized bandwidth usage for mobile reconnections (70-80% reduction possible)\n\n**v3.3** — Batch verification and media uploads\n- Batch delivery status verification (500 barcodes per request)\n- Direct S3 signed URL generation for media uploads (photos, proofs of delivery)\n- Standardized conflict error codes (MAX_ATTEMPTS_REACHED, DELIVERY_IMMUTABLE, INVALID_STATUS_TRANSITION, etc.)\n\n**v3.2** — Initial mobile API\n- Courier profile and authentication via Sanctum tokens\n- Real-time location tracking\n- Individual delivery status updates\n- Payment preview and request submission\n- Notification retrieval\n- Removed payment-related fields from dashboard summary",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "34777683",
-    "version": "3.7.0"
+    "version": "3.8.0"
   },
   "item": [
     {
@@ -527,7 +527,7 @@
                 }
               ]
             },
-            "description": "Get partial dispatches pending acceptance for authenticated courier (status: DISPATCHED). Each item represents one partial batch the courier can individually accept or reject. Returns dispatch_code (partial batch code), status, courier_code, volume, item_count (actual delivery count), branch (branch_name, branch_code), tat, and transmittal_date. Paginated, default 10 per page."
+            "description": "Get partial dispatches pending acceptance for authenticated courier (status: DISPATCHED). Each item represents one partial batch the courier can individually accept or reject. Returns dispatch_code (partial batch code), status, courier_code, volume, item_count (actual delivery count), branch (branch_name, branch_code), tat, transmittal_date, plus v3.8 fields `bagsakan_id` and `is_bagsakan`. Paginated, default 10 per page."
           },
           "response": [
             {
@@ -541,7 +541,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n    \"success\": true,\n    \"message\": \"Operation completed successfully\",\n    \"pending_dispatches\": [\n        {\n            \"dispatch_code\": \"GEOFM005431748820260303110534\",\n            \"status\": \"dispatched\",\n            \"courier_code\": \"GEOFM00543\",\n            \"volume\": 15,\n            \"item_count\": 12,\n            \"branch\": {\n                \"branch_name\": \"QUEZON CITY BRANCH\",\n                \"branch_code\": \"QC001\"\n            },\n            \"tat\": \"2026-03-08T23:59:59.999999Z\",\n            \"transmittal_date\": \"2026-03-03\"\n        }\n    ],\n    \"total_count\": 1,\n    \"courier_id\": 543,\n    \"pagination\": {\n        \"current_page\": 1,\n        \"per_page\": 10,\n        \"total\": 1,\n        \"last_page\": 1\n    }\n}"
+              "body": "{\n    \"success\": true,\n    \"message\": \"Operation completed successfully\",\n    \"pending_dispatches\": [\n        {\n            \"dispatch_code\": \"GEOFM005431748820260303110534\",\n            \"status\": \"dispatched\",\n            \"courier_code\": \"GEOFM00543\",\n            \"volume\": 15,\n            \"item_count\": 12,\n            \"bagsakan_id\": 42,\n            \"is_bagsakan\": true,\n            \"branch\": {\n                \"branch_name\": \"QUEZON CITY BRANCH\",\n                \"branch_code\": \"QC001\"\n            },\n            \"tat\": \"2026-03-08T23:59:59.999999Z\",\n            \"transmittal_date\": \"2026-03-03\"\n        }\n    ],\n    \"total_count\": 1,\n    \"courier_id\": 543,\n    \"pagination\": {\n        \"current_page\": 1,\n        \"per_page\": 10,\n        \"total\": 1,\n        \"last_page\": 1\n    }\n}"
             }
           ]
         },
@@ -568,7 +568,7 @@
               "host": ["{{baseURL}}"],
               "path": ["api", "mbl", "accept-dispatch"]
             },
-            "description": "Accept a dispatch for authenticated courier (courier ID automatically used from token). dispatch_code must be uppercase alphanumeric with hyphens/underscores. client_request_id must be a valid UUID. Only this specific dispatch batch is accepted and moved to COURIER_RECEIVED. device_info.os must be one of: android, ios, windows, macos, linux."
+            "description": "Accept a dispatch for authenticated courier (courier ID automatically used from token). dispatch_code must be uppercase alphanumeric with hyphens/underscores. client_request_id must be a valid UUID. Only this specific dispatch batch is accepted and moved to COURIER_RECEIVED. device_info.os must be one of: android, ios, windows, macos, linux. v3.8: if the accepted batch is bagsakan-tagged, the server auto-links all eligible deliveries in that batch to the batch `bagsakan_group_id`."
           },
           "response": [
             {
@@ -691,6 +691,588 @@
                 }
               ],
               "body": "{\n    \"success\": true,\n    \"message\": \"Operation completed successfully\",\n    \"client_request_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"eligible\": true,\n    \"dispatch_code\": \"P-DISP-2024-001\",\n    \"status\": \"DISPATCHED\",\n    \"courier_id\": 543,\n    \"courier_code\": \"GEOFM00543\",\n    \"volume\": 15,\n    \"item_count\": 12,\n    \"device_info\": {\n        \"free_storage_gb\": 3.25,\n        \"os_version\": \"14\",\n        \"app_version\": \"1.2.3\",\n        \"device_type\": \"android\"\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bagsakan (v3.8)",
+      "item": [
+        {
+          "name": "Get Bagsakan Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/bagsakan/groups?page=1&per_page=10",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "mbl", "bagsakan", "groups"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "description": "Results per page (default 10)"
+                }
+              ]
+            },
+            "description": "v3.8 — Fetch Bagsakan groups for the authenticated courier. Includes computed `item_count`, `delivered_count`, and `is_archived` soft-delete flags. Groups are paginated; use pagination parameters for large result sets."
+          },
+          "response": [
+            {
+              "name": "200 - Groups List",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 42,\n      \"name\": \"Bagsakan - South Cluster\",\n      \"description\": \"May 2026 grouped handoff\",\n      \"status\": \"pending\",\n      \"item_count\": 5,\n      \"delivered_count\": 2,\n      \"submitted_at\": null,\n      \"created_at\": \"2026-05-08T10:30:00.000000Z\",\n      \"updated_at\": \"2026-05-08T10:45:00.000000Z\",\n      \"is_archived\": false\n    },\n    {\n      \"id\": 41,\n      \"name\": \"Bagsakan - North Cluster\",\n      \"description\": \"Earlier batch\",\n      \"status\": \"submitted\",\n      \"item_count\": 3,\n      \"delivered_count\": 3,\n      \"submitted_at\": \"2026-05-07T14:20:00.000000Z\",\n      \"created_at\": \"2026-05-07T10:00:00.000000Z\",\n      \"updated_at\": \"2026-05-07T14:20:00.000000Z\",\n      \"is_archived\": false\n    }\n  ],\n  \"pagination\": {\n    \"current_page\": 1,\n    \"per_page\": 10,\n    \"total\": 2,\n    \"last_page\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Bagsakan Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bagsakan - South Cluster\",\n  \"description\": \"May 2026 grouped handoff\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/bagsakan/groups",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "mbl", "bagsakan", "groups"]
+            },
+            "description": "v3.8 — Create Bagsakan group. Defaults to `status: pending`. Self-healing: if a group with the same name already exists in pending status for this courier, returns the existing group instead of creating a duplicate."
+          },
+          "response": [
+            {
+              "name": "201 - Group Created",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Bagsakan group created successfully.\",\n  \"data\": {\n    \"id\": 42,\n    \"name\": \"Bagsakan - South Cluster\",\n    \"description\": \"May 2026 grouped handoff\",\n    \"status\": \"pending\",\n    \"item_count\": 0,\n    \"delivered_count\": 0,\n    \"submitted_at\": null,\n    \"created_at\": \"2026-05-08T10:30:00.000000Z\",\n    \"updated_at\": \"2026-05-08T10:30:00.000000Z\",\n    \"is_archived\": false,\n    \"deliveries\": []\n  }\n}"
+            },
+            {
+              "name": "422 - Validation Error",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"The given data was invalid.\",\n  \"errors\": {\n    \"name\": [\"The name field is required.\"]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Bagsakan Group Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/bagsakan/groups/42",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "mbl", "bagsakan", "groups", "42"]
+            },
+            "description": "v3.8 — Get one group with delivery items. Delivery item payload includes `propagation_source` to indicate the copy source candidate."
+          },
+          "response": [
+            {
+              "name": "200 - Group Details",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 42,\n    \"name\": \"Bagsakan - South Cluster\",\n    \"description\": \"May 2026 grouped handoff\",\n    \"status\": \"pending\",\n    \"item_count\": 3,\n    \"delivered_count\": 1,\n    \"submitted_at\": null,\n    \"created_at\": \"2026-05-08T10:30:00.000000Z\",\n    \"updated_at\": \"2026-05-08T10:45:00.000000Z\",\n    \"is_archived\": false,\n    \"deliveries\": [\n      {\n        \"id\": 306,\n        \"barcode\": \"FSIEE586361\",\n        \"recipient_name\": \"MA ELIZA CRIZALDO\",\n        \"recipient_address\": \"123 Main Street, QC\",\n        \"delivery_status\": \"DELIVERED\",\n        \"propagation_source\": true\n      },\n      {\n        \"id\": 307,\n        \"barcode\": \"FSIEE586362\",\n        \"recipient_name\": \"JUAN DELA CRUZ\",\n        \"recipient_address\": \"456 Sampaloc Street, Manila\",\n        \"delivery_status\": \"FOR_DELIVERY\",\n        \"propagation_source\": false\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "404 - Group Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Bagsakan group not found.\",\n  \"error_code\": \"BAGSAKAN_NOT_FOUND\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Bagsakan Group",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bagsakan - South Cluster (Updated)\",\n  \"description\": \"Updated notes for May 2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/bagsakan/groups/42",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "mbl", "bagsakan", "groups", "42"]
+            },
+            "description": "v3.8 — Update group metadata (name, description). Allowed only while group status is `pending`. Returns 409 BAGSAKAN_LOCKED if group is already submitted."
+          },
+          "response": [
+            {
+              "name": "200 - Updated",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Bagsakan group updated successfully.\",\n  \"data\": {\n    \"id\": 42,\n    \"name\": \"Bagsakan - South Cluster (Updated)\",\n    \"description\": \"Updated notes for May 2026\",\n    \"status\": \"pending\",\n    \"item_count\": 5,\n    \"delivered_count\": 1,\n    \"submitted_at\": null,\n    \"created_at\": \"2026-05-08T10:30:00.000000Z\",\n    \"updated_at\": \"2026-05-08T11:00:00.000000Z\",\n    \"is_archived\": false\n  }\n}"
+            },
+            {
+              "name": "409 - Group Locked",
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot update a submitted bagsakan group.\",\n  \"error_code\": \"BAGSAKAN_LOCKED\"\n}"
+            },
+            {
+              "name": "404 - Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Bagsakan group not found.\",\n  \"error_code\": \"BAGSAKAN_NOT_FOUND\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Assign Barcodes To Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcodes\": [\n    \"FSIEE586361\",\n    \"fsiee586362\",\n    \"FSIEE586363\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/bagsakan/groups/42/assign",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "mbl", "bagsakan", "groups", "42", "assign"]
+            },
+            "description": "v3.8 — Bulk assign barcodes to group (case-insensitive matching). Returns 409 BARCODE_CONFLICT with `already_assigned_barcodes` array if any barcodes are already assigned elsewhere. Max barcodes per request: typically 50-100 based on payload size."
+          },
+          "response": [
+            {
+              "name": "200 - Assign Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Barcodes assigned successfully.\",\n  \"assigned_count\": 3,\n  \"data\": {\n    \"group_id\": 42,\n    \"assigned_barcodes\": [\n      \"FSIEE586361\",\n      \"FSIEE586362\",\n      \"FSIEE586363\"\n    ]\n  }\n}"
+            },
+            {
+              "name": "409 - Barcode Conflict",
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Some barcodes are already assigned to another group.\",\n  \"error_code\": \"BARCODE_CONFLICT\",\n  \"already_assigned_barcodes\": [\n    {\n      \"barcode\": \"FSIEE586361\",\n      \"group_id\": 41,\n      \"group_name\": \"Bagsakan - North Cluster\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "404 - Group Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Bagsakan group not found.\",\n  \"error_code\": \"BAGSAKAN_NOT_FOUND\"\n}"
+            },
+            {
+              "name": "409 - Group Locked",
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot assign to a submitted bagsakan group.\",\n  \"error_code\": \"BAGSAKAN_LOCKED\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unassign Barcodes From Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcodes\": [\n    \"FSIEE586361\",\n    \"FSIEE586362\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/bagsakan/groups/1/unassign",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "mbl", "bagsakan", "groups", "1", "unassign"]
+            },
+            "description": "v3.8 — Bulk unassign barcodes from the group (case-insensitive matching). Unlinks deliveries from bagsakan_id and returns them to the standard delivery list. Allowed only for pending groups."
+          },
+          "response": [
+            {
+              "name": "200 - Unassign Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Barcodes unassigned successfully.\",\n  \"unassigned_count\": 2,\n  \"data\": {\n    \"group_id\": 42,\n    \"unassigned_barcodes\": [\n      \"FSIEE586361\",\n      \"FSIEE586362\"\n    ]\n  }\n}"
+            },
+            {
+              "name": "404 - Group Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Bagsakan group not found.\",\n  \"error_code\": \"BAGSAKAN_NOT_FOUND\"\n}"
+            },
+            {
+              "name": "409 - Group Locked",
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot unassign from a submitted bagsakan group.\",\n  \"error_code\": \"BAGSAKAN_LOCKED\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Assign Account To Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_name\": \"SBC\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/bagsakan/groups/42/assign-account",
+              "host": ["{{baseURL}}"],
+              "path": [
+                "api",
+                "mbl",
+                "bagsakan",
+                "groups",
+                "42",
+                "assign-account"
+              ]
+            },
+            "description": "v3.8 — Bulk-assign all eligible deliveries for one account/client to the group."
+          },
+          "response": [
+            {
+              "name": "200 - Assign Account Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Account deliveries assigned successfully.\",\n  \"assigned_count\": 5\n}"
+            },
+            {
+              "name": "409 - Group Locked",
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot assign to a submitted bagsakan group.\",\n  \"error_code\": \"BAGSAKAN_LOCKED\"\n}"
+            },
+            {
+              "name": "422 - No Eligible Deliveries",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"No eligible deliveries found for this account.\",\n  \"error_code\": \"NO_ELIGIBLE_DELIVERIES\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Submit Bagsakan Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group_id\": 16,\n  \"source_barcode\": \"B281613MA47012\",\n  \"propagation_status\": \"DELIVERED\",\n  \"barcodes\": [\n    \"B281613JU47020\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/bagsakan/groups/42/submit",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "mbl", "bagsakan", "groups", "42", "submit"]
+            },
+            "description": "v3.8 — Finalize Bagsakan group (`status=submitted`) and propagate the selected final status/media context from source delivery to group members. Submitted groups are immutable."
+          },
+          "response": [
+            {
+              "name": "200 - Submitted and Propagated",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Bagsakan group submitted successfully.\",\n  \"data\": {\n    \"group_id\": 16,\n    \"status\": \"submitted\",\n    \"source_barcode\": \"B281613MA47012\",\n    \"propagation_status\": \"DELIVERED\",\n    \"updated_deliveries\": 1,\n    \"timeline_created\": 1,\n    \"media_attached\": 2\n  }\n}"
+            },
+            {
+              "name": "409 - Group Locked",
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot submit a locked or already submitted bagsakan group.\",\n  \"error_code\": \"BAGSAKAN_LOCKED\"\n}"
+            },
+            {
+              "name": "404 - Source Delivery Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Source delivery barcode not found or not in this group.\",\n  \"error_code\": \"BAGSAKAN_SOURCE_NOT_FOUND\"\n}"
+            },
+            {
+              "name": "422 - Source Not in Final Status",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Source delivery must be in a final status (DELIVERED, FAILED_DELIVERY, or OSA) to propagate.\",\n  \"error_code\": \"BAGSAKAN_SOURCE_NOT_FINAL\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Bagsakan Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/mbl/bagsakan/groups/42",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "mbl", "bagsakan", "groups", "42"]
+            },
+            "description": "v3.8 — Delete pending group and unassign all linked deliveries (`bagsakan_id -> null`). Deletion is blocked when status is `submitted`."
+          },
+          "response": [
+            {
+              "name": "200 - Deleted",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Bagsakan group deleted successfully. All linked deliveries have been unassigned.\",\n  \"data\": {\n    \"group_id\": 42,\n    \"unassigned_count\": 5\n  }\n}"
+            },
+            {
+              "name": "404 - Group Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Bagsakan group not found.\",\n  \"error_code\": \"BAGSAKAN_NOT_FOUND\"\n}"
+            },
+            {
+              "name": "409 - Group Locked",
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot delete a submitted bagsakan group.\",\n  \"error_code\": \"BAGSAKAN_LOCKED\"\n}"
             }
           ]
         }
@@ -1091,7 +1673,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/mbl/deliveries/search?q=santos&page=1&per_page=10",
+              "raw": "{{baseURL}}/api/mbl/deliveries/search?q=santos&page=1&per_page=10&eligible_for_bagsakan=false",
               "host": ["{{baseURL}}"],
               "path": ["api", "mbl", "deliveries", "search"],
               "query": [
@@ -1109,10 +1691,15 @@
                   "key": "per_page",
                   "value": "10",
                   "description": "Results per page (max 50)"
+                },
+                {
+                  "key": "eligible_for_bagsakan",
+                  "value": "false",
+                  "description": "v3.8 — Set to true/1 to return only server-qualified Bagsakan-eligible deliveries."
                 }
               ]
             },
-            "description": "NEW v3.4 — Global server-side search for deliveries by recipient name, phone, or address with pagination."
+            "description": "NEW v3.4 — Global server-side search for deliveries by recipient name, phone, or address with pagination. v3.8: default search excludes bagsakan-tagged deliveries; use `eligible_for_bagsakan=true` to fetch server-qualified assignable items."
           },
           "response": [
             {
@@ -1160,7 +1747,7 @@
                 }
               ]
             },
-            "description": "NEW v3.4 — Unified sync stream with delta sync support. Returns all deliveries sorted by updated_at DESC. Use updated_since for efficient reconnections (70-80% bandwidth reduction)."
+            "description": "NEW v3.4 — Unified sync stream with delta sync support. Returns all deliveries sorted by updated_at DESC. Use updated_since for efficient reconnections (70-80% bandwidth reduction). v3.8: response also includes `bagsakan_groups` with `is_archived` soft-delete signaling, while grouped deliveries are excluded from standard `data` stream."
           },
           "response": [
             {
@@ -1174,7 +1761,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"id\": 306,\n            \"delivery_batch_id\": 25,\n            \"delivery_status\": \"DELIVERED\",\n            \"recipient_name\": \"MA ELIZA CRIZALDO\",\n            \"recipient_phone\": \"09208019846\",\n            \"recipient_address\": \"123 Main Street, QC\",\n            \"data_checksum\": \"sha256hash\",\n            \"piece_count\": 1,\n            \"piece_index\": 1,\n            \"allowed_statuses\": [],\n            \"recipient_metadata\": {\n                \"name\": \"MA ELIZA CRIZALDO\",\n                \"phone\": \"09208019846\",\n                \"address\": \"123 Main Street, QC\",\n                \"latitude\": 14.5995,\n                \"longitude\": 120.9842\n            },\n            \"updated_at\": \"2026-05-03T08:30:00.000000Z\",\n            \"barcode\": \"FSIEE586361\",\n            \"job_order\": \"571629\"\n        }\n    ],\n    \"pagination\": {\n        \"current_page\": 1,\n        \"per_page\": 100,\n        \"total\": 1,\n        \"last_page\": 1\n    }\n}"
+              "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"id\": 306,\n            \"delivery_batch_id\": 25,\n            \"delivery_status\": \"DELIVERED\",\n            \"recipient_name\": \"MA ELIZA CRIZALDO\",\n            \"recipient_phone\": \"09208019846\",\n            \"recipient_address\": \"123 Main Street, QC\",\n            \"data_checksum\": \"sha256hash\",\n            \"piece_count\": 1,\n            \"piece_index\": 1,\n            \"allowed_statuses\": [],\n            \"recipient_metadata\": {\n                \"name\": \"MA ELIZA CRIZALDO\",\n                \"phone\": \"09208019846\",\n                \"address\": \"123 Main Street, QC\",\n                \"latitude\": 14.5995,\n                \"longitude\": 120.9842\n            },\n            \"updated_at\": \"2026-05-03T08:30:00.000000Z\",\n            \"barcode\": \"FSIEE586361\",\n            \"job_order\": \"571629\"\n        }\n    ],\n    \"bagsakan_groups\": [\n        {\n            \"id\": 42,\n            \"name\": \"Bagsakan - South Cluster\",\n            \"description\": \"May 2026 grouped handoff\",\n            \"status\": \"pending\",\n            \"item_count\": 5,\n            \"delivered_count\": 1,\n            \"submitted_at\": null,\n            \"created_at\": \"2026-05-08T10:30:00.000000Z\",\n            \"updated_at\": \"2026-05-08T10:45:00.000000Z\",\n            \"is_archived\": false\n        }\n    ],\n    \"pagination\": {\n        \"current_page\": 1,\n        \"per_page\": 100,\n        \"total\": 1,\n        \"last_page\": 1\n    }\n}"
             }
           ]
         },

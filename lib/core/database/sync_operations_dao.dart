@@ -47,7 +47,13 @@ class SyncOperationsDao {
           "  END"
           ") <= ?)",
       whereArgs: [courierId, now],
-      orderBy: 'created_at DESC',
+      // FIFO order is critical for dependent operations (e.g. Bagsakan
+      // CREATE_BAGSAKAN must be synced before ASSIGN/DELETE for the same group).
+      // Bagsakan ops are sorted first (online-first atomicity) so the entire
+      // group is pushed before any individual delivery updates.
+      orderBy:
+          "CASE WHEN operation_type LIKE '%BAGSAKAN%' THEN 0 ELSE 1 END, "
+          "created_at ASC, rowid ASC",
       limit: limit,
     );
     return rows.map(SyncOperation.fromDb).toList();
@@ -153,8 +159,8 @@ class SyncOperationsDao {
   Future<int> getPendingCount(String courierId) async {
     final db = await _db;
     final rows = await db.rawQuery(
-      "SELECT COUNT(*) as c FROM sync_operations "
-      "WHERE courier_id = ? AND status IN ('pending', 'processing', 'failed', 'conflict')",
+      "SELECT COUNT(DISTINCT barcode) as c FROM sync_operations "
+      "WHERE courier_id = ? AND status IN ('pending', 'processing', 'error', 'failed', 'conflict')",
       [courierId],
     );
     return Sqflite.firstIntValue(rows) ?? 0;
@@ -196,7 +202,7 @@ class SyncOperationsDao {
   Future<int> getSyncedCount(String courierId) async {
     final db = await _db;
     final rows = await db.rawQuery(
-      "SELECT COUNT(*) as c FROM sync_operations "
+      "SELECT COUNT(DISTINCT barcode) as c FROM sync_operations "
       "WHERE courier_id = ? AND status = 'synced'",
       [courierId],
     );
@@ -218,5 +224,56 @@ class SyncOperationsDao {
       [courierId, dayStart],
     );
     return Sqflite.firstIntValue(rows) ?? 0;
+  }
+
+  /// Returns true when there is an unfinished CREATE_BAGSAKAN operation for
+  /// [groupId] under [courierId].
+  ///
+  /// Useful to defer dependent group operations (assign/unassign/delete/submit)
+  /// until the group create has actually reached the server.
+  Future<bool> hasUnfinishedCreateBagsakan(
+    String courierId,
+    int groupId, {
+    String? excludeOperationId,
+  }) async {
+    final db = await _db;
+    final barcode = 'BAGSAKAN_$groupId';
+    final where = StringBuffer(
+      "courier_id = ? AND barcode = ? "
+      "AND operation_type = 'CREATE_BAGSAKAN' "
+      "AND status IN ('pending','processing','failed','conflict')",
+    );
+    final whereArgs = <Object>[courierId, barcode];
+    if (excludeOperationId != null && excludeOperationId.isNotEmpty) {
+      where.write(' AND id != ?');
+      whereArgs.add(excludeOperationId);
+    }
+
+    final rows = await db.rawQuery(
+      'SELECT COUNT(*) as c FROM sync_operations WHERE ${where.toString()}',
+      whereArgs,
+    );
+    return (Sqflite.firstIntValue(rows) ?? 0) > 0;
+  }
+
+  /// Deletes all pending/failed/error/conflict operations for a specific barcode.
+  Future<int> deleteByBarcode(String barcode) async {
+    final db = await _db;
+    return await db.delete(
+      'sync_operations',
+      where:
+          "barcode = ? AND status IN ('pending', 'processing', 'error', 'failed', 'conflict')",
+      whereArgs: [barcode],
+    );
+  }
+
+  /// Deletes all operations with a specific status for [courierId].
+  Future<int> deleteByStatus(String courierId, String status) async {
+    final db = await _db;
+    return await db.delete(
+      'sync_operations',
+      where: 'courier_id = ? AND status = ?',
+      whereArgs: [courierId, status],
+    );
   }
 }

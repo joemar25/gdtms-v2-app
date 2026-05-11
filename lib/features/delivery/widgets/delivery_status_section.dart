@@ -17,26 +17,31 @@ class DeliveryStatusSection extends StatelessWidget {
     required this.currentStatus,
     required this.onStatusChanged,
     this.error,
+    this.isHeaderIntegrated = false,
   });
 
   final GlobalKey<DeliveryStatusSelectorState> statusSelectorKey;
   final String currentStatus;
   final Future<void> Function(String) onStatusChanged;
   final String? error;
+  final bool isHeaderIntegrated;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DeliverySectionHeader(
-          label: 'delivery_update.header.select_status'.tr(),
-        ),
-        DSSpacing.hSm, // _kInnerGap equivalent
+        if (!isHeaderIntegrated) ...[
+          DeliverySectionHeader(
+            label: 'delivery_update.header.select_status'.tr(),
+          ),
+          DSSpacing.hSm, // _kInnerGap equivalent
+        ],
         DeliveryStatusSelector(
           key: statusSelectorKey,
           currentStatus: currentStatus,
           onStatusChanged: onStatusChanged,
+          isHeaderIntegrated: isHeaderIntegrated,
         ),
         if (error != null)
           Padding(

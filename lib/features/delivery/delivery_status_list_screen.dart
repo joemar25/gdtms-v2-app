@@ -449,13 +449,9 @@ class _DeliveryStatusListScreenState
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) return;
-        // 1. Instantly kill keyboard focus to avoid viewport jumps
         FocusManager.instance.primaryFocus?.unfocus();
 
         if (_showSearch) {
-          // 2. We don't call setState here to avoid triggering layout animations
-          // during a pop transition, but we clear the state so that if
-          // the user navigates back to this status list, it's fresh.
           _showSearch = false;
           _searchQuery = '';
           _searchResults = [];
@@ -467,6 +463,7 @@ class _DeliveryStatusListScreenState
             ? DSColors.scaffoldDark
             : DSColors.scaffoldLight,
         appBar: AppHeaderBar(
+          showBottomBorder: !_isFailedDelivery,
           title: widget.title,
           actions: _buildActions(context),
         ),
@@ -536,17 +533,40 @@ class _DeliveryStatusListScreenState
                   ),
                 ),
 
-                // ── Failed-delivery sub-filter chips ──────────────────────────────
+                // ── Failed-delivery sub-filter integrated sub-header ──────────────
                 if (_isFailedDelivery)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      DSSpacing.md,
-                      DSSpacing.sm,
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(DSSpacing.xl),
+                        bottomRight: Radius.circular(DSSpacing.xl),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withValues(alpha: 0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.fromLTRB(
                       DSSpacing.md,
                       0,
+                      DSSpacing.md,
+                      DSSpacing.lg,
                     ),
                     child: DSSegmentedSelector<String>(
                       selected: _failedSubFilter,
+                      selectedTextColor: Theme.of(context).primaryColor,
+                      unselectedTextColor: DSColors.white.withValues(
+                        alpha: 0.75,
+                      ),
+                      backgroundColor: DSColors.white.withValues(alpha: 0.15),
+                      showBorder: false,
                       onChanged: (v) => setState(() {
                         _failedSubFilter = v;
                         _currentPage = 0;
@@ -556,14 +576,14 @@ class _DeliveryStatusListScreenState
                           value: 'redelivery',
                           label: 'For Redelivery',
                           icon: Icons.local_shipping_rounded,
-                          color: DSColors.error,
+                          color: DSColors.white,
                           badge: _countFailedSubGroup('redelivery'),
                         ),
                         DSSegmentOption(
                           value: 'rts',
                           label: 'For Return',
                           icon: Icons.assignment_return_rounded,
-                          color: DeliveryCard.statusColor('FAILED_DELIVERY'),
+                          color: DSColors.white,
                           badge: _countFailedSubGroup('rts'),
                         ),
                       ],
@@ -653,7 +673,7 @@ class _DeliveryStatusListScreenState
                                         } else if (ds ==
                                             DeliveryStatus.delivered) {
                                           msg =
-                                              'This item has already been delivered and is sealed.';
+                                              'This item has already been delivered and is locked.';
                                         } else if (ds ==
                                                 DeliveryStatus.failedDelivery &&
                                             attemptsCount >= 3) {
@@ -664,6 +684,9 @@ class _DeliveryStatusListScreenState
                                             rv.isVerified) {
                                           msg =
                                               'This failed delivery has already been verified and is no longer actionable.';
+                                        } else if (d['bagsakan_id'] != null) {
+                                          msg =
+                                              'This delivery is part of a Bagsakan group and cannot be opened individually.';
                                         }
                                         showInfoNotification(context, msg);
                                       }

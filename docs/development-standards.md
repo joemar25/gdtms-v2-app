@@ -44,9 +44,10 @@ The GDTMS v2 Courier Mobile App is an **enterprise courier management platform**
 **Business Critical Rules** (Never violate):
 
 1. **Offline-First Resilience**: The app must operate without internet access. All actions write to the local SQLite database first, then sync to the server when connectivity is restored.
-2. **Immutable Final States**: Once a delivery is marked as Delivered or Failed Verification, it is sealed locally.
+2. **Immutable Final States**: Once a delivery is marked as Delivered or Failed Verification, it is locked locally.
 3. **Data Integrity**: Local database operations must be transactional where applicable.
 4. **Single Device Session**: One active session per courier enforced by device fingerprinting.
+5. **Contextual Interaction Locking**: For secondary workflows (e.g., Bagsakan), destructive actions (Delete, Remove) must be hidden or disabled once a group or item reaches a terminal/submitted state. The UI should always reflect the authoritative state (DRAFT vs SUBMITTED).
 
 ---
 
@@ -105,6 +106,7 @@ Duplicate UI code and hardcoded values are technical debt.
 - **Typography for All**: **NEVER** use direct `TextStyle()` constructors. Always use `DSTypography` methods. This ensures the correct Montserrat weight mapping and theme-aware colors are used app-wide.
 - **Search Before Creating**: Check `lib/shared/widgets/` for existing molecules/atoms before building a new UI component.
 - **Icons**: Use `DSColors.labelSecondary` or `Theme.of(context).iconTheme.color` for icons. Do not hardcode `Colors.black54` etc.
+- **Integrated Header Continuity**: For screens with sub-navigation or primary status selectors (e.g., Bagsakan, Delivery Update, Status Lists), use the **Integrated Header Pattern**. Disable the `AppHeaderBar` bottom border and merge it with a primary-colored, rounded sub-header container. This ensures a "single-unit" premium feel. Refer to `docs/styles.md` for specific layout values.
 
 #### 05 — Mandatory Package Imports
 
@@ -157,6 +159,7 @@ Automated tests are your safety net. You must run `flutter test` before every co
 ### 10 — The Trinity of Code Health (Pre-Commit Checklist)
 
 Before every commit, you **MUST** run these three commands in order:
+
 1. `flutter analyze` — Catch static errors and lint warnings.
 2. `flutter test` — Verify logic and prevent regressions. **(flutter test --reporter json > test_results.json)**
 3. `dart format .` — Keep the codebase clean and consistent.
@@ -178,6 +181,12 @@ Every public class, method, and property **MUST** have a triple-slash DartDoc co
 ### 10 — Inline Comments: The WHY, Not the WHAT
 
 > ⚠️ **Rule**: If your inline comment describes **WHAT** the code does, delete it. The code does that. Comments explain **WHY**.
+
+### 10.1 — No Dangling Doc Comments (`///`)
+
+- Triple-slash `///` comments are strictly for public API documentation (classes, methods, properties).
+- **NEVER** use `///` for file header blocks in test files or private internal files. Use standard double-slash `//` instead.
+- `flutter analyze` will flag dangling `///` as warnings; they must be resolved by converting to `//`.
 
 ### 11 — Section Dividers for Large Files
 
@@ -221,7 +230,7 @@ This app supports **English (EN)** and **Filipino (FIL)** via the `easy_localiza
 
 Translation files live in:
 
-```
+```text
 assets/translations/
   ├── en.json    ← English (source of truth)
   └── fil.json   ← Filipino
@@ -425,6 +434,37 @@ To ensure a premium feel across all device sizes, UI components must be **defens
 
 1. **Flexible Text**: **NEVER** place a `Text` widget inside a `Row` or `Column` without considering its potential length. Wrap in `Flexible` or `Expanded`.
 
+2. **Expanded inside Row requires bounded parent width**: Any widget whose subtree contains `Row` + `Expanded` (or `Flexible`) **must** be wrapped in `Expanded` or `Flexible` before being placed as a direct child of another `Row`. Placing it without a flex wrapper gives it unconstrained width, causing `RenderFlex children have non-zero flex but incoming width constraints are unbounded`.
+
+   ```dart
+   // ❌ CRASH — DeliverySectionHeader contains Row+Expanded internally
+   Row(children: [DeliverySectionHeader(...), TextButton(...)]);
+
+   // ✅ CORRECT — give it a bounded slice of the Row
+   Row(children: [Expanded(child: DeliverySectionHeader(...)), TextButton(...)]);
+   ```
+
+   **Detection**: if `flutter analyze` or a widget test reports `unbounded constraints`, check whether the widget uses `Expanded` internally and its call-site is inside a `Row`.
+
+3. **Never nest `IntrinsicHeight` inside `Material` or `InkWell`**: `IntrinsicHeight` runs a two-pass layout that marks child `parentData` as dirty during the measurement pass. When `Material`/`InkWell`'s semantics system traverses its children immediately after, it hits the dirty flag and throws `!semantics.parentDataDirty`. Always place `IntrinsicHeight` **outside** (wrapping) `Material`/`InkWell`, not inside.
+
+   ```dart
+   // ❌ CRASH — IntrinsicHeight inside InkWell pollutes the semantics pass
+   Material(child: InkWell(child: IntrinsicHeight(child: Row(...))));
+
+   // ✅ CORRECT — IntrinsicHeight resolves layout before semantics touch Material
+   IntrinsicHeight(child: Material(child: InkWell(child: Row(...))));
+   ```
+
+   **Detection**: repeated `!semantics.parentDataDirty` assertion in the debug console almost always points to `IntrinsicHeight` nested inside a semantics-annotating widget (`Material`, `InkWell`, `Semantics`, `MergeSemantics`).
+
+4. **Feature UI Parity**: New features or modernized modules must inherit the visual language of the core system. For example, the **Bagsakan Management** module must mirror the `DeliveryCard` patterns:
+   - Standardized `DeliveryStatusBadge` for state.
+   - `InfoChip` and `DeliveryTinyPill` for metrics (counts, sync status).
+   - Shadow tokens (`DSStyles.shadowSM`) for depth.
+   - Standardized accent bars (left or top) for status-based visual hierarchy.
+   - Dual-timestamp audit trails (e.g., Created vs Submitted) using standard typography tokens.
+
 ---
 
 ## Separation of Concerns & Logic Mapping
@@ -441,4 +481,4 @@ To maintain a scalable codebase, we enforce a strict separation between **Defini
 
 **This is your source of truth for the Courier Mobile App. Consult it before every coding session.**
 
-Last Updated: April 30, 2026
+Last Updated: May 11, 2026

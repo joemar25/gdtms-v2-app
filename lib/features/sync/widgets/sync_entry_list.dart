@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
+import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -18,13 +19,54 @@ class SyncEntryList extends ConsumerWidget {
   final SyncState syncState;
   final Map<String, LocalDelivery> deliveries;
 
+  // Priority order: conflict > pending/failed > synced.
+  static int _statusPriority(String status) {
+    switch (status) {
+      case 'conflict':
+        return 0;
+      case 'pending':
+      case 'failed':
+      case 'processing':
+        return 1;
+      default:
+        return 2; // synced / other
+    }
+  }
+
+  /// Collapses multiple sync entries for the same Bagsakan group into one,
+  /// keeping the entry with the highest-priority status (or latest if equal).
+  List<SyncOperation> _collapseBagsakanEntries(List<SyncOperation> all) {
+    final result = <SyncOperation>[];
+    final seen = <String, int>{}; // barcode -> index in result
+
+    for (final entry in all) {
+      if (!entry.barcode.startsWith('BAGSAKAN_')) {
+        result.add(entry);
+        continue;
+      }
+      final key = entry.barcode;
+      if (!seen.containsKey(key)) {
+        seen[key] = result.length;
+        result.add(entry);
+      } else {
+        final idx = seen[key]!;
+        final existing = result[idx];
+        if (_statusPriority(entry.status) < _statusPriority(existing.status)) {
+          result[idx] = entry; // replace with higher priority
+        }
+        // same priority: keep existing (already latest due to DESC ordering)
+      }
+    }
+    return result;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final failedDeliveryCountByBarcode = ref.watch(
       failedDeliveryCountsProvider,
     );
 
-    final entries = syncState.entries;
+    final entries = _collapseBagsakanEntries(syncState.entries);
 
     return Column(
       children: [

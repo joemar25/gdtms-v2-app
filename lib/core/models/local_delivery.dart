@@ -35,6 +35,7 @@ class LocalDelivery {
     this.pieceIndex = 1,
     this.allowedStatuses = const [],
     this.dataChecksum,
+    this.bagsakanId,
   });
 
   final int? id;
@@ -52,6 +53,7 @@ class LocalDelivery {
   final int pieceIndex;
   final List<String> allowedStatuses;
   final String? dataChecksum;
+  final int? bagsakanId;
 
   /// Full server JSON blob — decoded via [toDeliveryMap] for UI widgets.
   final String rawJson;
@@ -140,6 +142,7 @@ class LocalDelivery {
       allowedStatuses:
           (json['allowed_statuses'] as List?)?.cast<String>() ?? const [],
       dataChecksum: _str(json, 'data_checksum'),
+      bagsakanId: json['bagsakan_id'] as int?,
     );
   }
 
@@ -250,6 +253,7 @@ class LocalDelivery {
       allowedStatuses:
           (json['allowed_statuses'] as List?)?.cast<String>() ?? const [],
       dataChecksum: _str(json, 'data_checksum'),
+      bagsakanId: json['bagsakan_id'] as int?,
     );
   }
 
@@ -282,6 +286,7 @@ class LocalDelivery {
                 .cast<String>()
           : const [],
       dataChecksum: row['data_checksum'] as String?,
+      bagsakanId: row['bagsakan_id'] as int?,
     );
   }
 
@@ -310,6 +315,7 @@ class LocalDelivery {
     'piece_index': pieceIndex,
     'allowed_statuses': jsonEncode(allowedStatuses),
     'data_checksum': dataChecksum,
+    'bagsakan_id': bagsakanId,
   };
 
   /// Decodes [rawJson] back into the delivery map consumed by UI widgets
@@ -341,6 +347,7 @@ class LocalDelivery {
       map['product'] = product ?? map['product'];
       map['allowed_statuses'] = allowedStatuses;
       map['data_checksum'] = dataChecksum;
+      map['bagsakan_id'] = bagsakanId;
 
       return map;
     } catch (_) {
@@ -366,6 +373,7 @@ class LocalDelivery {
     int? pieceIndex,
     List<String>? allowedStatuses,
     String? dataChecksum,
+    int? bagsakanId,
   }) {
     return LocalDelivery(
       id: id,
@@ -391,6 +399,7 @@ class LocalDelivery {
       pieceIndex: pieceIndex ?? this.pieceIndex,
       allowedStatuses: allowedStatuses ?? this.allowedStatuses,
       dataChecksum: dataChecksum ?? this.dataChecksum,
+      bagsakanId: bagsakanId ?? this.bagsakanId,
     );
   }
 

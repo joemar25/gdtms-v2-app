@@ -24,3 +24,4 @@ export 'widgets/molecules/ds_detail_tile.dart';
 export 'widgets/molecules/ds_switch_tile.dart';
 export 'widgets/molecules/ds_hero_card.dart';
 export 'widgets/molecules/ds_secure_view.dart';
+export 'widgets/molecules/ds_slide_to_confirm.dart';

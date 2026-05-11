@@ -7,9 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
-import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
@@ -74,14 +72,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }
       }
 
-      final courierId =
-          await ref.read(authStorageProvider).getLastCourierId() ?? '';
-      final pendingSync = await SyncOperationsDao.instance.getPendingCount(
-        courierId,
-      );
-      final syncedTotal = await SyncOperationsDao.instance.getSyncedCount(
-        courierId,
-      );
+      // Note: pending_sync and synced_total are now handled reactively via
+      // providers in the child components, ensuring consistency with the Sync Screen.
 
       if (!mounted) return;
 
@@ -91,8 +83,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         'delivered_today': delivered,
         'failed_delivery': failedDelivery,
         'osa': osa,
-        'pending_sync': pendingSync,
-        'synced_total': syncedTotal,
       };
     } catch (e, stack) {
       debugPrint('[DASH] Error loading initial data: $e\n$stack');

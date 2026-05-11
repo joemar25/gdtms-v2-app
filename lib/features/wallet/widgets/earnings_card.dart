@@ -231,6 +231,8 @@ class EarningsCard extends StatelessWidget {
                                                   DSTypography.lsExtraLoose,
                                               fontSize: DSTypography.sizeXs,
                                             ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       Text(
                                         AppFormatters.currency(pendingAmt),
@@ -243,28 +245,37 @@ class EarningsCard extends StatelessWidget {
                                               fontWeight: FontWeight.w600,
                                               fontSize: DSTypography.sizeMd,
                                             ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ],
                                   ),
                                 ),
                                 if (canConsolidate && onConsolidate != null)
-                                  ElevatedButton.icon(
-                                    onPressed: onConsolidate,
-                                    icon: const Icon(
-                                      Icons.swap_calls_rounded,
-                                      size: 20,
-                                    ),
-                                    label: Text('wallet.card.consolidate'.tr()),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: DSColors.white,
-                                      foregroundColor: DSColors.primary,
-                                      elevation: 0,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: DSSpacing.lg,
-                                        vertical: DSSpacing.md,
+                                  Flexible(
+                                    child: ElevatedButton.icon(
+                                      onPressed: onConsolidate,
+                                      icon: const Icon(
+                                        Icons.swap_calls_rounded,
+                                        size: 18,
                                       ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: DSStyles.cardRadius,
+                                      label: Text(
+                                        'wallet.card.consolidate'.tr(),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: DSColors.white,
+                                        foregroundColor: DSColors.primary,
+                                        elevation: 0,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: DSSpacing.md,
+                                          vertical: DSSpacing.sm,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: DSStyles.cardRadius,
+                                        ),
+                                        visualDensity: VisualDensity.compact,
                                       ),
                                     ),
                                   ),

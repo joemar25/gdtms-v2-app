@@ -20,16 +20,50 @@ final syncManagerProvider = NotifierProvider<SyncManagerNotifier, SyncState>(
 /// Useful for displaying a badge on the Sync nav item.
 final pendingSyncCountProvider = Provider<int>((ref) {
   final entries = ref.watch(syncManagerProvider).entries;
-  return entries
-      .where(
-        (e) =>
-            e.status == 'pending' ||
-            e.status == 'processing' ||
-            e.status == 'error' ||
-            e.status == 'failed' ||
-            e.status == 'conflict',
-      )
-      .length;
+  final actionable = entries.where(
+    (e) =>
+        e.status == 'pending' ||
+        e.status == 'processing' ||
+        e.status == 'error' ||
+        e.status == 'failed' ||
+        e.status == 'conflict',
+  );
+
+  // Group by barcode for Bagsakan items to match the "collapsed" UI logic.
+  final seenBagsakan = <String>{};
+  int count = 0;
+  for (final e in actionable) {
+    if (e.barcode.startsWith('BAGSAKAN_')) {
+      if (!seenBagsakan.contains(e.barcode)) {
+        seenBagsakan.add(e.barcode);
+        count++;
+      }
+    } else {
+      count++;
+    }
+  }
+  return count;
+});
+
+/// Number of [synced] entries in the sync history.
+/// Grouped by barcode to match the "collapsed" UI logic.
+final syncedSyncCountProvider = Provider<int>((ref) {
+  final entries = ref.watch(syncManagerProvider).entries;
+  final synced = entries.where((e) => e.status == 'synced');
+
+  final seenBagsakan = <String>{};
+  int count = 0;
+  for (final e in synced) {
+    if (e.barcode.startsWith('BAGSAKAN_')) {
+      if (!seenBagsakan.contains(e.barcode)) {
+        seenBagsakan.add(e.barcode);
+        count++;
+      }
+    } else {
+      count++;
+    }
+  }
+  return count;
 });
 
 /// A map of barcode to count of FAILED_DELIVERY status updates in the sync queue.
