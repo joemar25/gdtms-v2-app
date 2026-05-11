@@ -53,6 +53,7 @@ import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/core/settings/dashboard_feel_provider.dart';
 import 'package:fsi_courier_app/core/services/push_notification_service.dart';
+import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
@@ -84,10 +85,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   int _errorLogCount = 0;
   double _horizontalDrag = 0.0;
+  int _versionTapCount = 0;
+  int _developerCountdown = 0;
+  bool _isDeveloperMode = false;
+  bool _isDeveloperModeFlowBusy = false;
 
   @override
   void initState() {
     super.initState();
+    _isDeveloperMode = RuntimeEnvironmentService.instance.isDeveloperMode;
     _loadSettings();
     _loadDeviceSpecs();
     _loadErrorLogCount();
@@ -217,9 +223,183 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   // out in the UI where it was previously referenced. Re-enable if needed.
 
   String get _backendLabel {
-    final host = Uri.tryParse(apiBaseUrl)?.host ?? apiBaseUrl;
-    final env = apiBaseUrl.contains('staging') ? 'Staging' : 'Production';
+    final runtimeBaseUrl = RuntimeEnvironmentService.instance.activeApiBaseUrl;
+    final host = Uri.tryParse(runtimeBaseUrl)?.host ?? runtimeBaseUrl;
+    final env = _isDeveloperMode ? 'Developer' : 'Production';
     return '$env · $host';
+  }
+
+  String get _nextModeLabel => _isDeveloperMode ? 'production' : 'developer';
+
+  Future<void> _handleVersionTap() async {
+    // Rockstar rule: no secret handshake in debug builds; devs are already in.
+    if (kDebugMode) return;
+    if (_isDeveloperModeFlowBusy) return;
+
+    if (_developerCountdown > 0) {
+      final currentCount = _developerCountdown;
+      setState(() => _developerCountdown = _developerCountdown - 1);
+      showSuccessNotification(context, '$currentCount');
+
+      if (_developerCountdown == 0) {
+        await _toggleDeveloperMode();
+      }
+      return;
+    }
+
+    setState(() => _versionTapCount += 1);
+
+    if (_versionTapCount >= 7) {
+      setState(() {
+        _versionTapCount = 0;
+        _developerCountdown = 3;
+      });
+      showSuccessNotification(
+        context,
+        'Tap 3 more times to enter $_nextModeLabel mode.',
+      );
+    }
+  }
+
+  Future<void> _toggleDeveloperMode() async {
+    if (_isDeveloperModeFlowBusy) return;
+    _isDeveloperModeFlowBusy = true;
+
+    final enableDeveloperMode = !_isDeveloperMode;
+
+    try {
+      if (enableDeveloperMode) {
+        final ok = await _promptDeveloperPassword();
+        if (!mounted) return;
+        if (!ok) {
+          setState(() => _developerCountdown = 0);
+          showErrorNotification(
+            context,
+            'Developer mode password is incorrect.',
+          );
+          return;
+        }
+      }
+
+      await RuntimeEnvironmentService.instance.setDeveloperMode(
+        enableDeveloperMode,
+      );
+
+      ref.invalidate(apiClientProvider);
+      ref.invalidate(updateServiceProvider);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isDeveloperMode = enableDeveloperMode;
+        _versionTapCount = 0;
+        _developerCountdown = 0;
+      });
+
+      await ref.read(updateProvider.notifier).checkForUpdate();
+
+      if (!mounted) return;
+      final modeMsg = enableDeveloperMode
+          ? 'You are in developer mode.'
+          : 'You are back in production mode.';
+      showSuccessNotification(context, modeMsg);
+    } finally {
+      _isDeveloperModeFlowBusy = false;
+    }
+  }
+
+  Future<bool> _promptDeveloperPassword() async {
+    if (kDeveloperPassword.trim().isEmpty) {
+      showErrorNotification(
+        context,
+        'Developer password is not configured in dart define.',
+      );
+      return false;
+    }
+
+    bool obscure = true;
+    bool isValid = false;
+    String enteredPassword = '';
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            return AlertDialog(
+              backgroundColor: isDark ? DSColors.cardDark : DSColors.cardLight,
+              shape: RoundedRectangleBorder(
+                borderRadius: DSStyles.cardRadius,
+                side: BorderSide(
+                  color: isDark
+                      ? DSColors.separatorDark
+                      : DSColors.separatorLight,
+                ),
+              ),
+              title: Text(
+                'Developer Password',
+                style: DSTypography.heading().copyWith(
+                  color: isDark ? DSColors.white : DSColors.labelPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              content: TextField(
+                obscureText: obscure,
+                autofocus: true,
+                onChanged: (value) => enteredPassword = value,
+                decoration: InputDecoration(
+                  hintText: 'Enter developer password',
+                  suffixIcon: IconButton(
+                    onPressed: () => setLocalState(() => obscure = !obscure),
+                    icon: Icon(
+                      obscure ? Icons.visibility_off : Icons.visibility,
+                    ),
+                  ),
+                ),
+                onSubmitted: (_) {
+                  isValid = enteredPassword.trim() == kDeveloperPassword.trim();
+                  Navigator.of(dialogContext).pop();
+                },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(
+                    'Cancel',
+                    style: DSTypography.button().copyWith(
+                      color: isDark
+                          ? DSColors.labelSecondaryDark
+                          : DSColors.labelSecondary,
+                    ),
+                  ),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: DSColors.primary,
+                  ),
+                  onPressed: () {
+                    isValid =
+                        enteredPassword.trim() == kDeveloperPassword.trim();
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: Text(
+                    'Unlock',
+                    style: DSTypography.button().copyWith(
+                      color: DSColors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    return isValid;
   }
 
   @override
@@ -652,15 +832,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Center(
                   child: Column(
                     children: [
-                      Text(
-                        'v${AppVersionService.version}',
-                        style: DSTypography.caption().copyWith(
-                          color: isDark
-                              ? DSColors.labelTertiaryDark
-                              : DSColors.labelTertiary,
-                          fontWeight: FontWeight.w700,
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _handleVersionTap,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: DSSpacing.sm,
+                            vertical: DSSpacing.xs,
+                          ),
+                          child: Text(
+                            'v${AppVersionService.version}',
+                            style: DSTypography.caption().copyWith(
+                              color: isDark
+                                  ? DSColors.labelTertiaryDark
+                                  : DSColors.labelTertiary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ),
+                      if (_isDeveloperMode) ...[
+                        DSSpacing.hXs,
+                        Text(
+                          'Developer Mode',
+                          style: DSTypography.caption().copyWith(
+                            color: DSColors.warning,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                       DSSpacing.hXs,
                       Text(
                         'profile.info.copyright'.tr(

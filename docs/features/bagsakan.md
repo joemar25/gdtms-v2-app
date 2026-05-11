@@ -35,8 +35,8 @@ Before propagation, the operator is prompted to remove any deliveries that are b
 **9. Confirm bagsakan delivered**
 The operator confirms the final submission. This action is irreversible. The bagsakan is now **locked**.
 
-**10. Full delivery data is copied to all remaining group items**
-The complete delivery record from the 1 courier-updated delivery — including the proof of delivery image, transaction date, and all other delivery details — is copied and applied to every remaining delivery in the bagsakan group.
+**10. Full delivery data is copied to all remaining group items (Verified May 11, 2026)**
+The complete delivery record from the 1 courier-updated delivery (source) is propagated to all remaining deliveries in the group. This includes status updates, timeline creation, and cloning of media (photos/POD). Propagation is idempotent; targets already in the terminal state are skipped.
 
 ---
 
@@ -232,6 +232,7 @@ Deliveries assigned to a bagsakan group (`bagsakan_id IS NOT NULL`) are **exclud
 
 - **DAO Filtering (Visibility Hard Gate)**: Most `LocalDeliveryDao` query methods (counts, lists, and search) strictly include `AND bagsakan_id IS NULL`. This ensures grouped items are invisible in the standard workflow.
 - **Interaction Locking**: Any item with a `bagsakan_id != null` is considered "Locked" by the UI (via `checkIsLocked`). Tapping these items in search results or lists triggers a specific lock notification instead of opening the update screen.
+- **Technical Propagation (v3.8)**: The submit endpoint propagates source data to all targets server-side. The mobile app reconciles these changes by immediately re-fetching the group items (`_refreshDeliveryFromServer`) after sync, ensuring the local POD and timeline stay aligned with the propagated state.
 - **Delete guard**: Before executing delete, the DAO checks `status != 'submitted'`. If submitted, the operation is aborted.
 - **Untagging**: On delete, an `UPDATE local_deliveries SET bagsakan_id = NULL WHERE bagsakan_id = ?` is executed before removing the `bagsakan_groups` record.
 - **Courier bagsakan list lifetime**: Queries for the courier's bagsakan list filter out entries where `submitted_at` is not null and `submitted_at < (now - 1 day)`, mirroring the delivered lifetime filter in the regular delivery status list.

@@ -528,9 +528,14 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               );
             } else if (entry.operationType == 'SUBMIT_BAGSAKAN') {
               final id = payload['group_id'];
+              // api v3.8: strip local-only helper fields before sending.
+              // server handles barcodes propagation automatically.
+              final apiPayload = Map<String, dynamic>.from(payload)
+                ..remove('group_id')
+                ..remove('barcodes');
               res = await api.post<Map<String, dynamic>>(
                 'bagsakan/groups/$id/submit',
-                data: payload,
+                data: apiPayload,
                 extraHeaders: headers,
                 parser: parseApiMap,
               );
@@ -642,9 +647,21 @@ class SyncManagerNotifier extends Notifier<SyncState> {
             }
           }
           successCount++;
+          String successMsg = 'Delivery ${entry.barcode} successfully synced.';
+          if (entry.operationType == 'SUBMIT_BAGSAKAN') {
+            final data = result.data['data'];
+            if (data is Map) {
+              final updated = data['updated_deliveries'] ?? 0;
+              final timeline = data['timeline_created'] ?? 0;
+              final media = data['media_attached'] ?? 0;
+              successMsg =
+                  'Bagsakan submitted: $updated deliveries updated, $timeline timeline rows created, $media media attached.';
+              debugPrint('[SYNC] $successMsg');
+            }
+          }
           state = state.copyWith(
             processed: state.processed + 1,
-            lastMessage: 'Delivery ${entry.barcode} successfully synced.',
+            lastMessage: successMsg,
           );
         } else if (result is ApiConflict<Map<String, dynamic>> ||
             result is ApiBadRequest<Map<String, dynamic>> ||
@@ -702,13 +719,18 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               result is ApiNotFound<Map<String, dynamic>> &&
               entry.operationType == 'DELETE_BAGSAKAN_GROUP';
 
+          // Case 6 — Bagsakan already submitted: terminal state for group.
+          final isAlreadySubmitted =
+              responseCode == 'BAGSAKAN_ALREADY_SUBMITTED';
+
           final shouldAutoResolve =
               isImmutableStop ||
               isDeliveredImmutableLegacy ||
               isSameStatusTransitionCode ||
               isDuplicateRequestCode ||
               isMaxAttemptsReached ||
-              isAlreadyDeleted;
+              isAlreadyDeleted ||
+              isAlreadySubmitted;
 
           if (shouldAutoResolve) {
             final now = DateTime.now().millisecondsSinceEpoch;

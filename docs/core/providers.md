@@ -33,6 +33,7 @@ Global Riverpod providers that are not feature-specific.
 ## `connectivity_provider.dart` — `isOnlineProvider`
 
 - Wraps `connectivity_plus` stream.
+- API reachability pings the runtime-selected base URL from `RuntimeEnvironmentService`.
 - **Defaults to `false`** while the stream is loading or on error. This enables offline cold-start without blocking the UI.
 - `app.dart` watches this to trigger bootstrap on the first `false → true` transition.
 

@@ -14,6 +14,7 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'api_result.dart';
 export 'api_result.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -28,9 +29,13 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 class ApiClient {
   ApiClient({required AuthStorage authStorage, this.onUnauthorized})
     : _authStorage = authStorage {
+    final runtimeBaseUrl = RuntimeEnvironmentService.instance.activeApiBaseUrl;
+
     _dio = Dio(
       BaseOptions(
-        baseUrl: apiBaseUrl.endsWith('/') ? apiBaseUrl : '$apiBaseUrl/',
+        baseUrl: runtimeBaseUrl.endsWith('/')
+            ? runtimeBaseUrl
+            : '$runtimeBaseUrl/',
         connectTimeout: kApiConnectTimeout,
         receiveTimeout: kApiReceiveTimeout,
         sendTimeout: kApiSendTimeout,

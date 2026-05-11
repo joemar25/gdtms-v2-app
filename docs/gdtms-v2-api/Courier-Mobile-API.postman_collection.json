@@ -1148,7 +1148,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"group_id\": 16,\n  \"source_barcode\": \"B281613MA47012\",\n  \"propagation_status\": \"DELIVERED\",\n  \"barcodes\": [\n    \"B281613JU47020\"\n  ]\n}",
+              "raw": "{\n  \"source_barcode\": \"B281613MA47012\",\n  \"propagation_status\": \"DELIVERED\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1160,7 +1160,7 @@
               "host": ["{{baseURL}}"],
               "path": ["api", "mbl", "bagsakan", "groups", "42", "submit"]
             },
-            "description": "v3.8 — Finalize Bagsakan group (`status=submitted`) and propagate the selected final status/media context from source delivery to group members. Submitted groups are immutable."
+            "description": "v3.8 — Finalize Bagsakan group (`status=submitted`) and propagate the selected final status and media from the source delivery to all other group members.\n\n### Propagation Behavior (fixed May 11, 2026)\nFor each non-source delivery in the group:\n1. `deliveries.delivery_status` is updated to the propagated final status.\n2. A `delivery_timeline` row is created with `metadata.source = 'bagsakan_submit'`, `bagsakan_group_id`, `source_barcode`, and `propagation_status`.\n3. All `delivery_media` records from the source delivery's timeline are cloned to each propagated target delivery.\n4. Targets already in the same terminal state are skipped (idempotent).\n\n### Request Fields\n- `source_barcode` (required) — barcode of the delivery whose status/media will be copied.\n- `propagation_status` (optional) — override the status to propagate. Must be terminal: `DELIVERED`, `FAILED_DELIVERY`, `RTS`, `LOST`, or `OSA`. Defaults to source delivery's current status.\n\n### Response Counts (QA observability)\n- `updated_deliveries` — number of delivery rows whose `delivery_status` was changed.\n- `timeline_created` — number of `delivery_timeline` rows inserted.\n- `media_attached` — number of `delivery_media` records cloned.\n\nSubmitted groups are immutable — assign/unassign/update/delete all return 409 `BAGSAKAN_ALREADY_SUBMITTED`."
           },
           "response": [
             {
@@ -1174,10 +1174,10 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Bagsakan group submitted successfully.\",\n  \"data\": {\n    \"group_id\": 16,\n    \"status\": \"submitted\",\n    \"source_barcode\": \"B281613MA47012\",\n    \"propagation_status\": \"DELIVERED\",\n    \"updated_deliveries\": 1,\n    \"timeline_created\": 1,\n    \"media_attached\": 2\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Bagsakan group submitted successfully.\",\n  \"data\": {\n    \"id\": 42,\n    \"name\": \"Metro Manila Q1 Batch\",\n    \"description\": \"High-priority medical supplies\",\n    \"status\": \"submitted\",\n    \"submitted_at\": \"2026-05-11T10:30:00.000000Z\",\n    \"is_archived\": false,\n    \"item_count\": 3,\n    \"delivered_count\": 3,\n    \"updated_deliveries\": 2,\n    \"timeline_created\": 2,\n    \"media_attached\": 2\n  }\n}"
             },
             {
-              "name": "409 - Group Locked",
+              "name": "409 - Already Submitted",
               "status": "Conflict",
               "code": 409,
               "_postman_previewlanguage": "json",
@@ -1187,7 +1187,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot submit a locked or already submitted bagsakan group.\",\n  \"error_code\": \"BAGSAKAN_LOCKED\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Bagsakan group is already submitted.\",\n  \"error_code\": \"BAGSAKAN_ALREADY_SUBMITTED\"\n}"
             },
             {
               "name": "404 - Source Delivery Not Found",
@@ -1203,9 +1203,9 @@
               "body": "{\n  \"success\": false,\n  \"message\": \"Source delivery barcode not found or not in this group.\",\n  \"error_code\": \"BAGSAKAN_SOURCE_NOT_FOUND\"\n}"
             },
             {
-              "name": "422 - Source Not in Final Status",
-              "status": "Unprocessable Entity",
-              "code": 422,
+              "name": "400 - Source Not in Final Status",
+              "status": "Bad Request",
+              "code": 400,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -1213,7 +1213,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Source delivery must be in a final status (DELIVERED, FAILED_DELIVERY, or OSA) to propagate.\",\n  \"error_code\": \"BAGSAKAN_SOURCE_NOT_FINAL\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Source delivery must be in a final status.\",\n  \"error_code\": \"BAGSAKAN_SOURCE_NOT_FINAL\"\n}"
             }
           ]
         },

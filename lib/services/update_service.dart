@@ -10,7 +10,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/core/services/app_version_service.dart';
 import 'package:fsi_courier_app/models/update_info.dart';
 
@@ -18,7 +18,10 @@ import 'package:fsi_courier_app/models/update_info.dart';
 /// The backend serves `GET /api/mbl/mobile-version.json` alongside other
 /// mobile endpoints (see docs/gdtms-v2-api/mobile-api-requirements.md).
 String get _kVersionManifestUrl {
-  final base = apiBaseUrl.endsWith('/') ? apiBaseUrl : '$apiBaseUrl/';
+  final runtimeBaseUrl = RuntimeEnvironmentService.instance.activeApiBaseUrl;
+  final base = runtimeBaseUrl.endsWith('/')
+      ? runtimeBaseUrl
+      : '$runtimeBaseUrl/';
   return '${base}mobile-version.json';
 }
 
@@ -237,7 +240,9 @@ class UpdateService {
     if (url.startsWith('http')) return url;
 
     try {
-      final uri = Uri.parse(apiBaseUrl);
+      final runtimeBaseUrl =
+          RuntimeEnvironmentService.instance.activeApiBaseUrl;
+      final uri = Uri.parse(runtimeBaseUrl);
       final hostBase =
           '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
 
@@ -245,7 +250,9 @@ class UpdateService {
         return '$hostBase$url';
       } else {
         // Prepend the directory part of the API base URL
-        final base = apiBaseUrl.endsWith('/') ? apiBaseUrl : '$apiBaseUrl/';
+        final base = runtimeBaseUrl.endsWith('/')
+            ? runtimeBaseUrl
+            : '$runtimeBaseUrl/';
         return '$base$url';
       }
     } catch (e) {

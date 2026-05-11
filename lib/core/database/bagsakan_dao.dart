@@ -658,6 +658,8 @@ class BagsakanDao {
             'group_id': groupId,
             'source_barcode': sourceBarcode,
             'propagation_status': sourceStatusApi,
+            // barcodes are no longer sent to the server (handled server-side)
+            // but we keep them locally for sync manager cleanup logic.
             'barcodes': otherRows.map((e) => e['barcode']).toList(),
           }),
           createdAt: now,

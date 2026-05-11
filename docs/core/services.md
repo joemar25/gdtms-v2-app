@@ -8,6 +8,7 @@
     lib/core/services/profile_service.dart
     lib/core/services/report_service.dart
     lib/core/services/review_prompt_service.dart
+    lib/core/services/runtime_environment_service.dart
     lib/core/services/version_check_service.dart
 
   Time-enforcement services are documented separately:
@@ -33,6 +34,7 @@ Singleton or stateless service classes that perform a focused task.
 | `profile_service.dart`       | Fetches and updates courier profile from/to the server                    |
 | `report_service.dart`        | Submits bug/issue reports to the server                                   |
 | `review_prompt_service.dart` | Decides when to show the in-app review prompt                             |
+| `runtime_environment_service.dart` | Persists and exposes runtime Production/Developer mode base URL        |
 | `update_service.dart`        | Handles APK downloads, checksums, and version manifest fetching           |
 | `version_check_service.dart` | Compares app version to server's minimum supported version (legacy/store) |
 
@@ -87,6 +89,16 @@ Call this wherever a catch block needs to record something reviewable in the err
 - Tracks successful delivery count in `SharedPreferences`.
 - Triggers `in_app_review` after a threshold (e.g. every 10 successful deliveries).
 - Does nothing if the platform does not support in-app review.
+
+---
+
+## `runtime_environment_service.dart`
+
+- Loads `AppKeys.developerMode` from `SharedPreferences` during app startup.
+- Exposes `activeApiBaseUrl` based on mode:
+  - Production mode -> `API_BASE_URL_PROD`
+  - Developer mode -> `API_BASE_URL_DEMO`
+- Persists mode switches so the selection survives app restarts.
 
 ---
 

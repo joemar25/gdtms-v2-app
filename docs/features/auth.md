@@ -35,6 +35,7 @@
 
 - Does not redirect to `/initial-sync` — that is handled by the router redirect logic after `authProvider` transitions to `authenticated`.
 - "Forgot password?" link navigates to `/reset-password`.
+- Session fingerprint now uses the runtime-selected API base URL so production and developer-mode sessions remain isolated.
 
 ---
 

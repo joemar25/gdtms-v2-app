@@ -51,23 +51,21 @@ Status: **Aligned**. Mobile now consumes the remaining v3.8 Bagsakan endpoints a
 - [x] Confirmed assign conflict payload is stable and complete: `error_code`, `already_assigned_barcodes[]`, and per-item `group_name`.
 - [x] Confirmed `GET /api/mbl/bagsakan/groups/{id}` includes `propagation_source` for each delivery item.
 - [x] Confirmed `POST /api/mbl/bagsakan/groups/{id}/assign-account` validation/error contract in production (`BAGSAKAN_LOCKED`, `NO_ELIGIBLE_DELIVERIES`, etc.).
-- [ ] **Regression fix required**: `POST /api/mbl/bagsakan/groups/{id}/submit` must propagate source delivery update to all group members, not only set group `status=submitted`.
+- [x] **Regression fix confirmed**: `POST /api/mbl/bagsakan/groups/{id}/submit` propagates source delivery update to all group members, including statuses, timelines, and media.
 
-Propagation acceptance criteria (backend):
+Propagation acceptance criteria (backend - VERIFIED):
 
-1. For each target delivery in the submitted group, `deliveries.delivery_status` must be updated to the propagated final status (e.g., `DELIVERED`).
-2. A `delivery_timeline` row must be created per propagated target delivery (audit trail cannot be null after propagation).
-3. `delivery_media` for propagated DELIVERED items must be available in one of the approved ways:
-   - clone/copy media records to each propagated target delivery, or
-   - persist a server-defined linkage/reference to the source delivery media that mobile can resolve via API.
-4. `GET /api/mbl/bagsakan/groups/{id}` and `GET /api/mbl/sync` must return the propagated statuses immediately after submit sync.
-5. Submit endpoint response should include counts (`updated_deliveries`, `timeline_created`, `media_attached`) for QA observability.
+1. For each target delivery in the submitted group, `deliveries.delivery_status` is updated to the propagated final status (e.g., `DELIVERED`).
+2. A `delivery_timeline` row is created per propagated target delivery.
+3. `delivery_media` (cloned/copied from source) is attached to each propagated target.
+4. `GET /api/mbl/bagsakan/groups/{id}` and `GET /api/mbl/sync` return the propagated statuses immediately.
+5. Submit endpoint response includes counts: `updated_deliveries`, `timeline_created`, `media_attached`.
 
-Backend verification notes (May 8, 2026):
+Backend verification notes (May 11, 2026):
 
-- Bagsakan API feature suite passed: 70 tests, 189 assertions.
-- Formatter run completed via duster.
-- Backend team marked v3.8 API-side contracts complete and verified.
+- Regression fix verified by backend team.
+- All 5 acceptance criteria met.
+- Test suite: 11 submit tests pass (26 assertions).
 
 #### Recommendation
 
@@ -79,8 +77,9 @@ Latest `Courier-Mobile-API.postman_collection.json` now documents the previously
 
 1. `GET /api/mbl/bagsakan/groups/{id}` with `propagation_source` in delivery items.
 2. `POST /api/mbl/bagsakan/groups/{id}/assign-account` endpoint and sample responses.
-3. Assign conflict payload with `already_assigned_barcodes` and `group_name`.
-4. `GET /api/mbl/sync` response sample that includes `bagsakan_groups` + `is_archived`.
+3. `POST /api/mbl/bagsakan/groups/{id}/submit` simplified payload and propagation behavior (verified May 11, 2026).
+4. Assign conflict payload with `already_assigned_barcodes` and `group_name`.
+5. `GET /api/mbl/sync` response sample that includes `bagsakan_groups` + `is_archived`.
 
 Action now shifts to **mobile consumption/integration** of these documented contracts.
 
@@ -96,7 +95,7 @@ Action now shifts to **mobile consumption/integration** of these documented cont
    - `DELETE /api/mbl/bagsakan/groups/{id}`: Delete group and **unassign** all deliveries associated with it.
    - `POST /api/mbl/bagsakan/groups/{id}/assign`: Bulk assign barcodes (List of strings) to a group.
    - `POST /api/mbl/bagsakan/groups/{id}/unassign`: Bulk unassign barcodes from a group.
-   - `POST /api/mbl/bagsakan/groups/{id}/submit`: Finalize the Bagsakan group. All associated deliveries should be marked for bulk processing on the server.
+   - `POST /api/mbl/bagsakan/groups/{id}/submit`: Propagates source status/media to all group members. Payload: `{ "source_barcode": "...", "propagation_status": "..." }`. Status: VERIFIED.
 3. **Sync Integration**:
    - Include Bagsakan groups in the `GET /api/mbl/sync` payload.
    - Support **Soft Deletion**: Include `is_archived` (boolean) for groups to allow the mobile app to purge deleted groups during sync.

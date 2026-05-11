@@ -14,6 +14,7 @@ import 'core/constants.dart';
 import 'core/database/app_database.dart';
 import 'core/services/app_version_service.dart';
 import 'core/services/push_notification_service.dart';
+import 'core/services/runtime_environment_service.dart';
 import 'core/sync/workmanager_setup.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -69,6 +70,11 @@ Future<void> main() async {
   // We read the theme mode before runApp so the splash screen renders with
   // the user's preferred theme immediately, avoiding the "light mode flash".
   final prefs = await SharedPreferences.getInstance();
+
+  // Load persisted runtime environment mode before the first API client is
+  // created so network services immediately use the selected backend.
+  await RuntimeEnvironmentService.instance.init();
+
   final themeModeIndex = prefs.getInt(AppKeys.themeMode);
   ThemeMode initialThemeMode = ThemeMode.light;
   if (themeModeIndex != null &&

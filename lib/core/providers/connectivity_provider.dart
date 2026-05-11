@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 
 /// Streams the list of active [ConnectivityResult] values whenever the
 /// network state changes.
@@ -56,7 +56,7 @@ class ApiReachabilityNotifier extends Notifier<bool> {
 
     try {
       // The updated Welcoming and Health Check API is served at the base url
-      await _dio.get(apiBaseUrl);
+      await _dio.get(RuntimeEnvironmentService.instance.activeApiBaseUrl);
       if (!_disposed) state = true;
     } catch (e) {
       if (e is DioException) {

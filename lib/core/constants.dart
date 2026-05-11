@@ -29,6 +29,7 @@ abstract final class AppKeys {
   static const String followSystemTheme = 'follow_system_theme';
   static const String syncRetentionDays = 'sync_retention_days';
   static const String dashboardFeel = 'dashboard_feel';
+  static const String developerMode = 'developer_mode';
 }
 
 const int kDashboardPerPage = 5;

@@ -26,8 +26,6 @@ const String packageId = 'com.fsi.courier';
 
 /// Base URL for API requests.
 const String apiBaseUrl = String.fromEnvironment(
-  // 'API_BASE_URL_PROD',
-  // 'API_BASE_URL_DEMO',
   'API_BASE_URL',
   defaultValue: 'http://YOUR_API_BASE_URL/api/mbl',
 );
@@ -212,6 +210,14 @@ const bool kVisibilityWindowsActive =
     kFailedDeliveryVisibilityWindowMinutes > 0 ||
     kOsaVisibilityWindowMinutes > 0 ||
     kForDeliveryVisibilityWindowMinutes > 0;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PASSWORD
+// ─────────────────────────────────────────────────────────────────────────────
+const String kDeveloperPassword = String.fromEnvironment(
+  'PASSWORD',
+  defaultValue: '',
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Debug Mode

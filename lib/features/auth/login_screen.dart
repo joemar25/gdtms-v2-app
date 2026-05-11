@@ -16,6 +16,7 @@ import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/services/app_version_service.dart';
+import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -157,7 +158,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         // Session fingerprint check — wipe stale local data if courier or
         // server changed since the last session (safety net for force-quit).
         final courierId = mergedCourier['id']?.toString() ?? '';
-        final newFingerprint = '${apiBaseUrl}_$courierId';
+        final runtimeBaseUrl =
+            RuntimeEnvironmentService.instance.activeApiBaseUrl;
+        final newFingerprint = '${runtimeBaseUrl}_$courierId';
         final prefs = await SharedPreferences.getInstance();
         final prevFingerprint = prefs.getString('_session_fingerprint') ?? '';
 
