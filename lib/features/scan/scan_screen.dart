@@ -53,9 +53,9 @@ import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/shared/helpers/formatters.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
-import 'package:fsi_courier_app/shared/widgets/success_overlay.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 enum ScanMode { dispatch, pod, bagsakan }
@@ -78,7 +78,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   bool _hasPermission = false;
   bool _processing = false;
-  bool _showAutoAcceptSuccess = false;
+
   String? _inlineError;
   // Track orientation axis to restart camera when it flips so CameraX
   // picks up the correct display rotation on Android.
@@ -104,12 +104,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   void initState() {
     super.initState();
     _scannerController = MobileScannerController(
-      formats: [
-        BarcodeFormat.qrCode,
-        BarcodeFormat.code128,
-        BarcodeFormat.code39,
-        BarcodeFormat.ean13,
-      ],
       detectionSpeed: DetectionSpeed.noDuplicates,
       autoStart: false,
     );
@@ -209,79 +203,30 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     const uuid = Uuid();
     final requestId = uuid.v4();
 
-    // Strict pre-filter: if this barcode matches any local delivery (POD), do
-    // not treat it as a dispatch scan. This avoids unnecessary network checks
-    // and prevents navigating to the dispatch eligibility page for PODs.
-    final localMatches = await ref
-        .read(localDeliveryDaoProvider)
-        .searchByQuery(code);
-    if (!mounted) return;
-    if (localMatches.isNotEmpty) {
-      final msg =
-          'Scanned barcode belongs to a delivery (POD). Use POD scan mode.';
-      setState(() => _inlineError = msg);
-      showInfoNotification(context, msg);
-      if (mounted && _hasPermission) await _scannerController.start();
-      return;
-    }
-
-    final device = ref.read(deviceInfoProvider);
-    final result = await ref
+    final eligibilityResult = await ref
         .read(apiClientProvider)
         .post<Map<String, dynamic>>(
           '/check-dispatch-eligibility',
           data: {
-            'dispatch_code': code,
+            'partial_code': code,
             'client_request_id': requestId,
-            'device_info': await device.toMap(),
+            'device_info': await ref.read(deviceInfoProvider).toMap(),
           },
           parser: parseApiMap,
         );
 
     if (!mounted) return;
 
-    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
+    if (eligibilityResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
       final autoAccept = await ref
           .read(appSettingsProvider)
           .getAutoAcceptDispatch();
       if (!mounted) return;
 
-      // Merge pending dispatches to enrich response (branch/tat/transmittal_date)
-      var dispatchCode = data['dispatch_code']?.toString() ?? code;
-      Map<String, dynamic> mergedData = data;
-      final pendingResult = await ref
-          .read(apiClientProvider)
-          .get<Map<String, dynamic>>(
-            '/pending-dispatches',
-            queryParameters: {'page': 1, 'per_page': 50},
-            parser: parseApiMap,
-          );
-      if (!mounted) return;
-      if (pendingResult is ApiSuccess<Map<String, dynamic>>) {
-        final list = pendingResult.data['pending_dispatches'];
-        if (list is List) {
-          final scanUpper = dispatchCode.toUpperCase();
-          final match = list
-              .whereType<Map>()
-              .map((e) => Map<String, dynamic>.from(e))
-              .firstWhere((d) {
-                final dc = d['dispatch_code']?.toString().toUpperCase() ?? '';
-                // Exact match, or the scanned QR embeds the dispatch code as a
-                // prefix with a timestamp suffix (e.g. GEOFM001...2026041712345).
-                return dc == scanUpper ||
-                    scanUpper.startsWith(dc) ||
-                    dc.startsWith(scanUpper);
-              }, orElse: () => <String, dynamic>{});
-          if (match.isNotEmpty) {
-            // Merge: pending-list data provides display fields (branch, tat,
-            // transmittal_date, volume); API response wins for flags (eligible).
-            mergedData = {...match, ...mergedData};
-            // Use the canonical dispatch code from the pending list (short form)
-            // so accept/reject API calls use the correct identifier.
-            dispatchCode = match['dispatch_code']?.toString() ?? dispatchCode;
-          }
-        }
-      }
+      final dispatchCode = (data['dispatch_code']?.toString() ?? code)
+          .trim()
+          .toUpperCase();
+      final mergedData = data;
 
       // Do not push if not eligible — UX pre-filter.
       // The spread {…match, …mergedData} puts the eligibility API response last,
@@ -320,21 +265,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             );
         if (!mounted) return;
         if (acceptResult is ApiSuccess<Map<String, dynamic>>) {
-          final rawDeliveries = mergedData['deliveries'];
-          if (rawDeliveries is List) {
-            final deliveries = rawDeliveries
-                .whereType<Map>()
-                .map((e) => Map<String, dynamic>.from(e))
-                .toList();
-            if (deliveries.isNotEmpty) {
-              await ref
-                  .read(localDeliveryDaoProvider)
-                  .insertAll(deliveries, dispatchCode: dispatchCode);
-            }
-          }
+          await DeliveryBootstrapService.instance.seedForDelivery(
+            ref.read(apiClientProvider),
+          );
+          if (!mounted) return;
           ref.read(deliveryRefreshProvider.notifier).increment();
-          if (mounted) setState(() => _showAutoAcceptSuccess = true);
-          if (mounted && _hasPermission) await _scannerController.start();
+          if (mounted) {
+            showSuccessNotification(context, 'Dispatch accepted successfully!');
+            context.go('/dashboard');
+          }
           return;
         } else {
           final acceptErrorMessage = switch (acceptResult) {
@@ -367,7 +306,25 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       );
       if (mounted && _hasPermission) await _scannerController.start();
     } else {
-      final errorMessage = switch (result) {
+      final isAlreadyAccepted =
+          eligibilityResult is ApiConflict<Map<String, dynamic>> ||
+          (eligibilityResult is ApiBadRequest<Map<String, dynamic>> &&
+              eligibilityResult.message.toLowerCase().contains(
+                'already accepted',
+              ));
+
+      if (isAlreadyAccepted) {
+        final msg = switch (eligibilityResult) {
+          ApiBadRequest(:final message) => message,
+          ApiConflict(:final message) => message,
+          _ => 'Dispatch already accepted.',
+        };
+        showInfoNotification(context, msg);
+        context.go('/dashboard');
+        return;
+      }
+
+      final errorMessage = switch (eligibilityResult) {
         ApiBadRequest(:final message) => message,
         ApiValidationError(:final message) => message ?? 'Validation error',
         ApiNetworkError(:final message) => message,
@@ -953,18 +910,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
               ),
 
               // Loading state handled by wrapper
-              if (_showAutoAcceptSuccess)
-                SuccessOverlay(
-                  onDone: () {
-                    if (!mounted) return;
-                    showAppSnackbar(
-                      context,
-                      'Dispatch accepted successfully!',
-                      type: SnackbarType.success,
-                    );
-                    context.go('/dashboard');
-                  },
-                ),
             ],
           ),
         ),

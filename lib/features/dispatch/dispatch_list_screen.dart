@@ -106,7 +106,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
           .post<Map<String, dynamic>>(
             '/check-dispatch-eligibility',
             data: {
-              'dispatch_code': dispatchCode,
+              'partial_code': dispatchCode,
               'client_request_id': requestId,
               'device_info': await device.toMap(),
             },
@@ -118,20 +118,31 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
             .read(appSettingsProvider)
             .getAutoAcceptDispatch();
         if (!mounted) return;
-        // Merge dispatch list item (has branch, tat, transmittal_date) with
-        // eligibility response (eligible, volume, item_count, etc.). Eligibility
-        // fields win on overlap so eligible/status stay authoritative.
-        final dispatchItem = _dispatches[index];
-        final mergedData = {...dispatchItem, ...data};
         context.push(
           '/dispatches/eligibility',
           extra: {
             'dispatch_code': dispatchCode,
-            'eligibility_response': mergedData,
+            'eligibility_response': data,
             'auto_accept': autoAccept,
           },
         );
       } else {
+        final isAlreadyAccepted =
+            result is ApiConflict<Map<String, dynamic>> ||
+            (result is ApiBadRequest<Map<String, dynamic>> &&
+                result.message.toLowerCase().contains('already accepted'));
+
+        if (isAlreadyAccepted) {
+          final msg = switch (result) {
+            ApiBadRequest(:final message) => message,
+            ApiConflict(:final message) => message,
+            _ => 'Dispatch already accepted.',
+          };
+          showInfoNotification(context, msg);
+          context.go('/dashboard');
+          return;
+        }
+
         final errorMessage = switch (result) {
           ApiBadRequest(:final message) => message,
           ApiValidationError(:final message) => message ?? 'Validation error',

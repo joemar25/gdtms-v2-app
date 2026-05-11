@@ -17,10 +17,16 @@ class _PinConfirmDialogState extends State<PinConfirmDialog> {
   );
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
   String? _error;
+  bool _isConfirming = false;
+  late final String _normalizedExpectedPin;
 
   @override
   void initState() {
     super.initState();
+    _normalizedExpectedPin = widget.expectedPin.replaceAll(
+      RegExp(r'[^a-zA-Z0-9]'),
+      '',
+    );
     for (int i = 0; i < 4; i++) {
       final index = i;
       _focusNodes[index].onKeyEvent = (node, event) {
@@ -64,14 +70,22 @@ class _PinConfirmDialogState extends State<PinConfirmDialog> {
   }
 
   void _confirm() {
-    final entered = _controllers.map((c) => c.text).join();
+    if (_isConfirming) return;
+    setState(() => _isConfirming = true);
+
+    final entered = _controllers.map((c) => c.text.trim()).join();
     if (entered.length < 4) {
-      setState(() => _error = 'Please enter all 4 digits.');
+      setState(() {
+        _error = 'Please enter all 4 digits.';
+        _isConfirming = false;
+      });
       return;
     }
-    if (entered != widget.expectedPin) {
+
+    if (entered != _normalizedExpectedPin) {
       setState(() {
         _error = 'Incorrect last 4 digits.';
+        _isConfirming = false;
         for (final c in _controllers) {
           c.clear();
         }

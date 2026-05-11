@@ -623,10 +623,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   subtitle:
                                       'profile.preferences.auto_accept_confirm_message'
                                           .tr(),
-                                  confirmLabel: 'dashboard.exit_confirm_confirm'
-                                      .tr(),
-                                  cancelLabel: 'dashboard.exit_confirm_cancel'
-                                      .tr(),
+                                  confirmLabel:
+                                      'profile.preferences.auto_accept_confirm_confirm'
+                                          .tr(),
+                                  cancelLabel:
+                                      'profile.preferences.auto_accept_confirm_cancel'
+                                          .tr(),
                                   isDestructive: false,
                                 );
                                 if (ok != true || !mounted) return;
@@ -682,8 +684,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             subtitle:
                                 'profile.preferences.retention_update_message'
                                     .tr(),
-                            confirmLabel: 'dashboard.exit_confirm_confirm'.tr(),
-                            cancelLabel: 'dashboard.exit_confirm_cancel'.tr(),
+                            confirmLabel:
+                                'profile.preferences.retention_update_confirm'
+                                    .tr(),
+                            cancelLabel:
+                                'profile.preferences.retention_update_cancel'
+                                    .tr(),
                           );
                           if (confirmed != true || !mounted) return;
                           await ref

@@ -245,6 +245,13 @@ class DeliveryBootstrapService {
     debugPrint('[SYNC] syncFromApi — complete');
   }
 
+  /// Fetches only FOR_DELIVERY items from the server and seeds local SQLite.
+  /// Called immediately after accepting a dispatch so the delivery list is
+  /// populated without running the full multi-status sync.
+  Future<void> seedForDelivery(ApiClient client) async {
+    await _syncStatus(client, DeliveryStatus.pending.toApiString());
+  }
+
   // ── Private helpers ───────────────────────────────────────────────────────
 
   /// PRIORITY PHASE: Immediately reconcile all locally-pending barcodes

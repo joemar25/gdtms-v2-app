@@ -33,8 +33,8 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
+import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -108,8 +108,11 @@ class _DispatchEligibilityScreenState
   }
 
   String _getMaskedLast4(String code) {
-    if (code.length <= 4) return code;
-    return code.substring(code.length - 4);
+    // Aggressively clean the code of any invisible characters or non-alphanumeric
+    // noise that might have come from a QR scanner (e.g. zero-width spaces, \r, etc.)
+    final clean = code.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+    if (clean.length <= 4) return clean;
+    return clean.substring(clean.length - 4);
   }
 
   Future<bool> _showPinDialog() async {
@@ -132,6 +135,8 @@ class _DispatchEligibilityScreenState
   }
 
   Future<void> _handleAccept() async {
+    // If autoAccept is off, we always require the PIN dialog as a safety check
+    // unless skipPinDialog was explicitly requested (e.g. from a verified notification).
     if (!widget.skipPinDialog) {
       final confirmed = await _showPinDialog();
       if (!confirmed) return;
@@ -166,40 +171,24 @@ class _DispatchEligibilityScreenState
             result.message.toLowerCase().contains('already accepted'));
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
-      final rawDeliveries = _eligibilityResponse['deliveries'];
-      if (rawDeliveries is List) {
-        final deliveries = rawDeliveries
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-        if (deliveries.isNotEmpty) {
-          final tat = _eligibilityResponse['tat']?.toString();
-          final transmittalDate = _eligibilityResponse['transmittal_date']
-              ?.toString();
-
-          await LocalDeliveryDao.instance.insertAll(
-            deliveries,
-            dispatchCode: _resolvedDispatchCode,
-            tat: tat,
-            transmittalDate: transmittalDate,
-          );
-        }
-      }
+      await DeliveryBootstrapService.instance.seedForDelivery(
+        ref.read(apiClientProvider),
+      );
+      if (!mounted) return;
       ref.read(deliveryRefreshProvider.notifier).increment();
-      setState(() {
-        _loading = false;
-      });
+      setState(() => _loading = false);
+      showSuccessNotification(context, 'Dispatch accepted successfully.');
+      context.go('/dashboard');
       return;
     }
 
     if (alreadyAccepted) {
       setState(() => _loading = false);
-      showAppSnackbar(
+      showInfoNotification(
         context,
-        'Dispatch already accepted. Opening deliveries.',
-        type: SnackbarType.info,
+        'Dispatch already accepted. Opening dashboard.',
       );
-      context.go('/deliveries');
+      context.go('/dashboard');
       return;
     }
 
@@ -349,11 +338,17 @@ class _DispatchEligibilityScreenState
   Widget build(BuildContext context) {
     final eligible = _eligibilityResponse['eligible'] == true;
     final info = _eligibilityResponse;
+
+    // Normalize for internal logic and masking to ensure last 4 digits match
+    // what the user enters and what is shown.
+    final dispatchCode = _resolvedDispatchCode.replaceAll(
+      RegExp(r'[^a-zA-Z0-9]'),
+      '',
+    );
+    final last4 = _getMaskedLast4(dispatchCode);
     final reason =
         _eligibilityResponse['message']?.toString() ??
         'You are not eligible for this dispatch.';
-    final dispatchCode = _resolvedDispatchCode;
-    final last4 = _getMaskedLast4(dispatchCode);
     final maskedCode = widget.showFullCode
         ? dispatchCode
         : dispatchCode.length > last4.length
@@ -363,7 +358,10 @@ class _DispatchEligibilityScreenState
     final deliveries = info['deliveries'] is List
         ? (info['deliveries'] as List).whereType<Map>().map((e) {
             final d = Map<String, dynamic>.from(e);
-            d['delivery_status'] = '';
+            // Map API fields to DeliveryCard expected keys
+            d['barcode'] = e['barcode_value'] ?? '';
+            d['recipient_name'] = ''; // Hide name as requested
+            d['recipient_address'] = e['address'] ?? '';
             return d;
           }).toList()
         : <Map<String, dynamic>>[];
@@ -665,8 +663,8 @@ class _DispatchEligibilityScreenState
                                     child: DeliveryCard(
                                       delivery: d,
                                       compact: true,
-                                      isPrivacyMode: true,
                                       showChevron: false,
+                                      showLockIcon: true,
                                       enableHoldToReveal: false,
                                       onTap: null,
                                     ),
