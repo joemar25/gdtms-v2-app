@@ -609,23 +609,20 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     }
     final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
     final isOnline = ref.read(isOnlineProvider);
-    final String? resolvedReason = _reason == 'Others'
+    final String? resolvedReason = _reason == 'Other'
         ? _reasonSpecify.text.trim().toUpperCase()
         : _reason?.toUpperCase();
     final String? resolvedRelationship = _relationship == 'OTHERS'
         ? _relationshipSpecify.text.trim().toUpperCase()
         : _relationship;
     final now = DateTime.now();
-    final pst = now.toUtc().add(const Duration(hours: 8));
-    String two(int n) => n.toString().padLeft(2, '0');
-    String three(int n) => n.toString().padLeft(3, '0');
-    final deliveredDatePst =
-        '${pst.year.toString().padLeft(4, '0')}-${two(pst.month)}-${two(pst.day)}T${two(pst.hour)}:${two(pst.minute)}:${two(pst.second)}.${three(pst.millisecond)}+08:00';
+    final deliveredDateUtc = now.toUtc().toIso8601String();
     final payload = <String, dynamic>{
       'delivery_status': _status.toUpperCase(),
-      'delivered_date': deliveredDatePst,
-      if (_note.text.trim().isNotEmpty) 'note': _note.text.trim(),
+      'delivered_date': deliveredDateUtc,
     };
+    final List<String> notes = [];
+    if (_note.text.trim().isNotEmpty) notes.add(_note.text.trim());
     if (_latitude != null && _longitude != null) {
       payload['latitude'] = _latitude;
       payload['longitude'] = _longitude;
@@ -655,8 +652,12 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       }
       final config = kReasonConfigs[_reason] ?? const ReasonConfig();
       if (config.requiresAccordingTo && _accordingTo.text.trim().isNotEmpty) {
-        payload['according_to'] = _accordingTo.text.trim();
+        notes.add('According to: ${_accordingTo.text.trim()}');
       }
+    }
+
+    if (notes.isNotEmpty) {
+      payload['note'] = notes.join(' | ');
     }
     for (var i = 0; i < _photos.length; i++) {
       final p = _photos[i];

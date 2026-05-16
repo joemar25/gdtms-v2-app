@@ -17,8 +17,9 @@ final class ApiValidationError<T> extends ApiResult<T> {
 }
 
 final class ApiBadRequest<T> extends ApiResult<T> {
-  const ApiBadRequest(this.message);
+  const ApiBadRequest(this.message, {this.data});
   final String message;
+  final dynamic data;
 }
 
 final class ApiNetworkError<T> extends ApiResult<T> {
@@ -44,8 +45,9 @@ final class ApiConflict<T> extends ApiResult<T> {
 }
 
 final class ApiServerError<T> extends ApiResult<T> {
-  const ApiServerError(this.message);
+  const ApiServerError(this.message, {this.data});
   final String message;
+  final dynamic data;
 }
 
 final class ApiNotFound<T> extends ApiResult<T> {

@@ -18,7 +18,12 @@ bool checkIsLocked({
   required String status,
   required String rtsVerificationStatus,
   int attempts = 0,
+  String syncStatus = 'clean',
 }) {
+  // If there is a pending local update (dirty), lock the item to prevent
+  // duplicate submissions or re-delivery attempts.
+  if (syncStatus == 'dirty') return true;
+
   return isTerminalState(
     status: status,
     rtsVerificationStatus: rtsVerificationStatus,
@@ -107,7 +112,20 @@ bool checkIsLockedFromMap(Map<String, dynamic> delivery) {
   // RULE: Items assigned to a Bagsakan group are locked for individual action.
   if (delivery['bagsakan_id'] != null) return true;
 
-  return isTerminalStateFromMap(delivery);
+  final status = (delivery['delivery_status'] ?? 'FOR_DELIVERY').toString();
+  final failedDeliveryVerif =
+      (delivery['rts_verification_status'] ?? 'unvalidated').toString();
+  final attempts = getAttemptsCountFromMap(delivery);
+  final syncStatus =
+      (delivery['_sync_status'] ?? delivery['sync_status'] ?? 'clean')
+          .toString();
+
+  return checkIsLocked(
+    status: status,
+    rtsVerificationStatus: failedDeliveryVerif,
+    attempts: attempts,
+    syncStatus: syncStatus,
+  );
 }
 
 /// Centralized logic to determine if a delivery is valid for a delivery attempt.

@@ -157,6 +157,7 @@ class ApiClient {
     if (status == 400) {
       return ApiBadRequest<T>(
         _extractMessage(response.data, fallback: 'Bad request.'),
+        data: response.data,
       );
     }
 
@@ -184,7 +185,10 @@ class ApiClient {
       );
     }
 
-    return ApiServerError<T>(_extractMessage(response.data));
+    return ApiServerError<T>(
+      _extractMessage(response.data),
+      data: response.data,
+    );
   }
 
   ApiResult<T> _mapError<T>(Object error) {
@@ -231,11 +235,13 @@ class ApiClient {
         if (status == 400) {
           return ApiBadRequest<T>(
             _extractMessage(response.data, fallback: 'Bad request.'),
+            data: response.data,
           );
         }
 
         return ApiServerError<T>(
           _extractMessage(response.data, fallback: 'Server error.'),
+          data: response.data,
         );
       }
     }
@@ -442,7 +448,7 @@ class ApiClient {
 
     final paramsResult = await get<Map<String, dynamic>>(
       'media/upload-params',
-      queryParameters: {'type': uploadType, 'barcode': ?barcode},
+      queryParameters: {'type': uploadType, 'barcode': barcode},
       parser: parseApiMap,
     );
 

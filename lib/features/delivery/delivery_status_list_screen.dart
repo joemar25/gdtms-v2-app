@@ -98,9 +98,12 @@ class _DeliveryStatusListScreenState
   int _totalCount = 0;
   List<Map<String, dynamic>> _items = [];
 
-  int get _kPageSize => ref.read(compactModeProvider)
-      ? kCompactDeliveriesPerPage
-      : kDeliveriesPerPage;
+  int get _kPageSize {
+    if (!mounted) return kDeliveriesPerPage;
+    return ref.read(compactModeProvider)
+        ? kCompactDeliveriesPerPage
+        : kDeliveriesPerPage;
+  }
 
   bool get _isFailedDelivery =>
       widget.status.toUpperCase() == kStatusFailedDelivery;
@@ -195,20 +198,24 @@ class _DeliveryStatusListScreenState
   // ─── MARK: Data Loading ───────────────────────────────────────────────────
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
+
     final status = widget.status.toUpperCase();
+    final dao = ref.read(localDeliveryDaoProvider);
+    final syncDao = ref.read(syncOperationsDaoProvider);
+    final auth = ref.read(authProvider);
+    final pageSize = _kPageSize;
 
     // 1. Get total count
-    final total = switch (status) {
-      kStatusDelivered =>
-        await ref.read(localDeliveryDaoProvider).countVisibleDelivered(),
-      kStatusFailedDelivery =>
-        await ref.read(localDeliveryDaoProvider).countVisibleFailedDelivery(),
-      kStatusMisrouted =>
-        await ref.read(localDeliveryDaoProvider).countVisibleMisrouted(),
-      _ =>
-        await ref.read(localDeliveryDaoProvider).countByStatus(widget.status),
+    final total = await switch (status) {
+      kStatusDelivered => dao.countVisibleDelivered(),
+      kStatusFailedDelivery => dao.countVisibleFailedDelivery(),
+      kStatusMisrouted => dao.countVisibleMisrouted(),
+      _ => dao.countByStatus(widget.status),
     };
+
+    if (!mounted) return;
 
     // 2. Classify for FAILED_DELIVERY or fetch page for others
     int redeliveryCount = 0;
@@ -221,9 +228,12 @@ class _DeliveryStatusListScreenState
       // RTS) because items from both groups are interleaved in the DB — a single
       // page may contain zero items of the selected group. Loading all rows
       // upfront (typical count: low tens) is fine for this screen.
-      allFailedRows = await ref
-          .read(localDeliveryDaoProvider)
-          .getVisibleFailedDeliveryPaged(limit: total, offset: 0);
+      allFailedRows = await dao.getVisibleFailedDeliveryPaged(
+        limit: total,
+        offset: 0,
+      );
+      if (!mounted) return;
+
       for (final row in allFailedRows) {
         final attempts = getAttemptsCountFromMap(row.toDeliveryMap());
         final vStr = (row.rtsVerificationStatus).toLowerCase();
@@ -236,7 +246,11 @@ class _DeliveryStatusListScreenState
         }
       }
     } else if (!_isFailedDelivery) {
-      rows = await _fetchPage(offset: _currentPage * _kPageSize);
+      rows = await _fetchPage(
+        dao: dao,
+        pageSize: pageSize,
+        offset: _currentPage * pageSize,
+      );
     }
 
     if (!mounted) return;
@@ -246,7 +260,7 @@ class _DeliveryStatusListScreenState
         ? (_failedSubFilter == 'rts' ? rtsCount : redeliveryCount)
         : total;
 
-    final totalPages = (effectiveTotal / _kPageSize).ceil().clamp(1, 999999);
+    final totalPages = (effectiveTotal / pageSize).ceil().clamp(1, 999999);
     if (_currentPage > 0 && _currentPage >= totalPages) {
       _currentPage = totalPages - 1;
       // If we are NOT in FAILED_DELIVERY mode, we need to re-fetch the correct page.
@@ -258,10 +272,8 @@ class _DeliveryStatusListScreenState
     }
 
     // 4. Sync-lock check
-    final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
-    _queuedBarcodes = await ref
-        .read(syncOperationsDaoProvider)
-        .getSyncQueuedBarcodes(courierId);
+    final courierId = auth.courier?['id']?.toString() ?? '';
+    _queuedBarcodes = await syncDao.getSyncQueuedBarcodes(courierId);
     if (!mounted) return;
 
     setState(() {
@@ -276,25 +288,26 @@ class _DeliveryStatusListScreenState
     }
   }
 
-  Future<List<LocalDelivery>> _fetchPage({required int offset}) {
+  Future<List<LocalDelivery>> _fetchPage({
+    required dynamic dao,
+    required int pageSize,
+    required int offset,
+  }) {
     final status = widget.status.toUpperCase();
     return switch (status) {
-      kStatusDelivered =>
-        ref
-            .read(localDeliveryDaoProvider)
-            .getVisibleDeliveredPaged(limit: _kPageSize, offset: offset),
-      kStatusFailedDelivery =>
-        ref
-            .read(localDeliveryDaoProvider)
-            .getVisibleFailedDeliveryPaged(limit: _kPageSize, offset: offset),
-      kStatusMisrouted =>
-        ref
-            .read(localDeliveryDaoProvider)
-            .getVisibleMisroutedPaged(limit: _kPageSize, offset: offset),
-      _ =>
-        ref
-            .read(localDeliveryDaoProvider)
-            .getByStatusPaged(status, limit: _kPageSize, offset: offset),
+      kStatusDelivered => dao.getVisibleDeliveredPaged(
+        limit: pageSize,
+        offset: offset,
+      ),
+      kStatusFailedDelivery => dao.getVisibleFailedDeliveryPaged(
+        limit: pageSize,
+        offset: offset,
+      ),
+      kStatusMisrouted => dao.getVisibleMisroutedPaged(
+        limit: pageSize,
+        offset: offset,
+      ),
+      _ => dao.getByStatusPaged(status, limit: pageSize, offset: offset),
     };
   }
 
@@ -307,21 +320,25 @@ class _DeliveryStatusListScreenState
   // ─── MARK: Handlers ────────────────────────────────────────────────────────
 
   Future<void> _onRefresh() async {
+    if (!mounted) return;
     final isOnline = ref.read(isOnlineProvider);
 
     if (isOnline) {
-      await DeliveryBootstrapService.instance.syncFromApi(
-        ref.read(apiClientProvider),
-      );
+      final client = ref.read(apiClientProvider);
+      await DeliveryBootstrapService.instance.syncFromApi(client);
     }
+    if (!mounted) return;
+
     _currentPage = 0;
     await _load();
+    if (!mounted) return;
     if (_searchQuery.trim().isNotEmpty) await _runSearch(_searchQuery);
   }
 
   // ─── MARK: Search Logic ────────────────────────────────────────────────────
 
   Future<void> _runSearch(String query) async {
+    if (!mounted) return;
     final q = query.trim();
     if (q.isEmpty) {
       setState(() {
@@ -331,9 +348,8 @@ class _DeliveryStatusListScreenState
       return;
     }
     setState(() => _searchLoading = true);
-    final rows = await ref
-        .read(localDeliveryDaoProvider)
-        .searchByStatusAndQuery(widget.status, q);
+    final dao = ref.read(localDeliveryDaoProvider);
+    final rows = await dao.searchByStatusAndQuery(widget.status, q);
     if (!mounted) return;
     setState(() {
       _searchResults = rows.map(_toCardMap).toList();
@@ -669,9 +685,23 @@ class _DeliveryStatusListScreenState
                                             FailedDeliveryVerificationStatus.fromString(
                                               v,
                                             );
+                                        final syncStatus =
+                                            (d['_sync_status'] ??
+                                                    d['sync_status'] ??
+                                                    'clean')
+                                                .toString();
+
                                         String msg =
                                             'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
-                                        if (ds == DeliveryStatus.misrouted) {
+
+                                        if (syncStatus == 'dirty') {
+                                          msg =
+                                              'This delivery is currently syncing. Please wait for it to complete.';
+                                        } else if (d['bagsakan_id'] != null) {
+                                          msg =
+                                              'This delivery is part of a Bagsakan group and cannot be opened individually.';
+                                        } else if (ds ==
+                                            DeliveryStatus.misrouted) {
                                           msg =
                                               'This item is marked Misrouted and cannot be opened.';
                                         } else if (ds ==
@@ -689,9 +719,6 @@ class _DeliveryStatusListScreenState
                                             rv.isVerified) {
                                           msg =
                                               'This failed delivery has already been verified and is no longer actionable.';
-                                        } else if (d['bagsakan_id'] != null) {
-                                          msg =
-                                              'This delivery is part of a Bagsakan group and cannot be opened individually.';
                                         }
                                         showInfoNotification(context, msg);
                                       }

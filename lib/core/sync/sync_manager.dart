@@ -373,7 +373,10 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                   if (baseType == 'recipient_signature') {
                     payload['recipient_signature'] = url;
                   } else {
-                    uploadedImages.add({'file': url, 'type': baseType});
+                    uploadedImages.add({
+                      'file': url,
+                      'type': baseType.toUpperCase(),
+                    });
                   }
                 } else {
                   failedCount++;
@@ -620,11 +623,17 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           // clock is behind this moment is rejected as a backdated update.
           unawaited(TimeValidationService.instance.recordSyncAnchor());
           final deliveryData = result.data['data'];
-          if (deliveryData is Map<String, dynamic> &&
-              !entry.barcode.startsWith('BAGSAKAN_')) {
-            await ref
-                .read(localDeliveryDaoProvider)
-                .updateFromJson(entry.barcode, deliveryData);
+          if (!entry.barcode.startsWith('BAGSAKAN_')) {
+            if (deliveryData is Map<String, dynamic>) {
+              await ref
+                  .read(localDeliveryDaoProvider)
+                  .updateFromJson(entry.barcode, deliveryData);
+            } else {
+              // Authoritative Fallback: Fetch the final server state
+              // to ensure the local DB is perfectly in sync with field-level
+              // updates (e.g. server-side timestamps, piece count corrections).
+              await _refreshDeliveryFromServer(entry.barcode);
+            }
           } else {
             // Handle Bagsakan items cleanup
             if (entry.operationType == 'ASSIGN_TO_BAGSAKAN' ||
@@ -632,19 +641,6 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                 entry.operationType == 'DELETE_BAGSAKAN_GROUP' ||
                 entry.operationType == 'SUBMIT_BAGSAKAN') {
               _cleanupBagsakanItems(payload, entry.operationType);
-            } else if (!entry.barcode.startsWith('BAGSAKAN_')) {
-              // Fallback for normal deliveries if no detailed object returned
-              final status = payload['delivery_status']
-                  ?.toString()
-                  .toUpperCase();
-              if (status != null) {
-                await ref
-                    .read(localDeliveryDaoProvider)
-                    .updateStatus(entry.barcode, status);
-                await ref
-                    .read(localDeliveryDaoProvider)
-                    .markClean(entry.barcode);
-              }
             }
           }
           successCount++;
@@ -675,9 +671,13 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           String? responseCode;
           if (result is ApiConflict<Map<String, dynamic>>) {
             final data = result.data;
-            if (data is Map) {
-              responseCode = data['code']?.toString();
-            }
+            if (data is Map) responseCode = data['code']?.toString();
+          } else if (result is ApiBadRequest<Map<String, dynamic>>) {
+            final data = result.data;
+            if (data is Map) responseCode = data['code']?.toString();
+          } else if (result is ApiServerError<Map<String, dynamic>>) {
+            final data = result.data;
+            if (data is Map) responseCode = data['code']?.toString();
           }
 
           // Case 1 — DELIVERY_IMMUTABLE (v2.7 code): item is in a terminal state;
@@ -705,20 +705,29 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           //   processed. The server returns the original success payload.
           final isDuplicateRequestCode = responseCode == 'DUPLICATE_REQUEST';
 
-          // Case 4 — Max FAILED_DELIVERY attempts reached (400, no code field).
-          //   Server message: "Maximum RTS attempts (3) reached for this delivery."
+          // Case 4 — Max FAILED_DELIVERY attempts reached.
+          //   Backend now sends code=MAX_ATTEMPTS_REACHED (CourierMobileApiService fix).
+          //   Message-sniff is kept as fallback for older API versions.
           //   Auto-resolve so the Sync screen shows the server's human-readable
           //   message (stored in lastError) instead of a confusing "conflict" label.
           //   The delivery is still correctly locked by isVisibleToRider (attempts >= 3).
           final isMaxAttemptsReached =
-              result is ApiBadRequest<Map<String, dynamic>> &&
-              (errorMsg.toLowerCase().contains('maximum') ||
-                  errorMsg.toLowerCase().contains('attempts'));
+              responseCode == 'MAX_ATTEMPTS_REACHED' ||
+              ((result is ApiBadRequest<Map<String, dynamic>>) &&
+                  (errorMsg.toLowerCase().contains('maximum') ||
+                      errorMsg.toLowerCase().contains('attempts')));
 
-          // Case 5 — Resource already gone (404). For DELETE operations, this is success.
+          // Case 5 — Resource already gone (404).
+          //   For DELETE_BAGSAKAN_GROUP: already deleted on server — success.
+          //   For delivery updates: orphaned barcode (MasterList exists, no Delivery row)
+          //   — auto-resolve so it doesn't stay stuck as "conflict" forever.
           final isAlreadyDeleted =
               result is ApiNotFound<Map<String, dynamic>> &&
               entry.operationType == 'DELETE_BAGSAKAN_GROUP';
+
+          final isOrphanedDelivery =
+              result is ApiNotFound<Map<String, dynamic>> &&
+              !entry.barcode.startsWith('BAGSAKAN_');
 
           // Case 6 — Bagsakan already submitted: terminal state for group.
           final isAlreadySubmitted =
@@ -731,11 +740,13 @@ class SyncManagerNotifier extends Notifier<SyncState> {
               isDuplicateRequestCode ||
               isMaxAttemptsReached ||
               isAlreadyDeleted ||
+              isOrphanedDelivery ||
               isAlreadySubmitted;
 
           if (shouldAutoResolve) {
             final now = DateTime.now().millisecondsSinceEpoch;
 
+            bool dataUpdated = false;
             if (result is ApiConflict<Map<String, dynamic>>) {
               final responseData = result.data;
               final maybeData = responseData is Map
@@ -746,7 +757,15 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                 await ref
                     .read(localDeliveryDaoProvider)
                     .updateFromJson(entry.barcode, maybeData);
+                dataUpdated = true;
               }
+            }
+
+            // Authoritative Fallback: If the error didn't return the full object,
+            // fetch it now to ensure the local DB reflects the server's truth
+            // (effectively reverting the local change if the server rejected it).
+            if (!dataUpdated && !entry.barcode.startsWith('BAGSAKAN_')) {
+              await _refreshDeliveryFromServer(entry.barcode);
             }
 
             // Bagsakan auto-resolve cleanup (fixes "ghost dirty" items)
@@ -975,28 +994,54 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     await loadEntries();
   }
 
-  /// Dismisses a conflict operation.
+  /// Dismisses a conflict operation and reconciles the local delivery to the
+  /// server's authoritative state so the local record doesn't stay stuck in the
+  /// courier's attempted status (e.g. FAILED_DELIVERY when server rejected it).
   Future<void> dismissConflict(String id) async {
+    final db = await AppDatabase.getInstance();
+    final rows = await db.query(
+      'sync_operations',
+      columns: ['barcode'],
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    final barcode = rows.isNotEmpty ? rows.first['barcode'] as String? : null;
+
     await ref
         .read(syncOperationsDaoProvider)
         .updateStatus(id, 'synced', lastError: 'Dismissed by user');
+
+    if (barcode != null && !barcode.startsWith('BAGSAKAN_')) {
+      await _refreshDeliveryFromServer(barcode);
+    }
+
     await loadEntries();
+    if (!_disposed) ref.read(deliveryRefreshProvider.notifier).increment();
   }
 
-  /// Permanently deletes a single operation and its associated media files.
+  /// Permanently deletes a single operation and its associated media files,
+  /// then reconciles the local delivery to the server's authoritative state.
   Future<void> deleteSingle(String id) async {
     final db = await AppDatabase.getInstance();
     final rows = await db.query(
       'sync_operations',
-      columns: ['media_paths_json'],
+      columns: ['barcode', 'media_paths_json'],
       where: 'id = ?',
       whereArgs: [id],
     );
+    String? barcode;
     if (rows.isNotEmpty) {
+      barcode = rows.first['barcode'] as String?;
       await _deleteMediaFiles(rows.first['media_paths_json'] as String?);
     }
     await db.delete('sync_operations', where: 'id = ?', whereArgs: [id]);
+
+    if (barcode != null && !barcode.startsWith('BAGSAKAN_')) {
+      await _refreshDeliveryFromServer(barcode);
+    }
+
     await loadEntries();
+    if (!_disposed) ref.read(deliveryRefreshProvider.notifier).increment();
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────

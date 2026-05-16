@@ -32,27 +32,37 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       await ref.read(syncManagerProvider.notifier).loadEntries();
+      if (!mounted) return;
       await _loadDeliveries();
+      if (!mounted) return;
       final authStorage = ref.read(authStorageProvider);
       final lastSyncMs = await authStorage.getLastSyncTime();
+      if (!mounted) return;
       if (lastSyncMs != null) {
         ref
             .read(lastSyncTimeProvider.notifier)
             .setValue(DateTime.fromMillisecondsSinceEpoch(lastSyncMs));
       }
+      if (!mounted) return;
+      if (ref.read(connectionStatusProvider) == ConnectionStatus.online) {
+        await ref.read(syncManagerProvider.notifier).processQueue();
+      }
     });
   }
 
   Future<void> _loadDeliveries() async {
+    if (!mounted) return;
     final entries = ref.read(syncManagerProvider).entries;
     if (entries.isEmpty) return;
     final map = <String, LocalDelivery>{};
     for (final entry in entries) {
       final d = await LocalDeliveryDao.instance.getByBarcode(entry.barcode);
+      if (!mounted) return;
       if (d != null) map[entry.barcode] = d;
     }
-    if (mounted) setState(() => _deliveries = map);
+    setState(() => _deliveries = map);
   }
 
   @override
@@ -62,7 +72,9 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
 
     ref.listen<int>(deliveryRefreshProvider, (prev, next) async {
       if (prev != next) {
+        if (!mounted) return;
         await ref.read(syncManagerProvider.notifier).loadEntries();
+        if (!mounted) return;
         await _loadDeliveries();
       }
     });
@@ -85,10 +97,12 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
+                  if (!mounted) return;
                   if (ref.read(connectionStatusProvider) ==
                       ConnectionStatus.online) {
                     await ref.read(syncManagerProvider.notifier).processQueue();
                   }
+                  if (!mounted) return;
                   await ref.read(syncManagerProvider.notifier).loadEntries();
                 },
                 child: syncState.entries.isEmpty

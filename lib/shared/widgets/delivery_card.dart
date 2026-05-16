@@ -244,8 +244,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
             child: InkWell(
               borderRadius: effectiveRadius,
               onTap: widget.isChecking ? null : widget.onTap,
-              onLongPress:
-                  (widget.isChecking || isLocked || !widget.enableHoldToReveal)
+              onLongPress: (widget.isChecking || !widget.enableHoldToReveal)
                   ? null
                   : () => _showHoldOptions(context, isDark),
               splashColor: colorForStatus.withValues(alpha: DSStyles.alphaSoft),
@@ -820,7 +819,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
             // Content
             Expanded(
               child: InkWell(
-                onTap: widget.onTap,
+                onTap: widget.isChecking ? null : widget.onTap,
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: DSSpacing.md,

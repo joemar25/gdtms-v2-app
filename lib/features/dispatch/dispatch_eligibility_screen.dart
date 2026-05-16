@@ -36,6 +36,7 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
@@ -349,8 +350,9 @@ class _DispatchEligibilityScreenState
     final reason =
         _eligibilityResponse['message']?.toString() ??
         'You are not eligible for this dispatch.';
-    final maskedCode = widget.showFullCode
-        ? dispatchCode
+    final isDev = RuntimeEnvironmentService.instance.isDeveloperMode;
+    final maskedCode = (widget.showFullCode || isDev)
+        ? (isDev ? '$dispatchCode (debug)' : dispatchCode)
         : dispatchCode.length > last4.length
         ? '${dispatchCode.substring(0, dispatchCode.length - last4.length)}****'
         : '****';
@@ -358,10 +360,12 @@ class _DispatchEligibilityScreenState
     final deliveries = info['deliveries'] is List
         ? (info['deliveries'] as List).whereType<Map>().map((e) {
             final d = Map<String, dynamic>.from(e);
-            // Map API fields to DeliveryCard expected keys
-            d['barcode'] = e['barcode_value'] ?? '';
+            // Map API fields (v4.0) to DeliveryCard expected keys
+            // We use recipient_address and barcode directly from the v4.0 payload.
+            d['barcode'] = e['barcode'] ?? e['barcode_value'] ?? '';
             d['recipient_name'] = ''; // Hide name as requested
-            d['recipient_address'] = e['address'] ?? '';
+            d['recipient_address'] =
+                e['recipient_address'] ?? e['address'] ?? '';
             return d;
           }).toList()
         : <Map<String, dynamic>>[];
