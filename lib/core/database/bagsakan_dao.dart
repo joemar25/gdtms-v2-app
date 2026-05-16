@@ -681,7 +681,7 @@ class BagsakanDao {
     String where = '(barcode LIKE ? COLLATE NOCASE)';
     if (eligibleOnly) {
       where +=
-          " AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY', 'FAILED_DELIVERY') "
+          " AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FAILED_DELIVERY') "
           " AND (COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay')) "
           " AND bagsakan_id IS NULL "
           " AND COALESCE(is_archived, 0) = 0";
@@ -717,7 +717,7 @@ class BagsakanDao {
     String where = '(recipient_name LIKE ? COLLATE NOCASE)';
     if (eligibleOnly) {
       where +=
-          " AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FOR_REDELIVERY', 'FAILED_DELIVERY') "
+          " AND delivery_status COLLATE NOCASE IN ('FOR_DELIVERY', 'FAILED_DELIVERY') "
           " AND (COALESCE(rts_verification_status, 'unvalidated') COLLATE NOCASE NOT IN ('verified_with_pay', 'verified_no_pay')) "
           " AND bagsakan_id IS NULL "
           " AND COALESCE(is_archived, 0) = 0";

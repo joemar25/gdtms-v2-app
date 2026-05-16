@@ -236,19 +236,15 @@ const int kMaxDeliveryAttempts = 3;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const String kStatusForDelivery = 'FOR_DELIVERY';
-const String kStatusForRedelivery = 'FOR_REDELIVERY';
 const String kStatusFailedDelivery = 'FAILED_DELIVERY';
 const String kStatusDelivered = 'DELIVERED';
 const String kStatusMisrouted = 'MISROUTED';
 const String kStatusDispatched = 'DISPATCHED';
-const String kStatusPending = 'PENDING';
-const String kStatusRts = 'RTS';
 
 /// Statuses that are potentially valid for delivery.
 /// Note: FAILED_DELIVERY is only valid if attempts < [kMaxDeliveryAttempts].
 const List<String> kValidForDeliveryStatuses = [
   kStatusForDelivery,
-  kStatusForRedelivery,
   kStatusFailedDelivery,
 ];
 

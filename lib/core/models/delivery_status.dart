@@ -48,10 +48,10 @@ enum DeliveryStatus {
     final v = value?.trim().toUpperCase() ?? '';
 
     // Common canonical values
-    if (v == kStatusPending || v == kStatusForDelivery) return pending;
+    if (v == 'PENDING' || v == kStatusForDelivery) return pending;
 
     // Server aliases / legacy values that should be treated as pending/actionable
-    if (v == kStatusForRedelivery ||
+    if (v == 'FOR_REDELIVERY' ||
         v == 'REDELIVERY' ||
         v == 'FOR_REATTEMPT' ||
         v == 'REATTEMPT') {
@@ -61,7 +61,12 @@ enum DeliveryStatus {
     if (v == kStatusDelivered) return delivered;
 
     // Accept both the new contract and legacy RTS token for failed delivery
-    if (v == kStatusFailedDelivery || v == kStatusRts) return failedDelivery;
+    if (v == kStatusFailedDelivery ||
+        v == 'RTS' ||
+        v == 'UNDELIVERED' ||
+        v == 'OSA') {
+      return failedDelivery;
+    }
 
     if (v == kStatusMisrouted) return misrouted;
 
