@@ -138,7 +138,9 @@
     "new_items_header": "Mga Bagong Dagdag na Item",
     "search_results_header": "Mga Resulta ({})",
     "add_all": "Idagdag Lahat",
-    "success_added_bulk": "Matagumpay na naidagdag ang {} na item sa grupo"
+    "success_added_bulk": "Matagumpay na naidagdag ang {} na item sa grupo",
+    "submitted_locked_message": "Ang item na ito ay bahagi ng isang naisumiteng Bagsakan group at hindi na maa-access.",
+    "edit_locked_submitted": "Ang Bagsakan group na ito ay naisumite na at hindi na maaaring i-edit."
   },
   "notifications": {
     "unread_count": "{count} na hindi pa nababasang abiso",

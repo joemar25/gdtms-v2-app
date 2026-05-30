@@ -248,13 +248,19 @@ class _BagsakanGroupItemsScreenState
       }
     }
 
-    final candidateItems = finalItems
-        .where((item) => item.syncStatus == 'dirty')
-        .toList();
+    final candidateItems = finalItems.toList();
 
     if (candidateItems.isEmpty) return null;
 
-    candidateItems.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    // Prefer dirty (unsynced) items first — they carry the most recent local
+    // status update. Fall back to clean items so couriers whose deliveries
+    // have already synced can still submit the Bagsakan group.
+    candidateItems.sort((a, b) {
+      final aDirty = a.syncStatus == 'dirty' ? 0 : 1;
+      final bDirty = b.syncStatus == 'dirty' ? 0 : 1;
+      if (aDirty != bDirty) return aDirty.compareTo(bDirty);
+      return b.updatedAt.compareTo(a.updatedAt);
+    });
     return candidateItems.first;
   }
 
@@ -473,56 +479,59 @@ class _BagsakanGroupItemsScreenState
                                       .trim()
                                       .toUpperCase();
 
+                          // Issue #5 — Submitted Bagsakan: full lockdown.
+                          // When the group is submitted, show a barcode-only
+                          // locked card to prevent any PII exposure or editing.
+                          if (isSubmitted) {
+                            return _LockedBagsakanCard(
+                              delivery: delivery,
+                              index: index,
+                            );
+                          }
+
                           return DeliveryCard(
                             delivery: delivery.toDeliveryMap(),
                             compact: false,
                             isPropagationSource: isPropagationSource,
-                            onTap: isSubmitted
-                                ? null
-                                : () {
-                                    // RULE: If an individual item is already delivered/sealed,
-                                    // prevent re-updating it to avoid data corruption.
-                                    final dMap = delivery.toDeliveryMap();
+                            onTap: () {
+                              // RULE: If an individual item is already delivered/sealed,
+                              // prevent re-updating it to avoid data corruption.
+                              final dMap = delivery.toDeliveryMap();
 
-                                    // We temporarily ignore the bagsakan_id for the lock check because we are
-                                    // explicitly managing the group here; we only care about the delivery status lock.
-                                    final testMap = Map<String, dynamic>.from(
-                                      dMap,
-                                    )..remove('bagsakan_id');
-                                    final isItemLocked = checkIsLockedFromMap(
-                                      testMap,
-                                    );
+                              // We temporarily ignore the bagsakan_id for the lock check because we are
+                              // explicitly managing the group here; we only care about the delivery status lock.
+                              final testMap = Map<String, dynamic>.from(dMap)
+                                ..remove('bagsakan_id');
+                              final isItemLocked = checkIsLockedFromMap(
+                                testMap,
+                              );
 
-                                    if (isItemLocked) {
-                                      final status = delivery.deliveryStatus
-                                          .toUpperCase();
-                                      final ds = DeliveryStatus.fromString(
-                                        status,
-                                      );
-                                      String msg =
-                                          'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
-                                      if (ds == DeliveryStatus.delivered) {
-                                        msg =
-                                            'This item has already been delivered and is locked.';
-                                      } else if (ds ==
-                                          DeliveryStatus.misrouted) {
-                                        msg = 'sync.list.locked_misrouted'.tr();
-                                      } else if (ds ==
-                                          DeliveryStatus.failedDelivery) {
-                                        msg =
-                                            'This failed delivery is no longer actionable.';
-                                      }
-                                      showInfoNotification(context, msg);
-                                      return;
-                                    }
+                              if (isItemLocked) {
+                                final status = delivery.deliveryStatus
+                                    .toUpperCase();
+                                final ds = DeliveryStatus.fromString(status);
+                                String msg =
+                                    'This delivery is ${ds.displayName.toLowerCase()} and cannot be opened.';
+                                if (ds == DeliveryStatus.delivered) {
+                                  msg =
+                                      'This item has already been delivered and is locked.';
+                                } else if (ds == DeliveryStatus.misrouted) {
+                                  msg = 'sync.list.locked_misrouted'.tr();
+                                } else if (ds ==
+                                    DeliveryStatus.failedDelivery) {
+                                  msg =
+                                      'This failed delivery is no longer actionable.';
+                                }
+                                showInfoNotification(context, msg);
+                                return;
+                              }
 
-                                    context.push(
-                                      '/deliveries/${delivery.barcode}/update',
-                                    );
-                                  },
-                            onRemoveFromBagsakanTap: isSubmitted
-                                ? null
-                                : () => _onRemoveFromBagsakan(delivery),
+                              context.push(
+                                '/deliveries/${delivery.barcode}/update',
+                              );
+                            },
+                            onRemoveFromBagsakanTap: () =>
+                                _onRemoveFromBagsakan(delivery),
                           ).dsCardEntry(delay: DSAnimations.stagger(index));
                         },
                       ),
@@ -540,5 +549,91 @@ class _BagsakanGroupItemsScreenState
             )
           : null,
     );
+  }
+}
+
+// ── Locked Bagsakan Card (submitted group items) ─────────────────────────────
+
+/// Shown instead of [DeliveryCard] when the parent Bagsakan group is submitted.
+/// Displays only the barcode and delivery status badge — no PII.
+/// Tapping shows an info notification explaining the lock.
+class _LockedBagsakanCard extends StatelessWidget {
+  const _LockedBagsakanCard({required this.delivery, required this.index});
+
+  final LocalDelivery delivery;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final status = DeliveryStatus.fromString(delivery.deliveryStatus);
+    final statusColor = DSColors.statusColor(
+      delivery.deliveryStatus,
+      isDark: isDark,
+    );
+
+    return GestureDetector(
+      onTap: () => showInfoNotification(
+        context,
+        'bagsakan.submitted_locked_message'.tr(),
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: DSSpacing.sm),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DSSpacing.md,
+          vertical: DSSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: isDark ? DSColors.cardDark : DSColors.cardLight,
+          borderRadius: DSStyles.cardRadius,
+          border: Border.all(
+            color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.lock_rounded,
+              size: DSIconSize.sm,
+              color: isDark
+                  ? DSColors.labelSecondaryDark
+                  : DSColors.labelSecondary,
+            ),
+            DSSpacing.wSm,
+            Expanded(
+              child: Text(
+                delivery.barcode,
+                style: DSTypography.body(
+                  color: isDark
+                      ? DSColors.labelPrimaryDark
+                      : DSColors.labelPrimary,
+                  fontSize: DSTypography.sizeSm,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            DSSpacing.wSm,
+            // Status chip — only metadata visible, no PII.
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DSSpacing.xs,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(DSStyles.radiusSM),
+              ),
+              child: Text(
+                status.displayName.toUpperCase(),
+                style: DSTypography.caption(
+                  color: statusColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).dsCardEntry(delay: DSAnimations.stagger(index));
   }
 }

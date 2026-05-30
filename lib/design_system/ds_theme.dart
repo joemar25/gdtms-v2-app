@@ -114,12 +114,13 @@ class DSTheme {
         shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
       ),
 
-      // Elevated Buttons
+      // Elevated Buttons — 48px min height per spec
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: activePrimary,
           foregroundColor: DSColors.white,
           elevation: DSStyles.elevationNone,
+          minimumSize: const Size.fromHeight(48),
           padding: EdgeInsets.symmetric(
             vertical: DSSpacing.md,
             horizontal: DSSpacing.xl,

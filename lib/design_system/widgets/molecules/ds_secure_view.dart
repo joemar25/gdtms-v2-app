@@ -8,14 +8,42 @@ import 'package:fsi_courier_app/core/config.dart';
 /// A singleton manager to handle reference counting for screenshot protection.
 /// This ensures that if multiple SecureViews are active (e.g. a sheet over a screen),
 /// protection is only disabled when the last one is disposed.
+/// Public façade for controlling screenshot protection from outside this library.
+/// Use [SecureViewManager.setDeveloperModeOverride] to bypass protection in developer mode.
+class SecureViewManager {
+  SecureViewManager._();
+
+  /// Apply or remove the developer-mode screenshot bypass.
+  /// Call this in [RuntimeEnvironmentService.init] and [RuntimeEnvironmentService.setDeveloperMode].
+  static void setDeveloperModeOverride(bool isDeveloper) {
+    _SecureManager.setDeveloperModeOverride(isDeveloper);
+  }
+}
+
 class _SecureManager {
   static final _SecureManager instance = _SecureManager._();
   _SecureManager._();
 
   int _counter = 0;
 
+  /// When true, all screenshot protection is bypassed at runtime.
+  /// Set via [setDeveloperModeOverride] during app init and when toggling developer mode.
+  static bool _developerModeOverride = false;
+
+  static void setDeveloperModeOverride(bool isDeveloper) {
+    _developerModeOverride = isDeveloper;
+    // If developer mode just turned on while protection was active, disable it now.
+    if (isDeveloper) {
+      try {
+        ScreenProtector.preventScreenshotOff().catchError((_) {});
+      } catch (_) {}
+    }
+  }
+
+  bool get _bypassProtection => !kSecureScreenshots || _developerModeOverride;
+
   Future<void> enable() async {
-    if (!kSecureScreenshots) return;
+    if (_bypassProtection) return;
     _counter++;
     if (_counter == 1) {
       try {
@@ -27,7 +55,7 @@ class _SecureManager {
   }
 
   Future<void> disable() async {
-    if (!kSecureScreenshots) return;
+    if (_bypassProtection) return;
     _counter--;
     if (_counter <= 0) {
       _counter = 0;

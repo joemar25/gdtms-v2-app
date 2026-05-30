@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/design_system/widgets/molecules/ds_secure_view.dart';
 
 enum RuntimeAppMode { production, developer }
 
@@ -30,11 +31,15 @@ class RuntimeEnvironmentService {
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _isDeveloperMode = prefs.getBool(AppKeys.developerMode) ?? false;
+    // Apply screenshot bypass immediately based on persisted developer mode.
+    SecureViewManager.setDeveloperModeOverride(_isDeveloperMode);
   }
 
   Future<void> setDeveloperMode(bool enabled) async {
     _isDeveloperMode = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(AppKeys.developerMode, enabled);
+    // Propagate to screenshot protection in real time.
+    SecureViewManager.setDeveloperModeOverride(enabled);
   }
 }

@@ -95,6 +95,25 @@ Full index: [docs/index.md](docs/index.md)
 - Wallet overview and payout request/detail
 - Profile with settings toggles and logout
 
+## UAT Phase 1: Essential Scenarios
+
+For the upcoming UAT phase, we will focus specifically on the following essential scenarios for the mobile app (which connects to the central GDTMS Web API). All other features are deferred to Phase 2.
+
+1. **Courier can login:** Test authentication flow and loading of the dashboard.
+   - **UI Fields**: **Phone Number** (TextField), **Password** (TextFormField with eye visibility icon toggle), **Remember Phone Number** (saves username to SharedPreferences), circular **Theme Toggle** (sun/moon icon in the top-right corner to toggle between premium Dark and Light mode), **Forgot Password** link, and **Contact Admin** footer option (displays modal sheet with coordinator number `09213920200` to call).
+2. **Courier can deliver offline:** Test completing delivery updates without internet, ensuring updates are stored in the local SQLite queue (`delivery_update_queue`).
+   - **UI Fields (Delivered)**: **Recipient Name** (TextField), **Relationship** (searchable picker: OWNER, SPOUSE, SIBLING, PARENT, CHILD, HOUSEHOLD_HELP, CO_WORKER, SECURITY_GUARD, or OTHERS), **Specify Relationship** (TextField, required for OTHERS), **Placement Type** (Dropdown: RECEIVED, MAILBOX, UNDER_THE_DOOR, or NEIGHBOR), **POD Photo** (Camera photo), **Selfie Photo** (Camera photo), **Confirmation Code** (6-character alphanumeric TextField), optional **Remarks** (TextField with active preset chips), and optional **Signature** (checkbox to show signature slot, opens signature capture canvas).
+   - **Offline Enforcer**: Offline time validation uses an NTP ratchet mechanism stored in SharedPreferences, preventing systemic clock rollback tampering attempts.
+3. **Courier can update deliveries:** Test online status updates and verify real-time sync with geocoding to the GDTMS Web Portal.
+   - **UI Fields (Failed Delivery)**: **Reason for non-delivery** (searchable picker dropdown), **Specify Reason** (TextField, required for "Others"), **Informant Name (According To)** (TextField, required for specific reasons), **Selfie Photo** (Camera photo), and optional **Remarks** (TextField with active preset chips).
+   - **UI Fields (Misrouted)**: **Mailpack Photo** (Camera photo) and optional **Remarks** (TextField with active preset chips).
+4. **Courier can request payout:** Test payout preview and submission based on server-calculated eligible deliveries.
+   - **UI Fields**: Review read-only **Coverage Period (Date Range)**, **Eligible Deliveries Count**, **Estimated Gross Earnings**, **Estimated Total Penalties** (deductions in red), **Estimated Coordinator Incentive** (deductions in orange), **Estimated Net Payable** (large green computed balance), and scrollable **Deliveries Rundown** grouped by date.
+   - **Flow**: Tapping **"Request Payout"** opens a confirmation dialog showing the **Estimated Net Payable** inside a card and a warning notification. Tap **"Confirm & Submit"** to POST the request to the central Web API for OPS review.
+5. **Courier can consolidate payout:** Test automatic consolidation of new deliveries.
+   - **Condition**: Consolidation only triggers if the courier has **new eligible deliveries** and the **previous payout request is still PENDING (not yet approved by OPS)**. Approved requests are strictly locked from consolidation to preserve auditing records.
+   - **UI Fields**: Observe the **Consolidation Warning Banner** on the wallet screen and the request page. Merging new deliveries preserves the original unique **Reference Code** while updating total volumes, gross earnings, deductions, and net payable.
+
 ## Dependencies
 
 Primary runtime dependencies:
@@ -163,6 +182,7 @@ build/run time via `--dart-define` or `--dart-define-from-file`.
 For official releases, use these optimized commands to ensure the smallest possible size and code protection.
 
 **For Google Play Store (App Bundle):**
+
 ```bash
 flutter build appbundle --release \
   --dart-define-from-file=dart_defines.json \
@@ -172,6 +192,7 @@ flutter build appbundle --release \
 ```
 
 **For Direct APK Distribution (Smallest APKs):**
+
 ```bash
 flutter build apk --release \
   --dart-define-from-file=dart_defines.json \
@@ -244,6 +265,7 @@ flutter build apk --dart-define-from-file=dart_defines.json
 ### Icon & Asset Optimization
 
 The project follows a strict asset optimization policy:
+
 - **Fonts**: Handled via `google_fonts` package (no `.ttf` assets).
 - **Images**: New assets should use `.webp` format.
 - **Clean Code**: Redundant web assets (favicons, manifest) and manual font files are purged to keep the repository lean.

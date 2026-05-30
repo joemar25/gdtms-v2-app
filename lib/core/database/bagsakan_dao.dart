@@ -560,6 +560,10 @@ class BagsakanDao {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
 
+    // Fetch group name before transaction for the sync payload (Issue #9).
+    final groupRow = await getBagsakanGroup(groupId);
+    final groupName = groupRow?['name']?.toString() ?? 'Bagsakan Group';
+
     await db.transaction((txn) async {
       // 1. Fetch source delivery
       final sourceRows = await txn.query(
@@ -656,6 +660,8 @@ class BagsakanDao {
           operationType: 'SUBMIT_BAGSAKAN',
           payloadJson: jsonEncode({
             'group_id': groupId,
+            'group_name':
+                groupName, // Issue #9: used by SyncEntryTile for display
             'source_barcode': sourceBarcode,
             'propagation_status': sourceStatusApi,
             // barcodes are no longer sent to the server (handled server-side)
@@ -667,6 +673,23 @@ class BagsakanDao {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     });
+  }
+
+  /// Issue #8 — Touches the [updated_at] of a Bagsakan group so that
+  /// the group list re-sorts correctly when a delivery inside it is updated.
+  ///
+  /// Called by [LocalDeliveryDao.updateStatus] whenever the updated delivery
+  /// belongs to a Bagsakan group (bagsakan_id IS NOT NULL).
+  Future<void> touchBagsakanGroupUpdatedAt(int groupId) async {
+    final db = await _db;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.update(
+      'bagsakan_groups',
+      {'updated_at': now},
+      where: 'id = ?',
+      whereArgs: [groupId],
+    );
+    debugPrint('[BAGSAKAN_DAO] Touched updated_at for group $groupId');
   }
 
   /// Searches deliveries by barcode (Filtered for Bagsakan).

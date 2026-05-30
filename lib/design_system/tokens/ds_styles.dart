@@ -8,30 +8,32 @@ import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
 /// REJECT any new tier requests that exceed this scale.
 class DSStyles {
   // ── Border Radii ──────────────────────────────────────────────────────────
-  static const double radiusXS = 4.0;
-  static const double radiusSM = 8.0;
-  static const double radiusMD = 12.0;
-  static const double radiusLG = 16.0;
-  static const double radiusXL = 24.0;
+  static const double radiusXS = 4.0; // micro elements
+  static const double radiusSM = 6.0; // tight elements
+  static const double radiusMD = 8.0; // default inputs, buttons
+  static const double radiusLG = 10.0; // cards, standard
+  static const double radiusXL = 14.0; // larger cards
+  static const double radius2XL = 18.0; // modals, bottom sheets
+  static const double radius3XL = 22.0; // hero elements
 
-  static const double radiusSheet = radiusXL;
+  static const double radiusSheet = radius2XL;
   static final BorderRadius sheetRadius = BorderRadius.circular(radiusSheet);
 
   static const double radiusCard = radiusLG;
   static final BorderRadius cardRadius = BorderRadius.circular(radiusCard);
 
-  static const double radiusPill = radiusSM;
+  static const double radiusPill = radiusMD;
   static final BorderRadius pillRadius = BorderRadius.circular(radiusPill);
 
-  static const double radiusBadge = radiusMD;
+  static const double radiusBadge = radiusLG;
   static final BorderRadius badgeRadius = BorderRadius.circular(radiusBadge);
 
-  static const double radiusCircular = radiusXL;
+  static const double radiusCircular = radius3XL;
   static final BorderRadius circularRadius = BorderRadius.circular(
     radiusCircular,
   );
 
-  static const double radiusFull = 999.0;
+  static const double radiusFull = 9999.0;
   static final BorderRadius fullRadius = BorderRadius.circular(radiusFull);
 
   static const double shadowBlurHero = 40.0;

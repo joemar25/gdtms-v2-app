@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
+import 'package:fsi_courier_app/core/database/bagsakan_dao.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
@@ -100,6 +101,9 @@ class LocalDeliveryDao {
 
   /// Updates only [delivery_status] and [updated_at] for the given [barcode].
   /// Used for optimistic local updates when a rider submits offline.
+  ///
+  /// Issue #8: Also touches [bagsakan_groups.updated_at] when the delivery
+  /// belongs to a Bagsakan group so the group list sorts correctly.
   Future<void> updateStatus(String barcode, String status) async {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -118,6 +122,21 @@ class LocalDeliveryDao {
       where: 'barcode = ?',
       whereArgs: [barcode],
     );
+
+    // Touch the parent Bagsakan group's updated_at so the group list re-sorts.
+    final rows = await db.query(
+      'local_deliveries',
+      columns: ['bagsakan_id'],
+      where: 'barcode = ?',
+      whereArgs: [barcode],
+      limit: 1,
+    );
+    final bagsakanId = rows.isNotEmpty
+        ? rows.first['bagsakan_id'] as int?
+        : null;
+    if (bagsakanId != null) {
+      await BagsakanDao.instance.touchBagsakanGroupUpdatedAt(bagsakanId);
+    }
   }
 
   /// Refreshes a record's indexed fields and [rawJson] from a fresh API response.

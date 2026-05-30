@@ -78,6 +78,19 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
       // 1. Initial local load for responsiveness
       final localGroup = await dao.getBagsakanGroup(widget.groupId!);
       if (localGroup != null && mounted) {
+        // Guard: submitted groups cannot be edited. Redirect immediately.
+        final groupStatus = localGroup['status']?.toString() ?? '';
+        if (groupStatus == 'submitted') {
+          if (mounted) {
+            showInfoNotification(
+              context,
+              'bagsakan.edit_locked_submitted'.tr(),
+            );
+            context.pop();
+          }
+          return;
+        }
+
         setState(() {
           _groupNameController.text = localGroup['name'] as String? ?? '';
           _groupDescriptionController.text =
@@ -597,10 +610,26 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
           controller: _groupNameController,
           autofocus: widget.groupId == null,
         ),
-        DSInput(
-          label: 'bagsakan.group_description'.tr(),
-          hintText: 'bagsakan.group_description_hint'.tr(),
+        // Multiline description input — allows multi-sentence notes.
+        TextFormField(
           controller: _groupDescriptionController,
+          maxLines: 5,
+          minLines: 3,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
+          decoration: InputDecoration(
+            labelText: 'bagsakan.group_description'.tr(),
+            hintText: 'bagsakan.group_description_hint'.tr(),
+            alignLabelWithHint: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: DSSpacing.md,
+              vertical: DSSpacing.md,
+            ),
+          ),
+          style: DSTypography.body(),
         ),
       ],
     );

@@ -21,11 +21,11 @@ class DSAnimations {
   DSAnimations._();
 
   // ── Standard durations ─────────────────────────────────────────────────────
-  static const Duration dMicro = Duration(milliseconds: 150);
-  static const Duration dFast = Duration(milliseconds: 250);
-  static const Duration dNormal = Duration(milliseconds: 400);
-  static const Duration dSlow = Duration(milliseconds: 600);
-  static const Duration dHero = Duration(milliseconds: 800);
+  static const Duration dMicro = Duration(milliseconds: 150); // scale-in
+  static const Duration dFast = Duration(milliseconds: 250); // fade-in
+  static const Duration dNormal = Duration(milliseconds: 400); // fade-in-up
+  static const Duration dSlow = Duration(milliseconds: 500); // shake, slide-down
+  static const Duration dHero = Duration(milliseconds: 600); // scale-bounce
 
   // ── Stagger step sizes ─────────────────────────────────────────────────────
   /// 10 ms — micro transitions (e.g. checkbox check).
@@ -37,8 +37,8 @@ class DSAnimations {
   /// 50 ms — section labels and sub-headings.
   static const Duration staggerNormal = Duration(milliseconds: 50);
 
-  /// 100 ms — cards, form fields, primary content.
-  static const Duration staggerCoarse = Duration(milliseconds: 100);
+  /// 80 ms — cards, form fields, primary content (spec default).
+  static const Duration staggerCoarse = Duration(milliseconds: 80);
 
   /// 200 ms — wide sections or major page blocks.
   static const Duration staggerWide = Duration(milliseconds: 200);
@@ -128,6 +128,50 @@ class DSAnimations {
   static List<Effect> fadeEntry({Duration? delay, Duration? duration}) => [
     FadeEffect(duration: duration, delay: delay ?? Duration.zero),
   ];
+
+  /// Scale 0.75 → 1 in 150 ms → use for popping in badges or icons.
+  static List<Effect> scaleIn({Duration? delay, Duration? duration}) => [
+    ScaleEffect(
+      begin: const Offset(0.75, 0.75),
+      end: const Offset(1.0, 1.0),
+      duration: duration ?? dMicro,
+      delay: delay ?? Duration.zero,
+      curve: Curves.easeOut,
+    ),
+  ];
+
+  /// Scale 0.6 → 1.08 → 1 in 600 ms → use for success confirmations.
+  static List<Effect> scaleBounce({Duration? delay, Duration? duration}) => [
+    ScaleEffect(
+      begin: const Offset(0.6, 0.6),
+      end: const Offset(1.0, 1.0),
+      duration: duration ?? dHero,
+      delay: delay ?? Duration.zero,
+      curve: Curves.elasticOut,
+    ),
+  ];
+
+  /// Horizontal shake + slight rotate → use for validation errors.
+  static List<Effect> shake({Duration? delay, Duration? duration}) => [
+    ShakeEffect(
+      duration: duration ?? dSlow,
+      delay: delay ?? Duration.zero,
+      hz: 4,
+      offset: const Offset(6, 0),
+      rotation: 0.02,
+    ),
+  ];
+
+  /// Fade-in + slide down from -8 px → use for banners, toasts.
+  static List<Effect> slideDown({Duration? delay, Duration? duration}) => [
+    FadeEffect(duration: duration ?? dNormal, delay: delay ?? Duration.zero),
+    SlideEffect(
+      begin: const Offset(0, -0.05),
+      end: Offset.zero,
+      duration: duration ?? dNormal,
+      delay: delay ?? Duration.zero,
+    ),
+  ];
 }
 
 /// Widget extension for applying DS animation presets inline.
@@ -155,5 +199,25 @@ extension DSAnimationsX on Widget {
   /// Plain fade-in for labels, spinners, and misc elements.
   Widget dsFadeEntry({Duration? delay, Duration? duration}) => animate(
     effects: DSAnimations.fadeEntry(delay: delay, duration: duration),
+  );
+
+  /// Scale 0.75 → 1 pop-in for badges and icons.
+  Widget dsScaleIn({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.scaleIn(delay: delay, duration: duration),
+  );
+
+  /// Elastic scale-bounce for success confirmations.
+  Widget dsScaleBounce({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.scaleBounce(delay: delay, duration: duration),
+  );
+
+  /// Horizontal shake for validation errors.
+  Widget dsShake({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.shake(delay: delay, duration: duration),
+  );
+
+  /// Slide down from above for banners and toasts.
+  Widget dsSlideDown({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.slideDown(delay: delay, duration: duration),
   );
 }

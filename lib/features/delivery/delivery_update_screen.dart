@@ -616,10 +616,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         ? _relationshipSpecify.text.trim().toUpperCase()
         : _relationship;
     final now = DateTime.now();
-    final deliveredDateUtc = now.toUtc().toIso8601String();
+    // Send local time without UTC conversion. The server (APP_TIMEZONE=Asia/Manila)
+    // treats this naive ISO string as Manila time, so the stored and displayed
+    // value matches the courier's clock exactly.
+    final transactionAt = now.toLocal().toIso8601String();
     final payload = <String, dynamic>{
       'delivery_status': _status.toUpperCase(),
-      'delivered_date': deliveredDateUtc,
+      'transaction_at': transactionAt,
     };
     final List<String> notes = [];
     if (_note.text.trim().isNotEmpty) notes.add(_note.text.trim());
@@ -630,6 +633,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     }
     final pendingMediaPaths = <String, String>{};
     if (_isDelivered) {
+      payload['delivered_date'] = transactionAt;
       if (_podPhoto != null) pendingMediaPaths['pod'] = _podPhoto!.file;
       if (_selfiePhoto != null) {
         pendingMediaPaths['selfie'] = _selfiePhoto!.file;

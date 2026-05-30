@@ -13,6 +13,7 @@ Comprehensive test suite for the offline-first, strong sync capabilities of the 
 **Purpose**: Core offline sync behavior and operation queueing
 
 **Tests**:
+
 - ✅ `CREATE_BAGSAKAN operation queues locally when offline`
 - ✅ `CREATE_BAGSAKAN payload contains group metadata`
 - ✅ `ASSIGN_TO_BAGSAKAN queues assignments locally`
@@ -32,6 +33,7 @@ Comprehensive test suite for the offline-first, strong sync capabilities of the 
 - ✅ `UI displays "✓ Synced" badge when operation completed`
 
 **Coverage**:
+
 - Operation queueing (offline behavior)
 - Dependency ordering
 - Conflict handling
@@ -45,12 +47,14 @@ Comprehensive test suite for the offline-first, strong sync capabilities of the 
 **Purpose**: UI integration tests for offline status display
 
 **Tests**:
+
 - ✅ `Shows ConnectionStatusBanner when offline`
 - ✅ `Shows ConnectionStatusBanner when API unreachable`
 - ✅ `Does not show banner when online`
 - ✅ `Form allows saving while offline (operations queued)`
 
 **Coverage**:
+
 - ConnectionStatusBanner integration
 - Offline form behavior
 - Form accessibility when offline
@@ -62,6 +66,7 @@ Comprehensive test suite for the offline-first, strong sync capabilities of the 
 **Purpose**: Sync manager operation sequencing and dependencies
 
 **Tests**:
+
 - ✅ `Operations execute in required precedence order`
 - ✅ `ASSIGN operation blocked if CREATE not synced`
 - ✅ `DELETE operation blocks dependent operations`
@@ -73,6 +78,7 @@ Comprehensive test suite for the offline-first, strong sync capabilities of the 
 - ✅ `Processing state prevents duplicate concurrent syncs`
 
 **Coverage**:
+
 - Operation sequencing rules
 - Dependency resolution
 - Concurrent group handling
@@ -86,6 +92,7 @@ Comprehensive test suite for the offline-first, strong sync capabilities of the 
 **Purpose**: DAO layer offline queuing behavior
 
 **Tests**:
+
 - ✅ `createBagsakanGroup queues CREATE_BAGSAKAN operation`
 - ✅ `assignToBagsakan queues ASSIGN_TO_BAGSAKAN operation`
 - ✅ `assignToBagsakan merges with existing pending ASSIGN`
@@ -99,6 +106,7 @@ Comprehensive test suite for the offline-first, strong sync capabilities of the 
 - ✅ `Bagsakan groups NOT stored locally, only operations queued`
 
 **Coverage**:
+
 - All CRUD operations on bagsakan groups
 - Offline queuing at the DAO layer
 - Operation merging
@@ -149,10 +157,10 @@ ASSIGN ["PKG001"] to Group 1:
 ```
 Synced Operations:
   - Deleted after sync_retention_days (configurable)
-  
+
 Pending Operations:
   - Retained indefinitely until sync succeeds
-  
+
 Conflict Operations:
   - Retained until user resolves (max 7 days)
 ```
@@ -162,6 +170,7 @@ Conflict Operations:
 ## Running the Tests
 
 ### All offline-first tests:
+
 ```bash
 flutter test test/features/bagsakan/bagsakan_offline_sync_test.dart \
               test/features/bagsakan/bagsakan_form_screen_offline_test.dart \
@@ -170,11 +179,13 @@ flutter test test/features/bagsakan/bagsakan_offline_sync_test.dart \
 ```
 
 ### Individual test file:
+
 ```bash
 flutter test test/core/database/bagsakan_dao_offline_queuing_test.dart
 ```
 
 ### With verbose output:
+
 ```bash
 flutter test -v test/features/bagsakan/bagsakan_offline_sync_test.dart
 ```
@@ -230,6 +241,7 @@ test/
 ## Key Assertions
 
 ### Operation Queueing
+
 ```dart
 expect(op.operationType, 'CREATE_BAGSAKAN');
 expect(op.status, 'pending');
@@ -237,6 +249,7 @@ expect(op.barcode, 'BAGSAKAN_42');
 ```
 
 ### Operation Ordering
+
 ```dart
 expect(pending[0].operationType, 'CREATE_BAGSAKAN');
 expect(pending[1].operationType, 'ASSIGN_TO_BAGSAKAN');
@@ -244,6 +257,7 @@ expect(pending[0].createdAt <= pending[1].createdAt, true);
 ```
 
 ### Dependency Blocking
+
 ```dart
 final waiting = await mockDao.hasUnfinishedCreateBagsakan(
   'courier-1', 1, excludeOperationId: 'op-assign'
@@ -252,6 +266,7 @@ expect(waiting, true); // ASSIGN blocked until CREATE syncs
 ```
 
 ### No Local Persistence
+
 ```dart
 verify(mockSyncOpsDao.insert(any)).called(1);
 // No cache or separate group record — only sync_operations table
@@ -262,6 +277,7 @@ verify(mockSyncOpsDao.insert(any)).called(1);
 ## Dependencies
 
 Tests use:
+
 - `flutter_test`
 - `mockito` for mocking DAOs and providers
 - `flutter_riverpod` for provider overrides
@@ -278,4 +294,3 @@ No external API calls or database connections required (all mocked).
 - No test data cleanup required (all in-memory)
 - Add new tests when adding bagsakan operation types
 - Update operation ordering tests if precedence changes
-

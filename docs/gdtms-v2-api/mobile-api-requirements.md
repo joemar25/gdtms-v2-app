@@ -10,7 +10,7 @@
 
 ### v3.8 — Bagsakan Module Integration [COMPLETED]
 
-**Mobile Integration Audit (May 8, 2026)**
+#### Mobile Integration Audit (May 8, 2026)
 
 Status: **Aligned**. Mobile now consumes the remaining v3.8 Bagsakan endpoints and response fields.
 
@@ -190,14 +190,14 @@ The mobile app implements **offline-first** architecture across all features, in
 
 ### Bagsakan Offline Behavior
 
-#### When Offline:
+#### When Offline
 
 - **No LOCAL persistence**: Bagsakan groups and assignments are NOT stored locally as separate records beyond the sync queue.
 - **Operations queued**: Any action (create group, assign items, unassign, submit, delete) is captured as a `SyncOperation` entry with status `pending`.
 - **Read-only access**: Users can view previously-synced bagsakan groups (from the last online sync) but cannot modify them until connectivity is restored.
 - **Preview UI disabled**: Form submission buttons show an offline indicator and prompt for retry when online.
 
-#### When Online:
+#### When Online
 
 - **Automatic sync initiation**: On app startup or reconnect, the `SyncManagerNotifier` processes all pending bagsakan operations.
 - **Ordered execution**: Operations are executed in creation order to maintain referential integrity:

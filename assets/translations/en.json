@@ -138,7 +138,9 @@
     "new_items_header": "Newly Added Items",
     "search_results_header": "Search Results ({})",
     "add_all": "Add All",
-    "success_added_bulk": "Successfully added {} items to group"
+    "success_added_bulk": "Successfully added {} items to group",
+    "submitted_locked_message": "This item is part of a submitted Bagsakan group and is no longer accessible.",
+    "edit_locked_submitted": "This Bagsakan group has already been submitted and cannot be edited."
   },
   "notifications": {
     "unread_count": "{count} unread notifications",
