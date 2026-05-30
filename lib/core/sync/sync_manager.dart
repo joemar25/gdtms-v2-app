@@ -370,7 +370,7 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                 if (url != null && url.isNotEmpty) {
                   debugPrint('[SYNC] $baseType uploaded → $url');
                   uploadedCount++;
-                  if (baseType == 'recipient_signature') {
+                  if (baseType == 'signature') {
                     payload['recipient_signature'] = url;
                   } else {
                     uploadedImages.add({

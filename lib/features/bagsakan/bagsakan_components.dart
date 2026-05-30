@@ -36,6 +36,10 @@ class BagsakanGroupCard extends StatelessWidget {
     final submittedAt = submittedAtRaw != null
         ? DateTime.fromMillisecondsSinceEpoch(submittedAtRaw)
         : null;
+    final groupCompletedAtRaw = group['group_completed_at'] as int?;
+    final groupCompletedAt = groupCompletedAtRaw != null
+        ? DateTime.fromMillisecondsSinceEpoch(groupCompletedAtRaw)
+        : null;
 
     final cardBg = isDark ? DSColors.cardDark : DSColors.cardLight;
     final cardBorder = isDark
@@ -185,9 +189,7 @@ class BagsakanGroupCard extends StatelessWidget {
                                       ),
                                       DSSpacing.wXs,
                                       Text(
-                                        DateFormat(
-                                          'MMM d, h:mm a',
-                                        ).format(createdAt),
+                                        '${'bagsakan.timestamp_created'.tr()} ${DateFormat('MMM d, h:mm a').format(createdAt)}',
                                         style:
                                             DSTypography.caption(
                                               color: subtextColor,
@@ -208,12 +210,33 @@ class BagsakanGroupCard extends StatelessWidget {
                                         ),
                                         DSSpacing.wXs,
                                         Text(
-                                          DateFormat(
-                                            'MMM d, h:mm a',
-                                          ).format(submittedAt),
+                                          '${'bagsakan.timestamp_submitted'.tr()} ${DateFormat('MMM d, h:mm a').format(submittedAt)}',
                                           style:
                                               DSTypography.caption(
                                                 color: DSColors.success,
+                                              ).copyWith(
+                                                fontSize: DSTypography.sizeXs,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  if (isSubmitted && groupCompletedAt != null) ...[
+                                    DSSpacing.hXs,
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.history_rounded,
+                                          size: DSIconSize.xs,
+                                          color: DSColors.primary,
+                                        ),
+                                        DSSpacing.wXs,
+                                        Text(
+                                          '${'bagsakan.timestamp_transaction'.tr()} ${DateFormat('MMM d, h:mm a').format(groupCompletedAt)}',
+                                          style:
+                                              DSTypography.caption(
+                                                color: DSColors.primary,
                                               ).copyWith(
                                                 fontSize: DSTypography.sizeXs,
                                                 fontWeight: FontWeight.w600,

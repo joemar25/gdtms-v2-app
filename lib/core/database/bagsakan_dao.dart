@@ -429,6 +429,7 @@ class BagsakanDao {
       '''
       SELECT g.*, 
              COUNT(d.barcode) as item_count,
+             MAX(d.completed_at) as group_completed_at,
              (SELECT COUNT(*) FROM sync_operations s 
               WHERE s.barcode = 'BAGSAKAN_' || g.id 
                 AND s.status IN ('pending', 'processing', 'failed', 'conflict')) as pending_sync_count
@@ -643,9 +644,14 @@ class BagsakanDao {
       }
 
       // 3. Mark group as submitted and set the 1-day purge clock
+      final sourceTransactionTime = source.completedAt ?? now;
       await txn.update(
         'bagsakan_groups',
-        {'status': 'submitted', 'submitted_at': now, 'updated_at': now},
+        {
+          'status': 'submitted',
+          'submitted_at': sourceTransactionTime,
+          'updated_at': now,
+        },
         where: 'id = ?',
         whereArgs: [groupId],
       );
