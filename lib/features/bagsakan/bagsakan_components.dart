@@ -168,6 +168,8 @@ class BagsakanGroupCard extends StatelessWidget {
 
                           // Footer Row: Stats & Timestamps
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               InfoChip(
                                 icon: Icons.inventory_2_rounded,
@@ -176,76 +178,92 @@ class BagsakanGroupCard extends StatelessWidget {
                                 ),
                                 isDark: isDark,
                               ),
-                              const Spacer(),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.add_circle_outline_rounded,
-                                        size: DSIconSize.xs,
-                                        color: subtextColor,
-                                      ),
-                                      DSSpacing.wXs,
-                                      Text(
-                                        '${'bagsakan.timestamp_created'.tr()} ${DateFormat('MMM d, h:mm a').format(createdAt)}',
-                                        style:
-                                            DSTypography.caption(
-                                              color: subtextColor,
-                                            ).copyWith(
-                                              fontSize: DSTypography.sizeXs,
+                              Flexible(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.add_circle_outline_rounded,
+                                          size: DSIconSize.xs,
+                                          color: subtextColor,
+                                        ),
+                                        DSSpacing.wXs,
+                                        Flexible(
+                                          child: Text(
+                                            '${'bagsakan.timestamp_created'.tr()} ${DateFormat('MMM d, h:mm a').format(createdAt)}',
+                                            style:
+                                                DSTypography.caption(
+                                                  color: subtextColor,
+                                                ).copyWith(
+                                                  fontSize: DSTypography.sizeXs,
+                                                ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (isSubmitted && submittedAt != null) ...[
+                                      DSSpacing.hXs,
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle_outline_rounded,
+                                            size: DSIconSize.xs,
+                                            color: DSColors.success,
+                                          ),
+                                          DSSpacing.wXs,
+                                          Flexible(
+                                            child: Text(
+                                              '${'bagsakan.timestamp_submitted'.tr()} ${DateFormat('MMM d, h:mm a').format(submittedAt)}',
+                                              style:
+                                                  DSTypography.caption(
+                                                    color: DSColors.success,
+                                                  ).copyWith(
+                                                    fontSize:
+                                                        DSTypography.sizeXs,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
+                                          ),
+                                        ],
                                       ),
                                     ],
-                                  ),
-                                  if (isSubmitted && submittedAt != null) ...[
-                                    DSSpacing.hXs,
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.check_circle_outline_rounded,
-                                          size: DSIconSize.xs,
-                                          color: DSColors.success,
-                                        ),
-                                        DSSpacing.wXs,
-                                        Text(
-                                          '${'bagsakan.timestamp_submitted'.tr()} ${DateFormat('MMM d, h:mm a').format(submittedAt)}',
-                                          style:
-                                              DSTypography.caption(
-                                                color: DSColors.success,
-                                              ).copyWith(
-                                                fontSize: DSTypography.sizeXs,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
+                                    if (isSubmitted &&
+                                        groupCompletedAt != null) ...[
+                                      DSSpacing.hXs,
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.history_rounded,
+                                            size: DSIconSize.xs,
+                                            color: DSColors.primary,
+                                          ),
+                                          DSSpacing.wXs,
+                                          Flexible(
+                                            child: Text(
+                                              '${'bagsakan.timestamp_transaction'.tr()} ${DateFormat('MMM d, h:mm a').format(groupCompletedAt)}',
+                                              style:
+                                                  DSTypography.caption(
+                                                    color: DSColors.primary,
+                                                  ).copyWith(
+                                                    fontSize:
+                                                        DSTypography.sizeXs,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
-                                  if (isSubmitted && groupCompletedAt != null) ...[
-                                    DSSpacing.hXs,
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.history_rounded,
-                                          size: DSIconSize.xs,
-                                          color: DSColors.primary,
-                                        ),
-                                        DSSpacing.wXs,
-                                        Text(
-                                          '${'bagsakan.timestamp_transaction'.tr()} ${DateFormat('MMM d, h:mm a').format(groupCompletedAt)}',
-                                          style:
-                                              DSTypography.caption(
-                                                color: DSColors.primary,
-                                              ).copyWith(
-                                                fontSize: DSTypography.sizeXs,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
+                                ),
                               ),
                             ],
                           ),

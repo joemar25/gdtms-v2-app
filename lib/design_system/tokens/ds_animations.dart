@@ -24,7 +24,9 @@ class DSAnimations {
   static const Duration dMicro = Duration(milliseconds: 150); // scale-in
   static const Duration dFast = Duration(milliseconds: 250); // fade-in
   static const Duration dNormal = Duration(milliseconds: 400); // fade-in-up
-  static const Duration dSlow = Duration(milliseconds: 500); // shake, slide-down
+  static const Duration dSlow = Duration(
+    milliseconds: 500,
+  ); // shake, slide-down
   static const Duration dHero = Duration(milliseconds: 600); // scale-bounce
 
   // ── Stagger step sizes ─────────────────────────────────────────────────────

@@ -78,116 +78,161 @@ void main() {
       return payload;
     }
 
-    test('DELIVERED sends both transaction_at and delivered_date, equal values', () {
-      final capture = DateTime(2026, 5, 30, 8, 55, 0);
-      final payload = buildPayload('DELIVERED', capture);
+    test(
+      'DELIVERED sends both transaction_at and delivered_date, equal values',
+      () {
+        final capture = DateTime(2026, 5, 30, 8, 55, 0);
+        final payload = buildPayload('DELIVERED', capture);
 
-      expect(payload.containsKey('transaction_at'), isTrue);
-      expect(payload.containsKey('delivered_date'), isTrue);
-      expect(payload['transaction_at'], equals(payload['delivered_date']));
-      expect(payload['transaction_at'], equals(capture.toLocal().toIso8601String()));
-    });
+        expect(payload.containsKey('transaction_at'), isTrue);
+        expect(payload.containsKey('delivered_date'), isTrue);
+        expect(payload['transaction_at'], equals(payload['delivered_date']));
+        expect(
+          payload['transaction_at'],
+          equals(capture.toLocal().toIso8601String()),
+        );
+      },
+    );
 
-    test('FAILED_DELIVERY sends transaction_at and does NOT send delivered_date', () {
-      final capture = DateTime(2026, 5, 30, 8, 55, 0);
-      final payload = buildPayload('FAILED_DELIVERY', capture);
+    test(
+      'FAILED_DELIVERY sends transaction_at and does NOT send delivered_date',
+      () {
+        final capture = DateTime(2026, 5, 30, 8, 55, 0);
+        final payload = buildPayload('FAILED_DELIVERY', capture);
 
-      expect(payload.containsKey('transaction_at'), isTrue);
-      expect(payload.containsKey('delivered_date'), isFalse,
-          reason: 'delivered_date is semantically wrong for failed attempts');
-    });
+        expect(payload.containsKey('transaction_at'), isTrue);
+        expect(
+          payload.containsKey('delivered_date'),
+          isFalse,
+          reason: 'delivered_date is semantically wrong for failed attempts',
+        );
+      },
+    );
 
     test('MISROUTED sends transaction_at and does NOT send delivered_date', () {
       final capture = DateTime(2026, 5, 30, 8, 55, 0);
       final payload = buildPayload('MISROUTED', capture);
 
       expect(payload.containsKey('transaction_at'), isTrue);
-      expect(payload.containsKey('delivered_date'), isFalse,
-          reason: 'delivered_date is semantically wrong for misrouted items');
+      expect(
+        payload.containsKey('delivered_date'),
+        isFalse,
+        reason: 'delivered_date is semantically wrong for misrouted items',
+      );
     });
 
-    test('transaction_at value is always the capture moment, not the sync moment', () {
-      // Regression: before the fix, offline updates used now() on the server
-      // (the sync moment), not the time the courier actually made the attempt.
-      final captureTime = DateTime(2026, 5, 30, 8, 55, 0); // 08:55 AM
-      final syncTime = DateTime(2026, 5, 30, 12, 55, 0); // 12:55 PM (4h later)
+    test(
+      'transaction_at value is always the capture moment, not the sync moment',
+      () {
+        // Regression: before the fix, offline updates used now() on the server
+        // (the sync moment), not the time the courier actually made the attempt.
+        final captureTime = DateTime(2026, 5, 30, 8, 55, 0); // 08:55 AM
+        final syncTime = DateTime(
+          2026,
+          5,
+          30,
+          12,
+          55,
+          0,
+        ); // 12:55 PM (4h later)
 
-      final payload = buildPayload('FAILED_DELIVERY', captureTime);
-      final payloadHour = DateTime.parse(payload['transaction_at'] as String).hour;
+        final payload = buildPayload('FAILED_DELIVERY', captureTime);
+        final payloadHour = DateTime.parse(
+          payload['transaction_at'] as String,
+        ).hour;
 
-      expect(payloadHour, equals(captureTime.hour),
-          reason: 'Payload must carry capture time (08:55), not sync time (12:55)');
-      expect(payloadHour, isNot(equals(syncTime.hour)));
-    });
+        expect(
+          payloadHour,
+          equals(captureTime.hour),
+          reason:
+              'Payload must carry capture time (08:55), not sync time (12:55)',
+        );
+        expect(payloadHour, isNot(equals(syncTime.hour)));
+      },
+    );
   });
 
   // ── JSON roundtrip (SyncOperation.payloadJson) ────────────────────────────────
 
   group('SyncOperation payloadJson roundtrip', () {
-    test('DELIVERED payload survives JSON encode/decode with correct fields', () {
-      final capture = DateTime(2026, 5, 30, 8, 55, 0);
-      final iso = capture.toLocal().toIso8601String();
+    test(
+      'DELIVERED payload survives JSON encode/decode with correct fields',
+      () {
+        final capture = DateTime(2026, 5, 30, 8, 55, 0);
+        final iso = capture.toLocal().toIso8601String();
 
-      final raw = jsonEncode({
-        'delivery_status': 'DELIVERED',
-        'transaction_at': iso,
-        'delivered_date': iso,
-      });
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        final raw = jsonEncode({
+          'delivery_status': 'DELIVERED',
+          'transaction_at': iso,
+          'delivered_date': iso,
+        });
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
 
-      expect(decoded['transaction_at'], equals(iso));
-      expect(decoded['delivered_date'], equals(iso));
-      expect((decoded['transaction_at'] as String).endsWith('Z'), isFalse);
-    });
+        expect(decoded['transaction_at'], equals(iso));
+        expect(decoded['delivered_date'], equals(iso));
+        expect((decoded['transaction_at'] as String).endsWith('Z'), isFalse);
+      },
+    );
 
-    test('FAILED_DELIVERY payload survives JSON encode/decode without delivered_date', () {
-      final capture = DateTime(2026, 5, 30, 8, 55, 0);
-      final iso = capture.toLocal().toIso8601String();
+    test(
+      'FAILED_DELIVERY payload survives JSON encode/decode without delivered_date',
+      () {
+        final capture = DateTime(2026, 5, 30, 8, 55, 0);
+        final iso = capture.toLocal().toIso8601String();
 
-      final raw = jsonEncode({
-        'delivery_status': 'FAILED_DELIVERY',
-        'transaction_at': iso,
-      });
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        final raw = jsonEncode({
+          'delivery_status': 'FAILED_DELIVERY',
+          'transaction_at': iso,
+        });
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
 
-      expect(decoded.containsKey('transaction_at'), isTrue);
-      expect(decoded.containsKey('delivered_date'), isFalse);
-      expect((decoded['transaction_at'] as String).endsWith('Z'), isFalse);
-    });
+        expect(decoded.containsKey('transaction_at'), isTrue);
+        expect(decoded.containsKey('delivered_date'), isFalse);
+        expect((decoded['transaction_at'] as String).endsWith('Z'), isFalse);
+      },
+    );
 
-    test('MISROUTED payload survives JSON encode/decode without delivered_date', () {
-      final capture = DateTime(2026, 5, 30, 8, 55, 0);
-      final iso = capture.toLocal().toIso8601String();
+    test(
+      'MISROUTED payload survives JSON encode/decode without delivered_date',
+      () {
+        final capture = DateTime(2026, 5, 30, 8, 55, 0);
+        final iso = capture.toLocal().toIso8601String();
 
-      final raw = jsonEncode({
-        'delivery_status': 'MISROUTED',
-        'transaction_at': iso,
-      });
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        final raw = jsonEncode({
+          'delivery_status': 'MISROUTED',
+          'transaction_at': iso,
+        });
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
 
-      expect(decoded.containsKey('transaction_at'), isTrue);
-      expect(decoded.containsKey('delivered_date'), isFalse);
-      expect((decoded['transaction_at'] as String).endsWith('Z'), isFalse);
-    });
+        expect(decoded.containsKey('transaction_at'), isTrue);
+        expect(decoded.containsKey('delivered_date'), isFalse);
+        expect((decoded['transaction_at'] as String).endsWith('Z'), isFalse);
+      },
+    );
 
-    test('offline scenario: payloadJson queued at capture time is unchanged at sync time', () {
-      // The SyncOperation is created at capture time and sent hours later.
-      // The payload must be frozen at capture time.
-      final captureTime = DateTime(2026, 5, 30, 8, 55, 0);
-      final iso = captureTime.toLocal().toIso8601String();
+    test(
+      'offline scenario: payloadJson queued at capture time is unchanged at sync time',
+      () {
+        // The SyncOperation is created at capture time and sent hours later.
+        // The payload must be frozen at capture time.
+        final captureTime = DateTime(2026, 5, 30, 8, 55, 0);
+        final iso = captureTime.toLocal().toIso8601String();
 
-      final payloadJson = jsonEncode({
-        'delivery_status': 'FAILED_DELIVERY',
-        'transaction_at': iso,
-      });
+        final payloadJson = jsonEncode({
+          'delivery_status': 'FAILED_DELIVERY',
+          'transaction_at': iso,
+        });
 
-      // Simulate hours passing — the payload is unchanged.
-      // ignore: unused_local_variable
-      final syncTime = DateTime(2026, 5, 30, 12, 55, 0);
-      final decoded = jsonDecode(payloadJson) as Map<String, dynamic>;
-      final storedHour = DateTime.parse(decoded['transaction_at'] as String).hour;
+        // Simulate hours passing — the payload is unchanged.
+        // ignore: unused_local_variable
+        final syncTime = DateTime(2026, 5, 30, 12, 55, 0);
+        final decoded = jsonDecode(payloadJson) as Map<String, dynamic>;
+        final storedHour = DateTime.parse(
+          decoded['transaction_at'] as String,
+        ).hour;
 
-      expect(storedHour, equals(captureTime.hour));
-    });
+        expect(storedHour, equals(captureTime.hour));
+      },
+    );
   });
 }

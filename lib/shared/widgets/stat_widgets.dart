@@ -164,7 +164,9 @@ class _StatCardState extends State<StatCard>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: widget.color.withValues(alpha: isDark ? 0.15 : 0.08),
+                      color: widget.color.withValues(
+                        alpha: isDark ? 0.15 : 0.08,
+                      ),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -172,11 +174,7 @@ class _StatCardState extends State<StatCard>
                 ),
                 child: SlideTransition(
                   position: _iconOffset,
-                  child: Icon(
-                    widget.icon,
-                    color: effectiveColor,
-                    size: 20.0,
-                  ),
+                  child: Icon(widget.icon, color: effectiveColor, size: 20.0),
                 ),
               )
               .animate(onPlay: (c) => c.repeat(reverse: true))
@@ -194,15 +192,16 @@ class _StatCardState extends State<StatCard>
                   displayLabel.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: DSTypography.caption(
-                    color: isDark
-                        ? DSColors.labelSecondaryDark
-                        : DSColors.labelSecondary,
-                  ).copyWith(
-                    letterSpacing: 1.5,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 9.0,
-                  ),
+                  style:
+                      DSTypography.caption(
+                        color: isDark
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelSecondary,
+                      ).copyWith(
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 9.0,
+                      ),
                 ),
                 Text(
                   widget.count,
@@ -327,38 +326,38 @@ class ScanButton extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(DSSpacing.md),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            color.withValues(alpha: 0.25),
-                            color.withValues(alpha: 0.1),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: color.withValues(alpha: 0.35),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: color.withValues(alpha: 0.15),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
+                          padding: const EdgeInsets.all(DSSpacing.md),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                color.withValues(alpha: 0.25),
+                                color.withValues(alpha: 0.1),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: color.withValues(alpha: 0.35),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.15),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Icon(icon, color: color, size: 28.0),
-                    )
-                    .animate(onPlay: (c) => c.repeat(reverse: true))
-                    .scale(
-                      begin: const Offset(1.0, 1.0),
-                      end: const Offset(1.05, 1.05),
-                      duration: 1500.ms,
-                      curve: Curves.easeInOut,
-                    ),
+                          child: Icon(icon, color: color, size: 28.0),
+                        )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .scale(
+                          begin: const Offset(1.0, 1.0),
+                          end: const Offset(1.05, 1.05),
+                          duration: 1500.ms,
+                          curve: Curves.easeInOut,
+                        ),
                     DSSpacing.hMd,
                     Text(
                       label.toUpperCase(),
@@ -382,10 +381,7 @@ class ScanButton extends StatelessWidget {
                           color: isDark
                               ? DSColors.labelSecondaryDark
                               : DSColors.labelSecondary,
-                        ).copyWith(
-                          fontSize: 10.0,
-                          height: 1.3,
-                        ),
+                        ).copyWith(fontSize: 10.0, height: 1.3),
                       ),
                     ],
                   ],

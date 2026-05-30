@@ -329,8 +329,12 @@ void main() {
     });
 
     testWidgets(
-      'Submit button hidden when no locally updated final delivery basis exists',
+      'Submit button hidden when no final delivery exists in the group',
       (tester) async {
+        // The submit source is resolved from any final-status delivery
+        // (DELIVERED, FAILED_DELIVERY, MISROUTED) — dirty or clean.
+        // If the group has NO final deliveries at all, there is no source
+        // and the FAB must be hidden.
         final groupId = 79;
         final now = DateTime.now().millisecondsSinceEpoch;
         final forDelivery = LocalDelivery(
@@ -344,9 +348,9 @@ void main() {
           createdAt: now,
           updatedAt: now,
         );
-        final failedButSynced = LocalDelivery(
-          barcode: 'B-FAILED-SYNCED',
-          deliveryStatus: 'FAILED_DELIVERY',
+        final anotherPending = LocalDelivery(
+          barcode: 'B-FOR-2',
+          deliveryStatus: 'FOR_DELIVERY',
           jobOrder: 'JO-5',
           recipientName: 'R5',
           deliveryAddress: 'Addr 5',
@@ -354,7 +358,6 @@ void main() {
           rawJson: '{}',
           createdAt: now,
           updatedAt: now,
-          syncStatus: 'clean',
         );
 
         when(() => mockBagsakanDao.getBagsakanGroup(groupId)).thenAnswer(
@@ -366,7 +369,7 @@ void main() {
         );
         when(
           () => mockBagsakanDao.getBagsakanItems(groupId),
-        ).thenAnswer((_) async => [forDelivery, failedButSynced]);
+        ).thenAnswer((_) async => [forDelivery, anotherPending]);
 
         await tester.pumpWidget(createWidgetUnderTest(groupId));
         await tester.pumpAndSettle();

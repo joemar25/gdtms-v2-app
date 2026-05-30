@@ -269,21 +269,26 @@ class DashboardOverview extends ConsumerWidget {
                       children: [
                         Text(
                           'dashboard.stats.overview_title'.tr().toUpperCase(),
-                          style: DSTypography.caption(
-                            color: DSColors.white.withValues(alpha: 0.65),
-                          ).copyWith(
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                            fontSize: 9.0,
-                          ),
+                          style:
+                              DSTypography.caption(
+                                color: DSColors.white.withValues(alpha: 0.65),
+                              ).copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5,
+                                fontSize: 9.0,
+                              ),
                         ),
                         DSSpacing.hXs,
                         Text(
-                          DateFormat('EEEE, MMMM d', context.locale.toString()).format(DateTime.now()),
-                          style: DSTypography.heading(color: DSColors.white).copyWith(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18.0,
-                          ),
+                          DateFormat(
+                            'EEEE, MMMM d',
+                            context.locale.toString(),
+                          ).format(DateTime.now()),
+                          style: DSTypography.heading(color: DSColors.white)
+                              .copyWith(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18.0,
+                              ),
                         ),
                       ],
                     ),
@@ -303,10 +308,9 @@ class DashboardOverview extends ConsumerWidget {
                     ),
                     child: Text(
                       '$progressPercent%',
-                      style: DSTypography.labelCaps(color: DSColors.white).copyWith(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                      ),
+                      style: DSTypography.labelCaps(
+                        color: DSColors.white,
+                      ).copyWith(fontWeight: FontWeight.w900, fontSize: 12),
                     ),
                   ),
                 ],
@@ -520,7 +524,9 @@ class DashboardSyncSection extends ConsumerWidget {
                   ),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: DSColors.primary.withValues(alpha: isDark ? 0.4 : 0.2),
+                    color: DSColors.primary.withValues(
+                      alpha: isDark ? 0.4 : 0.2,
+                    ),
                     width: 1.0,
                   ),
                 ),
@@ -578,46 +584,56 @@ class DashboardSyncSection extends ConsumerWidget {
                   builder: (ctx, r, _) {
                     final isSyncing = r.watch(syncManagerProvider).isSyncing;
                     return ElevatedButton.icon(
-                      onPressed: isSyncing
-                          ? null
-                          : () => showSyncOverlay(ctx, r),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: DSColors.primary,
-                        foregroundColor: DSColors.white,
-                        elevation: 4,
-                        shadowColor: DSColors.primary.withValues(alpha: 0.3),
-                        minimumSize: const Size(0, 36),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: DSSpacing.md,
-                          vertical: DSSpacing.sm,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(DSStyles.radiusFull),
-                        ),
-                      ),
-                      icon: isSyncing
-                          ? const Icon(Icons.sync_rounded, size: 14.0)
-                                .animate(onPlay: (c) => c.repeat())
-                                .rotate(
-                                  duration: const Duration(milliseconds: 1000),
-                                )
-                          : const Icon(Icons.sync_rounded, size: 14.0),
-                      label: Text(
-                        isSyncing
-                            ? 'sync.actions.syncing'.tr().toUpperCase()
-                            : 'sync.actions.sync_now'.tr().toUpperCase(),
-                        style: DSTypography.button(
-                          color: DSColors.white,
-                          fontSize: 10.0,
-                        ).copyWith(letterSpacing: 1.2, fontWeight: FontWeight.bold),
-                      ),
-                    )
-                    .animate(onPlay: (c) => c.repeat())
-                    .shimmer(
-                      duration: 3.seconds,
-                      color: DSColors.white.withValues(alpha: 0.25),
-                      delay: 3.seconds,
-                    );
+                          onPressed: isSyncing
+                              ? null
+                              : () => showSyncOverlay(ctx, r),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: DSColors.primary,
+                            foregroundColor: DSColors.white,
+                            elevation: 4,
+                            shadowColor: DSColors.primary.withValues(
+                              alpha: 0.3,
+                            ),
+                            minimumSize: const Size(0, 36),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: DSSpacing.md,
+                              vertical: DSSpacing.sm,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                DSStyles.radiusFull,
+                              ),
+                            ),
+                          ),
+                          icon: isSyncing
+                              ? const Icon(Icons.sync_rounded, size: 14.0)
+                                    .animate(onPlay: (c) => c.repeat())
+                                    .rotate(
+                                      duration: const Duration(
+                                        milliseconds: 1000,
+                                      ),
+                                    )
+                              : const Icon(Icons.sync_rounded, size: 14.0),
+                          label: Text(
+                            isSyncing
+                                ? 'sync.actions.syncing'.tr().toUpperCase()
+                                : 'sync.actions.sync_now'.tr().toUpperCase(),
+                            style:
+                                DSTypography.button(
+                                  color: DSColors.white,
+                                  fontSize: 10.0,
+                                ).copyWith(
+                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        )
+                        .animate(onPlay: (c) => c.repeat())
+                        .shimmer(
+                          duration: 3.seconds,
+                          color: DSColors.white.withValues(alpha: 0.25),
+                          delay: 3.seconds,
+                        );
                   },
                 ),
               // Chevron navigates to sync history — separate tap target.
@@ -739,10 +755,7 @@ class _PulsingDotState extends State<_PulsingDot>
             child: Container(
               width: 8,
               height: 8,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
           ),
         ),
