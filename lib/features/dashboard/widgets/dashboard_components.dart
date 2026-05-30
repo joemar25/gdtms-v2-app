@@ -44,6 +44,15 @@ class DashboardDefault extends ConsumerWidget {
         DSSpacing.massive,
       ),
       children: [
+        Text(
+          'dashboard.stats.overview_title'.tr().toUpperCase(),
+          style: DSTypography.caption(
+            color: isDark
+                ? DSColors.labelSecondaryDark
+                : DSColors.labelSecondary,
+          ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
+        ),
+        DSSpacing.hMd,
         Row(
           children: [
             Expanded(
@@ -142,6 +151,15 @@ class DashboardDefault extends ConsumerWidget {
           ],
         ),
         DSSpacing.hLg,
+        Text(
+          'dashboard.actions.quick_title'.tr().toUpperCase(),
+          style: DSTypography.caption(
+            color: isDark
+                ? DSColors.labelSecondaryDark
+                : DSColors.labelSecondary,
+          ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
+        ),
+        DSSpacing.hMd,
         Row(
           children: [
             Expanded(
@@ -211,7 +229,7 @@ class DashboardNewFeel extends StatelessWidget {
 // ── Components ────────────────────────────────────────────────────────────────
 
 /// Statistics overview section.
-class DashboardOverview extends StatelessWidget {
+class DashboardOverview extends ConsumerWidget {
   const DashboardOverview({
     super.key,
     required this.summary,
@@ -222,10 +240,133 @@ class DashboardOverview extends StatelessWidget {
   final bool isDark;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pending = (summary['pending_deliveries'] ?? 0) as int;
+    final delivered = (summary['delivered_today'] ?? 0) as int;
+    final failed = (summary['failed_delivery'] ?? 0) as int;
+    final misrouted = (summary['misrouted'] ?? 0) as int;
+
+    final completed = delivered + failed + misrouted;
+    final total = pending + completed;
+    final progress = total > 0 ? completed / total : 0.0;
+    final progressPercent = (progress * 100).toInt();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Premium Courier Progress Header Card
+        DSHeroCard(
+          padding: const EdgeInsets.all(DSSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'dashboard.stats.overview_title'.tr().toUpperCase(),
+                          style: DSTypography.caption(
+                            color: DSColors.white.withValues(alpha: 0.65),
+                          ).copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                            fontSize: 9.0,
+                          ),
+                        ),
+                        DSSpacing.hXs,
+                        Text(
+                          DateFormat('EEEE, MMMM d', context.locale.toString()).format(DateTime.now()),
+                          style: DSTypography.heading(color: DSColors.white).copyWith(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DSSpacing.sm,
+                      vertical: DSSpacing.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: DSColors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(DSStyles.radiusPill),
+                      border: Border.all(
+                        color: DSColors.white.withValues(alpha: 0.2),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      '$progressPercent%',
+                      style: DSTypography.labelCaps(color: DSColors.white).copyWith(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              DSSpacing.hMd,
+              // Progress bar
+              Stack(
+                children: [
+                  Container(
+                    height: 8.0,
+                    decoration: BoxDecoration(
+                      color: DSColors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                  ),
+                  FractionallySizedBox(
+                    widthFactor: progress.clamp(0.0, 1.0),
+                    child: Container(
+                      height: 8.0,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [DSColors.white, DSColors.success],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(4.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: DSColors.success.withValues(alpha: 0.5),
+                            blurRadius: 6,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              DSSpacing.hSm,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${'dashboard.stats.deliveries_label'.tr()}: $pending',
+                    style: DSTypography.caption(
+                      color: DSColors.white.withValues(alpha: 0.75),
+                    ).copyWith(fontSize: 11.0, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    '${'dashboard.stats.delivered_label'.tr()}: $completed / $total',
+                    style: DSTypography.caption(
+                      color: DSColors.white.withValues(alpha: 0.75),
+                    ).copyWith(fontSize: 11.0, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ).dsHeroEntry(),
+        DSSpacing.hLg,
         Text(
           'dashboard.stats.overview_title'.tr().toUpperCase(),
           style: DSTypography.caption(
@@ -329,23 +470,63 @@ class DashboardSyncSection extends ConsumerWidget {
         // Plain Container — no wrapping GestureDetector — so every child
         // widget owns its own gesture recognizer with zero arena competition.
         Container(
-          padding: const EdgeInsets.all(DSSpacing.sm),
+          padding: const EdgeInsets.all(DSSpacing.md),
           decoration: BoxDecoration(
-            color: DSColors.primary,
-            borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [
+                      DSColors.cardDark,
+                      Color.alphaBlend(
+                        DSColors.primary.withValues(alpha: 0.05),
+                        DSColors.cardDark,
+                      ),
+                    ]
+                  : [
+                      DSColors.cardLight,
+                      Color.alphaBlend(
+                        DSColors.primary.withValues(alpha: 0.03),
+                        DSColors.cardLight,
+                      ),
+                    ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(DSStyles.radiusXL),
+            border: Border.all(
+              color: DSColors.primary.withValues(alpha: isDark ? 0.3 : 0.15),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: DSColors.primary.withValues(alpha: isDark ? 0.12 : 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              // Sync icon badge
+              // Sync icon badge in a glowing circular frame
               Container(
                 padding: const EdgeInsets.all(DSSpacing.sm),
                 decoration: BoxDecoration(
-                  color: DSColors.white,
-                  borderRadius: BorderRadius.circular(DSStyles.radiusFull),
+                  gradient: LinearGradient(
+                    colors: [
+                      DSColors.primary.withValues(alpha: isDark ? 0.25 : 0.15),
+                      DSColors.primary.withValues(alpha: isDark ? 0.08 : 0.04),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: DSColors.primary.withValues(alpha: isDark ? 0.4 : 0.2),
+                    width: 1.0,
+                  ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.sync_rounded,
-                  color: DSColors.primary,
+                  color: isDark ? const Color(0xFF4ADE80) : DSColors.primary,
                   size: DSIconSize.md,
                 ),
               ),
@@ -363,35 +544,29 @@ class DashboardSyncSection extends ConsumerWidget {
                               namedArgs: {'count': '$pendingSync'},
                             ),
                       style: DSTypography.body(
-                        color: DSColors.white,
+                        color: isDark ? DSColors.white : DSColors.labelPrimary,
                       ).copyWith(fontWeight: FontWeight.bold),
                     ),
+                    DSSpacing.hXs,
                     Row(
                       children: [
-                        Container(
-                          width: DSSpacing.sm,
-                          height: DSSpacing.sm,
-                          decoration: BoxDecoration(
-                            color: switch (connStatus) {
-                              ConnectionStatus.online => DSColors.white,
-                              ConnectionStatus.apiUnreachable =>
-                                DSColors.warning,
-                              ConnectionStatus.networkOffline => DSColors.error,
-                            },
-                            borderRadius: BorderRadius.circular(
-                              DSStyles.radiusFull,
-                            ),
+                        _PulsingDot(connStatus: connStatus),
+                        DSSpacing.wXs,
+                        Text(
+                          switch (connStatus) {
+                            ConnectionStatus.online =>
+                              'dashboard.stats.online'.tr(),
+                            ConnectionStatus.apiUnreachable =>
+                              'dashboard.stats.api_unavailable'.tr(),
+                            ConnectionStatus.networkOffline =>
+                              'dashboard.stats.offline'.tr(),
+                          },
+                          style: DSTypography.caption(
+                            color: isDark
+                                ? DSColors.labelSecondaryDark
+                                : DSColors.labelSecondary,
                           ),
                         ),
-                        DSSpacing.wXs,
-                        Text(switch (connStatus) {
-                          ConnectionStatus.online =>
-                            'dashboard.stats.online'.tr(),
-                          ConnectionStatus.apiUnreachable =>
-                            'dashboard.stats.api_unavailable'.tr(),
-                          ConnectionStatus.networkOffline =>
-                            'dashboard.stats.offline'.tr(),
-                        }, style: DSTypography.caption(color: DSColors.white)),
                       ],
                     ),
                   ],
@@ -402,50 +577,55 @@ class DashboardSyncSection extends ConsumerWidget {
                 Consumer(
                   builder: (ctx, r, _) {
                     final isSyncing = r.watch(syncManagerProvider).isSyncing;
-                    return TextButton.icon(
+                    return ElevatedButton.icon(
                       onPressed: isSyncing
                           ? null
                           : () => showSyncOverlay(ctx, r),
-                      style: TextButton.styleFrom(
-                        backgroundColor: DSColors.white,
-                        foregroundColor: DSColors.primary,
-                        elevation: 0,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: DSColors.primary,
+                        foregroundColor: DSColors.white,
+                        elevation: 4,
+                        shadowColor: DSColors.primary.withValues(alpha: 0.3),
+                        minimumSize: const Size(0, 36),
                         padding: const EdgeInsets.symmetric(
                           horizontal: DSSpacing.md,
+                          vertical: DSSpacing.sm,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            DSStyles.radiusMD,
-                          ),
+                          borderRadius: BorderRadius.circular(DSStyles.radiusFull),
                         ),
                       ),
                       icon: isSyncing
-                          ? const Icon(Icons.sync_rounded, size: DSIconSize.xs)
+                          ? const Icon(Icons.sync_rounded, size: 14.0)
                                 .animate(onPlay: (c) => c.repeat())
                                 .rotate(
                                   duration: const Duration(milliseconds: 1000),
                                 )
-                          : const Icon(Icons.sync_rounded, size: DSIconSize.xs),
+                          : const Icon(Icons.sync_rounded, size: 14.0),
                       label: Text(
                         isSyncing
                             ? 'sync.actions.syncing'.tr().toUpperCase()
                             : 'sync.actions.sync_now'.tr().toUpperCase(),
                         style: DSTypography.button(
-                          color: isSyncing
-                              ? DSColors.primary.withValues(alpha: 0.5)
-                              : DSColors.primary,
-                          fontSize: DSTypography.sizeSm,
-                        ),
+                          color: DSColors.white,
+                          fontSize: 10.0,
+                        ).copyWith(letterSpacing: 1.2, fontWeight: FontWeight.bold),
                       ),
+                    )
+                    .animate(onPlay: (c) => c.repeat())
+                    .shimmer(
+                      duration: 3.seconds,
+                      color: DSColors.white.withValues(alpha: 0.25),
+                      delay: 3.seconds,
                     );
                   },
                 ),
               // Chevron navigates to sync history — separate tap target.
               IconButton(
                 onPressed: () => context.push('/sync'),
-                icon: const Icon(
+                icon: Icon(
                   Icons.chevron_right_rounded,
-                  color: DSColors.white,
+                  color: isDark ? DSColors.white : DSColors.labelPrimary,
                   size: DSIconSize.md,
                 ),
                 visualDensity: VisualDensity.compact,
@@ -501,6 +681,85 @@ class DashboardQuickActions extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+// ── Pulsing Connection Indicator ──────────────────────────────────────────────
+
+class _PulsingDot extends StatefulWidget {
+  const _PulsingDot({required this.connStatus});
+
+  final ConnectionStatus connStatus;
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (widget.connStatus) {
+      ConnectionStatus.online => DSColors.success,
+      ConnectionStatus.apiUnreachable => DSColors.warning,
+      ConnectionStatus.networkOffline => DSColors.error,
+    };
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        ScaleTransition(
+          scale: Tween<double>(begin: 1.0, end: 1.8).animate(
+            CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+          ),
+          child: FadeTransition(
+            opacity: Tween<double>(begin: 0.6, end: 0.0).animate(
+              CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+            ),
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.4),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
         ),
       ],
     );

@@ -35,7 +35,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInitial();
+    _loadInitial(isInitial: true);
   }
 
   Future<void> _onRefresh() async {
@@ -45,12 +45,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(apiClientProvider),
       );
     }
-    await _loadInitial();
+    await _loadInitial(isInitial: false);
   }
 
-  Future<void> _loadInitial() async {
+  Future<void> _loadInitial({bool isInitial = false}) async {
     if (!mounted) return;
-    setState(() => _loading = true);
+    if (isInitial) {
+      setState(() => _loading = true);
+    }
 
     try {
       final dao = LocalDeliveryDao.instance;
@@ -89,7 +91,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       debugPrint('[DASH] Error loading initial data: $e\n$stack');
     } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        if (isInitial) {
+          setState(() => _loading = false);
+        } else {
+          setState(() {});
+        }
       }
     }
   }
@@ -97,7 +103,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<int>(deliveryRefreshProvider, (prev, next) {
-      _loadInitial();
+      _loadInitial(isInitial: false);
     });
 
     final isDark = Theme.of(context).brightness == Brightness.dark;

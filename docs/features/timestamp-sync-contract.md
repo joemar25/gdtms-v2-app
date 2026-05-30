@@ -96,6 +96,54 @@ Terminal statuses that MAY have `transaction_at`: `DELIVERED`, `FAILED_DELIVERY`
 | `test/features/delivery/delivery_update_timestamp_test.dart` | Timestamp format (no Z), payload shape per status, JSON roundtrip, offline freeze |
 | `tests/Feature/Deliveries/TransactionAtTest.php` (bottom section) | Server PATCH API: capture time preserved, priority order, future rejection, offline 4h delay |
 
+### Rules for writing API timestamp tests
+
+These rules were learned from an intermittent failure in the full test suite.
+
+**1. Never use hardcoded datetime strings as input.**
+
+```php
+// ❌ Fails intermittently in the full suite — date may collide with
+//    other tests' side effects or timezone edge cases.
+$captureTime = '2026-05-30 08:55:00';
+
+// ✅ Always relative to the current test run.
+$captureTime = now()->subHours(4);
+```
+
+**2. Always call `->toDateTimeString()` when passing a Carbon to a request.**
+
+```php
+// ❌ Raw string bypasses Carbon's format guarantee.
+'transaction_at' => $captureTime,
+
+// ✅ Explicit format — matches what ->format('Y-m-d H:i:s') asserts against.
+'transaction_at' => $captureTime->toDateTimeString(),
+```
+
+**3. Assert with the same Carbon object, not a re-parsed string.**
+
+```php
+// ❌ Brittle — relies on the string matching the stored format exactly.
+expect($timeline->transaction_at->format('Y-m-d H:i:s'))->toBe('2026-05-30 08:55:00');
+
+// ✅ Self-consistent — input and assertion use the same variable.
+expect($timeline->transaction_at->format('Y-m-d H:i:s'))->toBe($captureTime->toDateTimeString());
+```
+
+**4. Make capture time and sync time clearly distinguishable.**
+
+Use at least a 1-hour gap so a test bug (using `now()` instead of `$captureTime`) is immediately visible in the failure diff, not hidden by clock drift.
+
+```php
+$captureTime = now()->subHours(4); // clearly in the past
+$syncTime    = now();              // clearly "now"
+```
+
+**5. `transaction_at` must be in the FormRequest rules or it will be stripped by `$request->validated()`.**
+
+Fields absent from the FormRequest rules are silently dropped by Laravel before they reach the service/DTO/action. If a new mobile timestamp field is added, add it to `DeliveryStatusUpdateRequest::rules()` first, or the action will always fall back to `now()`.
+
 ---
 
 ## Files involved
