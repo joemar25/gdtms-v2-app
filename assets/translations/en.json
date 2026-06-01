@@ -281,7 +281,9 @@
       "terms": "Terms & Conditions",
       "terms_sub": "Read the full terms and conditions",
       "privacy": "Privacy Policy",
-      "privacy_sub": "View our privacy policy"
+      "privacy_sub": "View our privacy policy",
+      "user_guide": "User Guide",
+      "user_guide_sub": "Read the mobile application manual"
     },
     "diagnostics": {
       "report_issue": "Report an Issue",

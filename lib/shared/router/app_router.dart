@@ -33,6 +33,7 @@ import 'package:fsi_courier_app/features/error_logs/error_logs_screen.dart';
 import 'package:fsi_courier_app/features/notifications/notifications_screen.dart';
 import 'package:fsi_courier_app/features/legal/terms_screen.dart';
 import 'package:fsi_courier_app/features/legal/privacy_screen.dart';
+import 'package:fsi_courier_app/features/legal/user_guide_screen.dart';
 import 'package:fsi_courier_app/features/report/report_issue_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/core/config.dart';
@@ -560,6 +561,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => _page(
           key: state.pageKey,
           child: const PrivacyScreen(),
+          extra: state.extra,
+        ),
+      ),
+      GoRoute(
+        path: '/user-guide',
+        pageBuilder: (_, state) => _page(
+          key: state.pageKey,
+          child: const UserGuideScreen(),
           extra: state.extra,
         ),
       ),

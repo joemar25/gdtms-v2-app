@@ -18,6 +18,7 @@ abstract final class AppAssets {
   // ── Legal ────────────────────────────────────────────────────────────────
   static const String legalTerms = 'assets/legal/terms.md';
   static const String legalPrivacy = 'assets/legal/privacy.md';
+  static const String userGuide = 'assets/legal/user_guide.md';
 }
 
 /// SharedPreferences keys used for app settings and persistence.

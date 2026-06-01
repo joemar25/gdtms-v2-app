@@ -81,6 +81,10 @@ Full index: [docs/index.md](docs/index.md)
 
 - [Styles & Design System](docs/styles.md) — tokens (colors, typography, spacing) and atomic widgets
 
+### User Manual
+
+- [Courier User Manual](docs/manual/index.html) — Beautiful, interactive, and friendly HTML user manual designed specifically for non-technical couriers.
+
 ### Legacy / Specific Reports
 
 - [Delivery Retention Rules & API v2.0](docs/mobile-delivery-retention.md)

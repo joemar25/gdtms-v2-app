@@ -86,6 +86,12 @@ All files use kebab-case names. Organized to mirror the `lib/` folder structure.
 
 ---
 
+## User Manual
+
+- [manual/index.html](manual/index.html) — **Courier User Manual**: Beautiful, interactive, and friendly HTML user manual designed specifically for non-technical couriers.
+
+---
+
 ## Legacy / Specific Reports
 
 - [mobile-delivery-retention.md](mobile-delivery-retention.md) — delivery retention rules, history behavior, local cleanup, API v2

@@ -279,7 +279,9 @@
       "terms": "Mga Tuntunin at Kundisyon",
       "terms_sub": "Basahin ang buong tuntunin at kundisyon",
       "privacy": "Patakaran sa Privacy",
-      "privacy_sub": "Tingnan ang aming patakaran sa privacy"
+      "privacy_sub": "Tingnan ang aming patakaran sa privacy",
+      "user_guide": "Gabay sa Paggamit",
+      "user_guide_sub": "Basahin ang manwal ng mobile application"
     },
     "diagnostics": {
       "report_issue": "I-report ang Isyu",

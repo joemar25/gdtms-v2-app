@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FSI Courier Mobile App - User Manual</title>
+
+    <!-- Modern Typography (Montserrat) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet">
+
+    <!-- Extracted Styles Sheet -->
+    <link rel="stylesheet" href="styles.css">
+  </head>
+
+  <body>
+
+    <!-- ==========================================
+       MOBILE TOP HEADER
+       ========================================== -->
+    <header class="mobile-header">
+      <div class="brand">
+        <div class="brand-logo">F</div>
+        <div>
+          <div class="brand-name">FSI COURIER</div>
+          <div class="brand-subtitle">User Manual</div>
+        </div>
+      </div>
+      <button class="hamburger-btn" onclick="toggleMobileSidebar()" aria-label="Toggle Navigation Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    <!-- ==========================================
+       APPLICATION CONTAINERS
+       ========================================== -->
+    <div class="app-container">
+
+      <!-- Sidebar Panel -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="brand">
+            <div class="brand-logo">F</div>
+            <div>
+              <div class="brand-name">FSI COURIER</div>
+              <div class="brand-subtitle">User Manual</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Search Box -->
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24">
+              <path
+                d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+            </svg>
+            <input type="text" class="search-input" id="search-box" placeholder="Search guide..."
+              onkeyup="filterManual()">
+          </div>
+        </div>
+
+        <!-- Dynamic Navigation Menu -->
+        <nav class="sidebar-menu">
+          <!-- Injected Dynamically by manual-controller.js -->
+        </nav>
+
+        <!-- Theme Switcher & Version -->
+        <div class="sidebar-footer">
+          <div class="version-tag">Version 2.5</div>
+          <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme Mode">
+            <svg class="menu-item-icon" id="theme-btn-icon" viewBox="0 0 24 24">
+              <!-- SVG paths toggled dynamically by controller -->
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Injected Dynamically by manual-controller.js -->
+      </main>
+    </div>
+
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="btn-back-to-top" onclick="scrollToTop()" aria-label="Scroll back to top">
+      <svg viewBox="0 0 24 24">
+        <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
+      </svg>
+    </button>
+
+    <!-- ==========================================
+       MODULAR SCRIPTS LOADING
+       ========================================== -->
+    <script src="manual-data.js"></script>
+    <script src="manual-controller.js"></script>
+  </body>
+
+</html>
