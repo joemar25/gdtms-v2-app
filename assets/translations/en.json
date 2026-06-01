@@ -36,6 +36,8 @@
       "forgot_password": "Forgot Password?",
       "wait_seconds": "Wait {seconds}s",
       "sign_in": "Sign In",
+      "update_to_sign_in": "Update Required to Sign In",
+      "update_now": "Update Now",
       "having_trouble": "Having trouble?",
       "contact_admin": "Contact your admin",
       "error_invalid_response": "Invalid login response. Please try again.",
@@ -175,7 +177,8 @@
       "offline": "Offline",
       "api_unavailable": "API Unavailable",
       "overview_title": "Today's Overview",
-      "sync_connectivity_title": "Sync & Connectivity"
+      "sync_connectivity_title": "Sync & Connectivity",
+      "for_return_title": "For Return"
     },
     "actions": {
       "quick_title": "Quick Actions",

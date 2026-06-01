@@ -213,6 +213,8 @@ class DashboardNewFeel extends StatelessWidget {
         DSSpacing.hMd,
         DashboardOverview(summary: summary, isDark: isDark),
         DSSpacing.hLg,
+        DashboardReturnSection(summary: summary, isDark: isDark),
+        DSSpacing.hLg,
         DashboardSyncSection(
           summary: summary,
           isDark: isDark,
@@ -246,7 +248,7 @@ class DashboardOverview extends ConsumerWidget {
     final failed = (summary['failed_delivery'] ?? 0) as int;
     final misrouted = (summary['misrouted'] ?? 0) as int;
 
-    final completed = delivered + failed + misrouted;
+    final completed = delivered + failed;
     final total = pending + completed;
     final progress = total > 0 ? completed / total : 0.0;
     final progressPercent = (progress * 100).toInt();
@@ -427,10 +429,40 @@ class DashboardOverview extends ConsumerWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+/// For-return section — misrouted parcels that go back to FSI.
+class DashboardReturnSection extends StatelessWidget {
+  const DashboardReturnSection({
+    super.key,
+    required this.summary,
+    required this.isDark,
+  });
+
+  final Map<String, dynamic> summary;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final misrouted = (summary['misrouted'] ?? 0) as int;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'dashboard.stats.for_return_title'.tr().toUpperCase(),
+          style: DSTypography.caption(
+            color: isDark
+                ? DSColors.labelSecondaryDark
+                : DSColors.labelSecondary,
+          ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
+        ),
         DSSpacing.hMd,
         StatCard(
           label: 'dashboard.stats.misrouted_label'.tr(),
-          count: '${summary['misrouted'] ?? 0}',
+          count: '$misrouted',
           icon: Icons.location_on_rounded,
           color: DSColors.warning,
           onTap: () => context.push('/misrouted'),

@@ -15,7 +15,7 @@ class UpdateScreen extends StatelessWidget {
       backgroundColor: isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight,
       appBar: AppHeaderBar(
         title: 'App Update',
-        pageIcon: Icons.system_update_rounded,
+        // pageIcon: Icons.system_update_rounded,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           color: DSColors.white,

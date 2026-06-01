@@ -36,6 +36,8 @@
       "forgot_password": "Nakalimutan ang Password?",
       "wait_seconds": "Maghintay ng {seconds}s",
       "sign_in": "Mag-Sign In",
+      "update_to_sign_in": "Kailangan ng Update para Mag-Sign In",
+      "update_now": "I-update Ngayon",
       "having_trouble": "May problema?",
       "contact_admin": "Makipag-ugnayan sa admin",
       "error_invalid_response": "Di-wastong tugon sa pag-login. Pakisubukang muli.",
@@ -175,7 +177,8 @@
       "offline": "Offline",
       "api_unavailable": "Hindi Available ang API",
       "overview_title": "Pangkalahatang-ideya Ngayon",
-      "sync_connectivity_title": "Sync at Koneksyon"
+      "sync_connectivity_title": "Sync at Koneksyon",
+      "for_return_title": "Para Ibalik"
     },
     "actions": {
       "quick_title": "Mabilisang Aksyon",

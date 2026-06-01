@@ -22,8 +22,10 @@ import 'core/settings/app_settings.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/sync/delivery_bootstrap_service.dart';
 import 'core/database/cleanup_service.dart';
+import 'package:go_router/go_router.dart';
 import 'shared/router/app_router.dart';
 import 'core/providers/update_provider.dart';
+import 'models/update_info.dart';
 import 'shared/widgets/update_banner_widget.dart';
 import 'shared/router/router_keys.dart';
 import 'shared/widgets/time_enforcer.dart';
@@ -96,6 +98,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
   DateTime? _lastSyncAt;
   OverlayEntry? _syncPillEntry;
   OverlayEntry? _updateBannerEntry;
+  OverlayEntry? _mandatoryUpdateEntry;
 
   // Minimum gap between syncs to prevent overlapping calls.
   static const _kSyncDebounce = Duration(seconds: 30);
@@ -109,6 +112,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       _checkOnStartup();
       _insertSyncPill();
       _insertUpdateBanner();
+      _insertMandatoryUpdateOverlay();
       // Delay version check so it never blocks the splash/login flow.
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) ref.read(updateProvider.notifier).checkForUpdate();
@@ -122,6 +126,14 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       builder: (_) => const RepaintBoundary(child: UpdateBannerOverlay()),
     );
     rootNavigatorKey.currentState?.overlay?.insert(_updateBannerEntry!);
+  }
+
+  void _insertMandatoryUpdateOverlay() {
+    if (_mandatoryUpdateEntry != null) return;
+    _mandatoryUpdateEntry = OverlayEntry(
+      builder: (_) => const RepaintBoundary(child: _MandatoryUpdateOverlay()),
+    );
+    rootNavigatorKey.currentState?.overlay?.insert(_mandatoryUpdateEntry!);
   }
 
   void _insertSyncPill() {
@@ -149,6 +161,14 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
         debugPrint('[APP] Update banner removal error: $e');
       }
       _updateBannerEntry = null;
+    }
+    if (_mandatoryUpdateEntry != null) {
+      try {
+        _mandatoryUpdateEntry?.remove();
+      } catch (e) {
+        debugPrint('[APP] Mandatory update overlay removal error: $e');
+      }
+      _mandatoryUpdateEntry = null;
     }
     _periodicTimer?.cancel();
     _locationPing.stop();
@@ -338,49 +358,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       }
     });
 
-    // Mandatory update: show a blocking dialog when the update is required.
-    ref.listen<UpdateState>(updateProvider, (previous, current) {
-      if (previous?.updateInfo == null &&
-          current.updateInfo != null &&
-          current.updateInfo!.isMandatory) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _showMandatoryUpdateDialog(
-            context,
-            current.updateInfo!.latestVersion,
-          );
-        });
-      }
-    });
-
     return widget.child;
-  }
-
-  void _showMandatoryUpdateDialog(BuildContext context, String version) {
-    final router = ref.read(appRouterProvider);
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => PopScope(
-        canPop: false,
-        child: AlertDialog(
-          title: const Text('Required Update'),
-          content: Text(
-            'Version $version is required to continue using the app. '
-            'Please update now.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).pop();
-                router.go('/update');
-              },
-              child: const Text('Update Now'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -571,5 +549,157 @@ class _SyncPillContent extends ConsumerWidget {
         .replaceAll(RegExp(r'\b[A-Z0-9]{8,}\b'), '')
         .replaceAll(RegExp(r'\s{2,}'), ' ')
         .trim();
+  }
+}
+
+// ── Mandatory Update Full-Screen Overlay ──────────────────────────────────────
+//
+// Inserted as a root OverlayEntry so it sits above every screen.
+// Visible whenever isMandatory && hasUpdate, except on /update itself
+// (where the download UI lives) and /splash (let bootstrap finish first).
+
+// Routes where this overlay must not appear so the user can act on the update.
+const _kMandatoryOverlayPassthroughRoutes = {'/update', '/splash'};
+
+class _MandatoryUpdateOverlay extends ConsumerWidget {
+  const _MandatoryUpdateOverlay();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final updateState = ref.watch(updateProvider);
+
+    if (!updateState.hasUpdate || !updateState.updateInfo!.isMandatory) {
+      return const SizedBox.shrink();
+    }
+
+    final router = ref.watch(appRouterProvider);
+    return ListenableBuilder(
+      listenable: router.routeInformationProvider,
+      builder: (context, _) {
+        final path = router.routeInformationProvider.value.uri.path;
+        if (_kMandatoryOverlayPassthroughRoutes.contains(path)) {
+          return const SizedBox.shrink();
+        }
+        return _MandatoryUpdateScreen(info: updateState.updateInfo!);
+      },
+    );
+  }
+}
+
+class _MandatoryUpdateScreen extends StatelessWidget {
+  const _MandatoryUpdateScreen({required this.info});
+
+  final UpdateInfo info;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return PopScope(
+      canPop: false,
+      child: Material(
+        color: DSColors.black.withValues(alpha: 0.88),
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DSSpacing.xl,
+                vertical: DSSpacing.lg,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? DSColors.cardElevatedDark : DSColors.white,
+                    borderRadius: DSStyles.sheetRadius,
+                    boxShadow: DSStyles.shadowXL(context),
+                  ),
+                  padding: const EdgeInsets.all(DSSpacing.xl),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ── Icon ──────────────────────────────────────────
+                      Container(
+                        width: DSIconSize.heroSm,
+                        height: DSIconSize.heroSm,
+                        decoration: BoxDecoration(
+                          color: DSColors.error.withValues(alpha: 0.12),
+                          borderRadius: DSStyles.cardRadius,
+                        ),
+                        child: const Icon(
+                          Icons.system_update_rounded,
+                          size: DSIconSize.xl,
+                          color: DSColors.error,
+                        ),
+                      ),
+                      DSSpacing.hXl,
+
+                      // ── Title ─────────────────────────────────────────
+                      Text(
+                        'Update Required',
+                        style: DSTypography.heading(
+                          color: isDark
+                              ? DSColors.white
+                              : DSColors.labelPrimary,
+                        ).copyWith(fontWeight: FontWeight.w800),
+                        textAlign: TextAlign.center,
+                      ),
+                      DSSpacing.hSm,
+
+                      // ── Body ──────────────────────────────────────────
+                      Text(
+                        'Version ${info.latestVersion} is required to '
+                        'continue using the app. Please update now.',
+                        style: DSTypography.body(
+                          color: isDark
+                              ? DSColors.labelSecondaryDark
+                              : DSColors.labelSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      if (info.releaseNotes.isNotEmpty) ...[
+                        DSSpacing.hMd,
+                        Text(
+                          info.releaseNotes,
+                          style: DSTypography.caption(
+                            color: isDark
+                                ? DSColors.labelTertiaryDark
+                                : DSColors.labelTertiary,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+
+                      DSSpacing.hXl,
+
+                      // ── CTA ───────────────────────────────────────────
+                      FilledButton.icon(
+                        onPressed: () => context.go('/update'),
+                        icon: const Icon(
+                          Icons.system_update_alt_rounded,
+                          size: DSIconSize.sm,
+                        ),
+                        label: const Text('Update Now'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: DSColors.error,
+                          foregroundColor: DSColors.white,
+                          minimumSize: const Size(double.infinity, 52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: DSStyles.cardRadius,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

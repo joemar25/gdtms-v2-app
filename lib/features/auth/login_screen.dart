@@ -19,6 +19,8 @@ import 'package:fsi_courier_app/core/services/app_version_service.dart';
 import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/providers/update_provider.dart';
+import 'package:fsi_courier_app/models/update_info.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -229,6 +231,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final subtitleColor = colorScheme.onSurfaceVariant;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final updateState = ref.watch(updateProvider);
+    final hasUpdate = updateState.hasUpdate;
 
     return Scaffold(
       body: Container(
@@ -439,9 +443,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         DSSpacing.hXs,
 
+                        // ── Update Required Banner ────────────────────────
+                        if (hasUpdate) ...[
+                          _LoginUpdateBanner(
+                            info: updateState.updateInfo!,
+                            isDark: isDark,
+                          ).dsFadeEntry(
+                            delay: DSAnimations.stagger(
+                              7,
+                              step: DSAnimations.staggerNormal,
+                            ),
+                          ),
+                          DSSpacing.hSm,
+                        ],
+
                         // ── Sign In Button ────────────────────────────────
                         FilledButton(
-                          onPressed: _loading || _rateLimitRemaining > 0
+                          onPressed:
+                              _loading || _rateLimitRemaining > 0 || hasUpdate
                               ? null
                               : _submit,
                           style: FilledButton.styleFrom(
@@ -451,7 +470,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           child: Text(
-                            _rateLimitRemaining > 0
+                            hasUpdate
+                                ? 'auth.login_screen.update_to_sign_in'.tr()
+                                : _rateLimitRemaining > 0
                                 ? 'auth.login_screen.wait_seconds'.tr(
                                     namedArgs: {
                                       'seconds': '$_rateLimitRemaining',
@@ -465,7 +486,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ).dsCtaEntry(
                           delay: DSAnimations.stagger(
-                            7,
+                            8,
                             step: DSAnimations.staggerNormal,
                           ),
                         ),
@@ -506,7 +527,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           style: DSTypography.caption(
                             color: subtitleColor.withValues(alpha: 0.5),
                           ),
-                        ).dsFadeEntry(delay: DSAnimations.stagger(9)),
+                        ).dsFadeEntry(delay: DSAnimations.stagger(10)),
                       ],
                     ),
                   ),
@@ -540,6 +561,106 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       context,
       '09213920200',
       title: 'auth.login_screen.contact_admin'.tr(),
+    );
+  }
+}
+
+// ── Update banner shown inline on the login screen ────────────────────────────
+//
+// Displayed when the update provider reports an available version so the user
+// can tap "Update Now" and navigate to the full update flow, while the Sign In
+// button stays disabled until the app is updated.
+
+class _LoginUpdateBanner extends StatelessWidget {
+  const _LoginUpdateBanner({required this.info, required this.isDark});
+
+  final UpdateInfo info;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final isMandatory = info.isMandatory;
+    final accentColor = isMandatory ? DSColors.error : DSColors.warning;
+    final bgColor = isMandatory
+        ? accentColor.withValues(alpha: isDark ? 0.12 : 0.07)
+        : (isDark
+              ? DSColors.warning.withValues(alpha: 0.12)
+              : DSColors.warningSurface);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: DSStyles.cardRadius,
+        border: Border.all(color: accentColor.withValues(alpha: 0.35)),
+      ),
+      padding: const EdgeInsets.all(DSSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isMandatory
+                    ? Icons.warning_rounded
+                    : Icons.system_update_rounded,
+                size: DSIconSize.md,
+                color: accentColor,
+              ),
+              DSSpacing.wSm,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isMandatory ? 'Update Required' : 'Update Available',
+                      style: DSTypography.label(color: accentColor).copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: DSTypography.sizeMd,
+                      ),
+                    ),
+                    Text(
+                      'v${info.latestVersion} is ready to install',
+                      style: DSTypography.caption(
+                        color: isDark
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (info.releaseNotes.isNotEmpty) ...[
+            DSSpacing.hSm,
+            Text(
+              info.releaseNotes,
+              style: DSTypography.caption(
+                color: isDark
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          DSSpacing.hMd,
+          FilledButton.icon(
+            onPressed: () => context.push('/update'),
+            icon: const Icon(
+              Icons.system_update_alt_rounded,
+              size: DSIconSize.sm,
+            ),
+            label: Text('auth.login_screen.update_now'.tr()),
+            style: FilledButton.styleFrom(
+              backgroundColor: accentColor,
+              foregroundColor: DSColors.white,
+              minimumSize: const Size(double.infinity, 48),
+              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

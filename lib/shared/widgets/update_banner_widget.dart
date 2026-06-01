@@ -14,6 +14,8 @@ import 'package:fsi_courier_app/shared/router/router_keys.dart';
 const _kBannerHiddenRoutes = {
   '/profile',
   '/splash',
+  '/login',
+  '/update',
   '/reset-password',
   '/location-required',
   '/permissions-required',
