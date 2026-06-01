@@ -216,6 +216,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/dashboard';
       }
 
+      if (path == '/profile/edit' && !kEnableProfileEdit) {
+        return '/profile';
+      }
+
       if (path == '/') return '/dashboard';
       return null;
     },

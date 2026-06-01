@@ -246,7 +246,7 @@ class DashboardOverview extends ConsumerWidget {
     final pending = (summary['pending_deliveries'] ?? 0) as int;
     final delivered = (summary['delivered_today'] ?? 0) as int;
     final failed = (summary['failed_delivery'] ?? 0) as int;
-    final misrouted = (summary['misrouted'] ?? 0) as int;
+    // final misrouted = (summary['misrouted'] ?? 0) as int;
 
     final completed = delivered + failed;
     final total = pending + completed;

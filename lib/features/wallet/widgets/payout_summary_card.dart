@@ -26,11 +26,19 @@ class PayoutSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: DSColors.primary,
         borderRadius: DSStyles.cardRadius,
+        border: Border.all(
+          color: isDark
+              ? DSColors.separatorDark
+              : DSColors.white.withValues(alpha: 0.2),
+          width: 0.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),

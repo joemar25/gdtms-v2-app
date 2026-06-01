@@ -38,6 +38,7 @@ All values come from `--dart-define` / `--dart-define-from-file`. They are compi
 | `awsRegion` | `AWS_REGION` | `ap-southeast-1` |
 | `awsBucket` | `AWS_BUCKET` | `REDACTED_BUCKET_NAME` |
 | `sentryDsn` | `SENTRY_DSN` | _(empty)_ |
+| `kEnableProfileEdit` | `ENABLE_PROFILE_EDIT` | `false` |
 
 ---
 

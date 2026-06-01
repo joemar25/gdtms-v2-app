@@ -1081,8 +1081,8 @@ class _ProfileHeroCard extends StatelessWidget {
                 ),
               ),
 
-              // Edit Button — ONLY visible when ONLINE
-              if (isOnline)
+              // Edit Button — ONLY visible when ONLINE and profile edit is enabled
+              if (isOnline && kEnableProfileEdit)
                 IconButton(
                   onPressed: () => context.push('/profile/edit'),
                   icon: Icon(

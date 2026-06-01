@@ -16,15 +16,16 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       elevation: DSStyles.elevationNone,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: DSStyles.cardRadius,
         side: BorderSide(
-          color: Theme.of(
-            context,
-          ).dividerColor.withValues(alpha: DSStyles.alphaMuted),
+          color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
+          width: DSStyles.borderWidth,
         ),
       ),
       child: Padding(
@@ -173,6 +174,8 @@ class _PayoutHeroFlipCardState extends State<PayoutHeroFlipCard>
   }
 
   Widget _buildFront() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -181,6 +184,12 @@ class _PayoutHeroFlipCardState extends State<PayoutHeroFlipCard>
           end: Alignment.bottomRight,
         ),
         borderRadius: DSStyles.cardRadius,
+        border: Border.all(
+          color: isDark
+              ? DSColors.separatorDark
+              : DSColors.white.withValues(alpha: 0.2),
+          width: 0.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: DSColors.primary.withValues(alpha: DSStyles.alphaMuted),
@@ -297,6 +306,12 @@ class _PayoutHeroFlipCardState extends State<PayoutHeroFlipCard>
         gradient: isDark ? null : DSColors.primaryGradient,
         color: isDark ? DSColors.cardDark : null,
         borderRadius: DSStyles.cardRadius,
+        border: Border.all(
+          color: isDark
+              ? DSColors.separatorDark
+              : DSColors.white.withValues(alpha: 0.2),
+          width: 0.5,
+        ),
         boxShadow: DSStyles.shadowLG(context),
       ),
       padding: const EdgeInsets.all(DSSpacing.lg),

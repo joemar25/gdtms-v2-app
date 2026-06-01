@@ -42,6 +42,14 @@
 
 ## `profile_edit_screen.dart`
 
+### Feature Toggle: `ENABLE_PROFILE_EDIT`
+
+The profile editing feature is controlled by the compile-time toggle `kEnableProfileEdit` (set via `--dart-define=ENABLE_PROFILE_EDIT=true/false`).
+
+If this feature toggle is **disabled** (`false`):
+- The edit profile button is hidden on the Profile Screen.
+- Any attempt to directly access `/profile/edit` via deep link or navigation will trigger a route redirect in the router back to `/profile`.
+
 ### Fields
 
 - Name, phone number — editable.

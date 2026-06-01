@@ -136,6 +136,15 @@ const bool kEnableGlobalSearch = bool.fromEnvironment(
   defaultValue: false,
 );
 
+/// Toggle for profile editing functionality.
+///
+/// - Set via --dart-define=ENABLE_PROFILE_EDIT=true/false.
+/// - Default: false (not yet given as a requirement).
+const bool kEnableProfileEdit = bool.fromEnvironment(
+  'ENABLE_PROFILE_EDIT',
+  defaultValue: false,
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Delivery Visibility Windows
 // ─────────────────────────────────────────────────────────────────────────────

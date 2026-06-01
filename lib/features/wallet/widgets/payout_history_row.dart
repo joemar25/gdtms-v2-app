@@ -82,9 +82,8 @@ class PayoutHistoryRow extends StatelessWidget {
           color: isDark ? DSColors.cardDark : DSColors.white,
           borderRadius: DSStyles.cardRadius,
           border: Border.all(
-            color: Theme.of(
-              context,
-            ).dividerColor.withValues(alpha: DSStyles.alphaSoft),
+            color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
+            width: DSStyles.borderWidth,
           ),
         ),
         child: Row(
