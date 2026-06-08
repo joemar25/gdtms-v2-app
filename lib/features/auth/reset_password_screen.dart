@@ -146,12 +146,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
     switch (result) {
       case ApiSuccess<Map<String, dynamic>>():
-        showAppSnackbar(
+        showSuccessNotification(
           context,
           widget.authenticatedMode
               ? 'Password changed successfully.'
               : 'Password reset successful.',
-          type: SnackbarType.success,
         );
         if (widget.authenticatedMode) {
           context.go('/dashboard');
@@ -162,16 +161,15 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         errors.forEach((key, value) => _errors[key] = value.first);
         setState(() {});
       case ApiServerError<Map<String, dynamic>>(:final message):
-        showAppSnackbar(context, message, type: SnackbarType.error);
+        showErrorNotification(context, message);
       case ApiNetworkError<Map<String, dynamic>>(:final message):
-        showAppSnackbar(context, message, type: SnackbarType.error);
+        showErrorNotification(context, message);
       default:
-        showAppSnackbar(
+        showErrorNotification(
           context,
           widget.authenticatedMode
               ? 'Unable to change password.'
               : 'Unable to reset password.',
-          type: SnackbarType.error,
         );
     }
 

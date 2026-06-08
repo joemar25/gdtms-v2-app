@@ -94,9 +94,16 @@ class AppNotificationManager {
     if (_overlayEntry == null) {
       _overlayEntry = OverlayEntry(
         builder: (context) {
-          return SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
+          // Positioned(top/left/right only, no bottom/height) so the overlay
+          // occupies only as much vertical space as the banner needs. Without
+          // this, SafeArea+Align fills the full screen as a hit-test surface,
+          // which blocks taps on text fields and buttons below the notification
+          // for the entire 3-second auto-dismiss window.
+          return Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.only(top: DSSpacing.sm),
                 child: Material(
@@ -153,7 +160,20 @@ class AppNotificationManager {
           );
         },
       );
-      Overlay.maybeOf(context, rootOverlay: true)?.insert(_overlayEntry!);
+      // Use the root navigator's overlay (same pattern as the sync pill and
+      // update banner in app.dart) so this works on every screen — including
+      // the login screen — where Overlay.maybeOf(context, rootOverlay: true)
+      // can return null when called from deep inside GoRouter's widget tree.
+      final overlay =
+          rootNavigatorKey.currentState?.overlay ??
+          Overlay.maybeOf(context, rootOverlay: true);
+      if (overlay != null) {
+        overlay.insert(_overlayEntry!);
+      } else {
+        // No overlay found — clear the entry so the next call retries
+        // the insert rather than calling markNeedsBuild on an orphaned entry.
+        _overlayEntry = null;
+      }
     } else {
       _overlayEntry?.markNeedsBuild();
     }

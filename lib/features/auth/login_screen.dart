@@ -145,10 +145,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final payload = mapFromKey(data, 'data');
         final token = payload['token']?.toString().trim() ?? '';
         if (token.isEmpty) {
-          showAppSnackbar(
+          showErrorNotification(
             context,
             'auth.login_screen.error_invalid_response'.tr(),
-            type: SnackbarType.error,
           );
           break;
         }
@@ -184,19 +183,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         errors.forEach((key, value) => _errors[key] = value.first);
         break;
       case ApiUnauthorized<Map<String, dynamic>>(:final message):
-        showAppSnackbar(
+        showErrorNotification(
           context,
           message != null && message.isNotEmpty
               ? message
               : 'auth.login_screen.error_invalid_credentials'.tr(),
-          type: SnackbarType.error,
         );
         break;
       case ApiNetworkError<Map<String, dynamic>>():
-        showAppSnackbar(
+        showErrorNotification(
           context,
           'auth.login_screen.error_no_connection'.tr(),
-          type: SnackbarType.error,
         );
         break;
       case ApiRateLimited<Map<String, dynamic>>(
@@ -205,20 +202,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ):
         final seconds = retryAfterSeconds ?? 60;
         _startRateLimitCountdown(seconds);
-        showAppSnackbar(
+        showErrorNotification(
           context,
           '${message.isNotEmpty ? message : ''} ${'auth.login_screen.error_try_again_seconds'.tr(namedArgs: {'seconds': '$seconds'})}',
-          type: SnackbarType.error,
         );
         break;
       case ApiServerError<Map<String, dynamic>>(:final message):
-        showAppSnackbar(context, message, type: SnackbarType.error);
+        showErrorNotification(context, message);
         break;
       default:
-        showAppSnackbar(
+        showErrorNotification(
           context,
           'auth.login_screen.error_login_failed'.tr(),
-          type: SnackbarType.error,
         );
     }
 
