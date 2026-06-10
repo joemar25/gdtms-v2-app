@@ -21,6 +21,7 @@ class DeliveryRecipientSection extends StatelessWidget {
     required this.relationshipSpecifyController,
     required this.confirmationCodeController,
     required this.confirmationCodeFocusNode,
+    required this.confirmationCodeRequired,
     required this.relationship,
     required this.recipientIsOwner,
     required this.placement,
@@ -42,6 +43,10 @@ class DeliveryRecipientSection extends StatelessWidget {
   final TextEditingController relationshipSpecifyController;
   final TextEditingController confirmationCodeController;
   final FocusNode confirmationCodeFocusNode;
+
+  /// Server-driven flag. When false the confirmation code field is hidden
+  /// entirely and not required (see [DeliveryUpdateScreen]).
+  final bool confirmationCodeRequired;
   final String? relationship;
   final bool recipientIsOwner;
   final String placement;
@@ -211,57 +216,64 @@ class DeliveryRecipientSection extends StatelessWidget {
           ),
         ],
 
-        // ── Delivery confirmation code ───────────────────────────────────────
-        fieldGap,
-        ValueListenableBuilder<TextEditingValue>(
-          valueListenable: confirmationCodeController,
-          builder: (context, value, _) => TextFormField(
-            controller: confirmationCodeController,
-            focusNode: confirmationCodeFocusNode,
-            maxLength: 6,
-            maxLengthEnforcement: MaxLengthEnforcement.enforced,
-            buildCounter:
-                (_, {required currentLength, required isFocused, maxLength}) =>
-                    null,
-            textCapitalization: TextCapitalization.characters,
-            style: DSTypography.body().copyWith(
-              color: isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2.0,
-            ),
-            inputFormatters: [
-              TextInputFormatter.withFunction(
-                (old, newVal) =>
-                    newVal.copyWith(text: newVal.text.toUpperCase()),
+        // ── Delivery confirmation code (only when server requires it) ────────
+        if (confirmationCodeRequired) ...[
+          fieldGap,
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: confirmationCodeController,
+            builder: (context, value, _) => TextFormField(
+              controller: confirmationCodeController,
+              focusNode: confirmationCodeFocusNode,
+              // API contract: delivery_confirmation_code is max 50 alphanumeric.
+              // Kept at the API ceiling so no valid code is truncated; tighten
+              // if the API team confirms a fixed shorter length (e.g. 6).
+              maxLength: 50,
+              maxLengthEnforcement: MaxLengthEnforcement.enforced,
+              buildCounter:
+                  (_, {required currentLength, required isFocused, maxLength}) =>
+                      null,
+              // API contract: codes are CASE-SENSITIVE, recipient-provided,
+              // 1–50 alphanumeric. Do NOT force uppercase — preserve case as
+              // typed and only restrict to [A-Za-z0-9].
+              textCapitalization: TextCapitalization.none,
+              style: DSTypography.body().copyWith(
+                color: isDark
+                    ? DSColors.labelPrimaryDark
+                    : DSColors.labelPrimary,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2.0,
               ),
-              FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-            ],
-            keyboardType: TextInputType.text,
-            decoration:
-                deliveryFieldDecoration(
-                  context,
-                  labelText: 'delivery_update.header.delivery_confirmation_code'
-                      .tr(),
-                  hintText: 'delivery_update.hint.confirmation_code_example'
-                      .tr(),
-                  errorText: errors['confirmation_code'],
-                ).copyWith(
-                  suffixIcon: value.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(
-                            Icons.clear_rounded,
-                            size: DSIconSize.md,
-                          ),
-                          color: isDark
-                              ? DSColors.labelTertiaryDark
-                              : DSColors.labelTertiary,
-                          onPressed: onConfirmationCodeCleared,
-                        )
-                      : null,
-                ),
-            onChanged: (_) => onConfirmationCodeChanged(),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+              ],
+              keyboardType: TextInputType.text,
+              decoration:
+                  deliveryFieldDecoration(
+                    context,
+                    labelText:
+                        'delivery_update.header.delivery_confirmation_code'
+                            .tr(),
+                    hintText: 'delivery_update.hint.confirmation_code_example'
+                        .tr(),
+                    errorText: errors['confirmation_code'],
+                  ).copyWith(
+                    suffixIcon: value.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.clear_rounded,
+                              size: DSIconSize.md,
+                            ),
+                            color: isDark
+                                ? DSColors.labelTertiaryDark
+                                : DSColors.labelTertiary,
+                            onPressed: onConfirmationCodeCleared,
+                          )
+                        : null,
+                  ),
+              onChanged: (_) => onConfirmationCodeChanged(),
+            ),
           ),
-        ),
+        ],
 
         // ── Placement type ──────────────────────────────────────────────────
         fieldGap,

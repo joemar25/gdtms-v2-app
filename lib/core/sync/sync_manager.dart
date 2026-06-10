@@ -678,6 +678,9 @@ class SyncManagerNotifier extends Notifier<SyncState> {
           } else if (result is ApiServerError<Map<String, dynamic>>) {
             final data = result.data;
             if (data is Map) responseCode = data['code']?.toString();
+          } else if (result is ApiValidationError<Map<String, dynamic>>) {
+            final data = result.data;
+            if (data is Map) responseCode = data['code']?.toString();
           }
 
           // Case 1 — DELIVERY_IMMUTABLE (v2.7 code): item is in a terminal state;
@@ -829,6 +832,17 @@ class SyncManagerNotifier extends Notifier<SyncState> {
                   }
                 }
               }
+            }
+
+            // CONFIRMATION_CODE_REQUIRED (422): the client now requires a
+            // confirmation code for this delivery, but the queued update lacked
+            // one (the flag flipped to true after the item was cached offline).
+            // Pull the server's current record so the local
+            // required_confirmation_code flag is refreshed and the courier can
+            // re-open the update screen and re-enter the code.
+            if (responseCode == 'CONFIRMATION_CODE_REQUIRED' &&
+                !entry.barcode.startsWith('BAGSAKAN_')) {
+              await _refreshDeliveryFromServer(entry.barcode);
             }
 
             await ref

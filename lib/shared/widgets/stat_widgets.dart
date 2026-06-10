@@ -81,19 +81,9 @@ class _StatCardState extends State<StatCard>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    Color effectiveColor = widget.subdued
+    final effectiveColor = widget.subdued
         ? widget.color.withValues(alpha: DSStyles.alphaDisabled)
         : widget.color;
-
-    // Adjust color for legibility in Dark Mode if it's the primary brand color
-    if (isDark && !widget.subdued) {
-      if (widget.color == DSColors.primary) {
-        effectiveColor = const Color(0xFF4ADE80); // Green 400 for high contrast
-      } else if (widget.color == DSColors.success) {
-        effectiveColor = DSColors.successDark;
-      }
-    }
-
     final isDisabled = widget.onTap == null;
 
     final displayLabel = widget.label
@@ -111,34 +101,16 @@ class _StatCardState extends State<StatCard>
           : null,
       padding: const EdgeInsets.all(DSSpacing.md),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [
-                  DSColors.cardDark,
-                  Color.alphaBlend(
-                    widget.color.withValues(alpha: 0.04),
-                    DSColors.cardDark,
-                  ),
-                ]
-              : [
-                  DSColors.cardLight,
-                  Color.alphaBlend(
-                    widget.color.withValues(alpha: 0.02),
-                    DSColors.cardLight,
-                  ),
-                ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(DSStyles.radiusXL),
+        color: isDark ? DSColors.cardDark : DSColors.cardLight,
+        borderRadius: DSStyles.cardRadius,
         border: Border.all(
-          color: widget.color.withValues(alpha: isDark ? 0.25 : 0.12),
-          width: 1.2,
+          color: widget.color.withValues(alpha: isDark ? 0.3 : 0.15),
+          width: DSStyles.strokeWidth,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.color.withValues(alpha: isDark ? 0.12 : 0.06),
-            blurRadius: 20,
+            color: widget.color.withValues(alpha: isDark ? 0.1 : 0.05),
+            blurRadius: DSStyles.radiusLG,
             offset: const Offset(0, 8),
           ),
         ],
@@ -151,36 +123,31 @@ class _StatCardState extends State<StatCard>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      widget.color.withValues(alpha: isDark ? 0.22 : 0.15),
-                      widget.color.withValues(alpha: isDark ? 0.08 : 0.04),
+                      widget.color.withValues(alpha: 0.2),
+                      widget.color.withValues(alpha: 0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: widget.color.withValues(alpha: isDark ? 0.35 : 0.20),
+                    color: widget.color.withValues(alpha: 0.3),
                     width: 1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: widget.color.withValues(
-                        alpha: isDark ? 0.15 : 0.08,
-                      ),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: SlideTransition(
                   position: _iconOffset,
-                  child: Icon(widget.icon, color: effectiveColor, size: 20.0),
+                  child: Icon(
+                    widget.icon,
+                    color: effectiveColor,
+                    size: DSIconSize.md,
+                  ),
                 ),
               )
               .animate(onPlay: (c) => c.repeat(reverse: true))
               .shimmer(
-                duration: 3000.ms,
-                color: widget.color.withValues(alpha: 0.25),
+                duration: DSAnimations.dHeroX4,
+                color: widget.color.withValues(alpha: 0.5),
               ),
           DSSpacing.wSm,
           Expanded(
@@ -189,18 +156,18 @@ class _StatCardState extends State<StatCard>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  displayLabel.toUpperCase(),
+                  displayLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style:
-                      DSTypography.caption(
+                      DSTypography.label(
                         color: isDark
                             ? DSColors.labelSecondaryDark
                             : DSColors.labelSecondary,
                       ).copyWith(
-                        letterSpacing: 1.5,
+                        letterSpacing: 1.2,
                         fontWeight: FontWeight.bold,
-                        fontSize: 9.0,
+                        fontSize: 10,
                       ),
                 ),
                 Text(
@@ -208,9 +175,9 @@ class _StatCardState extends State<StatCard>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: DSTypography.display(color: effectiveColor).copyWith(
-                    height: 1.0,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 24,
+                    height: 1.1,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
                   ),
                 ),
                 if (widget.details != null) ...[
@@ -240,9 +207,9 @@ class _StatCardState extends State<StatCard>
     final animatedContent = content
         .animate(onPlay: (c) => c.repeat(reverse: true))
         .shimmer(
-          duration: 4000.ms,
-          color: widget.color.withValues(alpha: 0.08),
-          delay: 2000.ms,
+          duration: DSAnimations.dHeroX4,
+          color: widget.color.withValues(alpha: DSStyles.alphaSoft),
+          delay: DSAnimations.dHeroX3,
         );
 
     final card = GestureDetector(
@@ -297,26 +264,21 @@ class ScanButton extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: isDark
-                        ? [
-                            color.withValues(alpha: 0.15),
-                            color.withValues(alpha: 0.05),
-                          ]
-                        : [
-                            color.withValues(alpha: 0.08),
-                            color.withValues(alpha: 0.02),
-                          ],
+                    colors: [
+                      color.withValues(alpha: DSStyles.alphaSubtle),
+                      color.withValues(alpha: DSStyles.alphaSoft),
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(DSStyles.radiusXL),
+                  borderRadius: DSStyles.cardRadius,
                   border: Border.all(
-                    color: color.withValues(alpha: isDark ? 0.35 : 0.18),
-                    width: 1.5,
+                    color: color.withValues(alpha: isDark ? 0.4 : 0.25),
+                    width: DSStyles.strokeWidth,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: color.withValues(alpha: isDark ? 0.15 : 0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+                      color: color.withValues(alpha: DSStyles.alphaSoft),
+                      blurRadius: DSStyles.radiusMD,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -326,48 +288,23 @@ class ScanButton extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                          padding: const EdgeInsets.all(DSSpacing.md),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                color.withValues(alpha: 0.25),
-                                color.withValues(alpha: 0.1),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: color.withValues(alpha: 0.35),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: color.withValues(alpha: 0.15),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(icon, color: color, size: 28.0),
-                        )
-                        .animate(onPlay: (c) => c.repeat(reverse: true))
-                        .scale(
-                          begin: const Offset(1.0, 1.0),
-                          end: const Offset(1.05, 1.05),
-                          duration: 1500.ms,
-                          curve: Curves.easeInOut,
-                        ),
+                      padding: const EdgeInsets.all(DSSpacing.md),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: DSStyles.alphaSubtle),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: color, size: DSIconSize.xl),
+                    ),
                     DSSpacing.hMd,
                     Text(
-                      label.toUpperCase(),
+                      label,
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: DSTypography.labelCaps(color: color).copyWith(
-                        fontSize: 11.0,
-                        letterSpacing: 1.8,
-                        fontWeight: FontWeight.bold,
+                      style: DSTypography.label(color: color).copyWith(
+                        fontSize: DSTypography.sizeSm,
+                        letterSpacing: DSTypography.lsExtraLoose,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                     if (details != null) ...[
@@ -381,17 +318,16 @@ class ScanButton extends StatelessWidget {
                           color: isDark
                               ? DSColors.labelSecondaryDark
                               : DSColors.labelSecondary,
-                        ).copyWith(fontSize: 10.0, height: 1.3),
+                        ).copyWith(height: DSStyles.heightTight),
                       ),
                     ],
                   ],
                 ),
               )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .animate(onPlay: (c) => c.repeat())
               .shimmer(
-                duration: 4000.ms,
-                color: color.withValues(alpha: 0.08),
-                delay: 2000.ms,
+                duration: DSAnimations.dHeroX4,
+                color: color.withValues(alpha: DSStyles.alphaSoft),
               ),
     );
   }

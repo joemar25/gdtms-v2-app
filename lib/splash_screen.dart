@@ -1,6 +1,7 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/entry-points.md — update that file when you edit this one.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -14,12 +15,23 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/auth_storage.dart';
+import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/database/cleanup_service.dart';
+import 'package:fsi_courier_app/core/services/app_version_service.dart';
+import 'package:fsi_courier_app/core/services/push_notification_service.dart';
+import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/core/services/version_check_service.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/core/settings/dashboard_feel_provider.dart';
+import 'package:fsi_courier_app/core/sync/workmanager_setup.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'firebase_options.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -32,7 +44,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    // Fast path: auth + settings check gates navigation.
     _initAndNavigate();
+    // Deferred heavy init (Firebase, DB, FCM, Sentry) — fire-and-forget
+    // after the first frame so the splash renders instantly.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _runDeferredInit();
+    });
     // Remove the native splash once the first frame is rendered.
     // This creates a seamless handoff from native to Flutter.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -41,14 +59,69 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _initAndNavigate() async {
-    await Future.wait([
-      _initialize(),
-      // Ensure the splash is visible long enough for the "premium" feel.
-      Future.delayed(const Duration(milliseconds: 5000)),
-    ]);
+    await _initialize();
+    if (!mounted) return;
+    // Brief minimum delay so splash animations have time to play.
+    await Future.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
     final auth = ref.read(authProvider);
     context.go(auth.isAuthenticated ? '/dashboard' : '/login');
+  }
+
+  /// Heavy initialisation deferred to after the first frame so the splash
+  /// renders instantly without jank. All errors are swallowed — the app
+  /// proceeds with defaults if something fails.
+  Future<void> _runDeferredInit() async {
+    // Fire all independent heavy init in parallel.
+    await Future.wait([
+      AppVersionService.init(),
+      _initFirebase(),
+      AppDatabase.getInstance(),
+      BackgroundSyncSetup.init(),
+      RuntimeEnvironmentService.instance.init(),
+    ], eagerError: false);
+
+    // Firebase-dependent steps.
+    if (mounted) {
+      await _initFcmToken();
+      PushNotificationService.initBackgroundHandler();
+    }
+
+    // Sentry — only when DSN is provided.
+    if (mounted && sentryDsn.isNotEmpty) {
+      await SentryFlutter.init((options) {
+        options.dsn = sentryDsn;
+        options.environment = kReleaseMode ? 'production' : 'development';
+        options.tracesSampleRate = kReleaseMode ? 0.2 : 0.0;
+        options.attachScreenshot = false;
+        options.sendDefaultPii = false;
+      });
+    }
+  }
+
+  Future<void> _initFirebase() async {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } on FirebaseException catch (e) {
+      if (e.code != 'duplicate-app') rethrow;
+    } catch (_) {
+      // Non-Firebase errors are swallowed — app proceeds without Firebase.
+    }
+  }
+
+  Future<void> _initFcmToken() async {
+    try {
+      final earlyToken = await FirebaseMessaging.instance.getToken();
+      if (earlyToken != null) {
+        final authStorage = AuthStorage();
+        await authStorage.setPendingFcmToken(earlyToken);
+        debugPrint('[SPLASH] Early FCM token persisted: $earlyToken');
+      }
+    } catch (e) {
+      debugPrint('[SPLASH] Failed to fetch/persist early FCM token: $e');
+    }
   }
 
   Future<void> _initialize() async {
@@ -66,7 +139,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
       // Check for forced app updates (best-effort; failures are logged).
       if (mounted) {
-        // Use a timeout to prevent the splash screen from hanging if the server is slow.
         await VersionCheckService(ref.read(apiClientProvider))
             .check(context)
             .timeout(

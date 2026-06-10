@@ -95,6 +95,32 @@ All delivery updates follow a unified **Offline-First** flow. There are no separ
 2.  **Sync Registration**: A `SyncOperation` is created with a `pending` status.
 3.  **Background Processing**: `SyncManager` handles the actual server communication. If the device is online at the time of submission, `processQueue()` is triggered immediately (unawaited), otherwise it waits for the next connectivity event or manual refresh.
 
+### Delivery Confirmation Code (conditional)
+
+The confirmation code input on the DELIVERED form is **server-driven** per delivery via the
+boolean `required_confirmation_code` field (carried through `raw_json` → `toDeliveryMap()`):
+
+- `required_confirmation_code == true` → the `delivery_confirmation_code` field is **shown** and
+  **required** (validation error if empty); the value is included in the update payload.
+- `false`, `null`, or absent → the field is **hidden entirely**, not validated, and the key is
+  **omitted** from the payload.
+
+Implemented in `delivery_update_screen.dart` via the `_requiresConfirmationCode` getter
+(`_delivery['required_confirmation_code'] == true`), which gates validation, the payload, and the
+field rendered by `delivery_recipient_section.dart` (`confirmationCodeRequired`). No SQLite column
+or `LocalDelivery` field is added — the flag rides through `raw_json`.
+
+**Code format:** codes are **case-sensitive**, 1–50 alphanumeric, recipient-provided. The input
+preserves case (`FilteringTextInputFormatter.allow([A-Za-z0-9])`, no uppercase transform),
+`maxLength` 50. The flag is a **per-client** setting on the server.
+
+**Server safety net:** if a `DELIVERED` update reaches the server without a required code (only
+possible on offline flag-drift, since the app validates first), the server returns HTTP 422
+`code: CONFIRMATION_CODE_REQUIRED`. `sync_manager.dart` surfaces this as a conflict and refreshes
+the delivery from the server (`_refreshDeliveryFromServer`) so the local
+`required_confirmation_code` flag is current and the courier can re-open the update screen and
+re-enter the code.
+
 ### Operational Rules
 
 -   **Connectivity Agnostic**: The ability to update a delivery is governed strictly by its **Status** and **Eligibility**, NOT by real-time connectivity. If an item is "available to update" (e.g., FOR_DELIVERY), the courier can process it even in a complete dead zone.

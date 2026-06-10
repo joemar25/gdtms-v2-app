@@ -14,7 +14,6 @@
     "submit": "Isumite",
     "yes": "Oo",
     "no": "Hindi",
-    "next": "Susunod",
     "field_required": "Kinakailangan ang field na ito."
   },
   "auth": {
@@ -36,8 +35,6 @@
       "forgot_password": "Nakalimutan ang Password?",
       "wait_seconds": "Maghintay ng {seconds}s",
       "sign_in": "Mag-Sign In",
-      "update_to_sign_in": "Kailangan ng Update para Mag-Sign In",
-      "update_now": "I-update Ngayon",
       "having_trouble": "May problema?",
       "contact_admin": "Makipag-ugnayan sa admin",
       "error_invalid_response": "Di-wastong tugon sa pag-login. Pakisubukang muli.",
@@ -59,93 +56,11 @@
   },
   "nav": {
     "home": "Home",
-    "bagsakan": "Bagsakan",
     "search": "Maghanap",
     "wallet": "Wallet",
     "profile": "Profile",
     "settings": "Mga Setting",
     "notifications": "Mga Abiso"
-  },
-  "bagsakan": {
-    "title": "Bagsakan",
-    "tab_info": "INFO",
-    "tab_deliveries": "DELIVERIES",
-    "group_info": "Hakbang 1: Impormasyon",
-    "delivery_details": "Hakbang 2: Magdagdag ng mga Delivery",
-    "group_items": "Mga Item sa Bagsakan",
-    "update_group": "I-UPDATE ANG BAGSAKAN",
-    "save_info": "I-SAVE ANG IMPORMASYON",
-    "group_items_header": "Mga Item sa Bagsakan",
-    "group_info_header": "Impormasyon ng Bagsakan",
-    "search_deliveries": "Maghanap ng mga Delivery",
-    "group_name": "PANGALAN NG BAGSAKAN",
-    "group_name_hint": "Ilagay ang pangalan ng bagsakan",
-    "group_description": "DESCRIPTION NG BAGSAKAN",
-    "group_description_hint": "Ilagay ang description ng bagsakan",
-    "create": "Gumawa ng Bagsakan",
-    "edit": "I-edit ang Bagsakan",
-    "edit_confirm_title": "I-edit ang Bagsakan?",
-    "edit_confirm_message": "Ang grupong ito ay mayroon nang propagation source. Ang pagdaragdag o pag-aalis ng mga item ngayon ay maaaring hindi magandang ideya. Sigurado ka bang gusto mong magpatuloy?",
-    "coming_soon": "Ang tampok na ito ay malapit na!",
-    "under_development": "Nasa Pagpapaunlad",
-    "create_group": "GUMAWA NG BAGSAKAN",
-    "search_by": "Maghanap Sa Pamamagitan Ng",
-    "barcode": "Barcode",
-    "account_name": "Pangalan ng Account",
-    "search": "MAGHANAP",
-    "search_hint": "Maghanap...",
-    "add_to_bagsakan": "IDAGDAG SA BAGSAKAN",
-    "no_results": "Walang nahanap na resulta.",
-    "no_items": "Wala pang idinagdag na item.",
-    "no_items_hint": "I-scan ang barcode o maghanap para magdagdag ng mga delivery sa bagsakan na ito.",
-    "error_empty_name": "Mangyaring ilagay ang pangalan ng bagsakan.",
-    "error_empty_items": "Mangyaring magdagdag ng kahit isang delivery sa bagsakan.",
-    "error_failed": "Nabigong gumawa ng Bagsakan.",
-    "success_created": "Ang Bagsakan na \"{}\" ay nagawa na at ang mga item ay inilipat na.",
-    "success_updated": "Ang Bagsakan na \"{}\" ay na-update na.",
-    "already_added": "Ang delivery na ito ay nasa bagsakan na.",
-    "empty_list": "Wala pang Bagsakan group.",
-    "group_card_items": "{count} na item",
-    "delete_group": "Burahin ang Bagsakan",
-    "delete_confirm_title": "Burahin ang bagsakan na ito?",
-    "delete_confirm_message": "Ang mga delivery sa loob ng bagsakan na ito ay mahihiwalay at babalik sa iyong dashboard.",
-    "delete_confirm_confirm": "Burahin",
-    "delete_disabled_submitted": "Ang naisumiteng grupo ay hindi na puwedeng burahin.",
-    "remove_confirm_title": "Alisin sa Bagsakan?",
-    "remove_confirm_message": "Sigurado ka bang gusto mong alisin ang \"{}\" sa bagsakan na ito?",
-    "success_deleted": "Ang Bagsakan na \"{}\" ay nabura na.",
-    "error_delete_submitted": "Ang naisumiteng grupo ay hindi na puwedeng burahin.",
-    "error_delete_failed": "Nabigong burahin ang bagsakan na ito.",
-    "success_removed": "Ang item na \"{}\" ay naalis na sa bagsakan.",
-    "status_submitted": "NAISUMITE",
-    "status_draft": "DRAFT",
-    "status_unsync": "UNSYNC",
-    "timestamp_created": "Ginawa:",
-    "timestamp_submitted": "Ipinasa:",
-    "timestamp_transaction": "Transaksyon:",
-    "submit_confirm_title": "Isumite ang Bagsakan?",
-    "submit_confirm_message": "Ikakalat nito ang data ng delivery sa lahat ng item sa grupo. Pakisiguradong naalis mo na ang anumang failed deliveries sa grupo bago magpatuloy.",
-    "submit_confirm_message_status": "Sigurado ka ba? Ia-update nito ang lahat ng deliveries sa grupong ito sa {}.",
-    "submit_confirm_message_status_reminder": "Sigurado ka ba? Ia-update nito ang lahat ng deliveries sa grupong ito sa <b>{}</b>.\n\n<warn>Pakisiguradong naalis mo muna ang lahat ng returned items sa bagsakan na ito.</warn>",
-    "submit_confirm_confirm": "Isumite",
-    "submit_block_failed_in_group": "Hindi puwedeng i-submit bilang DELIVERED habang may failed deliveries pa sa grupong ito. Alisin muna ang failed deliveries.",
-    "success_submitted": "Naisumite na ang Bagsakan at kumalat na ang data.",
-    "propagation_help_title": "Mga Panuntunan sa Propagation",
-    "propagation_help_subtitle": "Paano kinokopya ang status at updates kapag nagsu-submit ng Bagsakan.",
-    "propagation_item_source_title": "Source delivery ang batayan ng status",
-    "propagation_item_source_desc": "Unang ginagamit ng submit flow ang propagation source. Kapag wala ito, ginagamit ang pinakahuling finalized na updated delivery.",
-    "propagation_item_failed_title": "Sinusunod ang failed delivery logic",
-    "propagation_item_failed_desc": "Kapag FAILED DELIVERY ang napiling source, iyon ding failed status ang ikakalat sa grupo. Suriin muna ang redelivery/return handling bago mag-submit.",
-    "propagation_item_sync_title": "Mahalaga ang sync order",
-    "propagation_item_sync_desc": "Napi-pila ang submit pagkatapos ng source status update para tama ang propagation sa server.",
-    "propagation_help_footer": "Bago mag-submit: alisin ang returned items at i-verify ang status ng source delivery.",
-    "submit_button": "ISUMITE ANG BAGSAKAN",
-    "new_items_header": "Mga Bagong Dagdag na Item",
-    "search_results_header": "Mga Resulta ({})",
-    "add_all": "Idagdag Lahat",
-    "success_added_bulk": "Matagumpay na naidagdag ang {} na item sa grupo",
-    "submitted_locked_message": "Ang item na ito ay bahagi ng isang naisumiteng Bagsakan group at hindi na maa-access.",
-    "edit_locked_submitted": "Ang Bagsakan group na ito ay naisumite na at hindi na maaaring i-edit."
   },
   "notifications": {
     "unread_count": "{count} na hindi pa nababasang abiso",
@@ -177,8 +92,7 @@
       "offline": "Offline",
       "api_unavailable": "Hindi Available ang API",
       "overview_title": "Pangkalahatang-ideya Ngayon",
-      "sync_connectivity_title": "Sync at Koneksyon",
-      "for_return_title": "Para Ibalik"
+      "sync_connectivity_title": "Sync at Koneksyon"
     },
     "actions": {
       "quick_title": "Mabilisang Aksyon",
@@ -252,16 +166,12 @@
       "auto_accept_sub": "Awtomatikong tanggapin ang mga kwalipikadong dispatch",
       "auto_accept_confirm_title": "I-enable ang Auto-Accept?",
       "auto_accept_confirm_message": "Awtomatikong tatanggapin ng setting na ito ang dispatches para sa iyo.",
-      "auto_accept_confirm_confirm": "I-enable",
-      "auto_accept_confirm_cancel": "Kanselahin",
       "compact_mode": "Compact Mode",
       "compact_mode_sub": "Ipakita ang mas maraming deliveries sa listahan",
       "dashboard_feel": "Bagong Feel Dashboard",
       "dashboard_feel_sub": "I-enable ang modernong layout ng dashboard",
       "retention_update_title": "I-update ang Sync Retention",
       "retention_update_message": "Papaltan ng setting na ito kung gaano katagal maiimbak nang lokal ang kasaysayan.",
-      "retention_update_confirm": "I-update",
-      "retention_update_cancel": "Kanselahin",
       "settings_updated": "Na-update ang mga kagustuhan."
     },
     "device": {
@@ -279,9 +189,7 @@
       "terms": "Mga Tuntunin at Kundisyon",
       "terms_sub": "Basahin ang buong tuntunin at kundisyon",
       "privacy": "Patakaran sa Privacy",
-      "privacy_sub": "Tingnan ang aming patakaran sa privacy",
-      "user_guide": "Gabay sa Paggamit",
-      "user_guide_sub": "Basahin ang manwal ng mobile application"
+      "privacy_sub": "Tingnan ang aming patakaran sa privacy"
     },
     "diagnostics": {
       "report_issue": "I-report ang Isyu",
@@ -299,7 +207,7 @@
       "title": "Wallet",
       "request_payout": "Humiling ng Payout",
       "request_payout_debug": "Humiling ng Payout (DEBUG)",
-      "offline_message": "Wala kang koneksyon — mag online para makita ang mga naipon.",
+      "offline_message": "Wala kang koneksyon — tanging kabuuang kita ang ipinapakita.",
       "existing_request_notice": "Nakapag-submit ka na ng request ngayon. Maaari mong pagsamahin ang iyong mga deliveries bukas.",
       "payout_history": "Kasaysayan ng Payout",
       "payout_amount": "Halaga ng Payout",
@@ -538,7 +446,7 @@
       "synced_label": "Naka-sync",
       "archived_label": "NA-ARCHIVE",
       "locked_general": "Ang pagpapadalang ito ay {} at hindi maaaring buksan.",
-      "locked_misrouted": "Ang item na ito ay Misrouted at hindi maaaring buksan.",
+      "locked_osa": "Ang item na ito ay marked OSA at hindi maaaring buksan.",
       "locked_delivered": "Ang item na ito ay naipadala na at selyado na.",
       "locked_failed_max": "Ang nabigong pagpapadalang ito ay umabot na sa maximum na bilang ng mga pagsubok at naka-lock na.",
       "locked_failed_verified": "Ang nabigong pagpapadalang ito ay na-verify na at hindi na maaaring aksyunan.",
@@ -579,10 +487,6 @@
     "notifications": {
       "label": "Mga Abiso",
       "reason": "mga assignment sa dispatch at alerto sa delivery"
-    },
-    "install": {
-      "label": "Update ng App",
-      "reason": "i-install ang mga update ng app nang awtomatiko"
     }
   },
   "empty_states": {
@@ -598,9 +502,9 @@
       "dispatched": "Walang naipadalang item.",
       "failed_redelivery": "Walang item para sa redelivery.",
       "failed_rts": "Walang item para sa return ngayong araw.",
-      "misrouted": "Walang Misrouted mailpack ngayong araw.",
+      "osa": "Walang OSA mailpack ngayong araw.",
       "generic": "Walang nakitang item.",
-      "info_misrouted": "Hindi mabubuksan ang mga Misrouted. Ibalik sa FSI para sa beripikasyon.",
+      "info_osa": "Hindi mabubuksan ang mga OSA. Ibalik sa FSI para sa beripikasyon.",
       "info_delivered": "Ang mga naidala na ay pinal na at hindi na mabubuksan muli.",
       "help": {
         "title": "Failed Delivery at Pagbabayad",
@@ -621,17 +525,6 @@
     "error_logs": {
       "title": "Walang log na ipapakita",
       "subtitle": "Lalabas dito ang mga error at warning kapag nangyari ang mga ito."
-    }
-  },
-  "delivery_card": {
-    "details": {
-      "product": "PRODUCT",
-      "mail_type": "URI NG SULAT",
-      "sequence": "SEQUENCE",
-      "special_instructions": "ESPESYAL NA TAGUBILIN",
-      "transmittal_date": "PETSA NG TRANSMITTAL",
-      "tat": "TAT",
-      "other_information": "Iba pang Impormasyon"
     }
   }
 }

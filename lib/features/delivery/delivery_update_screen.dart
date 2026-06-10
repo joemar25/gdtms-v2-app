@@ -136,6 +136,13 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   DeliveryStatus get _ds => DeliveryStatus.fromString(_status);
   bool get _isDelivered => _ds == DeliveryStatus.delivered;
   bool get _isFailedDelivery => _ds == DeliveryStatus.failedDelivery;
+
+  /// Server-driven flag: when true the courier must enter a delivery
+  /// confirmation code on DELIVERED. Absent/null/non-true → not required, so
+  /// the field is hidden. Flows through `raw_json` → `toDeliveryMap()`.
+  bool get _requiresConfirmationCode =>
+      _delivery['required_confirmation_code'] == true;
+
   bool get _isMisrouted => _ds == DeliveryStatus.misrouted;
 
   /// True for statuses that require a non-delivery reason + selfie.
@@ -557,7 +564,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         _errors['selfie_photo'] =
             'delivery_update.validation.selfie_photo_required'.tr();
       }
-      if (_confirmationCode.text.trim().isEmpty) {
+      if (_requiresConfirmationCode &&
+          _confirmationCode.text.trim().isEmpty) {
         _errors['confirmation_code'] =
             'delivery_update.validation.confirmation_code_required'.tr();
       }
@@ -644,7 +652,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       payload['recipient'] = _recipient.text.trim();
       payload['relationship'] = resolvedRelationship;
       payload['placement_type'] = _placement;
-      payload['delivery_confirmation_code'] = _confirmationCode.text.trim();
+      if (_requiresConfirmationCode) {
+        payload['delivery_confirmation_code'] = _confirmationCode.text.trim();
+      }
     } else if (_isMisrouted) {
       if (_mailpackPhoto != null) {
         pendingMediaPaths['mailpack'] = _mailpackPhoto!.file;
@@ -889,7 +899,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       hasMailpackPhoto: _mailpackPhoto != null,
       hasAdditionalPhotos: _photos.isNotEmpty,
       hasSignature: _signaturePath != null,
-      confirmationCode: _confirmationCode.text,
+      confirmationCode: _requiresConfirmationCode
+          ? _confirmationCode.text
+          : '',
       placement: _placement,
     );
   }
@@ -1070,6 +1082,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           _confirmationCode,
                                       confirmationCodeFocusNode:
                                           _confirmationCodeFocus,
+                                      confirmationCodeRequired:
+                                          _requiresConfirmationCode,
                                       relationship: _relationship,
                                       recipientIsOwner:
                                           _recipientIsOwner &&

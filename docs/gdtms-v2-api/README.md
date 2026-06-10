@@ -56,6 +56,25 @@ no longer the source of truth — that is documentation debt that causes future 
 
 ## Changelog
 
+### v4.2 (June 2026) — media upload flow
+
+- **Client-side S3 upload** for delivery media. `GET /api/mbl/media/upload-params?barcode={barcode}&type={type}` returns only `data.upload_url` (the target S3 object URL). The app generates a SigV4 pre-signed PUT from its own AWS credentials, PUTs the file directly to S3, then PATCHes `delivery_images: [{ file, type }]`.
+  - Supported `type` (case-insensitive): `pod`, `selfie`, `signature`, `mailpack`. **Mailpack** → `deliveries/{id}/images/delivery_mailpack_{ts}.jpg`; **signature** → `/signatures/`.
+  - Invalid/unknown type → `upload_url: null` (HTTP 200); delivery not found → HTTP 400.
+  - App side: `ApiClient.uploadMedia` already implements this end-to-end; `sync_manager` maps media keys (`recipient_signature` → `signature`) and emits `delivery_images` with uppercase `type` (`POD`/`SELFIE`/`MAILPACK`); signatures go to `recipient_signature` on the payload.
+- **Detail response slimmed:** `GET /deliveries/{barcode}` no longer returns `media`, `signature`, or `tat_info`, and `rts_attempts`/`failed_delivery_attempts` no longer include image URLs (images are web-admin only). The app consumes only attempt **counts/metadata**, so no client change was required.
+- **Removed** the unused `UploadParamsResponse`/`UploadData` model (modeled the obsolete POST + `fields` presign shape).
+
+### v4.1 (June 2026) — confirmed with API team
+
+- **NEW** `required_confirmation_code` (boolean) on delivery objects in `GET /api/mbl/deliveries` and `GET /api/mbl/deliveries/{barcode}`.
+  - `true` → the mobile app shows and **requires** a `delivery_confirmation_code` when updating to `DELIVERED`.
+  - `false` or absent → the confirmation code field is hidden and not required (app default for missing/null).
+  - **Granularity:** currently a **per-client** setting (`clients.requires_delivery_confirmation_code`) — all of a client's deliveries share the flag. Resolved server-side via masterList → pickupTransmittal → client. Per-delivery/per-product granularity is a future follow-up.
+- **UPDATED** `PATCH /api/mbl/deliveries/{barcode}`: the app sends `delivery_confirmation_code` **only** when the delivery's `required_confirmation_code` was `true`; otherwise the key is omitted.
+- **NEW** Server safety net: a `DELIVERED` update that omits a non-empty `delivery_confirmation_code` when required is rejected with **HTTP 422**, body `code: "CONFIRMATION_CODE_REQUIRED"`. Not cached under `X-Request-ID`, so a corrected retry succeeds. The app validates presence first, so this fires only on offline flag-drift; on receiving it the app refreshes the delivery from the server so the flag is current for re-entry.
+- **Code format (authoritative):** variable length **1–50**, **alphanumeric**, **case-sensitive**, recipient-provided, stored as-is (presence-only, not verified). App input preserves case and restricts to `[A-Za-z0-9]`, `maxLength` 50.
+
 ### v3.6 (May 2026)
 
 - **NEW** Response Enhancements: `piece_count` and `piece_index` as explicit integers.

@@ -151,6 +151,7 @@ class ApiClient {
       return ApiValidationError<T>(
         parsed,
         message: _extractMessage(response.data, fallback: ''),
+        data: response.data,
       );
     }
 
@@ -230,6 +231,7 @@ class ApiClient {
               response.data,
               fallback: 'Validation failed.',
             ),
+            data: response.data,
           );
         }
         if (status == 400) {

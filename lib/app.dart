@@ -41,13 +41,6 @@ class FsiCourierApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Cap the image cache: 80 MB / 150 images max.
-    // Default Flutter limits (unlimited count, 100 MB) are too generous for a
-    // delivery app that shows many thumbnails on list screens.
-    PaintingBinding.instance.imageCache
-      ..maximumSize = 150
-      ..maximumSizeBytes = 80 << 20; // 80 MB
-
     final router = ref.watch(appRouterProvider);
     final auth = ref.watch(authProvider);
 

@@ -11,9 +11,13 @@ final class ApiSuccess<T> extends ApiResult<T> {
 }
 
 final class ApiValidationError<T> extends ApiResult<T> {
-  const ApiValidationError(this.errors, {this.message});
+  const ApiValidationError(this.errors, {this.message, this.data});
   final Map<String, List<String>> errors;
   final String? message;
+
+  /// Raw response body, preserved so machine-readable `code` fields
+  /// (e.g. `CONFIRMATION_CODE_REQUIRED`) survive the 422 mapping.
+  final dynamic data;
 }
 
 final class ApiBadRequest<T> extends ApiResult<T> {
