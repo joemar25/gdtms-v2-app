@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FSI COURIER MOBILE APP - USER MANUAL UNIFORM JSON DATA
+ * ITMS MOBILE APP - USER MANUAL UNIFORM JSON DATA
  * ============================================================================
  * This file serves as the database of content for the user manual.
  * It is written as a global javascript variable so that it can be loaded 
@@ -14,7 +14,7 @@
 window.MANUAL_DATA = {
   version: "1.0.7",
   buildNumber: "1",
-  brandName: "FSI COURIER",
+  brandName: "ITMS",
   logoPath: "../../assets/images/app_icon.png",
   
   // Document version history to support manual versioning

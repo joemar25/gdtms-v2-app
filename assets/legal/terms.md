@@ -1,13 +1,13 @@
 # Terms and Conditions
 
 **Effective Date:** April 2026
-**App:** FSI Courier — Fastrak Services Inc.
+**App:** ITMS — Fastrak Services Inc.
 
 ---
 
 ## 1. Acceptance of Terms
 
-By using the FSI Courier mobile application ("App"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree to these Terms, you must not use the App.
+By using the ITMS mobile application ("App"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree to these Terms, you must not use the App.
 
 ---
 

@@ -1,4 +1,4 @@
-# FSI Courier App
+# ITMS App
 
 Courier mobile application for dispatch, delivery updates (POD), wallet, and profile management.
 

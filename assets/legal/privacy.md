@@ -1,13 +1,13 @@
 # Privacy Policy
 
 **Effective Date:** April 2026
-**App:** FSI Courier — Fastrak Services Inc.
+**App:** ITMS — Fastrak Services Inc.
 
 ---
 
 ## 1. Introduction
 
-Fastrak Services Inc. ("FSI", "we", "us", or "our") is committed to protecting the privacy of our couriers. This Privacy Policy explains how we collect, use, and safeguard information when you use the FSI Courier mobile application ("App").
+Fastrak Services Inc. ("FSI", "we", "us", or "our") is committed to protecting the privacy of our couriers. This Privacy Policy explains how we collect, use, and safeguard information when you use the ITMS mobile application ("App").
 
 ---
 

@@ -20,7 +20,7 @@ import 'package:fsi_courier_app/core/config.dart';
 // Everything else in the app uses this enum — there are no other places to change.
 // =============================================================================
 
-/// All possible delivery statuses in the FSI Courier app.
+/// All possible delivery statuses in the ITMS app.
 ///
 /// Use [fromString] to parse API / SQLite values.
 /// Use [toApiString] / [toDbString] to serialise back to string for API calls

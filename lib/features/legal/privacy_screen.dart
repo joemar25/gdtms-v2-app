@@ -6,7 +6,7 @@
 // =============================================================================
 //
 // Purpose:
-//   Read-only viewer for the FSI Courier Privacy Policy.
+//   Read-only viewer for the ITMS Privacy Policy.
 //   Accessible from Profile → Legal section.
 //
 // Route: /privacy

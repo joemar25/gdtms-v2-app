@@ -1,5 +1,5 @@
 name: fsi_courier_app
-description: "FSI courier's application for deliveries."
+description: "ITMS's application for deliveries."
 publish_to: 'none'
 
 # ─── Versioning ───────────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ publish_to: 'none'
 #
 # This is the ONLY place to update the version — no dart-define, no config.dart.
 # ──────────────────────────────────────────────────────────────────────────────
-version: 1.0.10+1
+version: 1.0.11+1
 
 environment:
   sdk: ^3.9.0

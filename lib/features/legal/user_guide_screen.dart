@@ -6,7 +6,7 @@
 // =============================================================================
 //
 // Purpose:
-//   Read-only viewer for the FSI Courier User Guide manual.
+//   Read-only viewer for the ITMS User Guide manual.
 //   Accessible from Profile → Legal section.
 //
 // Route: /user-guide

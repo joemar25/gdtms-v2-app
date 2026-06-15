@@ -37,7 +37,7 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
           content: const Text(
-            'Allow "Install unknown apps" for FSI Courier in Settings first.',
+            'Allow "Install unknown apps" for ITMS in Settings first.',
           ),
           backgroundColor: DSColors.warning,
           behavior: SnackBarBehavior.floating,

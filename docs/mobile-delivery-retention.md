@@ -1,6 +1,6 @@
 # Mobile Delivery Retention Rules
 
-This document describes how deliveries are shown, hidden, and archived in the FSI Courier mobile app.
+This document describes how deliveries are shown, hidden, and archived in the ITMS mobile app.
 
 ---
 

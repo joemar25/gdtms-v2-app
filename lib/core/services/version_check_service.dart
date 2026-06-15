@@ -91,7 +91,7 @@ class VersionCheckService {
             style: DSTypography.body().copyWith(fontWeight: FontWeight.w700),
           ),
           content: const Text(
-            'A new version of the FSI Courier app is required. '
+            'A new version of the ITMS app is required. '
             'Please update to continue.',
           ),
           actions: [

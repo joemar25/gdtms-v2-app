@@ -1,7 +1,7 @@
 <!--
   MAINTENANCE NOTICE
   ══════════════════════════════════════════════════════════════════════════════
-  This is the documentation index for the FSI Courier mobile app.
+  This is the documentation index for the ITMS mobile app.
 
   STRICT RULE: Every time a new doc file is added under docs/, add it here.
   Every time a doc file is removed or renamed, update this index.

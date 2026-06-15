@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
-/// Singleton SQLite database instance for the FSI Courier app.
+/// Singleton SQLite database instance for the ITMS app.
 ///
 /// SQLite is used as a **temporary operational data store** only.
 /// The backend server remains the authoritative system.

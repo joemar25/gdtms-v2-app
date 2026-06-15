@@ -49,7 +49,7 @@ class UpdateScreen extends StatelessWidget {
           ),
           const SizedBox(height: DSSpacing.sm),
           Text(
-            'We have released a new version of the FSI Courier app with improvements and bug fixes.',
+            'We have released a new version of the ITMS app with improvements and bug fixes.',
             style: DSTypography.body(
               color: isDark
                   ? DSColors.labelSecondaryDark

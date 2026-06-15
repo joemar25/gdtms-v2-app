@@ -4,7 +4,7 @@
 > Last Updated: May 11, 2026  
 > Focus: Flutter / Dart Mobile Development
 
-**Quick Start:** For day-to-day development, refer to this document. It outlines the core architecture, rules, and best practices for the FSI Courier Mobile App.
+**Quick Start:** For day-to-day development, refer to this document. It outlines the core architecture, rules, and best practices for the ITMS Mobile App.
 
 ---
 

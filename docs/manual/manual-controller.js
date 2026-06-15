@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FSI COURIER MOBILE APP - USER MANUAL RENDERING CONTROLLER
+ * ITMS MOBILE APP - USER MANUAL RENDERING CONTROLLER
  * ============================================================================
  * This script reads the uniform JSON data from window.MANUAL_DATA and
  * dynamically renders the HTML UI layout, theme states, search functionality,

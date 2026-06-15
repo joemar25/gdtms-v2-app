@@ -1,6 +1,6 @@
-# FSI COURIER - USER GUIDE
+# ITMS - USER GUIDE
 
-This user guide helps you navigate and use the FSI Courier Mobile Application effectively. Follow the steps below for a smooth and successful delivery day.
+This user guide helps you navigate and use the ITMS Mobile Application effectively. Follow the steps below for a smooth and successful delivery day.
 
 ---
 

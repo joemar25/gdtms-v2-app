@@ -14,7 +14,8 @@
     "submit": "Isumite",
     "yes": "Oo",
     "no": "Hindi",
-    "field_required": "Kinakailangan ang field na ito."
+    "field_required": "Kinakailangan ang field na ito.",
+    "next": "Susunod"
   },
   "auth": {
     "login": "Mag-log In",
@@ -41,11 +42,13 @@
       "error_invalid_credentials": "Di-wastong numero ng telepono o password.",
       "error_no_connection": "Walang koneksyon. Pakisuri ang iyong internet.",
       "error_try_again_seconds": "Subukang muli sa loob ng {seconds} segundo.",
-      "error_login_failed": "Nabigo ang pag-login."
+      "error_login_failed": "Nabigo ang pag-login.",
+      "update_now": "I-update Ngayon",
+      "update_to_sign_in": "I-update para Makapag-sign In"
     }
   },
   "splash": {
-    "title": "FSI COURIER",
+    "title": "ITMS",
     "tagline": "SMART LOGISTICS • REAL-TIME DELIVERY",
     "feature": {
       "accept": "Tanggapin",
@@ -60,7 +63,8 @@
     "wallet": "Wallet",
     "profile": "Profile",
     "settings": "Mga Setting",
-    "notifications": "Mga Abiso"
+    "notifications": "Mga Abiso",
+    "bagsakan": "Bagsakan"
   },
   "notifications": {
     "unread_count": "{count} na hindi pa nababasang abiso",
@@ -106,7 +110,9 @@
       "dispatch_label": "SCAN DISPATCH",
       "dispatch_details": "I-scan ang dispatch barcode\nupang suriin ang pagiging karapat-dapat.",
       "pod_label": "SCAN POD",
-      "pod_details": "I-scan ang delivery barcode upang\nmahanap at mai-update ang POD."
+      "pod_details": "I-scan ang delivery barcode upang\nmahanap at mai-update ang POD.",
+      "dispatch_action": "DISPATCH",
+      "pod_action": "POD"
     },
     "search": {
       "placeholder": "Barcode, pangalan ng account…"
@@ -128,24 +134,24 @@
   },
   "profile": {
     "title": "Profile",
-    "preferences": "Mga Kagustuhan",
+    "preferences": {
+      "auto_accept": "Auto-Accept Dispatch",
+      "auto_accept_sub": "Awtomatikong tanggapin ang mga kwalipikadong dispatch",
+      "auto_accept_confirm_title": "I-enable ang Auto-Accept?",
+      "auto_accept_confirm_message": "Awtomatikong tatanggapin ng setting na ito ang dispatches para sa iyo.",
+      "compact_mode": "Compact Mode",
+      "compact_mode_sub": "Ipakita ang mas maraming deliveries sa listahan",
+      "dashboard_feel": "Bagong Feel Dashboard",
+      "dashboard_feel_sub": "I-enable ang modernong layout ng dashboard",
+      "retention_update_title": "I-update ang Sync Retention",
+      "retention_update_message": "Papaltan ng setting na ito kung gaano katagal maiimbak nang lokal ang kasaysayan.",
+      "settings_updated": "Na-update ang mga kagustuhan."
+    },
     "language": "Wika",
     "language_english": "Ingles",
     "language_filipino": "Filipino",
     "language_subtitle": "Piliin ang iyong gustong wika",
     "edit_profile": "I-edit ang Profile",
-    "account": "Account",
-    "privacy": "Privacy",
-    "help": "Tulong at Suporta",
-    "about": "Tungkol Sa",
-    "sections": {
-      "account": "Account",
-      "preferences": "Mga Kagustuhan",
-      "appearance": "Hitsura",
-      "device": "Device",
-      "legal": "Legal",
-      "diagnostics": "Diagnostics"
-    },
     "account": {
       "inactive_account": "Hindi aktibo ang iyong account. Makipag-ugnayan sa suporta para sa tulong.",
       "change_password": "Palitan ang Password",
@@ -161,18 +167,16 @@
       "force_sign_out": "Mag-sign Out Pa Rin",
       "wait": "Maghintay"
     },
-    "preferences": {
-      "auto_accept": "Auto-Accept Dispatch",
-      "auto_accept_sub": "Awtomatikong tanggapin ang mga kwalipikadong dispatch",
-      "auto_accept_confirm_title": "I-enable ang Auto-Accept?",
-      "auto_accept_confirm_message": "Awtomatikong tatanggapin ng setting na ito ang dispatches para sa iyo.",
-      "compact_mode": "Compact Mode",
-      "compact_mode_sub": "Ipakita ang mas maraming deliveries sa listahan",
-      "dashboard_feel": "Bagong Feel Dashboard",
-      "dashboard_feel_sub": "I-enable ang modernong layout ng dashboard",
-      "retention_update_title": "I-update ang Sync Retention",
-      "retention_update_message": "Papaltan ng setting na ito kung gaano katagal maiimbak nang lokal ang kasaysayan.",
-      "settings_updated": "Na-update ang mga kagustuhan."
+    "privacy": "Privacy",
+    "help": "Tulong at Suporta",
+    "about": "Tungkol Sa",
+    "sections": {
+      "account": "Account",
+      "preferences": "Mga Kagustuhan",
+      "appearance": "Hitsura",
+      "device": "Device",
+      "legal": "Legal",
+      "diagnostics": "Diagnostics"
     },
     "device": {
       "backend": "Backend",
@@ -189,7 +193,9 @@
       "terms": "Mga Tuntunin at Kundisyon",
       "terms_sub": "Basahin ang buong tuntunin at kundisyon",
       "privacy": "Patakaran sa Privacy",
-      "privacy_sub": "Tingnan ang aming patakaran sa privacy"
+      "privacy_sub": "Tingnan ang aming patakaran sa privacy",
+      "user_guide": "Gabay sa Paggamit",
+      "user_guide_sub": "Basahin ang gabay sa paggamit ng app"
     },
     "diagnostics": {
       "report_issue": "I-report ang Isyu",
@@ -259,7 +265,8 @@
       "deliveries_rundown": "Buod ng Mga Delivery",
       "load_more": "Mag-load pa",
       "request_lifecycle": "Buhay ng Request",
-      "payment_request_not_found": "Hindi matagpuan ang request ng bayad."
+      "payment_request_not_found": "Hindi matagpuan ang request ng bayad.",
+      "not_found": "Hindi nahanap ang kahilingan sa pagbabayad."
     },
     "history_row": {
       "completed": "Payout Nakumpleto",
@@ -310,7 +317,10 @@
     "photo": {
       "recovered_success": "Matagumpay na na-recover ang larawan mula sa camera.",
       "compression_failed": "Nabigong i-compress ang larawan: {error}",
-      "tap_to_capture": "PINDUTIN UPANG KUMUHA"
+      "tap_to_capture": "PINDUTIN UPANG KUMUHA",
+      "mailpack": "MAILPACK",
+      "pod": "POD",
+      "selfie": "SELFIE"
     },
     "photo_slot": {
       "tap_to_capture": "PINDUTIN UPANG KUMUHA"
@@ -388,7 +398,8 @@
       "remarks": "MGA PUNA",
       "transaction_date_pst": "PETSANG TRANSAKSYON (PHILIPPINE STANDARD TIME)",
       "geo_location": "GEO LOKASYON",
-      "tap_swipe_change_status": "Pindutin o i-swipe sa ibaba upang baguhin ang status"
+      "tap_swipe_change_status": "Pindutin o i-swipe sa ibaba upang baguhin ang status",
+      "select_relationship": "PUMILI NG RELASYON"
     },
     "hint": {
       "confirmation_code_example": "hal. AB1C2D",
@@ -397,7 +408,15 @@
     },
     "offline_banner": {
       "queued_online": "Naka-queue ang update—isasumite kapag online"
-    }
+    },
+    "datetime": {
+      "at": "sa",
+      "format": "MMMM d, yyyy 'sa' h:mm a"
+    },
+    "photo_recovered": {
+      "success": "Matagumpay na narekober ang nawalang larawan."
+    },
+    "title": "I-update ang Delivery"
   },
   "errors": {
     "network": "Walang koneksyon sa internet.",
@@ -452,7 +471,8 @@
       "locked_failed_verified": "Ang nabigong pagpapadalang ito ay na-verify na at hindi na maaaring aksyunan.",
       "profile_update_info": "Ang entry na ito ay isang profile update at walang mga detalye ng pagpapadala.",
       "retry_button": "SUBUKANG MULI",
-      "resolve_button": "I-RESOLVE"
+      "resolve_button": "I-RESOLVE",
+      "locked_misrouted": "Ang item na ito ay may markang Misrouted at hindi na maaaring buksan."
     },
     "empty": {
       "all_caught_up": "Lahat ay ayos na!",
@@ -466,7 +486,7 @@
   },
   "permissions": {
     "title": "Kinakailangang Permiso",
-    "subtitle": "Kailangan ng FSI Courier ang mga sumusunod na permiso para gumana nang maayos. Pakisubukang i-enable lahat para magpatuloy.",
+    "subtitle": "Kailangan ng ITMS ang mga sumusunod na permiso para gumana nang maayos. Pakisubukang i-enable lahat para magpatuloy.",
     "refresh": "Naka-enable na ang mga ito, i-refresh",
     "status_granted": "Pinahintulutan",
     "status_denied": "Kinakailangan para {reason}",
@@ -487,6 +507,10 @@
     "notifications": {
       "label": "Mga Abiso",
       "reason": "mga assignment sa dispatch at alerto sa delivery"
+    },
+    "install": {
+      "label": "I-install ang Hindi Kilalang Apps",
+      "reason": "mai-install ang mga self-update na na-download sa loob ng app"
     }
   },
   "empty_states": {
@@ -516,7 +540,9 @@
         "item_payment_title": "Proseso ng Pagbabayad",
         "item_payment_desc": "Ang mga nalamang tama ay maaaring isama sa payout request, depende sa pagsusuri. Hindi garantisado ang pagsasama.",
         "footer_note": "Sinisiguro nito na ang iyong mga bayad ay nasusubaybayan nang tama."
-      }
+      },
+      "misrouted": "Walang mga misrouted na item ngayong araw.",
+      "info_misrouted": "Ang mga misrouted na item ay pinal na at hindi na maaaring buksan."
     },
     "notifications": {
       "title": "Tapos na ang lahat",
@@ -525,6 +551,85 @@
     "error_logs": {
       "title": "Walang log na ipapakita",
       "subtitle": "Lalabas dito ang mga error at warning kapag nangyari ang mga ito."
+    }
+  },
+  "bagsakan": {
+    "title": "Bagsakan",
+    "empty_list": "Walang nahanap na mga Bagsakan group.",
+    "create": "Gumawa",
+    "create_group": "Gumawa ng Group",
+    "update_group": "I-update ang Group",
+    "edit": "I-edit",
+    "group_name": "Pangalan ng Group",
+    "group_name_hint": "Ilagay ang pangalan ng group",
+    "group_description": "Paglalarawan",
+    "group_description_hint": "Ilagay ang paglalarawan (opsyonal)",
+    "group_info_header": "Impormasyon ng Group",
+    "group_items_header": "Mga Item sa Group",
+    "new_items_header": "Mga Bagong Dagdag na Item",
+    "search_deliveries": "Maghanap ng mga Delivery",
+    "search_hint": "I-scan ang barcode o ilagay ang pangalan ng account",
+    "barcode": "Barcode",
+    "account_name": "Pangalan ng Account",
+    "search": "Maghanap",
+    "search_results_header": "Mga Resulta ng Paghahanap",
+    "add_all": "Idagdag Lahat",
+    "already_added": "Naidagdag na sa group na ito.",
+    "no_results": "Walang nahanap na mga resulta.",
+    "no_items": "Walang mga item sa group.",
+    "no_items_hint": "Maghanap at magdagdag ng mga delivery sa group na ito.",
+    "submit_button": "I-SUBMIT ANG BAGSAKAN",
+    "submit_confirm_title": "I-submit ang Bagsakan Group?",
+    "submit_confirm_confirm": "I-SUBMIT",
+    "submitted_locked_message": "Ang Bagsakan group na ito ay na-submit at naka-lock na.",
+    "success_created": "Matagumpay na nagawa ang Bagsakan group na \"{}\".",
+    "success_updated": "Matagumpay na na-update ang Bagsakan group na \"{}\".",
+    "success_deleted": "Matagumpay na nabura ang Bagsakan group na \"{}\".",
+    "success_submitted": "Matagumpay na na-submit ang Bagsakan group.",
+    "success_removed": "Tinanggal ang item na \"{}\" sa group.",
+    "delete_confirm_title": "Burahin ang Bagsakan Group?",
+    "delete_confirm_message": "Sigurado ka bang gusto mong burahin ang group na ito? Lahat ng item sa group ay babalik sa regular na deliveries.",
+    "delete_confirm_confirm": "BURAHIN",
+    "remove_confirm_title": "Tanggalin sa Bagsakan?",
+    "remove_confirm_message": "Sigurado ka bang gusto mong tanggalin ang item na \"{}\" sa group na ito?",
+    "propagation_help_title": "Paano Gumagana ang Bagsakan",
+    "propagation_help_subtitle": "Mga patakaran sa pagpapalaganap ng data",
+    "propagation_help_footer": "Pinapadali nito ang proseso ng pagpapasa para sa bulk dispatches.",
+    "propagation_item_source_title": "Pinagmulan ng Propagation",
+    "propagation_item_source_desc": "Pumili ng isang delivery mula sa group para i-update. Ang record na ito ang magsisilbing pinagmulan.",
+    "propagation_item_failed_title": "Tanggalin ang mga Failed na Item",
+    "propagation_item_failed_desc": "Ang mga failed delivery ay kailangang manu-manong tanggalin sa group bago mag-kumpirma.",
+    "propagation_item_sync_title": "Hindi Mababawing Pag-submit",
+    "propagation_item_sync_desc": "Kapag na-submit na, ang group ay mai-lock at ang data ay ipapalaganap sa lahat ng item.",
+    "status_draft": "DRAFT",
+    "status_submitted": "NAISUBMIT",
+    "status_unsync": "HINDI PA NAI-SYNC",
+    "group_card_items": "{} na item",
+    "timestamp_created": "Ginawa: {}",
+    "timestamp_submitted": "Isinumite: {}",
+    "timestamp_transaction": "Transaksyon: {}",
+    "edit_confirm_title": "I-edit ang Bagsakan Group?",
+    "edit_confirm_message": "Sigurado ka bang gusto mong i-edit ang group na ito? Papayagan ka nitong magdagdag o magtanggal ng mga delivery.",
+    "edit_locked_submitted": "Hindi maaaring i-edit ang isang naisumiteng group.",
+    "error_delete_failed": "Bigo sa pagbura ng group.",
+    "error_delete_submitted": "Hindi maaaring burahin ang isang naisumiteng group.",
+    "error_empty_items": "Mangyaring magdagdag ng kahit isang delivery.",
+    "error_empty_name": "Mangyaring maglagay ng pangalan ng group.",
+    "error_saving": "Error sa pag-save ng group: {}",
+    "not_found": "Hindi nahanap ang group.",
+    "tab_deliveries": "Mga Delivery",
+    "tab_info": "Impormasyon",
+    "success_added_bulk": "Matagumpay na naidagdag ang {} na item sa group."
+  },
+  "delivery_card": {
+    "details": {
+      "product": "Produkto",
+      "mail_type": "Uri ng Mail",
+      "sequence": "Pagkakasunod-sunod",
+      "special_instructions": "Espesyal na Tagubilin",
+      "transmittal_date": "Petsa ng Transmittal",
+      "tat": "TAT",
+      "other_information": "Iba pang Impormasyon"
     }
   }
 }

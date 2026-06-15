@@ -14,7 +14,8 @@
     "submit": "Submit",
     "yes": "Yes",
     "no": "No",
-    "field_required": "This field is required."
+    "field_required": "This field is required.",
+    "next": "Next"
   },
   "auth": {
     "login": "Log In",
@@ -41,11 +42,13 @@
       "error_invalid_credentials": "Invalid phone number or password.",
       "error_no_connection": "No connection. Please check your internet.",
       "error_try_again_seconds": "Try again in {seconds} seconds.",
-      "error_login_failed": "Login failed."
+      "error_login_failed": "Login failed.",
+      "update_now": "Update Now",
+      "update_to_sign_in": "Update to Sign In"
     }
   },
   "splash": {
-    "title": "FSI COURIER",
+    "title": "ITMS",
     "tagline": "SMART LOGISTICS • REAL-TIME DELIVERY",
     "feature": {
       "accept": "Accept",
@@ -60,7 +63,8 @@
     "wallet": "Wallet",
     "profile": "Profile",
     "settings": "Settings",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "bagsakan": "Bagsakan"
   },
   "notifications": {
     "unread_count": "{count} unread notifications",
@@ -130,24 +134,24 @@
   },
   "profile": {
     "title": "Profile",
-    "preferences": "Preferences",
+    "preferences": {
+      "auto_accept": "Auto-Accept Dispatch",
+      "auto_accept_sub": "Automatically accept eligible dispatches",
+      "auto_accept_confirm_title": "Enable Auto-Accept?",
+      "auto_accept_confirm_message": "Auto-accept will automatically accept dispatches on your behalf.",
+      "compact_mode": "Compact Mode",
+      "compact_mode_sub": "Show more deliveries in list view",
+      "dashboard_feel": "New Feel Dashboard",
+      "dashboard_feel_sub": "Enable a modern, premium dashboard layout",
+      "retention_update_title": "Update Sync Retention",
+      "retention_update_message": "Changing this setting will update how long history is kept locally.",
+      "settings_updated": "Preferences updated."
+    },
     "language": "Language",
     "language_english": "English",
     "language_filipino": "Filipino",
     "language_subtitle": "Choose your preferred language",
     "edit_profile": "Edit Profile",
-    "account": "Account",
-    "privacy": "Privacy",
-    "help": "Help & Support",
-    "about": "About",
-    "sections": {
-      "account": "Account",
-      "preferences": "Preferences",
-      "appearance": "Appearance",
-      "device": "Device",
-      "legal": "Legal",
-      "diagnostics": "Diagnostics"
-    },
     "account": {
       "inactive_account": "Your account is inactive. Contact support for help.",
       "change_password": "Change Password",
@@ -163,18 +167,16 @@
       "force_sign_out": "Sign Out Anyway",
       "wait": "Wait"
     },
-    "preferences": {
-      "auto_accept": "Auto-Accept Dispatch",
-      "auto_accept_sub": "Automatically accept eligible dispatches",
-      "auto_accept_confirm_title": "Enable Auto-Accept?",
-      "auto_accept_confirm_message": "Auto-accept will automatically accept dispatches on your behalf.",
-      "compact_mode": "Compact Mode",
-      "compact_mode_sub": "Show more deliveries in list view",
-      "dashboard_feel": "New Feel Dashboard",
-      "dashboard_feel_sub": "Enable a modern, premium dashboard layout",
-      "retention_update_title": "Update Sync Retention",
-      "retention_update_message": "Changing this setting will update how long history is kept locally.",
-      "settings_updated": "Preferences updated."
+    "privacy": "Privacy",
+    "help": "Help & Support",
+    "about": "About",
+    "sections": {
+      "account": "Account",
+      "preferences": "Preferences",
+      "appearance": "Appearance",
+      "device": "Device",
+      "legal": "Legal",
+      "diagnostics": "Diagnostics"
     },
     "device": {
       "backend": "Backend",
@@ -191,7 +193,9 @@
       "terms": "Terms & Conditions",
       "terms_sub": "Read the full terms and conditions",
       "privacy": "Privacy Policy",
-      "privacy_sub": "View our privacy policy"
+      "privacy_sub": "View our privacy policy",
+      "user_guide": "User Guide",
+      "user_guide_sub": "Read the app user guide"
     },
     "diagnostics": {
       "report_issue": "Report an Issue",
@@ -261,7 +265,8 @@
       "deliveries_rundown": "Deliveries Rundown",
       "load_more": "Load More",
       "request_lifecycle": "Request Lifecycle",
-      "payment_request_not_found": "Payment request not found."
+      "payment_request_not_found": "Payment request not found.",
+      "not_found": "Payment request not found."
     },
     "history_row": {
       "completed": "Payout Completed",
@@ -397,7 +402,8 @@
       "remarks": "REMARKS",
       "transaction_date_pst": "TRANSACTION DATE (PHILIPPINE STANDARD TIME)",
       "geo_location": "GEO LOCATION",
-      "tap_swipe_change_status": "Tap or Swipe below to change status"
+      "tap_swipe_change_status": "Tap or Swipe below to change status",
+      "select_relationship": "SELECT RELATIONSHIP"
     },
     "hint": {
       "confirmation_code_example": "e.g. AB1C2D",
@@ -465,7 +471,8 @@
       "locked_failed_verified": "This failed delivery has already been verified and is no longer actionable.",
       "profile_update_info": "This entry is a profile update and has no delivery details.",
       "retry_button": "RETRY",
-      "resolve_button": "RESOLVE"
+      "resolve_button": "RESOLVE",
+      "locked_misrouted": "This item is marked Misrouted and cannot be opened."
     },
     "empty": {
       "all_caught_up": "All caught up!",
@@ -479,7 +486,7 @@
   },
   "permissions": {
     "title": "Permissions Required",
-    "subtitle": "FSI Courier needs the following permissions to function properly. Please enable all of them to continue.",
+    "subtitle": "ITMS needs the following permissions to function properly. Please enable all of them to continue.",
     "refresh": "I have enabled them, refresh",
     "status_granted": "Granted",
     "status_denied": "Required to {reason}",
@@ -500,6 +507,10 @@
     "notifications": {
       "label": "Notifications",
       "reason": "dispatch assignments and delivery alerts"
+    },
+    "install": {
+      "label": "Install Unknown Apps",
+      "reason": "install self-updates downloaded within the app"
     }
   },
   "empty_states": {
@@ -529,7 +540,9 @@
         "item_payment_title": "Payment Processing",
         "item_payment_desc": "Validated items may be included in a payment request, subject to review and existing payment processes. Inclusion is not guaranteed.",
         "footer_note": "This ensures your payments are tracked accurately without manual intervention."
-      }
+      },
+      "misrouted": "No misrouted items today.",
+      "info_misrouted": "Misrouted items are final and can't be reopened."
     },
     "notifications": {
       "title": "All caught up",
@@ -538,6 +551,85 @@
     "error_logs": {
       "title": "No logs to show",
       "subtitle": "Errors and warnings will appear here when they occur."
+    }
+  },
+  "bagsakan": {
+    "title": "Bagsakan",
+    "empty_list": "No Bagsakan groups found.",
+    "create": "Create",
+    "create_group": "Create Group",
+    "update_group": "Update Group",
+    "edit": "Edit",
+    "group_name": "Group Name",
+    "group_name_hint": "Enter group name",
+    "group_description": "Description",
+    "group_description_hint": "Enter description (optional)",
+    "group_info_header": "Group Information",
+    "group_items_header": "Group Items",
+    "new_items_header": "Newly Added Items",
+    "search_deliveries": "Search Deliveries",
+    "search_hint": "Scan barcode or enter account name",
+    "barcode": "Barcode",
+    "account_name": "Account Name",
+    "search": "Search",
+    "search_results_header": "Search Results",
+    "add_all": "Add All",
+    "already_added": "Already added to this group.",
+    "no_results": "No results found.",
+    "no_items": "No items in group.",
+    "no_items_hint": "Search and add deliveries to this group.",
+    "submit_button": "SUBMIT BAGSAKAN",
+    "submit_confirm_title": "Submit Bagsakan Group?",
+    "submit_confirm_confirm": "SUBMIT",
+    "submitted_locked_message": "This Bagsakan group is submitted and locked.",
+    "success_created": "Bagsakan group \"{}\" created successfully.",
+    "success_updated": "Bagsakan group \"{}\" updated successfully.",
+    "success_deleted": "Bagsakan group \"{}\" deleted successfully.",
+    "success_submitted": "Bagsakan group submitted successfully.",
+    "success_removed": "Item \"{}\" removed from group.",
+    "delete_confirm_title": "Delete Bagsakan Group?",
+    "delete_confirm_message": "Are you sure you want to delete this group? All group items will revert to regular deliveries.",
+    "delete_confirm_confirm": "DELETE",
+    "remove_confirm_title": "Remove from Bagsakan?",
+    "remove_confirm_message": "Are you sure you want to remove item \"{}\" from this group?",
+    "propagation_help_title": "How Bagsakan Works",
+    "propagation_help_subtitle": "Data propagation rules",
+    "propagation_help_footer": "This simplifies the handoff process for bulk dispatches.",
+    "propagation_item_source_title": "Propagation Source",
+    "propagation_item_source_desc": "Select one delivery from the group to update. This record will serve as the source.",
+    "propagation_item_failed_title": "Remove Failed Items",
+    "propagation_item_failed_desc": "Failed deliveries must be manually removed from the group before confirming.",
+    "propagation_item_sync_title": "Irreversible Submission",
+    "propagation_item_sync_desc": "Once submitted, the group is locked and data is propagated to all items.",
+    "status_draft": "DRAFT",
+    "status_submitted": "SUBMITTED",
+    "status_unsync": "UNSYNCED",
+    "group_card_items": "{} items",
+    "timestamp_created": "Created: {}",
+    "timestamp_submitted": "Submitted: {}",
+    "timestamp_transaction": "Transaction: {}",
+    "edit_confirm_title": "Edit Bagsakan Group?",
+    "edit_confirm_message": "Are you sure you want to edit this group? This will allow you to add or remove deliveries.",
+    "edit_locked_submitted": "Cannot edit a submitted group.",
+    "error_delete_failed": "Failed to delete group.",
+    "error_delete_submitted": "Cannot delete a submitted group.",
+    "error_empty_items": "Please add at least one delivery.",
+    "error_empty_name": "Please enter a group name.",
+    "error_saving": "Error saving group: {}",
+    "not_found": "Group not found.",
+    "tab_deliveries": "Deliveries",
+    "tab_info": "Info",
+    "success_added_bulk": "Successfully added {} items to group."
+  },
+  "delivery_card": {
+    "details": {
+      "product": "Product",
+      "mail_type": "Mail Type",
+      "sequence": "Sequence",
+      "special_instructions": "Special Instructions",
+      "transmittal_date": "Transmittal Date",
+      "tat": "TAT",
+      "other_information": "Other Information"
     }
   }
 }

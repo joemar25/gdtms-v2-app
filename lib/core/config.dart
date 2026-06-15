@@ -13,14 +13,14 @@ import 'package:flutter/foundation.dart';
 /// - Prod:  flutter build apk --release --dart-define-from-file=dart_defines.json
 /// - Playstore: flutter build appbundle --release --dart-define-from-file=dart_defines.json --tree-shake-icons --obfuscate --split-debug-info=build/app/outputs/symbols
 // ─────────────────────────────────────────────────────────────────────────────
-//  FSI Courier App Configuration
+//  ITMS App Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Device name for identification.
 const String deviceName = 'Mobile App';
 
 /// Application display name.
-const String appName = 'FSI Courier';
+const String appName = 'ITMS';
 
 /// Android/iOS package identifier.
 const String packageId = 'com.fsi.courier';

@@ -250,7 +250,7 @@ Future<void> showDeliveryAccountDetails(
   Future<void> onPhoneTap(String phone, String targetName) async {
     final template =
         'Hi $targetName! '
-        "I'm your FSI courier "
+        "I'm your ITMS "
         '${barcode.isNotEmpty ? 'with tracking number $barcode' : 'with your delivery'}. '
         'Please be ready or contact me for re-scheduling. Thank you!';
     await showContactAppSheet(context, phone, messageTemplate: template);
