@@ -261,60 +261,69 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   DSSpacing.hXl,
 
                   // ── Courier Code ───────────────────────────────────
-                  // Only visible in Debug mode (completely removed in Production)
-                  if (kDebugMode || _isDeveloperMode) ...[
-                    // Label changes dynamically based on authenticatedMode
-                    _fieldLabel(
-                      context,
-                      isDark,
-                      widget.authenticatedMode
-                          ? 'Courier Code (${kDebugMode ? 'Debug' : 'Dev'})'
-                          : 'Courier Code',
-                    ),
-                    DSSpacing.hSm,
-
+                  // Label changes dynamically based on authenticatedMode
+                  _fieldLabel(
+                    context,
+                    isDark,
                     widget.authenticatedMode
-                        ? TextField(
-                            controller: _code,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              hintText: 'Your courier code',
-                              prefixIcon: const Icon(
-                                Icons.badge_outlined,
-                                size: DSIconSize.md,
-                              ),
-                              errorText: _errors['courier_code'],
-                              filled: true,
-                              fillColor: isDark
-                                  ? DSColors.secondarySurfaceDark
-                                  : DSColors.secondarySurfaceLight,
-                              suffixIcon: Icon(
-                                Icons.lock_outline,
-                                size: DSIconSize.sm,
-                                color: isDark
-                                    ? DSColors.labelTertiaryDark
-                                    : DSColors.labelTertiary,
-                              ),
+                        ? (kDebugMode || _isDeveloperMode
+                            ? 'Courier Code (${kDebugMode ? 'Debug' : 'Dev'})'
+                            : 'Courier Code')
+                        : 'Courier Code',
+                  ).dsFadeEntry(
+                    delay: DSAnimations.stagger(
+                      3,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
+                  DSSpacing.hSm,
+
+                  (widget.authenticatedMode
+                      ? TextField(
+                          controller: _code,
+                          readOnly: true,
+                          decoration: InputDecoration(
+                            hintText: 'Your courier code',
+                            prefixIcon: const Icon(
+                              Icons.badge_outlined,
+                              size: DSIconSize.md,
                             ),
-                          )
-                        : TextField(
-                            controller: _code,
-                            readOnly:
-                                false, // Editable input when not authenticated
-                            decoration: InputDecoration(
-                              hintText: 'Your courier code',
-                              prefixIcon: const Icon(
-                                Icons.badge_outlined,
-                                size: DSIconSize.md,
-                              ),
-                              errorText: _errors['courier_code'],
-                              filled: false,
-                              suffixIcon: null,
+                            errorText: _errors['courier_code'],
+                            filled: true,
+                            fillColor: isDark
+                                ? DSColors.secondarySurfaceDark
+                                : DSColors.secondarySurfaceLight,
+                            suffixIcon: Icon(
+                              Icons.lock_outline,
+                              size: DSIconSize.sm,
+                              color: isDark
+                                  ? DSColors.labelTertiaryDark
+                                  : DSColors.labelTertiary,
                             ),
                           ),
+                        )
+                      : TextField(
+                          controller: _code,
+                          readOnly:
+                              false, // Editable input when not authenticated
+                          decoration: InputDecoration(
+                            hintText: 'Your courier code',
+                            prefixIcon: const Icon(
+                              Icons.badge_outlined,
+                              size: DSIconSize.md,
+                            ),
+                            errorText: _errors['courier_code'],
+                            filled: false,
+                            suffixIcon: null,
+                          ),
+                        )).dsFieldEntry(
+                    delay: DSAnimations.stagger(
+                      4,
+                      step: DSAnimations.staggerNormal,
+                    ),
+                  ),
 
-                    DSSpacing.hMd,
-                  ],
+                  DSSpacing.hMd,
 
                   // ── Current Password (auth mode only) ──────────────
                   if (widget.authenticatedMode) ...[
@@ -344,10 +353,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       ),
                     ).dsFieldEntry(
                       delay: DSAnimations.stagger(
-                        widget.authenticatedMode &&
-                                (kDebugMode || _isDeveloperMode)
-                            ? 6
-                            : 4,
+                        5,
                         step: DSAnimations.staggerNormal,
                       ),
                     ),
@@ -357,9 +363,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   // ── New Password ───────────────────────────────────
                   _fieldLabel(context, isDark, 'New Password').dsFadeEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode
-                          ? (kDebugMode || _isDeveloperMode ? 7 : 5)
-                          : 3,
+                      widget.authenticatedMode ? 6 : 5,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),
@@ -387,9 +391,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                   ).dsFieldEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode
-                          ? (kDebugMode || _isDeveloperMode ? 8 : 6)
-                          : 4,
+                      widget.authenticatedMode ? 7 : 6,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),
@@ -402,9 +404,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     'Confirm New Password',
                   ).dsFadeEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode
-                          ? (kDebugMode || _isDeveloperMode ? 9 : 7)
-                          : 5,
+                      widget.authenticatedMode ? 8 : 7,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),
@@ -432,9 +432,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                   ).dsFieldEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode
-                          ? (kDebugMode || _isDeveloperMode ? 10 : 8)
-                          : 6,
+                      widget.authenticatedMode ? 9 : 8,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),
@@ -458,9 +456,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                   ).dsCtaEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode
-                          ? (kDebugMode || _isDeveloperMode ? 11 : 9)
-                          : 7,
+                      widget.authenticatedMode ? 10 : 9,
                       step: DSAnimations.staggerNormal,
                     ),
                   ),
