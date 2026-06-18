@@ -259,6 +259,10 @@ class EarningsCard extends StatelessWidget {
                                     ],
                                   ),
                                 ),
+                                // A pending request can only be CONSOLIDATED into
+                                // while it is still open (status == PENDING). Once
+                                // it is OPS/HR-approved it is closed, so new eligible
+                                // deliveries must start a NEW request instead.
                                 if (canConsolidate && onConsolidate != null)
                                   Flexible(
                                     child: ElevatedButton.icon(
@@ -269,6 +273,34 @@ class EarningsCard extends StatelessWidget {
                                       ),
                                       label: Text(
                                         'wallet.card.consolidate'.tr(),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: DSColors.white,
+                                        foregroundColor: DSColors.primary,
+                                        elevation: 0,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: DSSpacing.md,
+                                          vertical: DSSpacing.sm,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: DSStyles.cardRadius,
+                                        ),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
+                                  )
+                                else if (canRequest && onRequest != null)
+                                  Flexible(
+                                    child: ElevatedButton.icon(
+                                      onPressed: onRequest,
+                                      icon: const Icon(
+                                        Icons.payments_rounded,
+                                        size: 18,
+                                      ),
+                                      label: Text(
+                                        'wallet.screen.request_payout'.tr(),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),

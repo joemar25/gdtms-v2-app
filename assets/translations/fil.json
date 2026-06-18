@@ -250,6 +250,7 @@
       "try_again": "Subukan Muli",
       "existing_request_details": "Nakapag-submit ka na ng payout request ngayon. Pinapayagan ang isang request kada araw lamang. Ang mga karapat-dapat mong delivery ay awtomatikong isasama sa request bukas kung susumite ka muli.",
       "pending_request_warning": "Mayroon kang naka-pending na payout request. Ang pagsusumite ng isa pa ay pagsasamahin ang lahat ng karapat-dapat na delivery sa isang consolidated na payout.",
+      "pending_request_warning_ref": "Mayroon kang naka-pending na payout request ({reference}). Ang pagsusumite ay pagsasamahin ang lahat ng karapat-dapat na delivery sa parehong request na iyon.",
       "existing_request_today_notice": "Nakapag-submit ka na ng request ngayon.",
       "no_eligible_deliveries": "Walang karapat-dapat na delivery para sa payout."
     },

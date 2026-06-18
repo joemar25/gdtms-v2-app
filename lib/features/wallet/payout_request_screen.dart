@@ -241,6 +241,16 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
       setState(
         () => _error = firstError ?? result.message ?? 'errors.not_found'.tr(),
       );
+    } else if (result is ApiBadRequest<Map<String, dynamic>>) {
+      // The payout API returns HTTP 400 for every business-rule failure
+      // (already submitted today, no completed deliveries, nothing eligible).
+      // Surface the server's own message so the courier sees the real reason
+      // instead of a generic failure.
+      setState(
+        () => _error = result.message.isNotEmpty
+            ? result.message
+            : 'wallet.request.already_submitted_today'.tr(),
+      );
     } else if (result is ApiConflict<Map<String, dynamic>>) {
       setState(
         () => _error = result.message.isNotEmpty
@@ -443,6 +453,10 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     final dailyBreakdown = _normalisedBreakdown(
       (preview['daily_breakdown'] as List?)?.cast<Map<String, dynamic>>() ?? [],
     );
+    // Reference of the open pending request this submission will consolidate into,
+    // when the server exposes it. Lets us name the target instead of guessing.
+    final existingRequest = preview['existing_request'] as Map<String, dynamic>?;
+    final existingRef = existingRequest?['reference']?.toString();
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
     return ListView(
@@ -472,7 +486,11 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
                   child: Text(
                     preview['has_existing_request_today'] == true
                         ? 'wallet.request.existing_request_details'.tr()
-                        : 'wallet.request.pending_request_warning'.tr(),
+                        : (existingRef != null && existingRef.isNotEmpty
+                              ? 'wallet.request.pending_request_warning_ref'.tr(
+                                  namedArgs: {'reference': existingRef},
+                                )
+                              : 'wallet.request.pending_request_warning'.tr()),
                     style: DSTypography.caption(color: DSColors.warning)
                         .copyWith(
                           fontSize: DSTypography.sizeMd,

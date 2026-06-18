@@ -47,6 +47,15 @@
 
 Controlled by `PaginationBar`. Page size is defined in `constants.dart`. Changing page size must not break existing scroll position.
 
+### Screenshot protection
+
+The list body is wrapped in `_ConditionalSecureView(secure: !_isDelivered, …)`:
+
+- **All statuses except `DELIVERED`** are wrapped in `SecureView`, which enables OS-level screenshot/screen-recording protection (`screen_protector`).
+- **The `DELIVERED` list opts out** (`secure: false`) so couriers can capture proof of delivery. This is safe because delivered cards expose **no recipient account name** — only the barcode, transaction ID/date, and product. (`_isDelivered` returns `widget.status.toUpperCase() == kStatusDelivered`.)
+
+Protection is still globally bypassable via developer mode (`SecureViewManager.setDeveloperModeOverride`) and the `kSecureScreenshots` config flag. The detail and update screens for a delivered item remain screenshot-protected — only the list view is relaxed.
+
 ### Scan Actions
 
 The header in `DeliveryStatusListScreen` for both `FOR_DELIVERY` and `FAILED_DELIVERY` must use **Scan POD** mode.

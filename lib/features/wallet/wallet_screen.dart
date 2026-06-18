@@ -253,9 +253,21 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
     final pendingRequestAmt = isLatestPending ? (latest['amount'] ?? 0) : 0;
 
-    // Use has_existing_request_today from the latest API preview if available
+    // Authoritative once-per-day flag from the server (excludes OPS/HR-rejected
+    // requests, keyed on created_at). Falls back to the client heuristic in
+    // [_applyDynamicFlags] only for legacy/offline payloads that lack the field.
     final hasExistingRequestToday = _data['has_existing_request_today'] == true;
-    final canRequestPayout = !isLatestPending && !hasExistingRequestToday;
+
+    // Consolidation is ONLY possible into a still-open PENDING request. The backend
+    // (PaymentManagementService::createPaymentRequestByDateRange) consolidates only
+    // when status == PENDING && ops_status != REJECTED; OPS/HR-approved, rejected
+    // and paid requests are closed and must start a NEW reference instead.
+    final isConsolidatable = latestStatus == 'PENDING';
+
+    // A new request is offered whenever we are NOT in the consolidatable pending
+    // state and the courier has not already submitted a fresh request today. The
+    // once-per-day limit only applies to NEW references — never to consolidation.
+    final canRequestPayout = !isConsolidatable && !hasExistingRequestToday;
 
     ref.listen<int>(walletRefreshProvider, (_, _) => _load());
     ref.listen<int>(deliveryRefreshProvider, (_, _) => _load());
@@ -360,10 +372,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           showPending: isOnline,
                           paymentMethod: _paymentMethod,
                           canConsolidate:
-                              isOnline &&
-                              isLatestPending &&
-                              _eligible > 0 &&
-                              !hasExistingRequestToday,
+                              isOnline && isConsolidatable && _eligible > 0,
                           canRequest: canRequestPayout && isOnline,
                           onConsolidate: () =>
                               context.push('/wallet/request?consolidate=1'),
@@ -414,6 +423,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   // ─── MARK: Logic ───────────────────────────────────────────────────────────
 
   void _applyDynamicFlags(Map<String, dynamic> data) {
+    // The server now returns an authoritative has_existing_request_today
+    // (excludes OPS/HR-rejected requests, keyed on the request's created_at).
+    // Trust it when present and skip the heuristic entirely.
+    if (data['has_existing_request_today'] is bool) return;
+
+    // Legacy/offline fallback: infer from the latest request for older cached
+    // payloads (or a pre-rollout backend) that don't carry the field. Note this
+    // keys on requested_at, which consolidation re-stamps, so it can be slightly
+    // conservative — acceptable as a transient fallback only.
     final latestRequest = data['latest_request'] as Map<String, dynamic>?;
     final requestedAt = latestRequest?['requested_at']?.toString() ?? '';
 

@@ -250,6 +250,7 @@
       "try_again": "Try Again",
       "existing_request_details": "You've already submitted a payout request today. Only one request per day is allowed. Your eligible deliveries will automatically be included in tomorrow's request if you submit again.",
       "pending_request_warning": "You have a pending payout request. Submitting another will combine all eligible deliveries into a single consolidated payout.",
+      "pending_request_warning_ref": "You have a pending payout request ({reference}). Submitting will merge all eligible deliveries into that same request.",
       "existing_request_today_notice": "You have already submitted a request today.",
       "no_eligible_deliveries": "No eligible deliveries found for payout."
     },
