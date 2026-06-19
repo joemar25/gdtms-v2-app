@@ -39,8 +39,8 @@ raw strings against status values in app code — use the enum.
 | ---------------- | ---------------- | --------------- | ------------------------------------------------------- |
 | `pending`        | `PENDING`        | Pending         | Also parsed from `FOR_DELIVERY`                         |
 | `delivered`      | `DELIVERED`      | Delivered       |                                                         |
-| `failedDelivery` | `FAILED_DELIVERY` | Failed Delivery | Previously `RTS` before v3.0 |
-| `osa`            | `OSA`            | Misrouted       | Out for Shipment Again — package misrouted, being resent |
+| `failedDelivery` | `FAILED_DELIVERY` | Failed Delivery | Previously `RTS` before v3.0. Legacy `OSA` is also parsed into this value |
+| `misrouted`      | `MISROUTED`      | Misrouted       | Package misrouted and being resent. Replaces the removed `osa` enum |
 | `unknown`        | *(empty string)* | —               | Fallback for any unrecognised API value                 |
 
 Any status string not in this table (`DISPATCHED`, `FAILED_ATTEMPT`, `ROLL-BACK`, `LOST`,

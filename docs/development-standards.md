@@ -160,13 +160,23 @@ Automated tests are your safety net. You must run `flutter test` before every co
 
 ### 10 — The Trinity of Code Health (Pre-Commit Checklist)
 
-Before every commit, you **MUST** run these three commands in order:
+> ✅ **ALWAYS run all three, every time, before every commit — no exceptions.**
+> `dart format` → `flutter analyze` → `flutter test`. Ship clean or don't ship.
 
-1. `flutter analyze` — Catch static errors and lint warnings.
-2. `flutter test` — Verify logic and prevent regressions. **(flutter test --reporter json > test_results.json)**
-3. `dart format .` — Keep the codebase clean and consistent.
+Run these three commands, in this order, after **any** code change:
 
-Failure to do so is a violation of the development standards.
+```bash
+dart format .        # 1. Format — enforce canonical Dart style, zero unformatted files
+flutter analyze      # 2. Analyze — zero warnings, zero errors, zero lint violations
+flutter test         # 3. Test — confirm no regressions; every change ships with a test
+```
+
+- **Format first** so the analyzer and diff see the final canonical layout.
+- **Analyze second** so you fix static issues before spending time on the test run.
+- **Test last** as the final gate. For CI artifacts: `flutter test --reporter json > test_results.json`.
+
+All three must be green before you commit, push, or open a PR. Failure to run them is a
+violation of the development standards. This is a hard gate, not a suggestion.
 
 ---
 
@@ -307,6 +317,7 @@ Every PR that adds or modifies behavior **must** include at least one new or upd
 | New widget with conditional rendering | Widget test for each display branch |
 | Business-logic guard (offline check, time window, etc.) | Unit test for each case (true / false / edge) |
 | New enum with UI mapping | Test that every enum value maps to a distinct UI output |
+| New / renamed / removed route (page) | Update `test/shared/router/route_integrity_test.dart` — every page must be registered, reachable, and every `context.push`/`context.go` target must resolve to a route |
 | Bug fix | Regression test that reproduces the bug and confirms the fix |
 | Translation key added | Ensure the key is present in both `en.json` and `fil.json` (manual checklist or golden test) |
 

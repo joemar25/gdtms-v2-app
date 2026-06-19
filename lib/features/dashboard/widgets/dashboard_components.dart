@@ -31,7 +31,7 @@ class DashboardDefault extends StatelessWidget {
     final pendingDeliveries = (summary['pending_deliveries'] ?? 0) as int;
     final deliveredToday = (summary['delivered_today'] ?? 0) as int;
     final failedDelivery = (summary['failed_delivery'] ?? 0) as int;
-    final osa = (summary['osa'] ?? 0) as int;
+    final misrouted = (summary['misrouted'] ?? 0) as int;
     final pendingSync = (summary['pending_sync'] ?? 0) as int;
     final syncedTotal = (summary['synced_total'] ?? 0) as int;
 
@@ -109,14 +109,14 @@ class DashboardDefault extends StatelessWidget {
             Expanded(
               child: StatCard(
                 label: 'dashboard.stats.misrouted_label'.tr(),
-                count: '$osa',
+                count: '$misrouted',
                 icon: Icons.lock_outline_rounded,
                 color: isDark
                     ? DSColors.labelSecondaryDark
                     : DSColors.labelSecondary,
                 minHeight: 140,
-                onTap: () => context.push('/osa'),
-                subdued: osa == 0,
+                onTap: () => context.push('/misrouted'),
+                subdued: misrouted == 0,
                 details: 'dashboard.stats.misrouted_details'.tr(),
               ).dsCardEntry(delay: DSAnimations.stagger(4)),
             ),
@@ -287,10 +287,10 @@ class DashboardOverview extends StatelessWidget {
         DSSpacing.hMd,
         StatCard(
           label: 'dashboard.stats.misrouted_label'.tr(),
-          count: '${summary['osa'] ?? 0}',
+          count: '${summary['misrouted'] ?? 0}',
           icon: Icons.location_on_rounded,
           color: DSColors.warning,
-          onTap: () => context.push('/osa'),
+          onTap: () => context.push('/misrouted'),
         ),
       ],
     );
