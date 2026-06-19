@@ -9,7 +9,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fsi_courier_app/design_system/widgets/molecules/ds_secure_view.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
+import 'package:fsi_courier_app/shared/helpers/contact_launch_uri.dart';
 
 Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
@@ -84,5 +86,77 @@ void main() {
         );
       },
     );
+  });
+
+  group('delivery account contact message', () {
+    const barcode = 'FSIEE586361';
+
+    test('recipient contact uses recipient name in message', () {
+      final greeting = resolveContactGreetingName(
+        targetName: 'ROMEO CRIZALDO LANUZA',
+        recipientName: 'ROMEO CRIZALDO LANUZA',
+      );
+      final message = buildDeliveryContactMessage(
+        recipientName: greeting,
+        barcode: barcode,
+      );
+
+      expect(message, contains('Hi ROMEO CRIZALDO LANUZA,'));
+      expect(message, contains('FSIEE586361'));
+    });
+
+    test('auth rep contact uses auth rep name in message', () {
+      final greeting = resolveContactGreetingName(
+        targetName: 'MA ELIZA CRIZALDO LANUZA',
+        recipientName: 'ROMEO CRIZALDO LANUZA',
+      );
+      final message = buildDeliveryContactMessage(
+        recipientName: greeting,
+        barcode: barcode,
+      );
+
+      expect(message, contains('Hi MA ELIZA CRIZALDO LANUZA,'));
+      expect(message, isNot(contains('Hi ROMEO CRIZALDO LANUZA,')));
+    });
+
+    testWidgets('account details sheet shows recipient and auth rep numbers', (
+      tester,
+    ) async {
+      SecureViewManager.setDeveloperModeOverride(true);
+      addTearDown(() => SecureViewManager.setDeveloperModeOverride(false));
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final delivery = {
+        'recipient_name': 'ROMEO CRIZALDO LANUZA',
+        'recipient_address': 'BLK 10 LOT 5 GRANDSTRIKEVILLE 4',
+        'contact': '+639609206186',
+        'authorized_rep': 'MA ELIZA CRIZALDO LANUZA',
+        'contact_rep': '+639355349832',
+      };
+
+      await tester.pumpWidget(
+        _wrap(
+          Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () =>
+                  showDeliveryAccountDetails(context, delivery, barcode),
+              child: const Text('Details'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Details'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ACCOUNT DETAILS'), findsOneWidget);
+      expect(find.text('+639609206186'), findsOneWidget);
+      expect(find.text('+639355349832'), findsOneWidget);
+      expect(find.text('ROMEO CRIZALDO LANUZA'), findsOneWidget);
+      expect(find.text('MA ELIZA CRIZALDO LANUZA'), findsOneWidget);
+    });
   });
 }

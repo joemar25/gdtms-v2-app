@@ -2326,7 +2326,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n    \"success\": false,\n    \"message\": \"Failed to retrieve wallet summary\",\n    \"error_code\": \"WALLET_ERROR\"\n}"
+              "body": "{\n    \"success\": false,\n    \"message\": \"Failed to retrieve wallet summary\",\n    \"data\": null,\n    \"code\": \"WALLET_ERROR\"\n}"
             }
           ]
         },
@@ -2397,7 +2397,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n    \"success\": false,\n    \"message\": \"Payment request not found.\",\n    \"error_code\": \"WALLET_NOT_FOUND\"\n}"
+              "body": "{\n    \"success\": false,\n    \"message\": \"Payment request not found.\",\n    \"data\": null,\n    \"code\": \"WALLET_NOT_FOUND\"\n}"
             },
             {
               "name": "500 - Wallet Detail Error",
@@ -2410,7 +2410,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n    \"success\": false,\n    \"message\": \"Failed to retrieve payment request\",\n    \"error_code\": \"WALLET_ERROR\"\n}"
+              "body": "{\n    \"success\": false,\n    \"message\": \"Failed to retrieve payment request\",\n    \"data\": null,\n    \"code\": \"WALLET_ERROR\"\n}"
             }
           ]
         }

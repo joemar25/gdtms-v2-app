@@ -267,7 +267,9 @@
       "load_more": "Mag-load pa",
       "request_lifecycle": "Buhay ng Request",
       "payment_request_not_found": "Hindi matagpuan ang request ng bayad.",
-      "not_found": "Hindi nahanap ang kahilingan sa pagbabayad."
+      "not_found": "Hindi nahanap ang kahilingan sa pagbabayad.",
+      "load_error": "Hindi namin ma-load ang payout na ito sa ngayon.",
+      "retry": "Subukan Muli"
     },
     "history_row": {
       "completed": "Payout Nakumpleto",

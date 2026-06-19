@@ -223,6 +223,8 @@
       "tap_to_reveal": "Tap to reveal breakdown",
       "breakdown_details": "Breakdown Details",
       "not_found": "Payment request not found.",
+      "load_error": "We couldn't load this payout right now.",
+      "retry": "Try Again",
       "view_history": "View History",
       "request_lifecycle": "Request Lifecycle",
       "load_more": "Load more days",

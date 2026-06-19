@@ -7,7 +7,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_other_info.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
-import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
+import 'package:fsi_courier_app/shared/helpers/contact_launch_uri.dart';
+import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart'
+    hide buildDeliveryContactMessage;
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─── Theme-aware field decoration ───────────────────────────────────────────
@@ -248,12 +250,18 @@ Future<void> showDeliveryAccountDetails(
   }
 
   Future<void> onPhoneTap(String phone, String targetName) async {
-    final template =
-        'Hi $targetName! '
-        "I'm your ITMS "
-        '${barcode.isNotEmpty ? 'with tracking number $barcode' : 'with your delivery'}. '
-        'Please be ready or contact me for re-scheduling. Thank you!';
-    await showContactAppSheet(context, phone, messageTemplate: template);
+    final greetingName = resolveContactGreetingName(
+      targetName: targetName,
+      recipientName: name,
+    );
+    await showContactAppSheet(
+      context,
+      phone,
+      messageTemplate: buildDeliveryContactMessage(
+        recipientName: greetingName,
+        barcode: barcode,
+      ),
+    );
   }
 
   if (!context.mounted) return;
@@ -393,7 +401,7 @@ Future<void> showDeliveryAccountDetails(
                                 value: cleanContact,
                                 onTap: () => onPhoneTap(
                                   cleanContact,
-                                  isAuthRepNum ? effectiveAuthRepName : name,
+                                  isAuthRepNum ? authRepName : name,
                                 ),
                                 onLongPress: () => copyToClipboard(
                                   cleanContact,
@@ -419,7 +427,7 @@ Future<void> showDeliveryAccountDetails(
                               value: authRepNumber,
                               onTap: () => onPhoneTap(
                                 authRepNumber,
-                                effectiveAuthRepName,
+                                authRepName,
                               ),
                               onLongPress: () => copyToClipboard(
                                 authRepNumber,

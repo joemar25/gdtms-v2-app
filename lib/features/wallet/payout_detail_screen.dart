@@ -14,6 +14,7 @@ import 'package:fsi_courier_app/utils/formatters.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/deliveries_rundown_card.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/payout_history_sheet.dart';
 import 'package:fsi_courier_app/features/wallet/widgets/payout_detail_components.dart';
+import 'package:fsi_courier_app/features/wallet/payout_detail_load_outcome.dart';
 
 /// Detailed view of a specific payout request.
 ///
@@ -31,7 +32,16 @@ class PayoutDetailScreen extends ConsumerStatefulWidget {
 class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
   bool _loading = true;
   Map<String, dynamic> _data = {};
+
+  /// Terminal "this payout does not exist" state (HTTP 404 / WALLET_NOT_FOUND).
+  /// No retry — the record is genuinely gone.
   String? _notFound;
+
+  /// Transient, retryable failure (HTTP 500 / WALLET_ERROR, network, etc.).
+  /// A courier tapping a rejected-payout notification used to land here on a
+  /// server 500; we now show a friendly message with a Try Again button instead
+  /// of a misleading "not found" dead-end.
+  String? _loadError;
 
   // ── Daily-breakdown pagination ─────────────────────────────────────────
   int _breakdownPage = 1;
@@ -46,6 +56,15 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
   }
 
   Future<void> _load() async {
+    // Reset prior outcome so a retry starts clean and shows the spinner.
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _notFound = null;
+        _loadError = null;
+      });
+    }
+
     final result = await ref
         .read(apiClientProvider)
         .get<Map<String, dynamic>>(
@@ -54,24 +73,32 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         );
 
     if (!mounted) return;
-    if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
-      _data = mapFromKey(data, 'data');
-      _accumulatedBreakdown = _normalisedBreakdown();
-      _breakdownPage = 1;
-      final rawBreakdown = _data['daily_breakdown'];
-      if (rawBreakdown is Map<String, dynamic>) {
-        final meta = rawBreakdown['meta'] as Map<String, dynamic>?;
-        if (meta != null) {
-          final currentPage = (meta['current_page'] as num?)?.toInt() ?? 1;
-          final lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
-          _breakdownPage = currentPage;
-          _hasMoreBreakdownPages = currentPage < lastPage;
+    switch (classifyPayoutLoad(result)) {
+      case PayoutLoadOutcome.success:
+        final data = (result as ApiSuccess<Map<String, dynamic>>).data;
+        _data = mapFromKey(data, 'data');
+        _accumulatedBreakdown = _normalisedBreakdown();
+        _breakdownPage = 1;
+        final rawBreakdown = _data['daily_breakdown'];
+        if (rawBreakdown is Map<String, dynamic>) {
+          final meta = rawBreakdown['meta'] as Map<String, dynamic>?;
+          if (meta != null) {
+            final currentPage = (meta['current_page'] as num?)?.toInt() ?? 1;
+            final lastPage = (meta['last_page'] as num?)?.toInt() ?? 1;
+            _breakdownPage = currentPage;
+            _hasMoreBreakdownPages = currentPage < lastPage;
+          }
         }
-      }
-    } else if (result is ApiServerError<Map<String, dynamic>>) {
-      _notFound = result.message.isNotEmpty
-          ? result.message
-          : 'wallet.detail.not_found'.tr();
+      case PayoutLoadOutcome.notFound:
+        // The payout genuinely doesn't exist — terminal, no retry.
+        final message = (result as ApiNotFound<Map<String, dynamic>>).message;
+        _notFound = message.isNotEmpty
+            ? message
+            : 'wallet.detail.not_found'.tr();
+      case PayoutLoadOutcome.error:
+        // Server 500 (WALLET_ERROR), network, or any other failure: recoverable.
+        // Keep the backend message out of the UI — show a friendly, retryable state.
+        _loadError = 'wallet.detail.load_error'.tr();
     }
     setState(() => _loading = false);
   }
@@ -123,30 +150,10 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
+            : _loadError != null
+            ? _buildErrorState(context)
             : _notFound != null
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.search_off_rounded,
-                      size: DSIconSize.xl,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? DSColors.labelTertiaryDark
-                          : DSColors.labelTertiary,
-                    ),
-                    DSSpacing.hMd,
-                    Text(
-                      _notFound!,
-                      style: DSTypography.body(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? DSColors.labelSecondaryDark
-                            : DSColors.labelSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              )
+            ? _buildNotFoundState(context)
             : RefreshIndicator(
                 onRefresh: _load,
                 child: ListView(
@@ -171,6 +178,73 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   ],
                 ),
               ),
+      ),
+    );
+  }
+
+  /// Terminal empty state — the payout genuinely doesn't exist.
+  Widget _buildNotFoundState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: DSIconSize.xl,
+            color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
+          ),
+          DSSpacing.hMd,
+          Text(
+            _notFound!,
+            style: DSTypography.body(
+              color: isDark
+                  ? DSColors.labelSecondaryDark
+                  : DSColors.labelSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Recoverable error state — server/network hiccup, offers a retry.
+  /// This is what a courier sees after tapping a rejected-payout notification
+  /// when the backend returns a transient 500, instead of a misleading
+  /// "not found" message with no way forward.
+  Widget _buildErrorState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(DSSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: DSIconSize.xl,
+              color: isDark
+                  ? DSColors.labelTertiaryDark
+                  : DSColors.labelTertiary,
+            ),
+            DSSpacing.hMd,
+            Text(
+              _loadError!,
+              textAlign: TextAlign.center,
+              style: DSTypography.body(
+                color: isDark
+                    ? DSColors.labelSecondaryDark
+                    : DSColors.labelSecondary,
+              ),
+            ),
+            DSSpacing.hMd,
+            FilledButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text('wallet.detail.retry'.tr()),
+            ),
+          ],
+        ),
       ),
     );
   }

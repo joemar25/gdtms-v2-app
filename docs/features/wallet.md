@@ -69,6 +69,20 @@ The `PayoutHeroFlipCard` displays the total amount on the front and flips to sho
 
 Cards for deliveries outside the visibility window show a grey lock icon on the trailing edge. This is not conditional on debug mode.
 
+### Loading & error states — `GET /wallet/{reference}`
+
+`_load()` classifies the result via `classifyPayoutLoad()` (`payout_detail_load_outcome.dart`) into exactly three screen states. The split matters for couriers: a **404 is terminal** (the payout is gone), but a **500 / network blip is transient** and must offer a retry instead of a misleading "not found" dead-end.
+
+| Outcome | Source | UI |
+|---|---|---|
+| `success` | 2xx | render the payout |
+| `notFound` (`_notFound`) | **404** `ApiNotFound` (`WALLET_NOT_FOUND`) | `search_off` icon + server message, **no retry** |
+| `error` (`_loadError`) | **500** (`WALLET_ERROR`), network, timeout, anything else | `cloud_off` icon + `wallet.detail.load_error` + **Try Again** button (re-runs `_load()`) |
+
+`_load()` resets `_notFound`/`_loadError` and shows the spinner on every call, so retry works. The backend message is **not** surfaced for the error state — couriers see a friendly localized string.
+
+> Background: a rejected payout (`PR2026L6BD`, "already paid") whose deliveries had voided timelines made the backend `GET /wallet/{reference}` throw a 500 (`WALLET_ERROR`). The old code mapped that 500 to `_notFound` and left real 404s unhandled (blank ₱0). The backend now renders rejected/orphaned payouts without 500ing; this screen handles a transient 500 gracefully regardless.
+
 ---
 
 ## `payout_request_screen.dart`

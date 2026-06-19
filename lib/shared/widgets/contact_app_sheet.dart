@@ -1,8 +1,12 @@
 // DOCS: docs/development-standards.md
+export 'package:fsi_courier_app/shared/helpers/contact_launch_uri.dart'
+    show buildDeliveryContactMessage;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/shared/helpers/contact_launch_uri.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 
 /// Shows a bottom sheet with various communication apps (SMS, Call, Viber, WhatsApp, Telegram)
@@ -15,20 +19,13 @@ Future<void> showContactAppSheet(
 }) async {
   final cleaned = phone.trim();
   if (cleaned.isEmpty) return;
-  final noPlus = cleaned.replaceAll('+', '');
-
-  final encodedMsg = messageTemplate != null
-      ? Uri.encodeComponent(messageTemplate)
-      : null;
 
   final apps = <_CommApp>[
     _CommApp(
       label: 'SMS',
       icon: Icons.message_rounded,
       color: DSColors.socialSms,
-      uri: encodedMsg != null
-          ? Uri.parse('sms:$cleaned?body=$encodedMsg')
-          : Uri(scheme: 'sms', path: cleaned),
+      uri: buildSmsLaunchUri(cleaned, body: messageTemplate),
     ),
     _CommApp(
       label: 'Call',
@@ -40,11 +37,7 @@ Future<void> showContactAppSheet(
       label: 'Viber',
       icon: Icons.chat_bubble_rounded,
       color: DSColors.socialViber,
-      uri: Uri.parse(
-        encodedMsg != null
-            ? 'viber://chat?number=$noPlus&text=$encodedMsg'
-            : 'viber://chat?number=$noPlus',
-      ),
+      uri: buildViberLaunchUri(cleaned, body: messageTemplate),
     ),
   ];
 
@@ -53,11 +46,7 @@ Future<void> showContactAppSheet(
       label: 'WhatsApp',
       icon: Icons.chat_bubble_rounded,
       color: DSColors.socialWhatsApp,
-      uri: Uri.parse(
-        encodedMsg != null
-            ? 'whatsapp://send?phone=$noPlus&text=$encodedMsg'
-            : 'whatsapp://send?phone=$noPlus',
-      ),
+      uri: buildWhatsappLaunchUri(cleaned, body: messageTemplate),
     ),
     _CommApp(
       label: 'Telegram',
@@ -79,8 +68,12 @@ Future<void> showContactAppSheet(
     context: context,
     backgroundColor: DSColors.transparent,
     isScrollControlled: true,
-    builder: (ctx) =>
-        _ContactAppSheet(phone: cleaned, apps: apps, title: title),
+    builder: (ctx) => _ContactAppSheet(
+      phone: cleaned,
+      apps: apps,
+      title: title,
+      messageTemplate: messageTemplate,
+    ),
   );
 }
 
@@ -102,10 +95,12 @@ class _ContactAppSheet extends StatelessWidget {
     required this.phone,
     required this.apps,
     required this.title,
+    this.messageTemplate,
   });
   final String phone;
   final List<_CommApp> apps;
   final String title;
+  final String? messageTemplate;
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +172,42 @@ class _ContactAppSheet extends StatelessWidget {
               ),
             ),
           ),
+          if (messageTemplate != null && messageTemplate!.isNotEmpty) ...[
+            DSSpacing.hMd,
+            Text(
+              'MESSAGE PREVIEW',
+              style:
+                  DSTypography.caption(
+                    color: isDark
+                        ? DSColors.labelTertiaryDark
+                        : DSColors.labelTertiary,
+                  ).copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontSize: DSTypography.sizeSm,
+                  ),
+            ),
+            DSSpacing.hXs,
+            GestureDetector(
+              onLongPress: () async {
+                await Clipboard.setData(ClipboardData(text: messageTemplate!));
+                if (context.mounted) {
+                  showAppSnackbar(
+                    context,
+                    'Message copied to clipboard',
+                    type: SnackbarType.success,
+                  );
+                }
+              },
+              child: Text(
+                messageTemplate!,
+                style: DSTypography.body(
+                  color: isDark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.labelSecondary,
+                ).copyWith(fontSize: DSTypography.sizeMd),
+              ),
+            ),
+          ],
           DSSpacing.hXl,
           Wrap(
             spacing: DSSpacing.md,
