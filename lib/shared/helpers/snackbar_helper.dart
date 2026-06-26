@@ -19,22 +19,17 @@ void showAppSnackbar(
     SnackbarType.info => DSColors.primary,
   };
 
-  final messenger = context != null
-      ? ScaffoldMessenger.maybeOf(context)
-      : appScaffoldMessengerKey.currentState;
+  final messenger =
+      appScaffoldMessengerKey.currentState ??
+      (context != null ? ScaffoldMessenger.maybeOf(context) : null);
 
   messenger?.showSnackBar(
     SnackBar(
       content: Text(message),
       backgroundColor: color,
-      behavior: SnackBarBehavior.floating,
-      // Lift the snackbar above the floating bottom nav bar (~80 px).
-      margin: EdgeInsets.fromLTRB(
-        DSSpacing.sm,
-        0,
-        DSSpacing.sm,
-        DSSpacing.xl * 2.5,
-      ),
+      // Fixed docks above bottomNavigationBar — floating overflows with
+      // extendBody + the floating nav bar on tab screens.
+      behavior: SnackBarBehavior.fixed,
     ),
   );
 }

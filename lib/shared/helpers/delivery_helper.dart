@@ -61,8 +61,7 @@ bool isTerminalState({
 /// Helper to check if a delivery is in a terminal state from a delivery map.
 bool isTerminalStateFromMap(Map<String, dynamic> delivery) {
   final status = (delivery['delivery_status'] ?? 'FOR_DELIVERY').toString();
-  final failedDeliveryVerif =
-      (delivery['rts_verification_status'] ?? 'unvalidated').toString();
+  final failedDeliveryVerif = _rtsVerificationStatusFromMap(delivery);
   final attempts = getAttemptsCountFromMap(delivery);
 
   return isTerminalState(
@@ -72,65 +71,44 @@ bool isTerminalStateFromMap(Map<String, dynamic> delivery) {
   );
 }
 
-/// Returns the number of failed delivery attempts for a delivery map.
-///
-/// Priority order:
-///   1. `delivery_attempts` — authoritative active-cycle count (API v4.2).
-///   2. `failed_delivery_count` — list/sync alias (v2.9).
-///   3. `failed_delivery_attempts` — full attempt objects (detail/PATCH).
-///   4. `rts_count` / `rts_attempts` — legacy fallbacks.
-///   5. `0` — safe default.
-int getAttemptsCountFromMap(Map<String, dynamic> delivery) {
-  // Helper to parse numeric-like values reliably.
-  int? parseInt(dynamic v) {
-    if (v is num) return v.toInt();
-    if (v is String) {
-      final p = int.tryParse(v);
-      if (p != null) return p;
-      final d = double.tryParse(v);
-      if (d != null) return d.toInt();
-    }
-    return null;
-  }
-
-  // v4.2: operational count for current courier assignment.
-  final operational = parseInt(
-    delivery['delivery_attempts'] ?? delivery['deliveryAttempts'],
-  );
-  if (operational != null) return operational;
-
-  // List/sync alias.
-  final aliasCount = parseInt(
-    delivery['failed_delivery_count'] ?? delivery['failedDeliveryCount'],
-  );
-  if (aliasCount != null) return aliasCount;
-
-  // Fallback to attempt lists if integer counts are missing.
-  final l =
-      delivery['failed_delivery_attempts'] ??
-      delivery['failedDeliveryAttempts'];
-  if (l is List) return l.length;
-
-  // Legacy fallbacks.
-  final legacy = parseInt(
-    delivery['rts_count'] ??
-        delivery['rts_attempts'] ??
-        delivery['rtsCount'] ??
-        delivery['rtsAttempts'],
-  );
-  if (legacy != null) return legacy;
-
-  return 0;
+int? _parseAttemptCount(dynamic value) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
 }
 
-/// Helper to check locking state from a delivery map (rawJson decoded).
-bool checkIsLockedFromMap(Map<String, dynamic> delivery) {
-  // RULE: Items assigned to a Bagsakan group are locked for individual action.
-  if (delivery['bagsakan_id'] != null) return true;
+String _rtsVerificationStatusFromMap(Map<String, dynamic> delivery) {
+  return (delivery['_rts_verification_status'] ??
+          delivery['rts_verification_status'] ??
+          delivery['_failed_delivery_verification_status'] ??
+          delivery['failed_delivery_verification_status'] ??
+          'unvalidated')
+      .toString();
+}
 
+/// Raw `delivery_attempts` from the API — use for display only.
+int? rawDeliveryAttemptsFromMap(Map<String, dynamic> delivery) {
+  return _parseAttemptCount(delivery['delivery_attempts']);
+}
+
+/// Attempt count for lock/tab rules — reads API fields only, no derived values.
+///
+///   1. `delivery_attempts` (v4.2)
+///   2. `failed_delivery_count` (list/sync alias)
+///   3. `0`
+int getAttemptsCountFromMap(Map<String, dynamic> delivery) {
+  return rawDeliveryAttemptsFromMap(delivery) ??
+      _parseAttemptCount(delivery['failed_delivery_count']) ??
+      0;
+}
+
+/// Privacy lock — hides PII and blocks the account-details sheet.
+///
+/// Excludes [bagsakan_id]: Bagsakan screens manage those items explicitly
+/// (remove from group, propagation) and still need identifiable cards.
+bool checkIsPrivacyLockedFromMap(Map<String, dynamic> delivery) {
   final status = (delivery['delivery_status'] ?? 'FOR_DELIVERY').toString();
-  final failedDeliveryVerif =
-      (delivery['rts_verification_status'] ?? 'unvalidated').toString();
+  final failedDeliveryVerif = _rtsVerificationStatusFromMap(delivery);
   final attempts = getAttemptsCountFromMap(delivery);
   final syncStatus =
       (delivery['_sync_status'] ?? delivery['sync_status'] ?? 'clean')
@@ -142,6 +120,14 @@ bool checkIsLockedFromMap(Map<String, dynamic> delivery) {
     attempts: attempts,
     syncStatus: syncStatus,
   );
+}
+
+/// Helper to check locking state from a delivery map (rawJson decoded).
+bool checkIsLockedFromMap(Map<String, dynamic> delivery) {
+  // RULE: Items assigned to a Bagsakan group are locked for individual action.
+  if (delivery['bagsakan_id'] != null) return true;
+
+  return checkIsPrivacyLockedFromMap(delivery);
 }
 
 /// Centralized logic to determine if a delivery is valid for a delivery attempt.
@@ -176,8 +162,7 @@ bool isValidForDelivery({
 /// Helper to check if a delivery is valid for delivery from a delivery map.
 bool isValidForDeliveryFromMap(Map<String, dynamic> delivery) {
   final status = (delivery['delivery_status'] ?? 'FOR_DELIVERY').toString();
-  final failedDeliveryVerif =
-      (delivery['rts_verification_status'] ?? 'unvalidated').toString();
+  final failedDeliveryVerif = _rtsVerificationStatusFromMap(delivery);
   final isArchived = (delivery['is_archived'] ?? 0).toString() == '1';
   final attempts = getAttemptsCountFromMap(delivery);
 

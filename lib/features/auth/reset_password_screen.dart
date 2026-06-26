@@ -267,8 +267,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     isDark,
                     widget.authenticatedMode
                         ? (kDebugMode || _isDeveloperMode
-                            ? 'Courier Code (${kDebugMode ? 'Debug' : 'Dev'})'
-                            : 'Courier Code')
+                              ? 'Courier Code (${kDebugMode ? 'Debug' : 'Dev'})'
+                              : 'Courier Code')
                         : 'Courier Code',
                   ).dsFadeEntry(
                     delay: DSAnimations.stagger(
@@ -279,49 +279,50 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   DSSpacing.hSm,
 
                   (widget.authenticatedMode
-                      ? TextField(
-                          controller: _code,
-                          readOnly: true,
-                          decoration: InputDecoration(
-                            hintText: 'Your courier code',
-                            prefixIcon: const Icon(
-                              Icons.badge_outlined,
-                              size: DSIconSize.md,
-                            ),
-                            errorText: _errors['courier_code'],
-                            filled: true,
-                            fillColor: isDark
-                                ? DSColors.secondarySurfaceDark
-                                : DSColors.secondarySurfaceLight,
-                            suffixIcon: Icon(
-                              Icons.lock_outline,
-                              size: DSIconSize.sm,
-                              color: isDark
-                                  ? DSColors.labelTertiaryDark
-                                  : DSColors.labelTertiary,
-                            ),
-                          ),
-                        )
-                      : TextField(
-                          controller: _code,
-                          readOnly:
-                              false, // Editable input when not authenticated
-                          decoration: InputDecoration(
-                            hintText: 'Your courier code',
-                            prefixIcon: const Icon(
-                              Icons.badge_outlined,
-                              size: DSIconSize.md,
-                            ),
-                            errorText: _errors['courier_code'],
-                            filled: false,
-                            suffixIcon: null,
-                          ),
-                        )).dsFieldEntry(
-                    delay: DSAnimations.stagger(
-                      4,
-                      step: DSAnimations.staggerNormal,
-                    ),
-                  ),
+                          ? TextField(
+                              controller: _code,
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                hintText: 'Your courier code',
+                                prefixIcon: const Icon(
+                                  Icons.badge_outlined,
+                                  size: DSIconSize.md,
+                                ),
+                                errorText: _errors['courier_code'],
+                                filled: true,
+                                fillColor: isDark
+                                    ? DSColors.secondarySurfaceDark
+                                    : DSColors.secondarySurfaceLight,
+                                suffixIcon: Icon(
+                                  Icons.lock_outline,
+                                  size: DSIconSize.sm,
+                                  color: isDark
+                                      ? DSColors.labelTertiaryDark
+                                      : DSColors.labelTertiary,
+                                ),
+                              ),
+                            )
+                          : TextField(
+                              controller: _code,
+                              readOnly:
+                                  false, // Editable input when not authenticated
+                              decoration: InputDecoration(
+                                hintText: 'Your courier code',
+                                prefixIcon: const Icon(
+                                  Icons.badge_outlined,
+                                  size: DSIconSize.md,
+                                ),
+                                errorText: _errors['courier_code'],
+                                filled: false,
+                                suffixIcon: null,
+                              ),
+                            ))
+                      .dsFieldEntry(
+                        delay: DSAnimations.stagger(
+                          4,
+                          step: DSAnimations.staggerNormal,
+                        ),
+                      ),
 
                   DSSpacing.hMd,
 

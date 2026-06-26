@@ -5,24 +5,25 @@ import 'package:flutter_test/flutter_test.dart';
 void mockUrlLauncherChannel({bool canLaunch = false}) {
   TestWidgetsFlutterBinding.ensureInitialized();
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/url_launcher'), (
-    MethodCall call,
-  ) async {
-    switch (call.method) {
-      case 'canLaunchUrl':
-        return canLaunch;
-      case 'launchUrl':
-        return true;
-      default:
-        return null;
-    }
-  });
+      .setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/url_launcher'),
+        (MethodCall call) async {
+          switch (call.method) {
+            case 'canLaunchUrl':
+              return canLaunch;
+            case 'launchUrl':
+              return true;
+            default:
+              return null;
+          }
+        },
+      );
 }
 
 void clearUrlLauncherChannelMock() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/url_launcher'),
-    null,
-  );
+        const MethodChannel('plugins.flutter.io/url_launcher'),
+        null,
+      );
 }

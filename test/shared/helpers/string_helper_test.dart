@@ -50,38 +50,35 @@ void main() {
 
   group('parseContactNumbers', () {
     test('splits slash-separated numbers', () {
-      expect(
-        parseContactNumbers('09123456789 / 09987654321'),
-        ['09123456789', '09987654321'],
-      );
+      expect(parseContactNumbers('09123456789 / 09987654321'), [
+        '09123456789',
+        '09987654321',
+      ]);
     });
 
     test('splits comma-separated numbers', () {
-      expect(
-        parseContactNumbers('09123456789 , 09987654321'),
-        ['09123456789', '09987654321'],
-      );
+      expect(parseContactNumbers('09123456789 , 09987654321'), [
+        '09123456789',
+        '09987654321',
+      ]);
     });
 
     test('splits space-concatenated +63 numbers', () {
-      expect(
-        parseContactNumbers('+63 9609206186 +63 9355349832'),
-        ['+63 9609206186', '+63 9355349832'],
-      );
+      expect(parseContactNumbers('+63 9609206186 +63 9355349832'), [
+        '+63 9609206186',
+        '+63 9355349832',
+      ]);
     });
 
     test('splits compact +63 numbers separated by spaces', () {
-      expect(
-        parseContactNumbers('+639609206186 +639355349832'),
-        ['+639609206186', '+639355349832'],
-      );
+      expect(parseContactNumbers('+639609206186 +639355349832'), [
+        '+639609206186',
+        '+639355349832',
+      ]);
     });
 
     test('keeps internal spaces inside a single number', () {
-      expect(
-        parseContactNumbers('+63 960 920 6186'),
-        ['+63 960 920 6186'],
-      );
+      expect(parseContactNumbers('+63 960 920 6186'), ['+63 960 920 6186']);
     });
 
     test('returns empty list for blank input', () {

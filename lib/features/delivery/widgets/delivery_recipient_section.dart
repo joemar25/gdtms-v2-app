@@ -230,8 +230,12 @@ class DeliveryRecipientSection extends StatelessWidget {
               maxLength: 50,
               maxLengthEnforcement: MaxLengthEnforcement.enforced,
               buildCounter:
-                  (_, {required currentLength, required isFocused, maxLength}) =>
-                      null,
+                  (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
               // API contract: codes are CASE-SENSITIVE, recipient-provided,
               // 1–50 alphanumeric. Do NOT force uppercase — preserve case as
               // typed and only restrict to [A-Za-z0-9].

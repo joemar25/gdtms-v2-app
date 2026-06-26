@@ -20,7 +20,9 @@ void main() {
     });
 
     test('404 WALLET_NOT_FOUND → notFound (terminal, no retry)', () {
-      const result = ApiNotFound<Map<String, dynamic>>('Payment request not found.');
+      const result = ApiNotFound<Map<String, dynamic>>(
+        'Payment request not found.',
+      );
       expect(classifyPayoutLoad(result), PayoutLoadOutcome.notFound);
     });
 

@@ -250,24 +250,27 @@ void main() {
       expect(_isLocked(d), isTrue);
     });
 
-    test('is LOCKED at 3 attempts when API sends delivery_attempts only (v4.2)', () {
-      final rawJson = jsonEncode({
-        'barcode': 'TEST001',
-        'delivery_status': 'FAILED_DELIVERY',
-        'delivery_attempts': 3,
-        'rts_verification_status': 'unvalidated',
-      });
-      final d = LocalDelivery(
-        barcode: 'TEST001',
-        deliveryStatus: 'FAILED_DELIVERY',
-        rtsVerificationStatus: 'unvalidated',
-        rawJson: rawJson,
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-        updatedAt: DateTime.now().millisecondsSinceEpoch,
-      );
-      expect(_isLocked(d), isTrue);
-      expect(getAttemptsCountFromMap(d.toDeliveryMap()), 3);
-    });
+    test(
+      'is LOCKED at 3 attempts when API sends delivery_attempts only (v4.2)',
+      () {
+        final rawJson = jsonEncode({
+          'barcode': 'TEST001',
+          'delivery_status': 'FAILED_DELIVERY',
+          'delivery_attempts': 3,
+          'rts_verification_status': 'unvalidated',
+        });
+        final d = LocalDelivery(
+          barcode: 'TEST001',
+          deliveryStatus: 'FAILED_DELIVERY',
+          rtsVerificationStatus: 'unvalidated',
+          rawJson: rawJson,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+        );
+        expect(_isLocked(d), isTrue);
+        expect(getAttemptsCountFromMap(d.toDeliveryMap()), 3);
+      },
+    );
 
     test('is NOT locked at 2 attempts', () {
       final d = _makeDelivery(

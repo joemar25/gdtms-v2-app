@@ -42,9 +42,6 @@ Future<void> showContactAppSheet(
       color: DSColors.socialViber,
       uri: buildViberLaunchUri(cleaned, body: messageTemplate),
     ),
-  ];
-
-  final optionalCandidates = [
     _CommApp(
       label: 'WhatsApp',
       icon: Icons.chat_bubble_rounded,
@@ -58,12 +55,6 @@ Future<void> showContactAppSheet(
       uri: buildTelegramLaunchUri(cleaned),
     ),
   ];
-
-  for (final app in optionalCandidates) {
-    if (await canLaunchUrl(app.uri)) {
-      apps.add(app);
-    }
-  }
 
   if (!context.mounted) return;
 
@@ -161,10 +152,9 @@ class _ContactAppSheet extends StatelessWidget {
             onLongPress: () async {
               await Clipboard.setData(ClipboardData(text: phone));
               if (context.mounted) {
-                showAppSnackbar(
+                showSuccessNotification(
                   context,
                   'Phone number copied to clipboard',
-                  type: SnackbarType.success,
                 );
               }
             },
@@ -181,26 +171,34 @@ class _ContactAppSheet extends StatelessWidget {
           if (messageTemplate != null && messageTemplate!.isNotEmpty) ...[
             DSSpacing.hMd,
             Text(
-              'MESSAGE PREVIEW',
+              'Message Preview',
               style:
                   DSTypography.caption(
                     color: isDark
                         ? DSColors.labelTertiaryDark
                         : DSColors.labelTertiary,
                   ).copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     fontSize: DSTypography.sizeSm,
+                    letterSpacing: 0.5,
                   ),
+            ),
+            Text(
+              'Long press the message to copy.',
+              style: DSTypography.caption(
+                color: isDark
+                    ? DSColors.labelTertiaryDark
+                    : DSColors.labelTertiary,
+              ).copyWith(fontSize: DSTypography.sizeXs),
             ),
             DSSpacing.hXs,
             GestureDetector(
               onLongPress: () async {
                 await Clipboard.setData(ClipboardData(text: messageTemplate!));
                 if (context.mounted) {
-                  showAppSnackbar(
+                  showSuccessNotification(
                     context,
                     'Message copied to clipboard',
-                    type: SnackbarType.success,
                   );
                 }
               },
@@ -233,9 +231,18 @@ class _AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
+      onTap: () async {
         Navigator.pop(context);
-        launchUrl(app.uri, mode: LaunchMode.externalApplication);
+        final launched = await launchUrl(
+          app.uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!launched && context.mounted) {
+          showErrorNotification(
+            context,
+            '${app.label} is not installed or could not be opened.',
+          );
+        }
       },
       borderRadius: DSStyles.cardRadius,
       child: Container(

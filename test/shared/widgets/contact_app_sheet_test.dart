@@ -39,11 +39,13 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('MESSAGE PREVIEW'), findsOneWidget);
+      expect(find.text('Message Preview'), findsOneWidget);
       expect(find.text(message), findsOneWidget);
       expect(find.text('SMS'), findsOneWidget);
       expect(find.text('Call'), findsOneWidget);
       expect(find.text('Viber'), findsOneWidget);
+      expect(find.text('WhatsApp'), findsOneWidget);
+      expect(find.text('Telegram'), findsOneWidget);
     });
 
     testWidgets('hides message preview when template is omitted', (
@@ -74,8 +76,7 @@ void main() {
         wrap(
           Builder(
             builder: (context) => ElevatedButton(
-              onPressed: () =>
-                  showContactAppSheet(context, '+63 960 920 6186'),
+              onPressed: () => showContactAppSheet(context, '+63 960 920 6186'),
               child: const Text('Open'),
             ),
           ),

@@ -455,7 +455,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     );
     // Reference of the open pending request this submission will consolidate into,
     // when the server exposes it. Lets us name the target instead of guessing.
-    final existingRequest = preview['existing_request'] as Map<String, dynamic>?;
+    final existingRequest =
+        preview['existing_request'] as Map<String, dynamic>?;
     final existingRef = existingRequest?['reference']?.toString();
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
 

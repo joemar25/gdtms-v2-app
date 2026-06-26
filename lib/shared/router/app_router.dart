@@ -436,7 +436,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             key: state.pageKey,
             child: DeliveryStatusListScreen(
               status: 'FOR_DELIVERY',
-              title: 'DELIVERIES',
+              title: 'Deliveries',
               initialSearch: initialSearch,
             ),
             extra: state.extra,
@@ -459,7 +459,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: const DeliveryStatusListScreen(
             status: 'delivered',
-            title: 'DELIVERED',
+            title: 'Delivered',
           ),
           extra: state.extra,
         ),

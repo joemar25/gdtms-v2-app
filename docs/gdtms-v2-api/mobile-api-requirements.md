@@ -19,10 +19,11 @@ attempts stayed in **For Redelivery** (and showed **FAILED DELIVERY**) instead o
 
 #### Fix (our side)
 
-- `lib/shared/helpers/delivery_helper.dart` — `getAttemptsCountFromMap()` now prefers
-  `delivery_attempts`, then `failed_delivery_count`, then attempt list length.
-- `lib/shared/widgets/delivery_card.dart` — status badge shows **FOR RETURN** when
-  `delivery_attempts >= 3` on a failed delivery.
+- `lib/shared/helpers/delivery_helper.dart` — `getAttemptsCountFromMap()` reads
+  `delivery_attempts`, then `failed_delivery_count` (for lock/tab rules only).
+  `rawDeliveryAttemptsFromMap()` exposes `delivery_attempts` for display.
+- `lib/shared/widgets/delivery_card.dart` — shows raw API `delivery_status` and
+  `delivery_attempts` in the card; no client-side relabeling or derived counts.
 - Tests: `delivery_helper_test.dart`, `delivery_visibility_rules_test.dart`.
 
 #### Backend contract (no API change required)

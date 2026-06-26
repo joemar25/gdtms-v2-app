@@ -566,8 +566,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         _errors['selfie_photo'] =
             'delivery_update.validation.selfie_photo_required'.tr();
       }
-      if (_requiresConfirmationCode &&
-          _confirmationCode.text.trim().isEmpty) {
+      if (_requiresConfirmationCode && _confirmationCode.text.trim().isEmpty) {
         _errors['confirmation_code'] =
             'delivery_update.validation.confirmation_code_required'.tr();
       }
@@ -909,9 +908,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       hasMailpackPhoto: _mailpackPhoto != null,
       hasAdditionalPhotos: _photos.isNotEmpty,
       hasSignature: _signaturePath != null,
-      confirmationCode: _requiresConfirmationCode
-          ? _confirmationCode.text
-          : '',
+      confirmationCode: _requiresConfirmationCode ? _confirmationCode.text : '',
       placement: _placement,
     );
   }

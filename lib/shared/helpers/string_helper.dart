@@ -92,10 +92,7 @@ DeliveryContactNumbers resolveDeliveryContactNumbers(
       .where((number) => !authRepKeys.contains(normalizePhoneKey(number)))
       .toList();
 
-  return DeliveryContactNumbers(
-    recipient: dedupedRecipient,
-    authRep: authRep,
-  );
+  return DeliveryContactNumbers(recipient: dedupedRecipient, authRep: authRep);
 }
 
 extension ContactStringFormat on String {

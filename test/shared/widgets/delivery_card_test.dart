@@ -105,5 +105,53 @@ void main() {
       expect(find.text('PRODUCT'), findsOneWidget);
       expect(find.text('PREMIUM'), findsAtLeast(1));
     });
+
+    testWidgets(
+      'does not reveal account details on long-press when delivery is locked',
+      (WidgetTester tester) async {
+        final lockedDeliveries = [
+          {
+            'barcode': 'DELIVERED001',
+            'recipient_name': 'Jane Doe',
+            'delivery_status': 'DELIVERED',
+          },
+          {
+            'barcode': 'MISROUTED001',
+            'recipient_name': 'John Doe',
+            'delivery_status': 'MISROUTED',
+          },
+          {
+            'barcode': 'RETURN001',
+            'recipient_name': 'Return User',
+            'delivery_status': 'FAILED_DELIVERY',
+            'delivery_attempts': 3,
+          },
+        ];
+
+        for (final delivery in lockedDeliveries) {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: DeliveryCard(delivery: delivery, onTap: () {}),
+              ),
+            ),
+          );
+          await tester.pump();
+
+          await tester.longPress(find.byType(DeliveryCard));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text('ACCOUNT DETAILS'),
+            findsNothing,
+            reason:
+                'Locked ${delivery['delivery_status']} must not reveal details',
+          );
+
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pump();
+        }
+      },
+    );
   });
 }

@@ -69,11 +69,7 @@ String formatPhoneForDisplay(String phone) => normalizePhoneForTel(phone);
 
 /// Builds an SMS deep link. Android uses [smsto] with digits-only phone so the
 /// body is not truncated by '+' in the recipient number.
-Uri buildSmsLaunchUri(
-  String phone, {
-  String? body,
-  TargetPlatform? platform,
-}) {
+Uri buildSmsLaunchUri(String phone, {String? body, TargetPlatform? platform}) {
   final resolvedPlatform = platform ?? defaultTargetPlatform;
   final digits = normalizePhoneForMessaging(phone);
   if (body == null || body.isEmpty) {

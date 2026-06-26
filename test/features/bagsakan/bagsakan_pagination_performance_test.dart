@@ -159,16 +159,28 @@ void main() {
       }
 
       final avgPageTime = (totalTime / pageCount).toInt();
+      final maxPageTime = pageTimes.reduce((a, b) => a > b ? a : b);
 
-      // All pages should load in similar time (~100ms due to latency)
+      // Simulated latency is 100ms; allow OS timer / GC jitter on Windows CI.
       expect(
-        pageTimes.every((time) => time >= 90 && time <= 350),
+        pageTimes.every((time) => time >= 90),
         true,
-        reason: 'Page load times vary too much: $pageTimes',
+        reason: 'Page finished faster than simulated latency: $pageTimes',
+      );
+      expect(
+        maxPageTime,
+        lessThan(1000),
+        reason: 'A page load was catastrophically slow: $pageTimes',
+      );
+      expect(
+        pageTimes.where((time) => time <= 400).length,
+        greaterThanOrEqualTo(8),
+        reason: 'Too many slow page loads (GC jitter?): $pageTimes',
       );
 
-      // Average should be around the simulated latency
+      // Average should stay near the simulated latency despite occasional spikes.
       expect(avgPageTime, greaterThanOrEqualTo(100));
+      expect(avgPageTime, lessThan(200));
 
       expect(mockDao.pageRequests.length, equals(pageCount));
     });

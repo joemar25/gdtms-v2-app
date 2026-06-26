@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_other_info.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/contact_launch_uri.dart';
@@ -192,6 +193,8 @@ Future<void> showDeliveryAccountDetails(
   Map<String, dynamic> delivery,
   String barcode,
 ) async {
+  if (checkIsPrivacyLockedFromMap(delivery)) return;
+
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
   final name =

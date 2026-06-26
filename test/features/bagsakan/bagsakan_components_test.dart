@@ -49,6 +49,23 @@ void main() {
       expect(find.text('Test Group'), findsOneWidget);
     });
 
+    testWidgets('renders item count without literal braces placeholder', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          BagsakanGroupCard(
+            group: _group(itemCount: 5),
+            isDark: false,
+            onTap: () {},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.textContaining('{}'), findsNothing);
+    });
+
     testWidgets('renders submitted group without semantics assertion', (
       tester,
     ) async {

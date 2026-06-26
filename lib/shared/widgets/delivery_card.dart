@@ -94,7 +94,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
     final address = (delivery['recipient_address'] ?? '').toString();
     final name = (delivery['recipient_name'] ?? '').toString();
 
-    final attemptsCount = getAttemptsCountFromMap(delivery);
+    final displayAttempts = rawDeliveryAttemptsFromMap(delivery);
 
     final syncStatus = delivery['_sync_status']?.toString() ?? 'clean';
     final isDirty = syncStatus == 'dirty';
@@ -120,11 +120,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
         ds == DeliveryStatus.failedDelivery &&
         rv == FailedDeliveryVerificationStatus.verifiedNoPay;
     final isLocked = checkIsLockedFromMap(delivery);
-    final isPrivacyLocked = checkIsLocked(
-      status: status,
-      rtsVerificationStatus: failedDeliveryVerifStatus,
-      attempts: attemptsCount,
-    );
+    final isPrivacyLocked = checkIsPrivacyLockedFromMap(delivery);
     final isNotUpdated = ds != DeliveryStatus.delivered && !isPrivacyLocked;
     final shouldShowRemovalAction =
         widget.onRemoveFromBagsakanTap != null &&
@@ -195,7 +191,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
         product: product,
         mailType: mailType,
         address: address,
-        attemptsCount: attemptsCount,
+        displayAttempts: displayAttempts,
         isInBagsakan: delivery['bagsakan_id'] != null,
         isPropagationSource: widget.isPropagationSource,
       );
@@ -244,7 +240,10 @@ class _DeliveryCardState extends State<DeliveryCard> {
             child: InkWell(
               borderRadius: effectiveRadius,
               onTap: widget.isChecking ? null : widget.onTap,
-              onLongPress: (widget.isChecking || !widget.enableHoldToReveal)
+              onLongPress:
+                  (widget.isChecking ||
+                      !widget.enableHoldToReveal ||
+                      !canViewInfo)
                   ? null
                   : () => _showHoldOptions(context, isDark),
               splashColor: colorForStatus.withValues(alpha: DSStyles.alphaSoft),
@@ -295,25 +294,11 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                       DeliveryStatusBadge(
                                         label: isDirty
                                             ? 'UNSYNCED'
-                                            : (ds == DeliveryStatus.failedDelivery &&
-                                                      attemptsCount >=
-                                                          kMaxDeliveryAttempts
-                                                  ? 'FOR RETURN'
-                                                  : ds.displayName.toUpperCase()),
-                                        color: isDirty
-                                            ? colorForStatus
-                                            : (ds == DeliveryStatus.failedDelivery &&
-                                                      attemptsCount >=
-                                                          kMaxDeliveryAttempts
-                                                  ? DSColors.returned
-                                                  : colorForStatus),
+                                            : ds.displayName.toUpperCase(),
+                                        color: colorForStatus,
                                         icon: isDirty
                                             ? Icons.sync_problem_rounded
-                                            : (ds == DeliveryStatus.failedDelivery &&
-                                                      attemptsCount >=
-                                                          kMaxDeliveryAttempts
-                                                  ? Icons.undo_rounded
-                                                  : iconForStatus),
+                                            : iconForStatus,
                                       ),
                                     if (delivery['bagsakan_id'] != null)
                                       DeliveryStatusBadge(
@@ -336,18 +321,19 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  if (attemptsCount > 0)
+                                  if (displayAttempts != null &&
+                                      displayAttempts > 0)
                                     Padding(
                                       padding: EdgeInsets.only(
                                         left: DSSpacing.xs,
                                       ),
                                       child: DeliveryMiniPill(
                                         label: ds == DeliveryStatus.delivered
-                                            ? 'FAILED ATTEMPTS: $attemptsCount'
-                                            : 'ATTEMPTS: $attemptsCount',
+                                            ? 'FAILED ATTEMPTS: $displayAttempts'
+                                            : 'ATTEMPTS: $displayAttempts',
                                         icon: Icons.autorenew_rounded,
                                         bg:
-                                            (attemptsCount >=
+                                            (displayAttempts >=
                                                         kMaxDeliveryAttempts
                                                     ? DSColors.error
                                                     : DSColors.warning)
@@ -355,7 +341,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                                   alpha: DSStyles.alphaSubtle,
                                                 ),
                                         border:
-                                            (attemptsCount >=
+                                            (displayAttempts >=
                                                         kMaxDeliveryAttempts
                                                     ? DSColors.error
                                                     : DSColors.warning)
@@ -363,7 +349,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                                   alpha: DSStyles.alphaMuted,
                                                 ),
                                         fg:
-                                            attemptsCount >=
+                                            displayAttempts >=
                                                 kMaxDeliveryAttempts
                                             ? DSColors.error
                                             : DSColors.warning,
@@ -655,8 +641,10 @@ class _DeliveryCardState extends State<DeliveryCard> {
   // ─── MARK: Handlers ────────────────────────────────────────────────────────
 
   void _showHoldOptions(BuildContext context, bool isDark) {
+    if (checkIsPrivacyLockedFromMap(widget.delivery)) return;
+
     HapticFeedback.mediumImpact();
-    final barcode = widget.delivery['barcode']?.toString() ?? '';
+    final barcode = resolveDeliveryIdentifier(widget.delivery);
     showDeliveryAccountDetails(context, widget.delivery, barcode);
   }
 
@@ -777,7 +765,7 @@ class _DeliveryCardState extends State<DeliveryCard> {
     required String product,
     required String mailType,
     required String address,
-    required int attemptsCount,
+    required int? displayAttempts,
     required bool isInBagsakan,
     required bool isPropagationSource,
   }) {
@@ -972,12 +960,12 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                 label: 'SYNC',
                                 color: DSColors.primary,
                               ),
-                            if (attemptsCount > 0)
+                            if (displayAttempts != null && displayAttempts > 0)
                               DeliveryTinyPill(
                                 label: ds == DeliveryStatus.delivered
-                                    ? 'FA:$attemptsCount'
-                                    : 'A:$attemptsCount',
-                                color: attemptsCount >= kMaxDeliveryAttempts
+                                    ? 'FA:$displayAttempts'
+                                    : 'A:$displayAttempts',
+                                color: displayAttempts >= kMaxDeliveryAttempts
                                     ? DSColors.error
                                     : DSColors.pending,
                               ),
