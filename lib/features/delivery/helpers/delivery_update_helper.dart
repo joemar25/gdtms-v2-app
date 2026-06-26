@@ -36,4 +36,22 @@ class DeliveryUpdateHelper {
         confirmationCode.isNotEmpty ||
         (placement != null && placement != 'RECEIVED');
   }
+
+  /// Resolves the structured `according_to` (informant) value for a status update.
+  ///
+  /// The informant is a STRUCTURED field — it must be sent as `payload['according_to']`
+  /// and must NEVER be concatenated into the free-text note/remarks. GDTMS stores
+  /// `note`/`remarks` verbatim and reads the informant from the `according_to` column;
+  /// embedding it in the note leaves the column NULL and the value buried in remarks.
+  ///
+  /// Returns the trimmed informant, or null when none should be sent.
+  static String? resolveAccordingTo({
+    required bool isFailedDelivery,
+    required bool requiresAccordingTo,
+    required String accordingTo,
+  }) {
+    if (!isFailedDelivery || !requiresAccordingTo) return null;
+    final trimmed = accordingTo.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
 }

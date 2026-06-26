@@ -6,6 +6,78 @@
 
 ---
 
+## 🏗️ Active Requirements (v3.9)
+
+### v3.9 — Failed Delivery `according_to` Must Be Sent As a Structured Field [FIXED June 26, 2026]
+
+> [!NOTE]
+> Mobile fix applied: `according_to` is now sent as a structured payload field via
+> `DeliveryUpdateHelper.resolveAccordingTo()` (unit-tested), and is no longer appended to `note`.
+> Backend was already ready. MISROUTED confirmed **out of scope** — the delivery update
+> screen captures only a mailpack photo + note for misrouted (no reason/informant by design).
+
+#### Problem (confirmed June 26, 2026)
+
+On `UPDATE_STATUS` for `FAILED_DELIVERY` (and `MISROUTED`), the app embeds the informant inside the free-text `note` instead of sending the dedicated `according_to` field. GDTMS stores the courier value **verbatim**, so `delivery_timeline.according_to` stays `NULL` and the witness ends up baked into `remarks` as `"<narrative> | According to: <NAME>"`.
+
+Result: the GDTMS **"Recipient/According To"** column (Delivery Reports, Product Reports, Global Search) is blank for these rows. Production audit (June 26, 2026): **159** failed/misrouted timeline rows have the informant only in `remarks`, **0** in the structured column or in metadata.
+
+#### Root cause (our side)
+
+`lib/features/delivery/delivery_update_screen.dart` (~line 668):
+
+```dart
+// CURRENT (wrong) — informant joined into the note
+if (config.requiresAccordingTo && _accordingTo.text.trim().isNotEmpty) {
+  notes.add('According to: ${_accordingTo.text.trim()}');
+}
+// ...
+payload['note'] = notes.join(' | ');   // → "narrative | According to: NAME"
+```
+
+#### Fix (our side)
+
+Send `according_to` as its own payload key; do **not** append it to `note`:
+
+```dart
+// FIXED — structured field
+if (config.requiresAccordingTo && _accordingTo.text.trim().isNotEmpty) {
+  payload['according_to'] = _accordingTo.text.trim();
+}
+// `note` now carries ONLY the courier's own free-text narrative
+```
+
+#### Backend contract (already supported — no API work needed)
+
+- The status-update endpoint already validates/accepts `according_to` (`DeliveryStatusUpdateRequest`), maps it via DTO, and persists it to `delivery_timeline.according_to`.
+- Reports read the structured column directly, with a `metadata.according_to` fallback (legacy/nested payloads).
+- `recipient` (DELIVERED) and `according_to` (FAILED/MISROUTED) are **mutually exclusive** per row.
+- A backend backfill command (`php artisan timeline:backfill-according-to`) promotes `metadata.according_to` → column where empty. It **never** parses `note`/`remarks` — courier text is stored as-is — so it only helps rows whose witness reached metadata.
+
+#### Mobile App TODO (Our Side)
+
+- [x] Send `according_to` as a **top-level payload field** on `FAILED_DELIVERY` updates (stop appending `"According to: ..."` to `note`). — `delivery_update_screen.dart` + `DeliveryUpdateHelper.resolveAccordingTo()`, covered by `delivery_update_helper_test.dart`.
+- [x] Keep `note` for the courier's free-text narrative only (system text belongs in backend `notes`, never `remarks`).
+- [x] MISROUTED confirmed out of scope — the screen captures only a mailpack photo + note for misrouted (the reason picker and "according to" field are gated to FAILED_DELIVERY only). No informant is collected by design, so none is sent.
+- [ ] (Optional, for already-shipped builds) send the informant under `metadata.according_to` so the backend backfill can recover it without parsing free text.
+
+#### Field Accuracy Audit (current app payload — `delivery_update_screen.dart`)
+
+| Field                                                                              | Status                              |
+| ---------------------------------------------------------------------------------- | ----------------------------------- |
+| `delivery_status`, `transaction_at`, `latitude`/`longitude`/`geo_accuracy`         | ✅ structured                       |
+| DELIVERED: `recipient`, `relationship`, `placement_type`, `delivery_confirmation_code`, `delivered_date` | ✅ structured |
+| FAILED: `reason`                                                                   | ✅ structured                       |
+| FAILED: `reason` + `according_to`                                                  | ✅ structured (according_to fixed June 26, 2026) |
+| MISROUTED: `according_to` / `reason`                                               | ➖ N/A — screen captures only mailpack photo + note (by design) |
+| `note` (courier free text)                                                         | ✅ stored as-is                     |
+| media (pod / selfie / signature / mailpack / photos)                               | ✅                                  |
+
+- **Priority**: High (data accuracy for reports + billing visualization on the GDTMS web side).
+- **Owner**: Mobile app. Backend is ready; no GDTMS API change required.
+
+---
+
 ## 🏗️ Active Requirements (v3.8)
 
 ### v3.8 — Bagsakan Module Integration [COMPLETED]

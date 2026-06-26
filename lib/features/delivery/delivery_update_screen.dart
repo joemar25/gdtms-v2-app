@@ -14,8 +14,10 @@
 // Form fields (vary by status):
 //   DELIVERED — Recipient name, relationship, placement type, POD photo,
 //               selfie photo, recipient signature (optional), note.
-//   FAILED_DELIVERY — Reason, selfie photo, note.
-//   MISROUTED       — Reason, selfie photo, note.
+//   FAILED_DELIVERY — Reason, "according to" informant (for reasons that
+//               require it), selfie photo, note.
+//   MISROUTED       — Mailpack photo, note. (No reason or informant is
+//               captured for misrouted — courier only proves the mailpack.)
 //
 // Offline-first flow:
 //   1. Courier fills the form and taps SUBMIT.
@@ -665,8 +667,16 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         pendingMediaPaths['selfie'] = _selfiePhoto!.file;
       }
       final config = kReasonConfigs[_reason] ?? const ReasonConfig();
-      if (config.requiresAccordingTo && _accordingTo.text.trim().isNotEmpty) {
-        notes.add('According to: ${_accordingTo.text.trim()}');
+      // Send the informant as a STRUCTURED field so GDTMS persists it into
+      // delivery_timeline.according_to. Never embed it in the free-text note —
+      // the backend stores `note`/`remarks` verbatim and reports read the column.
+      final informant = DeliveryUpdateHelper.resolveAccordingTo(
+        isFailedDelivery: true,
+        requiresAccordingTo: config.requiresAccordingTo,
+        accordingTo: _accordingTo.text,
+      );
+      if (informant != null) {
+        payload['according_to'] = informant;
       }
     }
 

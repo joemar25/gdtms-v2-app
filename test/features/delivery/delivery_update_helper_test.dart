@@ -190,4 +190,47 @@ void main() {
       },
     );
   });
+
+  group('DeliveryUpdateHelper.resolveAccordingTo', () {
+    test('returns trimmed informant for a failed delivery that requires it', () {
+      // This value goes to the structured payload['according_to'], never the note.
+      final result = DeliveryUpdateHelper.resolveAccordingTo(
+        isFailedDelivery: true,
+        requiresAccordingTo: true,
+        accordingTo: '  JOSHUA LADIORAY  ',
+      );
+
+      expect(result, 'JOSHUA LADIORAY');
+    });
+
+    test('returns null when the reason does not require an informant', () {
+      final result = DeliveryUpdateHelper.resolveAccordingTo(
+        isFailedDelivery: true,
+        requiresAccordingTo: false,
+        accordingTo: 'OWNER',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('returns null when the informant is blank', () {
+      final result = DeliveryUpdateHelper.resolveAccordingTo(
+        isFailedDelivery: true,
+        requiresAccordingTo: true,
+        accordingTo: '   ',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('returns null when the status is not a failed delivery', () {
+      final result = DeliveryUpdateHelper.resolveAccordingTo(
+        isFailedDelivery: false,
+        requiresAccordingTo: true,
+        accordingTo: 'OWNER',
+      );
+
+      expect(result, isNull);
+    });
+  });
 }

@@ -11,6 +11,7 @@ import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/core/settings/dashboard_feel_provider.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -36,6 +37,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     _loadInitial(isInitial: true);
+    // Load sync queue entries so the reactive sync count providers
+    // (pendingSyncCountProvider / syncedSyncCountProvider) are populated
+    // immediately on dashboard open — not only when the Sync screen is visited.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await ref.read(syncManagerProvider.notifier).loadEntries();
+    });
   }
 
   Future<void> _onRefresh() async {

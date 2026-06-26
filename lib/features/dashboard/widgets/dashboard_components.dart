@@ -13,7 +13,7 @@ import 'package:go_router/go_router.dart';
 // ── Layouts ──────────────────────────────────────────────────────────────────
 
 /// Standard dashboard layout with stat cards and scan buttons.
-class DashboardDefault extends StatelessWidget {
+class DashboardDefault extends ConsumerWidget {
   const DashboardDefault({
     super.key,
     required this.summary,
@@ -26,14 +26,16 @@ class DashboardDefault extends StatelessWidget {
   final VoidCallback onRefresh;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final pendingDispatches = (summary['pending_dispatches'] ?? 0) as int;
     final pendingDeliveries = (summary['pending_deliveries'] ?? 0) as int;
     final deliveredToday = (summary['delivered_today'] ?? 0) as int;
     final failedDelivery = (summary['failed_delivery'] ?? 0) as int;
     final misrouted = (summary['misrouted'] ?? 0) as int;
-    final pendingSync = (summary['pending_sync'] ?? 0) as int;
-    final syncedTotal = (summary['synced_total'] ?? 0) as int;
+    // Use reactive providers so the count is accurate immediately after login
+    // (matches the Sync screen source of truth).
+    final pendingSync = ref.watch(pendingSyncCountProvider);
+    final syncedTotal = ref.watch(syncedSyncCountProvider);
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -312,7 +314,9 @@ class DashboardSyncSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pendingSync = summary['pending_sync'] ?? 0;
+    // Use reactive provider so the count is accurate immediately after login
+    // (matches the Sync screen source of truth).
+    final pendingSync = ref.watch(pendingSyncCountProvider);
     final connStatus = ref.watch(connectionStatusProvider);
     final isOnline = connStatus == ConnectionStatus.online;
 
