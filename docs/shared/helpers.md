@@ -88,3 +88,20 @@ Centralizes snackbar styling. Do not call `ScaffoldMessenger` directly in screen
 
 - `Formatters.currency(amount)` — formats to PHP currency string.
 - `Formatters.compactNumber(n)` — abbreviates large numbers (e.g. 1.2K).
+
+---
+
+## `string_helper.dart` — contact parsing
+
+GDTMS delivery records expose recipient numbers via `contact` / `recipient_phone`
+and authorized-representative numbers via `contact_rep` / `auth_rep_number`.
+Either field may contain multiple numbers.
+
+| Function | Purpose |
+|----------|---------|
+| `parseContactNumbers(raw)` | Splits a single field into individual numbers. Supports `/`, `,`, `;`, `|` delimiters and space-concatenated `+63` / `09` prefixes. |
+| `resolveDeliveryContactNumbers(delivery)` | Returns `DeliveryContactNumbers` with separate `recipient` and `authRep` lists. Dedupes numbers that appear in both fields (shown only under auth rep). |
+| `String.cleanContactNumber()` | Returns the first parsed number — used when only one dial target is needed. |
+
+Account Details UI (`showDeliveryAccountDetails`) uses `resolveDeliveryContactNumbers`
+to render each owner’s numbers as separate tappable rows.

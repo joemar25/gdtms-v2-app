@@ -18,7 +18,10 @@ Future<void> showContactAppSheet(
   String title = 'CONTACT RECIPIENT',
 }) async {
   final cleaned = phone.trim();
-  if (cleaned.isEmpty) return;
+  if (phoneDigits(cleaned).isEmpty) return;
+
+  final displayPhone = formatPhoneForDisplay(cleaned);
+  final telPhone = normalizePhoneForTel(cleaned);
 
   final apps = <_CommApp>[
     _CommApp(
@@ -31,7 +34,7 @@ Future<void> showContactAppSheet(
       label: 'Call',
       icon: Icons.phone_rounded,
       color: DSColors.socialCall,
-      uri: Uri(scheme: 'tel', path: cleaned),
+      uri: Uri(scheme: 'tel', path: telPhone),
     ),
     _CommApp(
       label: 'Viber',
@@ -52,7 +55,7 @@ Future<void> showContactAppSheet(
       label: 'Telegram',
       icon: Icons.near_me_rounded,
       color: DSColors.socialTelegram,
-      uri: Uri.parse('tg://resolve?phone=$cleaned'),
+      uri: buildTelegramLaunchUri(cleaned),
     ),
   ];
 
@@ -69,7 +72,8 @@ Future<void> showContactAppSheet(
     backgroundColor: DSColors.transparent,
     isScrollControlled: true,
     builder: (ctx) => _ContactAppSheet(
-      phone: cleaned,
+      phone: displayPhone,
+      telPhone: telPhone,
       apps: apps,
       title: title,
       messageTemplate: messageTemplate,
@@ -93,11 +97,13 @@ class _CommApp {
 class _ContactAppSheet extends StatelessWidget {
   const _ContactAppSheet({
     required this.phone,
+    required this.telPhone,
     required this.apps,
     required this.title,
     this.messageTemplate,
   });
   final String phone;
+  final String telPhone;
   final List<_CommApp> apps;
   final String title;
   final String? messageTemplate;
@@ -147,7 +153,7 @@ class _ContactAppSheet extends StatelessWidget {
           DSSpacing.hXs,
           GestureDetector(
             onTap: () async {
-              final uri = Uri(scheme: 'tel', path: phone);
+              final uri = Uri(scheme: 'tel', path: telPhone);
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri);
               }

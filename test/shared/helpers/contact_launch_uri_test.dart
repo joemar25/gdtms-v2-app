@@ -83,6 +83,51 @@ void main() {
     });
   });
 
+  group('normalizePhoneForMessaging', () {
+    test('converts local 09 numbers to 639 international', () {
+      expect(normalizePhoneForMessaging('09208019846'), '639208019846');
+    });
+
+    test('strips plus and spaces from international numbers', () {
+      expect(normalizePhoneForMessaging('+63 960 920 6186'), '639609206186');
+    });
+  });
+
+  group('normalizePhoneForTel', () {
+    test('converts +63 numbers to local 09 format', () {
+      expect(normalizePhoneForTel('+639609206186'), '09609206186');
+      expect(normalizePhoneForTel('+63 960 920 6186'), '09609206186');
+    });
+
+    test('keeps local 09 numbers unchanged', () {
+      expect(normalizePhoneForTel('09208019846'), '09208019846');
+    });
+  });
+
+  group('buildTelegramLaunchUri', () {
+    test('uses digits-only international phone', () {
+      final uri = buildTelegramLaunchUri('+63 960 920 6186');
+
+      expect(uri.toString(), 'tg://resolve?phone=639609206186');
+    });
+  });
+
+  group('encodeMessageForDeepLink', () {
+    test('uses percent-encoded spaces instead of plus signs', () {
+      const body = 'Hi ROMEO, FSI Courier here for FSIEE586361.';
+
+      final encoded = encodeMessageForDeepLink(body);
+
+      expect(encoded, isNot(contains('+')));
+      expect(encoded, contains('%20'));
+      expect(encoded, contains('Hi%20ROMEO'));
+    });
+
+    test('still encodes literal plus signs in message text', () {
+      expect(encodeMessageForDeepLink('rate +1'), 'rate%20%2B1');
+    });
+  });
+
   group('buildSmsLaunchUri', () {
     const body =
         'Hi ROMEO CRIZALDO LANUZA, FSI Courier here for FSIEE586361. '
@@ -99,6 +144,7 @@ void main() {
       expect(uri.path, '639609206186');
       expect(uri.queryParameters['body'], body);
       expect(uri.toString(), isNot(contains("'")));
+      expect(uri.toString(), isNot(contains('+')));
       expect(uri.toString(), startsWith('smsto:639609206186?body='));
     });
 
@@ -143,7 +189,11 @@ void main() {
       const body = 'Hi MARIA, FSI Courier here for FSIEE586361.';
       final uri = buildViberLaunchUri('+639355349832', body: body);
 
-      expect(uri.toString(), startsWith('viber://chat?number=639355349832&text='));
+      expect(
+        uri.toString(),
+        startsWith('viber://chat?number=639355349832&text='),
+      );
+      expect(uri.toString(), isNot(contains('+')));
       expect(uri.queryParameters['text'], body);
     });
   });
@@ -157,6 +207,7 @@ void main() {
         uri.toString(),
         startsWith('whatsapp://send?phone=639355349832&text='),
       );
+      expect(uri.toString(), isNot(contains('+')));
       expect(uri.queryParameters['text'], body);
     });
   });

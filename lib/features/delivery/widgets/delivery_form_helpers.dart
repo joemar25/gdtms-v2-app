@@ -8,6 +8,7 @@ import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_other_info.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/contact_launch_uri.dart';
+import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart'
     hide buildDeliveryContactMessage;
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -213,25 +214,13 @@ Future<void> showDeliveryAccountDetails(
       delivery['delivery_address']?.toString() ??
       delivery['address']?.toString() ??
       '';
-  final contact =
-      delivery['recipient_phone']?.toString() ??
-      delivery['contact']?.toString() ??
-      '';
-  final authRepNumber =
-      delivery['contact_rep']?.toString() ??
-      delivery['auth_rep_number']?.toString() ??
-      '';
+  final contactNumbers = resolveDeliveryContactNumbers(delivery);
   final product = delivery['product']?.toString() ?? '';
   final mailType = delivery['mail_type']?.toString() ?? '';
   final specialInstruction = delivery['special_instruction']?.toString() ?? '';
   final transmittalDate = delivery['transmittal_date']?.toString() ?? '';
   final tat = delivery['tat']?.toString() ?? '';
   final sequenceNumber = delivery['sequence_number']?.toString() ?? '';
-
-  final hasShownAuthRepInContact = contact.split('/').any((n) {
-    final cn = n.trim();
-    return authRepNumber.isNotEmpty && cn.contains(authRepNumber);
-  });
 
   void copyToClipboard(String text, String label) {
     if (text.isEmpty) return;
@@ -350,99 +339,25 @@ Future<void> showDeliveryAccountDetails(
                               onLongPress: () =>
                                   copyToClipboard(address, 'Address'),
                             ),
-                          if (contact.isNotEmpty)
-                            ...contact.split('/').asMap().entries.map((entry) {
-                              final idx = entry.key;
-                              final cleanContact = entry.value.trim();
-                              if (cleanContact.isEmpty) {
-                                return const SizedBox.shrink();
-                              }
-                              final isAuthRepNum =
-                                  authRepNumber.isNotEmpty &&
-                                  cleanContact.contains(authRepNumber);
-                              final nextEntry =
-                                  contact.split('/').length > idx + 1
-                                  ? contact.split('/')[idx + 1].trim()
-                                  : null;
-                              final nextIsAuthRep =
-                                  nextEntry != null &&
-                                  authRepNumber.isNotEmpty &&
-                                  nextEntry.contains(authRepNumber);
-
-                              final hasExtraTile =
-                                  authRepNumber.isNotEmpty &&
-                                  !contact.contains(authRepNumber);
-
-                              final showDivider =
-                                  (nextEntry != null &&
-                                      isAuthRepNum != nextIsAuthRep) ||
-                                  (nextEntry == null &&
-                                      hasExtraTile &&
-                                      !isAuthRepNum);
-
-                              final previousEntry = idx > 0
-                                  ? contact.split('/')[idx - 1].trim()
-                                  : null;
-                              final previousIsAuthRep =
-                                  previousEntry != null &&
-                                  authRepNumber.isNotEmpty &&
-                                  previousEntry.contains(authRepNumber);
-
-                              final isFirstOfParty =
-                                  idx == 0 ||
-                                  (isAuthRepNum != previousIsAuthRep);
-
-                              return DSInfoTile(
-                                label: isFirstOfParty
-                                    ? (isAuthRepNum
-                                          ? 'Auth Rep Contact'
-                                          : 'Recipient Number')
-                                    : '',
-                                value: cleanContact,
-                                onTap: () => onPhoneTap(
-                                  cleanContact,
-                                  isAuthRepNum ? authRepName : name,
-                                ),
-                                onLongPress: () => copyToClipboard(
-                                  cleanContact,
-                                  'Contact number',
-                                ),
-                                showDivider: showDivider,
-                                padding: isFirstOfParty
-                                    ? null
-                                    : EdgeInsets.only(
-                                        top: 0,
-                                        bottom: DSSpacing.md,
-                                        left: DSSpacing.md,
-                                        right: DSSpacing.md,
-                                      ),
-                              );
-                            }),
-                          if (authRepNumber.isNotEmpty &&
-                              !contact.contains(authRepNumber))
-                            DSInfoTile(
-                              label: hasShownAuthRepInContact
-                                  ? ''
-                                  : 'Auth Rep Contact',
-                              value: authRepNumber,
-                              onTap: () => onPhoneTap(
-                                authRepNumber,
-                                authRepName,
-                              ),
-                              onLongPress: () => copyToClipboard(
-                                authRepNumber,
-                                'Auth rep number',
-                              ),
-                              showDivider: false,
-                              padding: hasShownAuthRepInContact
-                                  ? EdgeInsets.only(
-                                      top: 0,
-                                      bottom: DSSpacing.md,
-                                      left: DSSpacing.md,
-                                      right: DSSpacing.md,
-                                    )
-                                  : null,
-                            ),
+                          ..._buildContactPartyTiles(
+                            label: 'Recipient Number',
+                            numbers: contactNumbers.recipient,
+                            greetingName: name,
+                            hasFollowingParty:
+                                contactNumbers.authRep.isNotEmpty,
+                            onPhoneTap: onPhoneTap,
+                            copyToClipboard: copyToClipboard,
+                          ),
+                          ..._buildContactPartyTiles(
+                            label: 'Auth Rep Contact',
+                            numbers: contactNumbers.authRep,
+                            greetingName: effectiveAuthRepName.isNotEmpty
+                                ? effectiveAuthRepName
+                                : authRepName,
+                            hasFollowingParty: false,
+                            onPhoneTap: onPhoneTap,
+                            copyToClipboard: copyToClipboard,
+                          ),
                         ],
                       ),
                     ),
@@ -470,4 +385,35 @@ Future<void> showDeliveryAccountDetails(
       );
     },
   );
+}
+
+/// Builds [DSInfoTile] rows for one contact owner (recipient or auth rep).
+List<Widget> _buildContactPartyTiles({
+  required String label,
+  required List<String> numbers,
+  required String greetingName,
+  required bool hasFollowingParty,
+  required Future<void> Function(String phone, String targetName) onPhoneTap,
+  required void Function(String text, String clipboardLabel) copyToClipboard,
+}) {
+  if (numbers.isEmpty) return const [];
+
+  return [
+    for (var i = 0; i < numbers.length; i++)
+      DSInfoTile(
+        label: i == 0 ? label : '',
+        value: formatPhoneForDisplay(numbers[i]),
+        onTap: () => onPhoneTap(numbers[i], greetingName),
+        onLongPress: () => copyToClipboard(numbers[i], 'Contact number'),
+        showDivider: i < numbers.length - 1 || hasFollowingParty,
+        padding: i == 0
+            ? null
+            : EdgeInsets.only(
+                top: 0,
+                bottom: DSSpacing.md,
+                left: DSSpacing.md,
+                right: DSSpacing.md,
+              ),
+      ),
+  ];
 }

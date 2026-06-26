@@ -119,6 +119,81 @@ void main() {
       expect(message, isNot(contains('Hi ROMEO CRIZALDO LANUZA,')));
     });
 
+    testWidgets(
+      'account details sheet separates multiple recipient numbers',
+      (tester) async {
+        SecureViewManager.setDeveloperModeOverride(true);
+        addTearDown(() => SecureViewManager.setDeveloperModeOverride(false));
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        const delivery = {
+          'recipient_name': 'ROMEO CRIZALDO LANUZA',
+          'recipient_address': 'BLK 10 LOT 5 GRANDSTRIKEVILLE 4',
+          'contact': '+639609206186 +639123456789',
+        };
+
+        await tester.pumpWidget(
+          _wrap(
+            Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () =>
+                    showDeliveryAccountDetails(context, delivery, barcode),
+                child: const Text('Details'),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Details'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('RECIPIENT NUMBER'), findsOneWidget);
+        expect(find.text('09609206186'), findsOneWidget);
+        expect(find.text('09123456789'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'account details sheet separates multiple auth rep numbers',
+      (tester) async {
+        SecureViewManager.setDeveloperModeOverride(true);
+        addTearDown(() => SecureViewManager.setDeveloperModeOverride(false));
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        const delivery = {
+          'recipient_name': 'ROMEO CRIZALDO LANUZA',
+          'contact': '+639609206186',
+          'authorized_rep': 'MA ELIZA CRIZALDO LANUZA',
+          'contact_rep': '+639355349832 +639177788899',
+        };
+
+        await tester.pumpWidget(
+          _wrap(
+            Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () =>
+                    showDeliveryAccountDetails(context, delivery, barcode),
+                child: const Text('Details'),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Details'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('AUTH REP CONTACT'), findsOneWidget);
+        expect(find.text('09355349832'), findsOneWidget);
+        expect(find.text('09177788899'), findsOneWidget);
+      },
+    );
+
     testWidgets('account details sheet shows recipient and auth rep numbers', (
       tester,
     ) async {
@@ -153,8 +228,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('ACCOUNT DETAILS'), findsOneWidget);
-      expect(find.text('+639609206186'), findsOneWidget);
-      expect(find.text('+639355349832'), findsOneWidget);
+      expect(find.text('09609206186'), findsOneWidget);
+      expect(find.text('09355349832'), findsOneWidget);
       expect(find.text('ROMEO CRIZALDO LANUZA'), findsOneWidget);
       expect(find.text('MA ELIZA CRIZALDO LANUZA'), findsOneWidget);
     });

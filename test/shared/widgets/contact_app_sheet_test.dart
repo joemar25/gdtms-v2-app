@@ -64,7 +64,29 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('MESSAGE PREVIEW'), findsNothing);
-      expect(find.text('+639609206186'), findsOneWidget);
+      expect(find.text('09609206186'), findsOneWidget);
+    });
+
+    testWidgets('normalizes spaced +63 number for display and launch', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () =>
+                  showContactAppSheet(context, '+63 960 920 6186'),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('09609206186'), findsOneWidget);
+      expect(find.textContaining('+'), findsNothing);
     });
 
     testWidgets('does not open sheet for blank phone number', (tester) async {
