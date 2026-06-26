@@ -295,11 +295,25 @@ class _DeliveryCardState extends State<DeliveryCard> {
                                       DeliveryStatusBadge(
                                         label: isDirty
                                             ? 'UNSYNCED'
-                                            : ds.displayName.toUpperCase(),
-                                        color: colorForStatus,
+                                            : (ds == DeliveryStatus.failedDelivery &&
+                                                      attemptsCount >=
+                                                          kMaxDeliveryAttempts
+                                                  ? 'FOR RETURN'
+                                                  : ds.displayName.toUpperCase()),
+                                        color: isDirty
+                                            ? colorForStatus
+                                            : (ds == DeliveryStatus.failedDelivery &&
+                                                      attemptsCount >=
+                                                          kMaxDeliveryAttempts
+                                                  ? DSColors.returned
+                                                  : colorForStatus),
                                         icon: isDirty
                                             ? Icons.sync_problem_rounded
-                                            : iconForStatus,
+                                            : (ds == DeliveryStatus.failedDelivery &&
+                                                      attemptsCount >=
+                                                          kMaxDeliveryAttempts
+                                                  ? Icons.undo_rounded
+                                                  : iconForStatus),
                                       ),
                                     if (delivery['bagsakan_id'] != null)
                                       DeliveryStatusBadge(

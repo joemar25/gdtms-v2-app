@@ -75,10 +75,11 @@ bool isTerminalStateFromMap(Map<String, dynamic> delivery) {
 /// Returns the number of failed delivery attempts for a delivery map.
 ///
 /// Priority order:
-///   1. `failed_delivery_count` — integer shipped by the server (v2.9 update, April 2026).
-///   2. `failed_delivery_attempts` — full attempt objects (detail endpoint).
-///   3. `rts_count` / `rts_attempts` — legacy fallbacks for backward compatibility.
-///   4. `0` — safe default.
+///   1. `delivery_attempts` — authoritative active-cycle count (API v4.2).
+///   2. `failed_delivery_count` — list/sync alias (v2.9).
+///   3. `failed_delivery_attempts` — full attempt objects (detail/PATCH).
+///   4. `rts_count` / `rts_attempts` — legacy fallbacks.
+///   5. `0` — safe default.
 int getAttemptsCountFromMap(Map<String, dynamic> delivery) {
   // Helper to parse numeric-like values reliably.
   int? parseInt(dynamic v) {
@@ -92,17 +93,32 @@ int getAttemptsCountFromMap(Map<String, dynamic> delivery) {
     return null;
   }
 
-  // Prefer explicit integer count keys.
-  final v =
-      delivery['failed_delivery_count'] ?? delivery['failedDeliveryCount'];
-  final parsed = parseInt(v);
-  if (parsed != null) return parsed;
+  // v4.2: operational count for current courier assignment.
+  final operational = parseInt(
+    delivery['delivery_attempts'] ?? delivery['deliveryAttempts'],
+  );
+  if (operational != null) return operational;
 
-  // Fallback to attempt lists if count is missing.
+  // List/sync alias.
+  final aliasCount = parseInt(
+    delivery['failed_delivery_count'] ?? delivery['failedDeliveryCount'],
+  );
+  if (aliasCount != null) return aliasCount;
+
+  // Fallback to attempt lists if integer counts are missing.
   final l =
       delivery['failed_delivery_attempts'] ??
       delivery['failedDeliveryAttempts'];
   if (l is List) return l.length;
+
+  // Legacy fallbacks.
+  final legacy = parseInt(
+    delivery['rts_count'] ??
+        delivery['rts_attempts'] ??
+        delivery['rtsCount'] ??
+        delivery['rtsAttempts'],
+  );
+  if (legacy != null) return legacy;
 
   return 0;
 }

@@ -6,6 +6,35 @@
 
 ---
 
+## 🏗️ Active Requirements (v4.2)
+
+### v4.2 — Read `delivery_attempts` For 3-Attempt / For Return Classification [FIXED June 26, 2026]
+
+#### Problem
+
+After backend v4.2, list/sync/detail/PATCH responses expose the authoritative operational count as
+`delivery_attempts`. Detail and PATCH responses do **not** always include `failed_delivery_count`.
+The app only read `failed_delivery_count` / `failed_delivery_attempts[]`, so parcels with 3 real
+attempts stayed in **For Redelivery** (and showed **FAILED DELIVERY**) instead of **For Return**.
+
+#### Fix (our side)
+
+- `lib/shared/helpers/delivery_helper.dart` — `getAttemptsCountFromMap()` now prefers
+  `delivery_attempts`, then `failed_delivery_count`, then attempt list length.
+- `lib/shared/widgets/delivery_card.dart` — status badge shows **FOR RETURN** when
+  `delivery_attempts >= 3` on a failed delivery.
+- Tests: `delivery_helper_test.dart`, `delivery_visibility_rules_test.dart`.
+
+#### Backend contract (no API change required)
+
+| Field | Mobile use |
+| ----- | ---------- |
+| `delivery_attempts` | **Authoritative** for For Return tab, lock state, attempt badge |
+| `failed_delivery_count` | List/sync alias only |
+| `total_delivery_attempts` | Audit display only — do not use for limit |
+
+---
+
 ## 🏗️ Active Requirements (v3.9)
 
 ### v3.9 — Failed Delivery `according_to` Must Be Sent As a Structured Field [FIXED June 26, 2026]
