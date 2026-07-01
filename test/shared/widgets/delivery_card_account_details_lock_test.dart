@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fsi_courier_app/design_system/widgets/molecules/ds_secure_view.dart';
@@ -61,6 +62,10 @@ Future<void> _expectNoAccountDetailsLeak(
 }
 
 void main() {
+  setUpAll(() {
+    EasyLocalization.logger.printer = (object, {level, name, stackTrace}) {};
+  });
+
   group('DeliveryCard account-details lock (edge cases)', () {
     final lockedCases = <String, Map<String, dynamic>>{
       'DELIVERED': {

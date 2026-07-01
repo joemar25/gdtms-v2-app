@@ -66,10 +66,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('MESSAGE PREVIEW'), findsNothing);
-      expect(find.text('09609206186'), findsOneWidget);
+      expect(find.text('+63 960 920 6186'), findsOneWidget);
     });
 
-    testWidgets('normalizes spaced +63 number for display and launch', (
+    testWidgets('shows spaced +63 international number for display', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -86,8 +86,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('09609206186'), findsOneWidget);
-      expect(find.textContaining('+'), findsNothing);
+      expect(find.text('+63 960 920 6186'), findsOneWidget);
     });
 
     testWidgets('does not open sheet for blank phone number', (tester) async {

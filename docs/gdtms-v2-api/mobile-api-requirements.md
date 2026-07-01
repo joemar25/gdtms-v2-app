@@ -6,6 +6,79 @@
 
 ---
 
+## 🏗️ Active Requirements (v4.3)
+
+### v4.3 — Recipient Phone Numbers Must Be E.164 (`+63…`) [FIXED July 1, 2026]
+
+#### Problem
+
+Riders reported the **SMS ("text") action never sent to anyone**, on every device tested.
+Call worked; SMS did not. Root cause was on our side: the SMS deep link built the recipient
+with `normalizePhoneForMessaging()`, which produces **bare international digits with no `+`**
+(e.g. `09208019846` → `639208019846`). That string is neither a valid local PH number
+(`09XXXXXXXXX`) nor valid E.164 (`+639XXXXXXXXX`), so the messaging app / carrier treats it as
+unroutable and the text cannot be sent — on both Android (`smsto:`) and iOS (`sms:`).
+
+#### Fix (our side)
+
+- `lib/shared/helpers/contact_launch_uri.dart` — `buildSmsLaunchUri()` uses
+  `normalizePhoneForSmsSend()`: **local `09XXXXXXXXX`** for PH numbers, E.164 fallback for non-PH.
+  The bare `639…` (no `+`) form was invalid; a leading `+` in `smsto:`/`sms:` proved unreliable
+  on Android SMS apps, so PH SMS uses the same local form as the working Call button.
+  (`normalizePhoneForSms()` — pure E.164 — is still used by Viber and as the non-PH SMS fallback.)
+- Number-format policy (applied on **our** end regardless of what the API sends):
+  - **SMS/Call recipient**: PH → local `09XXXXXXXXX`; non-PH → E.164 `+<cc>…`
+  - **Display** (`formatPhoneForDisplay`): grouped E.164 `+63 9XX XXX XXXX`
+  - Any number with an explicit `+` country code (PH or not) is honored, not discarded
+- **UI display**: `formatPhoneForDisplay()` now shows the **international** number
+  (`+63 9XX XXX XXXX`) on the contact tiles and the contact sheet header, so riders can
+  visually confirm the number that will be dialled/texted. Note: the messaging app may still
+  reformat this to national format in its own composer — that is cosmetic and does not affect
+  deliverability.
+- **UI affordance**: the contact tile trailing icon changed from the call icon
+  (`Icons.phone_rounded`) to `Icons.more_horiz_rounded`, because tapping opens a **sheet of
+  contact options** (SMS/Call/Viber/WhatsApp/Telegram), not a one-tap call. See
+  `_buildContactPartyTiles` in `lib/features/delivery/widgets/delivery_form_helpers.dart`.
+- Tests: `test/shared/helpers/contact_launch_uri_test.dart` (regression + policy + display
+  cases), `test/shared/widgets/contact_app_sheet_test.dart`,
+  `test/features/delivery/widgets/delivery_form_helpers_test.dart`.
+
+> [!IMPORTANT]
+> **`+` inside an SMS URI is not guaranteed on 100% of Android messaging apps.** E.164 is the
+> correct standard and works on the overwhelming majority of devices; a small number of
+> third-party SMS apps historically mishandle a leading `+` in `sms:`/`smsto:`. If a specific
+> rider's SMS app still fails, that is the first thing to check — the single point to change the
+> format is `normalizePhoneForSms()`. Confirm on real hardware during rider testing.
+
+#### Channel format matrix (each channel needs its own format — do not "standardize" to one)
+
+| Channel | URI | Recipient format | Helper |
+| ------- | --- | ---------------- | ------ |
+| Call | `tel:09XXXXXXXXX` | Local `09XXXXXXXXX` | `normalizePhoneForTel()` |
+| SMS | `smsto:` / `sms:09XXXXXXXXX` | **Local `09XXXXXXXXX`** (`+` unreliable in `smsto:`) | `normalizePhoneForSmsSend()` |
+| **Viber** | `viber://chat?number=+639XXXXXXXXX` | **E.164 with `+`** (Viber requires it) | `normalizePhoneForSms()` |
+| **WhatsApp** | `https://wa.me/639XXXXXXXXX?text=…` | International digits, **no `+`** | `normalizePhoneForMessaging()` |
+| **Telegram** | `tg://resolve?phone=639XXXXXXXXX` | International digits, **no `+`** | `normalizePhoneForMessaging()` |
+
+> [!IMPORTANT]
+> Each channel needs its **own** number format — do **not** unify them. Confirmed on-device:
+> **Viber requires the `+`**, but the same `+` **breaks SMS** (`smsto:`/`sms:` composer fails to
+> open / drops the recipient), so SMS uses the local `09…` form like Call. A literal `+` also
+> breaks **WhatsApp**; digits-only fixes WhatsApp/Telegram but breaks Viber. Official refs:
+> [Viber deep links](https://developers.viber.com/docs/tools/deep-links/) (requires `+`),
+> [WhatsApp wa.me](https://www.appsflyer.com/blog/deep-linking/whatsapp-deep-link/) (no `+`),
+> [Telegram links](https://core.telegram.org/api/links) (no `+`). **WhatsApp** uses the official
+> `wa.me` URL (not `whatsapp://send`) so it works reliably and falls back to the browser. This
+> needs `<data android:scheme="https"/>` in the Android `<queries>` block. **Viber & Telegram
+> cannot pre-fill a message** to a phone number — they only open the chat (platform limitation).
+
+#### Backend contract (recommended — no API change required)
+
+- Send recipient phone numbers in **E.164** (`+639XXXXXXXXX`). The app normalizes defensively
+  either way, but E.164 from the API is the cleanest and avoids ambiguity for non-PH numbers.
+
+---
+
 ## 🏗️ Active Requirements (v4.2)
 
 ### v4.2 — Read `delivery_attempts` For 3-Attempt / For Return Classification [FIXED June 26, 2026]

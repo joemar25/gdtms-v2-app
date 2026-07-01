@@ -151,8 +151,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('RECIPIENT NUMBER'), findsOneWidget);
-      expect(find.text('09609206186'), findsOneWidget);
-      expect(find.text('09123456789'), findsOneWidget);
+      expect(find.text('+63 960 920 6186'), findsOneWidget);
+      expect(find.text('+63 912 345 6789'), findsOneWidget);
     });
 
     testWidgets('account details sheet separates multiple auth rep numbers', (
@@ -188,8 +188,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('AUTH REP CONTACT'), findsOneWidget);
-      expect(find.text('09355349832'), findsOneWidget);
-      expect(find.text('09177788899'), findsOneWidget);
+      expect(find.text('+63 935 534 9832'), findsOneWidget);
+      expect(find.text('+63 917 778 8899'), findsOneWidget);
     });
 
     testWidgets(
@@ -294,8 +294,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('ACCOUNT DETAILS'), findsOneWidget);
-      expect(find.text('09609206186'), findsOneWidget);
-      expect(find.text('09355349832'), findsOneWidget);
+      expect(find.text('+63 960 920 6186'), findsOneWidget);
+      expect(find.text('+63 935 534 9832'), findsOneWidget);
       expect(find.text('ROMEO CRIZALDO LANUZA'), findsOneWidget);
       expect(find.text('MA ELIZA CRIZALDO LANUZA'), findsOneWidget);
     });

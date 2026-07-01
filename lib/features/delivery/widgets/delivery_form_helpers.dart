@@ -406,9 +406,13 @@ List<Widget> _buildContactPartyTiles({
       DSInfoTile(
         label: i == 0 ? label : '',
         value: formatPhoneForDisplay(numbers[i]),
+        // Tapping opens a sheet of contact options (SMS/Call/Viber/etc.), not a
+        // direct call — use a "more options" icon so it does not read as a
+        // one-tap dial.
+        icon: Icons.more_horiz_rounded,
         onTap: () => onPhoneTap(numbers[i], greetingName),
         onLongPress: () => copyToClipboard(numbers[i], 'Contact number'),
-        showDivider: i < numbers.length - 1 || hasFollowingParty,
+        showDivider: i == numbers.length - 1 && hasFollowingParty,
         padding: i == 0
             ? null
             : EdgeInsets.only(

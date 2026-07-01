@@ -74,6 +74,11 @@
             <data android:mimeType="application/vnd.android.package-archive"/>
         </intent>
         <!-- Required for url_launcher SMS / call / chat deep links -->
+        <!-- https covers the WhatsApp wa.me link (and browser fallback) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="sms"/>

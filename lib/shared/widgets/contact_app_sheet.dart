@@ -233,6 +233,11 @@ class _AppButton extends StatelessWidget {
     return InkWell(
       onTap: () async {
         Navigator.pop(context);
+        // Wait for the sheet's dismiss animation to fully complete before
+        // launching the external app. Without this delay, the app can go
+        // to the background mid-animation, leaving the route in a state
+        // that absorbs pointer events when the user returns.
+        await Future<void>.delayed(const Duration(milliseconds: 350));
         final launched = await launchUrl(
           app.uri,
           mode: LaunchMode.externalApplication,
