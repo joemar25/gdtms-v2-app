@@ -79,9 +79,11 @@ class PushNotificationService {
         }
       } else {
         debugPrint('[PUSH] User declined or has not accepted permission');
-        // Ensure server cleared; schedule an offline-safe clear so backend
-        // doesn't keep a stale token.
-        await _syncTokenToApi(null);
+        // Do not send a null token to the backend — the backend requires
+        // fcm_token to be non-null and would respond with a validation error
+        // that pollutes the error logs. Firebase's deleteToken() (called on
+        // logout) already invalidates the device token on FCM's side, so any
+        // server push attempt will fail naturally without a server-side clear.
       }
     } catch (e) {
       debugPrint('[PUSH] Failed to get/persist FCM token: $e');
@@ -196,8 +198,11 @@ class PushNotificationService {
   }
 
   /// Called on logout. Deletes the Firebase token on-device so the stored
-  /// backend token immediately becomes invalid, then clears it on the server.
-  /// Resets [_initialized] so [init] fully re-registers on the next login.
+  /// backend token immediately becomes invalid on FCM's side — any future
+  /// server push attempt will be rejected by Firebase without needing an
+  /// explicit server-side clear. Also wipes locally persisted FCM state so the
+  /// next login starts fresh. Resets [_initialized] so [init] fully
+  /// re-registers listeners on the next login.
   Future<void> clearToken() async {
     // 1. Delete the Firebase token — any attempt by the backend to send a push
     //    to the old token will be rejected by FCM even if the server clear fails.
@@ -208,19 +213,30 @@ class PushNotificationService {
       debugPrint('[PUSH] Failed to delete FCM token: $e');
     }
 
-    // 2. Clear the token on the backend so the server knows this device is gone.
+    // 2. Skip sending null to the backend — the backend requires fcm_token to
+    //    be non-null and returns a validation error for null values (which
+    //    previously appeared as warnings in the error logs). The deleteToken()
+    //    call above already makes any future push to the old token fail on
+    //    FCM's side, so a server-side clear is not needed.
+
+    // 3. Clear locally persisted FCM state so the next login starts fresh
+    //    and _attemptPendingTokenSync doesn't retry a stale token.
     try {
-      await _syncTokenToApi(null);
+      await _authStorage.clearPendingFcmToken();
+      await _authStorage.setLastSyncedFcmToken(null);
     } catch (e) {
-      debugPrint('[PUSH] Failed to schedule backend clear for FCM token: $e');
+      debugPrint('[PUSH] Failed to clear local FCM token state: $e');
     }
 
-    // 3. Reset so init() fully re-registers listeners on next login.
+    // 4. Reset so init() fully re-registers listeners on next login.
     _initialized = false;
     _apiClient = null;
   }
 
-  Future<void> _syncTokenToApi(String? token) async {
+  Future<void> _syncTokenToApi(String token) async {
+    // The backend requires fcm_token to be a non-null, non-empty string.
+    // Never call this method with a null token — use clearToken() for logout.
+
     // Persist desired state first so it survives restarts/offline.
     try {
       await _authStorage.setPendingFcmToken(token);
@@ -233,10 +249,9 @@ class PushNotificationService {
       return;
     }
 
-    debugPrint('[PUSH] Syncing FCM Token: ${token ?? 'null'}');
+    debugPrint('[PUSH] Syncing FCM Token: $token');
 
-    // We assume the backend expects this payload.
-    // POST /profile/fcm-token
+    // POST /profile/fcm-token — backend requires non-null fcm_token.
     final deviceType = kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android');
 
     final result = await _apiClient!.post(
@@ -288,18 +303,22 @@ class PushNotificationService {
       final hasPending = await _authStorage.hasPendingFcmToken();
       if (!hasPending) return;
       final pending = await _authStorage.getPendingFcmToken();
-      if (pending == null) {
-        // Explicit clear requested.
-        await _syncTokenToApi(null);
-      } else {
-        // If permissions are granted, try to send the token; otherwise clear server-side token.
-        if (settings.authorizationStatus == AuthorizationStatus.authorized ||
-            settings.authorizationStatus == AuthorizationStatus.provisional) {
-          await _syncTokenToApi(pending);
-        } else {
-          await _syncTokenToApi(null);
-        }
+
+      // Only attempt to sync if we have an actual token and permissions are
+      // granted. Sending null to the backend causes a validation error (the
+      // endpoint requires a non-null fcm_token). If there is no valid pending
+      // token, clear the stale pending state and bail out.
+      if (pending == null || pending.isEmpty) {
+        await _authStorage.clearPendingFcmToken();
+        return;
       }
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
+        await _syncTokenToApi(pending);
+      }
+      // If permission is not granted, do nothing — we keep the pending token
+      // so it can be sent once the user grants permission and re-opens the app.
     } catch (e) {
       debugPrint('[PUSH] Failed to attempt pending FCM sync: $e');
     }
