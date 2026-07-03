@@ -20,19 +20,21 @@ class SyncEntryTile extends StatelessWidget {
     super.key,
     required this.entry,
     this.delivery,
-    this.isSyncing = false,
     this.failedDeliveryAttemptsCount = 0,
+    required this.isSyncing,
     this.onRetry,
     this.onDismiss,
+    this.onLongPress,
     this.onDelete,
   });
 
   final SyncOperation entry;
   final LocalDelivery? delivery;
-  final bool isSyncing;
   final int failedDeliveryAttemptsCount;
+  final bool isSyncing;
   final VoidCallback? onRetry;
   final VoidCallback? onDismiss;
+  final VoidCallback? onLongPress;
   final VoidCallback? onDelete;
 
   bool get _isBagsakan =>
@@ -216,7 +218,7 @@ class SyncEntryTile extends StatelessWidget {
                 : _isBagsakan
                 ? null
                 : () => context.push('/deliveries/${entry.barcode}/update'),
-            onLongPress: onDelete,
+            onLongPress: onLongPress,
             child: Row(
               children: [
                 // ── Status Indicator Bar ─────────────────────────────────
@@ -425,18 +427,27 @@ class SyncEntryTile extends StatelessWidget {
                             children: [
                               if (onRetry != null)
                                 SizedBox(
-                                  height: 28,
-                                  child: TextButton(
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
+                                  height: 36,
+                                  child: FilledButton.icon(
+                                    style: FilledButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: DSSpacing.md,
+                                      ),
+                                      backgroundColor: DSColors.primary,
+                                      foregroundColor: DSColors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: DSStyles.pillRadius,
+                                      ),
+                                    ),
+                                    icon: const Icon(
+                                      Icons.sync_rounded,
+                                      size: 16,
                                     ),
                                     onPressed: onRetry,
-                                    child: Text(
+                                    label: Text(
                                       'sync.list.retry_button'.tr(),
                                       style: DSTypography.button(
-                                        color: DSColors.primary,
+                                        color: DSColors.white,
                                         fontSize: DSTypography.sizeXs,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -448,12 +459,18 @@ class SyncEntryTile extends StatelessWidget {
                                 DSSpacing.wMd,
                               if (onDismiss != null)
                                 SizedBox(
-                                  height: 28,
-                                  child: TextButton(
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
+                                  height: 36,
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: DSSpacing.md,
+                                      ),
+                                      side: const BorderSide(
+                                        color: DSColors.primary,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: DSStyles.pillRadius,
+                                      ),
                                     ),
                                     onPressed: onDismiss,
                                     child: Text(
@@ -468,6 +485,37 @@ class SyncEntryTile extends StatelessWidget {
                                 ),
                               if (onDismiss != null && onDelete != null)
                                 DSSpacing.wMd,
+                              if (onDelete != null)
+                                SizedBox(
+                                  height: 36,
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: DSSpacing.md,
+                                      ),
+                                      side: const BorderSide(
+                                        color: DSColors.error,
+                                      ),
+                                      foregroundColor: DSColors.error,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: DSStyles.pillRadius,
+                                      ),
+                                    ),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 16,
+                                    ),
+                                    onPressed: onDelete,
+                                    label: Text(
+                                      'common.delete'.tr(),
+                                      style: DSTypography.button(
+                                        color: DSColors.error,
+                                        fontSize: DSTypography.sizeXs,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ],

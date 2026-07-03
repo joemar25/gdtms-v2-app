@@ -5,6 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/features/sync/widgets/sync_entry_tile.dart';
@@ -104,7 +105,7 @@ class SyncEntryList extends ConsumerWidget {
                         }
                       }
                     : null,
-                onDismiss: (entry.status == 'conflict')
+                onDismiss: (entry.status == 'conflict' && kAppDebugMode)
                     ? () async {
                         final confirmed = await ConfirmationDialog.show(
                           context,
@@ -120,7 +121,23 @@ class SyncEntryList extends ConsumerWidget {
                         }
                       }
                     : null,
-                onDelete: (entry.status == 'synced')
+                onLongPress:
+                    (entry.status == 'error' || entry.status == 'failed')
+                    ? () async {
+                        final confirmed = await ConfirmationDialog.show(
+                          context,
+                          title: 'sync.dialogs.retry_confirm_title'.tr(),
+                          subtitle: 'sync.dialogs.retry_confirm_subtitle'.tr(),
+                          confirmLabel: 'sync.list.retry_button'.tr(),
+                        );
+                        if (confirmed == true) {
+                          ref
+                              .read(syncManagerProvider.notifier)
+                              .retrySingle(entry.id);
+                        }
+                      }
+                    : null,
+                onDelete: (entry.status == 'synced' && kAppDebugMode)
                     ? () async {
                         final confirmed = await ConfirmationDialog.show(
                           context,

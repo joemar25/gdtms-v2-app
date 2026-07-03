@@ -155,6 +155,17 @@ class SyncOperationsDao {
     );
   }
 
+  /// Resets all operations for a specific barcode back to pending status.
+  Future<void> resetToPendingByBarcode(String barcode) async {
+    final db = await _db;
+    await db.update(
+      'sync_operations',
+      {'status': 'pending', 'retry_count': 0, 'last_error': null},
+      where: "barcode = ? AND status IN ('failed', 'error', 'conflict')",
+      whereArgs: [barcode],
+    );
+  }
+
   /// Gets count of incomplete operations for [courierId] (used for UI badge).
   Future<int> getPendingCount(String courierId) async {
     final db = await _db;

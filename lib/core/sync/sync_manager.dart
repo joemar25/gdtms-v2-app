@@ -989,6 +989,14 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     await processQueue();
   }
 
+  /// Resets failed entries for a specific barcode back to [pending] and immediately
+  /// processes the queue. Intended for manual retry from the Error Logs screen.
+  Future<void> retryByBarcode(String barcode) async {
+    if (state.isSyncing) return;
+    await ref.read(syncOperationsDaoProvider).resetToPendingByBarcode(barcode);
+    await processQueue();
+  }
+
   /// Clears all failed entries (and their media files) then refreshes the list.
   Future<void> clearFailed() async {
     final auth = ref.read(authProvider);
