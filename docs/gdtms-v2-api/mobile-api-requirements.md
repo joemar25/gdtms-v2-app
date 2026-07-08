@@ -52,13 +52,13 @@ unroutable and the text cannot be sent — on both Android (`smsto:`) and iOS (`
 
 #### Channel format matrix (each channel needs its own format — do not "standardize" to one)
 
-| Channel | URI | Recipient format | Helper |
-| ------- | --- | ---------------- | ------ |
-| Call | `tel:09XXXXXXXXX` | Local `09XXXXXXXXX` | `normalizePhoneForTel()` |
-| SMS | `smsto:` / `sms:09XXXXXXXXX` | **Local `09XXXXXXXXX`** (`+` unreliable in `smsto:`) | `normalizePhoneForSmsSend()` |
-| **Viber** | `viber://chat?number=+639XXXXXXXXX` | **E.164 with `+`** (Viber requires it) | `normalizePhoneForSms()` |
-| **WhatsApp** | `https://wa.me/639XXXXXXXXX?text=…` | International digits, **no `+`** | `normalizePhoneForMessaging()` |
-| **Telegram** | `tg://resolve?phone=639XXXXXXXXX` | International digits, **no `+`** | `normalizePhoneForMessaging()` |
+| Channel      | URI                                 | Recipient format                                     | Helper                         |
+| ------------ | ----------------------------------- | ---------------------------------------------------- | ------------------------------ |
+| Call         | `tel:09XXXXXXXXX`                   | Local `09XXXXXXXXX`                                  | `normalizePhoneForTel()`       |
+| SMS          | `smsto:` / `sms:09XXXXXXXXX`        | **Local `09XXXXXXXXX`** (`+` unreliable in `smsto:`) | `normalizePhoneForSmsSend()`   |
+| **Viber**    | `viber://chat?number=+639XXXXXXXXX` | **E.164 with `+`** (Viber requires it)               | `normalizePhoneForSms()`       |
+| **WhatsApp** | `https://wa.me/639XXXXXXXXX?text=…` | International digits, **no `+`**                     | `normalizePhoneForMessaging()` |
+| **Telegram** | `tg://resolve?phone=639XXXXXXXXX`   | International digits, **no `+`**                     | `normalizePhoneForMessaging()` |
 
 > [!IMPORTANT]
 > Each channel needs its **own** number format — do **not** unify them. Confirmed on-device:
@@ -101,11 +101,11 @@ attempts stayed in **For Redelivery** (and showed **FAILED DELIVERY**) instead o
 
 #### Backend contract (no API change required)
 
-| Field | Mobile use |
-| ----- | ---------- |
-| `delivery_attempts` | **Authoritative** for For Return tab, lock state, attempt badge |
-| `failed_delivery_count` | List/sync alias only |
-| `total_delivery_attempts` | Audit display only — do not use for limit |
+| Field                     | Mobile use                                                      |
+| ------------------------- | --------------------------------------------------------------- |
+| `delivery_attempts`       | **Authoritative** for For Return tab, lock state, attempt badge |
+| `failed_delivery_count`   | List/sync alias only                                            |
+| `total_delivery_attempts` | Audit display only — do not use for limit                       |
 
 ---
 
@@ -166,15 +166,15 @@ if (config.requiresAccordingTo && _accordingTo.text.trim().isNotEmpty) {
 
 #### Field Accuracy Audit (current app payload — `delivery_update_screen.dart`)
 
-| Field                                                                              | Status                              |
-| ---------------------------------------------------------------------------------- | ----------------------------------- |
-| `delivery_status`, `transaction_at`, `latitude`/`longitude`/`geo_accuracy`         | ✅ structured                       |
-| DELIVERED: `recipient`, `relationship`, `placement_type`, `delivery_confirmation_code`, `delivered_date` | ✅ structured |
-| FAILED: `reason`                                                                   | ✅ structured                       |
-| FAILED: `reason` + `according_to`                                                  | ✅ structured (according_to fixed June 26, 2026) |
-| MISROUTED: `according_to` / `reason`                                               | ➖ N/A — screen captures only mailpack photo + note (by design) |
-| `note` (courier free text)                                                         | ✅ stored as-is                     |
-| media (pod / selfie / signature / mailpack / photos)                               | ✅                                  |
+| Field                                                                                                    | Status                                                          |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `delivery_status`, `transaction_at`, `latitude`/`longitude`/`geo_accuracy`                               | ✅ structured                                                   |
+| DELIVERED: `recipient`, `relationship`, `placement_type`, `delivery_confirmation_code`, `delivered_date` | ✅ structured                                                   |
+| FAILED: `reason`                                                                                         | ✅ structured                                                   |
+| FAILED: `reason` + `according_to`                                                                        | ✅ structured (according_to fixed June 26, 2026)                |
+| MISROUTED: `according_to` / `reason`                                                                     | ➖ N/A — screen captures only mailpack photo + note (by design) |
+| `note` (courier free text)                                                                               | ✅ stored as-is                                                 |
+| media (pod / selfie / signature / mailpack / photos)                                                     | ✅                                                              |
 
 - **Priority**: High (data accuracy for reports + billing visualization on the GDTMS web side).
 - **Owner**: Mobile app. Backend is ready; no GDTMS API change required.

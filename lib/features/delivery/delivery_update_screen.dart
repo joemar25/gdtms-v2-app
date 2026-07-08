@@ -721,7 +721,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     _relationshipSpecify.clear();
     _relationship = null;
     _recipientIsOwner = false;
-    _placement = 'RECEIVED';
+    // Reset to first allowed placement type if restricted, otherwise default to RECEIVED
+    final allowed = (_delivery['allowed_placement_types'] as List?)
+        ?.cast<String>();
+    _placement = (allowed?.isNotEmpty == true) ? allowed!.first : 'RECEIVED';
     _podPhoto = null;
     _selfiePhoto = null;
     _signaturePath = null;
@@ -1097,6 +1100,10 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
                                           !isBagsakanDelivery,
                                       placement: _placement,
                                       isExpress: _isExpress,
+                                      allowedPlacementTypes:
+                                          (_delivery['allowed_placement_types']
+                                                  as List?)
+                                              ?.cast<String>(),
                                       errors: _errors,
                                       isDark: isDark,
                                       onSelectRecipient: (name, rel) {

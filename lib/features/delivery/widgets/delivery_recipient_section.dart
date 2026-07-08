@@ -26,6 +26,7 @@ class DeliveryRecipientSection extends StatelessWidget {
     required this.recipientIsOwner,
     required this.placement,
     required this.isExpress,
+    this.allowedPlacementTypes,
     required this.errors,
     required this.isDark,
     required this.onSelectRecipient,
@@ -51,6 +52,7 @@ class DeliveryRecipientSection extends StatelessWidget {
   final bool recipientIsOwner;
   final String placement;
   final bool isExpress;
+  final List<String>? allowedPlacementTypes;
   final Map<String, String> errors;
   final bool isDark;
 
@@ -82,8 +84,13 @@ class DeliveryRecipientSection extends StatelessWidget {
   Widget build(BuildContext context) {
     const fieldGap = DSSpacing.hMd;
 
-    // Filter out 'MAILBOX' for express deliveries.
+    // Filter placement options based on server-defined restriction or defaults.
     final filteredPlacementOptions = kPlacementOptions.where((e) {
+      // Server-defined restriction takes priority.
+      if (allowedPlacementTypes != null) {
+        return allowedPlacementTypes!.contains(e['value']);
+      }
+      // Fallback: EXPRESS → hide MAILBOX.
       if (isExpress && e['value'] == 'MAILBOX') return false;
       return true;
     }).toList();
