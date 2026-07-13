@@ -31,7 +31,7 @@ class DeliveryContactNumbers {
 
 /// Parses one or more phone numbers from a single API contact field.
 ///
-/// GDTMS may store multiple numbers using `/`, `,`, `;`, or `|` delimiters.
+/// ITMS may store multiple numbers using `/`, `,`, `;`, or `|` delimiters.
 /// When no delimiter is present, numbers concatenated with whitespace before
 /// a new `+63`, `09`, or `+` prefix are split into separate entries.
 List<String> parseContactNumbers(String raw) {

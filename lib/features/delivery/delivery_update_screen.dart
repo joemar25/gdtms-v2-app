@@ -666,7 +666,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
         pendingMediaPaths['selfie'] = _selfiePhoto!.file;
       }
       final config = kReasonConfigs[_reason] ?? const ReasonConfig();
-      // Send the informant as a STRUCTURED field so GDTMS persists it into
+      // Send the informant as a STRUCTURED field so ITMS persists it into
       // delivery_timeline.according_to. Never embed it in the free-text note —
       // the backend stores `note`/`remarks` verbatim and reports read the column.
       final informant = DeliveryUpdateHelper.resolveAccordingTo(

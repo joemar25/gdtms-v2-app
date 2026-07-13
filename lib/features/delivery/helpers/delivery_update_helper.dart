@@ -40,7 +40,7 @@ class DeliveryUpdateHelper {
   /// Resolves the structured `according_to` (informant) value for a status update.
   ///
   /// The informant is a STRUCTURED field — it must be sent as `payload['according_to']`
-  /// and must NEVER be concatenated into the free-text note/remarks. GDTMS stores
+  /// and must NEVER be concatenated into the free-text note/remarks. ITMS stores
   /// `note`/`remarks` verbatim and reads the informant from the `according_to` column;
   /// embedding it in the note leaves the column NULL and the value buried in remarks.
   ///

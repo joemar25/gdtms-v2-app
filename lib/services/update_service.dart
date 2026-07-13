@@ -16,7 +16,7 @@ import 'package:fsi_courier_app/models/update_info.dart';
 
 /// Remote manifest URL — derived from the app's configured API base URL.
 /// The backend serves `GET /api/mbl/mobile-version.json` alongside other
-/// mobile endpoints (see docs/gdtms-v2-api/mobile-api-requirements.md).
+/// mobile endpoints (see docs/itms-api/mobile-api-requirements.md).
 String get _kVersionManifestUrl {
   final runtimeBaseUrl = RuntimeEnvironmentService.instance.activeApiBaseUrl;
   final base = runtimeBaseUrl.endsWith('/')

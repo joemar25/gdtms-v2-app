@@ -98,7 +98,7 @@ class VersionCheckService {
             TextButton(
               onPressed: () async {
                 const storeUrl =
-                    'https://play.google.com/store/apps/details?id=com.fsi.courier';
+                    'https://play.google.com/store/apps/details?id=itms.fsi.com.ph';
                 final uri = Uri.parse(storeUrl);
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);

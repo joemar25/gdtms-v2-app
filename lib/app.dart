@@ -46,7 +46,7 @@ class FsiCourierApp extends ConsumerWidget {
 
     return Builder(
       builder: (context) => MaterialApp.router(
-        title: 'GDTMS V2 Mobile App',
+        title: 'ITMS',
         debugShowCheckedModeBanner: false,
         scaffoldMessengerKey: appScaffoldMessengerKey,
         localizationsDelegates: context.localizationDelegates,

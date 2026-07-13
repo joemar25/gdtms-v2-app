@@ -21,7 +21,7 @@ publish_to: 'none'
 #
 # This is the ONLY place to update the version — no dart-define, no config.dart.
 # ──────────────────────────────────────────────────────────────────────────────
-version: 1.0.17+1
+version: 1.0.18+1
 
 environment:
   sdk: ^3.9.0
@@ -38,10 +38,10 @@ dependencies:
   shared_preferences: ^2.5.3
   go_router: ^17.1.0
   flutter_riverpod: ^3.3.1
-  lucide_icons: ^0.257.0
+  flutter_lucide: ^1.11.0
   moon_design: ^1.1.0
   path_provider: ^2.1.5
-  device_info_plus: ^12.4.0
+  device_info_plus: ^10.1.0
   permission_handler: ^12.0.1
   mobile_scanner: ^7.0.1
   image_picker: ^1.1.2

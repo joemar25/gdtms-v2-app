@@ -1,4 +1,4 @@
-# Development Standards for GDTMS v2 Mobile App
+# Development Standards for ITMS Mobile App
 
 > **Reference Guide for Developers & AI Assistants**  
 > Last Updated: May 11, 2026  
@@ -35,7 +35,7 @@
 
 ### System Overview
 
-The GDTMS v2 Courier Mobile App is an **enterprise courier management platform** built with Flutter, focusing on:
+The ITMS Courier Mobile App is an **enterprise courier management platform** built with Flutter, focusing on:
 
 - Offline-first execution and local SQLite persistence
 - Background synchronization with the Sample backend

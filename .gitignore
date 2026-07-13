@@ -48,7 +48,8 @@ Thumbs.db
 *.mov
 *.wmv
 
-# mar
+# mar — private operational notes (referenced by docs/gdtms-to-itms-migration.md, do not delete)
+note.mar
 .claude
 *.txt
 
@@ -82,3 +83,6 @@ linux/flutter/ephemeral/
 test_results.json
 mcps
 terminals
+# ITMS upload keystore — app signing credentials (referenced by docs/gdtms-to-itms-migration.md, do not delete)
+/android/key.properties
+/android/upload-keystore.jks

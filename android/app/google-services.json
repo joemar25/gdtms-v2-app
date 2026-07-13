@@ -1,40 +1,21 @@
 {
   "project_info": {
-    "project_number": "39215040172",
-    "project_id": "gdtms-v2-app",
-    "storage_bucket": "gdtms-v2-app.firebasestorage.app"
+    "project_number": "722151057816",
+    "project_id": "itms-mobile-254ce",
+    "storage_bucket": "itms-mobile-254ce.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:39215040172:android:0d85e9101c4d08fd904109",
+        "mobilesdk_app_id": "1:722151057816:android:575dc25f3aa0000b7163ed",
         "android_client_info": {
-          "package_name": "com.example.fsi_courier_app"
+          "package_name": "itms.fsi.com.ph"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDuCvOLYbV3toKI0XqxLAbDHv48G_W6LtQ"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:39215040172:android:a2981cb733554f92904109",
-        "android_client_info": {
-          "package_name": "com.fsi.courier"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDuCvOLYbV3toKI0XqxLAbDHv48G_W6LtQ"
+          "current_key": "AIzaSyBQH2jN_a3YnbvWczZiqZjd4blsZvPPHIQ"
         }
       ],
       "services": {

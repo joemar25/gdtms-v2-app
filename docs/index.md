@@ -33,6 +33,12 @@ All files use kebab-case names. Organized to mirror the `lib/` folder structure.
 
 ---
 
+## Migration
+
+- [gdtms-to-itms-migration.md](gdtms-to-itms-migration.md) — GDTMS → ITMS migration sequence and checklist
+
+---
+
 ## Entry Points
 
 - [entry-points.md](entry-points.md) — `main.dart`, `app.dart`, `splash_screen.dart`
