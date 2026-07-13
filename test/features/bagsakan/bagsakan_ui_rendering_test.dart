@@ -15,6 +15,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
@@ -67,7 +68,7 @@ class _MockPaginatedListWidgetState extends State<MockPaginatedListWidget> {
         ListView.builder(
           controller: _scrollController,
           physics: const ClampingScrollPhysics(),
-          cacheExtent: 1000,
+          scrollCacheExtent: const ScrollCacheExtent.pixels(1000),
           itemCount: widget.items.length,
           itemBuilder: (context, index) {
             return MockDeliveryCard(
