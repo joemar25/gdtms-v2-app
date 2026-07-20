@@ -1,7 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/core/providers.md — update that file when you edit this one.
 
-import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,8 +16,6 @@ enum ExtraPermissionStatus {
   cameraPermissionPermanentlyDenied,
   notificationPermissionDenied,
   notificationPermissionPermanentlyDenied,
-  installPermissionDenied,
-  installPermissionPermanentlyDenied,
   ready,
 }
 
@@ -27,13 +24,11 @@ class ExtraPermissionsState {
     this.status = ExtraPermissionStatus.determining,
     this.cameraStatus = PermissionStatus.denied,
     this.notificationStatus = PermissionStatus.denied,
-    this.installStatus = PermissionStatus.provisional,
   });
 
   final ExtraPermissionStatus status;
   final PermissionStatus cameraStatus;
   final PermissionStatus notificationStatus;
-  final PermissionStatus installStatus;
 
   bool get isReady => status == ExtraPermissionStatus.ready;
 
@@ -41,13 +36,11 @@ class ExtraPermissionsState {
     ExtraPermissionStatus? status,
     PermissionStatus? cameraStatus,
     PermissionStatus? notificationStatus,
-    PermissionStatus? installStatus,
   }) {
     return ExtraPermissionsState(
       status: status ?? this.status,
       cameraStatus: cameraStatus ?? this.cameraStatus,
       notificationStatus: notificationStatus ?? this.notificationStatus,
-      installStatus: installStatus ?? this.installStatus,
     );
   }
 }
@@ -78,23 +71,16 @@ class ExtraPermissionsNotifier extends Notifier<ExtraPermissionsState>
     final camera = await Permission.camera.status;
     final notification = await Permission.notification.status;
 
-    // Only relevant for Android
-    final install = await Permission.requestInstallPackages.status;
-
     ExtraPermissionStatus current;
 
-    if (camera.isPermanentlyDenied) {
+    if (camera == PermissionStatus.permanentlyDenied) {
       current = ExtraPermissionStatus.cameraPermissionPermanentlyDenied;
-    } else if (!camera.isGranted) {
+    } else if (camera != PermissionStatus.granted) {
       current = ExtraPermissionStatus.cameraPermissionDenied;
-    } else if (notification.isPermanentlyDenied) {
+    } else if (notification == PermissionStatus.permanentlyDenied) {
       current = ExtraPermissionStatus.notificationPermissionPermanentlyDenied;
-    } else if (!notification.isGranted) {
+    } else if (notification != PermissionStatus.granted) {
       current = ExtraPermissionStatus.notificationPermissionDenied;
-    } else if (Platform.isAndroid && install.isPermanentlyDenied) {
-      current = ExtraPermissionStatus.installPermissionPermanentlyDenied;
-    } else if (Platform.isAndroid && !install.isGranted) {
-      current = ExtraPermissionStatus.installPermissionDenied;
     } else {
       current = ExtraPermissionStatus.ready;
     }
@@ -104,7 +90,6 @@ class ExtraPermissionsNotifier extends Notifier<ExtraPermissionsState>
         status: current,
         cameraStatus: camera,
         notificationStatus: notification,
-        installStatus: install,
       );
     }
   }
@@ -141,11 +126,6 @@ class ExtraPermissionsNotifier extends Notifier<ExtraPermissionsState>
         debugPrint('[PERMS] Failed to init PushNotificationService: $e');
       }
     }
-  }
-
-  Future<void> requestInstallPackages() async {
-    await Permission.requestInstallPackages.request();
-    await _checkStatus();
   }
 
   Future<void> openSettings() async {

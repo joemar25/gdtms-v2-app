@@ -1,16 +1,14 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/location.md — update that file when you edit this one.
 
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 import 'package:fsi_courier_app/features/permissions/providers/location_provider.dart';
 import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
-
-import 'package:permission_handler/permission_handler.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PermissionsRequiredScreen extends ConsumerWidget {
   const PermissionsRequiredScreen({super.key});
@@ -23,10 +21,9 @@ class PermissionsRequiredScreen extends ConsumerWidget {
     final permsNotifier = ref.read(extraPermissionsProvider.notifier);
 
     final locationGranted = locationState.isReady;
-    final cameraGranted = permsState.cameraStatus.isGranted;
-    final notifGranted = permsState.notificationStatus.isGranted;
-    final installGranted =
-        !Platform.isAndroid || permsState.installStatus.isGranted;
+    final cameraGranted = permsState.cameraStatus == PermissionStatus.granted;
+    final notifGranted =
+        permsState.notificationStatus == PermissionStatus.granted;
 
     return Scaffold(
       body: SafeArea(
@@ -101,7 +98,8 @@ class PermissionsRequiredScreen extends ConsumerWidget {
                   label: 'permissions.camera.label'.tr(),
                   description: cameraGranted
                       ? 'permissions.status_granted'.tr()
-                      : permsState.cameraStatus.isPermanentlyDenied
+                      : permsState.cameraStatus ==
+                            PermissionStatus.permanentlyDenied
                       ? 'permissions.status_permanently_denied'.tr()
                       : 'permissions.status_denied'.tr(
                           namedArgs: {
@@ -111,12 +109,14 @@ class PermissionsRequiredScreen extends ConsumerWidget {
                   granted: cameraGranted,
                   buttonLabel: cameraGranted
                       ? 'permissions.button_enabled'.tr()
-                      : permsState.cameraStatus.isPermanentlyDenied
+                      : permsState.cameraStatus ==
+                            PermissionStatus.permanentlyDenied
                       ? 'permissions.button_settings'.tr()
                       : 'permissions.button_grant'.tr(),
                   onTap: cameraGranted
                       ? null
-                      : permsState.cameraStatus.isPermanentlyDenied
+                      : permsState.cameraStatus ==
+                            PermissionStatus.permanentlyDenied
                       ? () => permsNotifier.openSettings()
                       : () => permsNotifier.requestCamera(),
                 ).dsCardEntry(
@@ -135,7 +135,8 @@ class PermissionsRequiredScreen extends ConsumerWidget {
                   label: 'permissions.notifications.label'.tr(),
                   description: notifGranted
                       ? 'permissions.status_granted'.tr()
-                      : permsState.notificationStatus.isPermanentlyDenied
+                      : permsState.notificationStatus ==
+                            PermissionStatus.permanentlyDenied
                       ? 'permissions.status_permanently_denied'.tr()
                       : 'permissions.status_denied'.tr(
                           namedArgs: {
@@ -145,12 +146,14 @@ class PermissionsRequiredScreen extends ConsumerWidget {
                   granted: notifGranted,
                   buttonLabel: notifGranted
                       ? 'permissions.button_enabled'.tr()
-                      : permsState.notificationStatus.isPermanentlyDenied
+                      : permsState.notificationStatus ==
+                            PermissionStatus.permanentlyDenied
                       ? 'permissions.button_settings'.tr()
                       : 'permissions.button_grant'.tr(),
                   onTap: notifGranted
                       ? null
-                      : permsState.notificationStatus.isPermanentlyDenied
+                      : permsState.notificationStatus ==
+                            PermissionStatus.permanentlyDenied
                       ? () => permsNotifier.openSettings()
                       : () => permsNotifier.requestNotification(),
                 ).dsCardEntry(
@@ -159,36 +162,6 @@ class PermissionsRequiredScreen extends ConsumerWidget {
                     step: DSAnimations.staggerNormal,
                   ),
                 ),
-
-                // ── Install Unknown Sources (Android Only) ──────────────────────
-                if (Platform.isAndroid) ...[
-                  DSSpacing.hMd,
-                  _PermissionCard(
-                    icon: installGranted
-                        ? Icons.install_mobile_rounded
-                        : Icons.app_registration_rounded,
-                    label: 'permissions.install.label'.tr(),
-                    description: installGranted
-                        ? 'permissions.status_granted'.tr()
-                        : 'permissions.status_denied'.tr(
-                            namedArgs: {
-                              'reason': 'permissions.install.reason'.tr(),
-                            },
-                          ),
-                    granted: installGranted,
-                    buttonLabel: installGranted
-                        ? 'permissions.button_enabled'.tr()
-                        : 'permissions.button_grant'.tr(),
-                    onTap: installGranted
-                        ? null
-                        : () => permsNotifier.requestInstallPackages(),
-                  ).dsCardEntry(
-                    delay: DSAnimations.stagger(
-                      6,
-                      step: DSAnimations.staggerNormal,
-                    ),
-                  ),
-                ],
 
                 DSSpacing.hXl,
                 TextButton(

@@ -2,75 +2,33 @@
 // DOCS: docs/core/providers.md — update that file when you edit this one.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:dio/dio.dart';
 
 import 'package:fsi_courier_app/models/update_info.dart';
 import 'package:fsi_courier_app/services/update_service.dart';
 
 // ── State ──────────────────────────────────────────────────────────────────────
 
-enum UpdateDownloadStatus { idle, downloading, completed, error }
-
 class UpdateState {
-  const UpdateState({
-    this.updateInfo,
-    this.isDismissed = false,
-    this.downloadStatus = UpdateDownloadStatus.idle,
-    this.downloadProgress = 0.0,
-    this.downloadedFilePath,
-    this.errorMessage,
-  });
+  const UpdateState({this.updateInfo, this.isDismissed = false});
 
   final UpdateInfo? updateInfo;
 
   /// Banner hidden for this session (resets on next app launch).
   final bool isDismissed;
 
-  final UpdateDownloadStatus downloadStatus;
-
-  /// Download progress in [0, 1].
-  final double downloadProgress;
-
-  /// Local path of the downloaded APK, available after [downloadStatus] is
-  /// [UpdateDownloadStatus.completed].
-  final String? downloadedFilePath;
-
-  /// Non-null when [downloadStatus] is [UpdateDownloadStatus.error].
-  final String? errorMessage;
-
   bool get hasUpdate => updateInfo != null;
-  bool get isDownloading => downloadStatus == UpdateDownloadStatus.downloading;
-  bool get isCompleted => downloadStatus == UpdateDownloadStatus.completed;
-  bool get hasError => downloadStatus == UpdateDownloadStatus.error;
 
-  /// True when the banner should be visible (update available and not dismissed
-  /// and not yet downloaded/installing).
-  bool get showBanner =>
-      hasUpdate &&
-      !isDismissed &&
-      downloadStatus != UpdateDownloadStatus.completed;
+  /// True when the banner should be visible (update available and not dismissed).
+  bool get showBanner => hasUpdate && !isDismissed;
 
   UpdateState copyWith({
     UpdateInfo? updateInfo,
     bool? isDismissed,
-    UpdateDownloadStatus? downloadStatus,
-    double? downloadProgress,
-    String? downloadedFilePath,
-    String? errorMessage,
-    bool clearError = false,
-    bool clearFilePath = false,
     bool clearUpdateInfo = false,
   }) {
     return UpdateState(
       updateInfo: clearUpdateInfo ? null : (updateInfo ?? this.updateInfo),
       isDismissed: isDismissed ?? this.isDismissed,
-      downloadStatus: downloadStatus ?? this.downloadStatus,
-      downloadProgress: downloadProgress ?? this.downloadProgress,
-      downloadedFilePath: clearFilePath
-          ? null
-          : (downloadedFilePath ?? this.downloadedFilePath),
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }
@@ -83,7 +41,6 @@ final updateServiceProvider = Provider((ref) => UpdateService.instance);
 
 class UpdateNotifier extends Notifier<UpdateState> {
   UpdateService get _service => ref.read(updateServiceProvider);
-  CancelToken? _cancelToken;
 
   @override
   UpdateState build() => const UpdateState();
@@ -100,83 +57,8 @@ class UpdateNotifier extends Notifier<UpdateState> {
     state = state.copyWith(isDismissed: true);
   }
 
-  Future<void> startDownload() async {
-    final info = state.updateInfo;
-    if (info == null) return;
-
-    _cancelToken = CancelToken();
-
-    state = state.copyWith(
-      downloadStatus: UpdateDownloadStatus.downloading,
-      downloadProgress: 0.0,
-      clearError: true,
-      clearFilePath: true,
-    );
-
-    try {
-      final filePath = await _service.downloadUpdate(
-        info.downloadUrl,
-        (p) {
-          state = state.copyWith(
-            downloadStatus: UpdateDownloadStatus.downloading,
-            downloadProgress: p,
-          );
-        },
-        expectedChecksum: info.checksumSha256,
-        cancelToken: _cancelToken,
-      );
-
-      if (info.checksumSha256.isNotEmpty) {
-        await _service.verifyChecksum(filePath, info.checksumSha256);
-      }
-
-      state = state.copyWith(
-        downloadStatus: UpdateDownloadStatus.completed,
-        downloadProgress: 1.0,
-        downloadedFilePath: filePath,
-      );
-    } catch (e) {
-      final isCancel =
-          e is UpdateDownloadException && e.message.contains('cancelled');
-
-      if (isCancel) {
-        state = state.copyWith(
-          downloadStatus: UpdateDownloadStatus.idle,
-          clearError: true,
-        );
-      } else {
-        // If download fails (invalid URL, 404, etc), clear the update info
-        // to avoid stuck error states for invalid links, as requested.
-        state = state.copyWith(
-          clearUpdateInfo: true,
-          downloadStatus: UpdateDownloadStatus.idle,
-          clearError: true,
-          clearFilePath: true,
-        );
-      }
-    } finally {
-      _cancelToken = null;
-    }
-  }
-
-  void cancelDownload() {
-    _cancelToken?.cancel();
-  }
-
-  Future<OpenResult?> installUpdate() async {
-    final path = state.downloadedFilePath;
-    if (path == null) return null;
-    return _service.installUpdate(path);
-  }
-
-  void resetDownload() {
-    state = state.copyWith(
-      downloadStatus: UpdateDownloadStatus.idle,
-      downloadProgress: 0.0,
-      clearError: true,
-      clearFilePath: true,
-    );
-  }
+  /// Opens the platform app store listing for this app.
+  Future<bool> openUpdate() => _service.launchStoreListing();
 }
 
 // ── Provider ───────────────────────────────────────────────────────────────────

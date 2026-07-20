@@ -3,13 +3,11 @@
 
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/core/services/app_version_service.dart';
 import 'package:fsi_courier_app/models/update_info.dart';
@@ -28,8 +26,8 @@ String get _kVersionManifestUrl {
 /// App Store URL used on iOS (direct APK sideloading is not allowed on iOS).
 const _kIosAppStoreUrl = 'https://apps.apple.com/app/idYOUR_APP_ID';
 
-/// Handles all update-lifecycle operations:
-/// version checks, APK downloads, checksum verification, and install launch.
+/// Handles update-lifecycle operations: version checks and directing the
+/// user to the app store listing for the current platform.
 class UpdateService {
   UpdateService._();
   static final UpdateService instance = UpdateService._();
@@ -57,14 +55,7 @@ class UpdateService {
       final currentVersion = AppVersionService.version;
       final latestVersion = (json['latest_version'] as String? ?? '').trim();
 
-      final downloadUrl =
-          (Platform.isIOS
-                  ? json['ios_store_url']
-                  : json['android_download_url'])
-              as String? ??
-          '';
-
-      if (latestVersion.isEmpty || downloadUrl.trim().isEmpty) return null;
+      if (latestVersion.isEmpty) return null;
       if (!UpdateInfo.isNewerVersion(latestVersion, currentVersion)) {
         return null; // already up to date
       }
@@ -76,134 +67,31 @@ class UpdateService {
     }
   }
 
-  // ── Download ───────────────────────────────────────────────────────────────
+  // ── Store listing ──────────────────────────────────────────────────────────
 
-  /// Downloads the APK from [url] to the app's temp directory and calls
-  /// [onProgress] with a value in [0, 1] as bytes arrive.
+  /// Opens the platform app store listing for this app.
   ///
-  /// Returns the local file path on success.
-  /// Throws a descriptive [UpdateDownloadException] on failure.
-  Future<String> downloadUpdate(
-    String url,
-    void Function(double progress) onProgress, {
-    String? expectedChecksum,
-    CancelToken? cancelToken,
-  }) async {
-    final normalizedUrl = _normalizeUrl(url);
-    final destDir = await _updateDir();
-    final destFile = File('${destDir.path}/app-latest.apk');
-
-    // Optimization: If file exists and checksum matches, skip download
-    if (expectedChecksum != null &&
-        expectedChecksum.isNotEmpty &&
-        await destFile.exists()) {
-      try {
-        await verifyChecksum(destFile.path, expectedChecksum);
-        debugPrint(
-          '[UpdateService] Valid APK already exists, skipping download.',
-        );
-        onProgress(1.0);
-        return destFile.path;
-      } catch (e) {
-        debugPrint(
-          '[UpdateService] Existing APK invalid or checksum mismatch: $e',
-        );
-      }
-    }
-
-    // Clean up any leftover partial file or old APK before downloading
-    await _cleanUpdateDir(destDir);
-
-    try {
-      await _dio.download(
-        normalizedUrl,
-        destFile.path,
-        cancelToken: cancelToken,
-        onReceiveProgress: (received, total) {
-          if (total > 0) onProgress(received / total);
-        },
-        options: Options(receiveTimeout: const Duration(minutes: 10)),
-      );
-      return destFile.path;
-    } on DioException catch (e) {
-      // Delete any partial file so retry starts clean.
-      await _safeDelete(destFile);
-
-      if (e.type == DioExceptionType.cancel) {
-        throw UpdateDownloadException(
-          'Download cancelled by user.',
-          type: UpdateDownloadErrorType.downloadInterrupted,
-        );
-      }
-
-      if (e.type == DioExceptionType.connectionError ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        throw UpdateDownloadException(
-          'No internet connection or download timed out. Please retry.',
-          type: UpdateDownloadErrorType.networkError,
-        );
-      }
-      throw UpdateDownloadException(
-        'Download interrupted: ${e.message}',
-        type: UpdateDownloadErrorType.downloadInterrupted,
-      );
-    } catch (e) {
-      await _safeDelete(destFile);
-      throw UpdateDownloadException(
-        'Unexpected download error: $e',
-        type: UpdateDownloadErrorType.unknown,
-      );
-    }
-  }
-
-  // ── Checksum ───────────────────────────────────────────────────────────────
-
-  /// Verifies that the file at [filePath] matches [expectedSha256].
-  /// Throws [UpdateDownloadException] with [UpdateDownloadErrorType.checksumMismatch]
-  /// if they do not match; deletes the corrupt file automatically.
-  Future<void> verifyChecksum(String filePath, String expectedSha256) async {
-    if (expectedSha256.isEmpty) return; // manifest has no checksum — skip
-
-    try {
-      final file = File(filePath);
-      final bytes = await file.readAsBytes();
-      final actual = sha256.convert(bytes).toString();
-
-      if (actual != expectedSha256.toLowerCase()) {
-        await _safeDelete(file);
-        throw UpdateDownloadException(
-          'Download corrupted — checksum mismatch. Please retry.',
-          type: UpdateDownloadErrorType.checksumMismatch,
-        );
-      }
-    } on UpdateDownloadException {
-      rethrow;
-    } catch (e) {
-      throw UpdateDownloadException(
-        'Checksum verification failed: $e',
-        type: UpdateDownloadErrorType.unknown,
-      );
-    }
-  }
-
-  // ── Install ────────────────────────────────────────────────────────────────
-
-  /// Launches the APK at [filePath] using the system package installer.
-  /// On iOS, opens the App Store URL instead.
+  /// iOS always opens the App Store URL. Android opens the Play Store
+  /// listing when [kIsPlayStoreDistribution] is true; otherwise this is a
+  /// no-op (there is no other update mechanism shipped in this build — see
+  /// docs/core/update-system.md).
   ///
-  /// Returns an [OpenResult] from `open_filex`; callers should check
-  /// [OpenResult.type] for [ResultType.permissionDenied].
-  Future<OpenResult> installUpdate(String filePath) async {
+  /// Returns `true` if a launch was attempted and succeeded.
+  Future<bool> launchStoreListing() async {
+    final Uri? uri;
     if (Platform.isIOS) {
-      final uri = Uri.parse(_kIosAppStoreUrl);
-      if (await canLaunchUrl(uri)) await launchUrl(uri);
-      return OpenResult(type: ResultType.done, message: 'opened App Store');
+      uri = Uri.parse(_kIosAppStoreUrl);
+    } else if (kIsPlayStoreDistribution) {
+      uri = Uri.parse(
+        'https://play.google.com/store/apps/details?id=${AppVersionService.packageName}',
+      );
+    } else {
+      uri = null;
     }
-    return OpenFilex.open(
-      filePath,
-      type: 'application/vnd.android.package-archive',
-    );
+
+    if (uri == null) return false;
+    if (!await canLaunchUrl(uri)) return false;
+    return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   // ── Mandatory check ────────────────────────────────────────────────────────
@@ -213,71 +101,4 @@ class UpdateService {
     final current = AppVersionService.version;
     return UpdateInfo.isNewerVersion(minimumVersion, current);
   }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  Future<Directory> _updateDir() async {
-    final base = await getApplicationSupportDirectory();
-    final dir = Directory('${base.path}/app_update');
-    if (!dir.existsSync()) await dir.create(recursive: true);
-    return dir;
-  }
-
-  Future<void> _cleanUpdateDir(Directory dir) async {
-    if (!dir.existsSync()) return;
-    await for (final entity in dir.list()) {
-      await _safeDelete(entity);
-    }
-  }
-
-  Future<void> _safeDelete(FileSystemEntity entity) async {
-    try {
-      if (entity.existsSync()) await entity.delete();
-    } catch (_) {}
-  }
-
-  String _normalizeUrl(String url) {
-    if (url.startsWith('http')) return url;
-
-    try {
-      final runtimeBaseUrl =
-          RuntimeEnvironmentService.instance.activeApiBaseUrl;
-      final uri = Uri.parse(runtimeBaseUrl);
-      final hostBase =
-          '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
-
-      if (url.startsWith('/')) {
-        return '$hostBase$url';
-      } else {
-        // Prepend the directory part of the API base URL
-        final base = runtimeBaseUrl.endsWith('/')
-            ? runtimeBaseUrl
-            : '$runtimeBaseUrl/';
-        return '$base$url';
-      }
-    } catch (e) {
-      debugPrint('[UpdateService] URL normalization failed: $e');
-      return url;
-    }
-  }
-}
-
-// ── Exceptions ────────────────────────────────────────────────────────────────
-
-enum UpdateDownloadErrorType {
-  networkError,
-  downloadInterrupted,
-  checksumMismatch,
-  permissionDenied,
-  unknown,
-}
-
-class UpdateDownloadException implements Exception {
-  const UpdateDownloadException(this.message, {required this.type});
-
-  final String message;
-  final UpdateDownloadErrorType type;
-
-  @override
-  String toString() => 'UpdateDownloadException[$type]: $message';
 }

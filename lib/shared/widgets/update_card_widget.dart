@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/core/services/app_version_service.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
-import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:open_filex/open_filex.dart';
 
 class AppUpdateCard extends ConsumerStatefulWidget {
   const AppUpdateCard({super.key, required this.isDark});
@@ -17,57 +14,19 @@ class AppUpdateCard extends ConsumerStatefulWidget {
 
 class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
   bool _releaseNotesExpanded = false;
+  bool _opening = false;
 
-  Future<void> _handleDownload() async {
-    await ref.read(updateProvider.notifier).startDownload();
-    if (mounted && ref.read(updateProvider).isCompleted) {
-      await _handleInstall();
-    }
-  }
-
-  Future<void> _handleInstall() async {
-    // Check install-packages permission before proceeding.
-    // extraPermissionsProvider refreshes on app resume, so this is current.
-    final installGranted = ref
-        .read(extraPermissionsProvider)
-        .installStatus
-        .isGranted;
-
-    if (!installGranted) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Allow "Install unknown apps" for ITMS in Settings first.',
-          ),
-          backgroundColor: DSColors.warning,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 5),
-          margin: EdgeInsets.fromLTRB(
-            DSSpacing.sm,
-            0,
-            DSSpacing.sm,
-            DSSpacing.massive,
-          ),
-          action: SnackBarAction(
-            label: 'Settings',
-            textColor: DSColors.white,
-            onPressed: () =>
-                ref.read(extraPermissionsProvider.notifier).openSettings(),
-          ),
-        ),
-      );
-      return;
-    }
-
-    final result = await ref.read(updateProvider.notifier).installUpdate();
+  Future<void> _handleOpenUpdate() async {
+    setState(() => _opening = true);
+    final opened = await ref.read(updateProvider.notifier).openUpdate();
     if (!mounted) return;
-    if (result == null) return;
+    setState(() => _opening = false);
 
-    if (result.type == ResultType.done) {
+    if (!opened) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
-          content: const Text('Installing update…'),
-          backgroundColor: DSColors.success,
+          content: const Text('Could not open the store listing.'),
+          backgroundColor: DSColors.error,
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.fromLTRB(
             DSSpacing.sm,
@@ -182,34 +141,6 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
               color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
             ),
 
-            // ── Details row ────────────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: DSSpacing.md,
-                vertical: DSSpacing.sm,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.folder_zip_outlined,
-                    size: DSIconSize.xs,
-                    color: isDark
-                        ? DSColors.labelTertiaryDark
-                        : DSColors.labelTertiary,
-                  ),
-                  DSSpacing.wXs,
-                  Text(
-                    '${info.fileSizeMb.toStringAsFixed(1)} MB',
-                    style: DSTypography.caption(
-                      color: isDark
-                          ? DSColors.labelSecondaryDark
-                          : DSColors.labelSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             // ── Release notes (collapsible) ────────────────────────────────
             if (info.releaseNotes.isNotEmpty) ...[
               GestureDetector(
@@ -287,144 +218,37 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
               color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
             ),
 
-            // ── Download / progress / install controls ─────────────────────
+            // ── Action ──────────────────────────────────────────────────────
             Padding(
               padding: EdgeInsets.all(DSSpacing.md),
-              child: _UpdateActionArea(
-                updateState: updateState,
-                isDark: isDark,
-                onDownload: _handleDownload,
-                onInstall: _handleInstall,
-                onCancel: () =>
-                    ref.read(updateProvider.notifier).cancelDownload(),
-                onRetry: () =>
-                    ref.read(updateProvider.notifier).resetDownload(),
+              child: ElevatedButton.icon(
+                onPressed: _opening ? null : _handleOpenUpdate,
+                icon: _opening
+                    ? SizedBox(
+                        width: DSIconSize.sm,
+                        height: DSIconSize.sm,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: DSColors.white,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.storefront_rounded,
+                        size: DSIconSize.sm,
+                      ),
+                label: const Text('Update on Play Store'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: DSColors.warning,
+                  foregroundColor: DSColors.white,
+                  minimumSize: const Size(double.infinity, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: DSStyles.cardRadius,
+                  ),
+                ),
               ),
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _UpdateActionArea extends StatelessWidget {
-  const _UpdateActionArea({
-    required this.updateState,
-    required this.isDark,
-    required this.onDownload,
-    required this.onInstall,
-    required this.onRetry,
-    required this.onCancel,
-  });
-
-  final UpdateState updateState;
-  final bool isDark;
-  final VoidCallback onDownload;
-  final VoidCallback onInstall;
-  final VoidCallback onRetry;
-  final VoidCallback onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    if (updateState.hasError) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            updateState.errorMessage ?? 'Download failed.',
-            style: DSTypography.caption(color: DSColors.error),
-            textAlign: TextAlign.center,
-          ),
-          DSSpacing.hSm,
-          OutlinedButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh_rounded, size: DSIconSize.sm),
-            label: const Text('Retry'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: DSColors.primary,
-              side: const BorderSide(color: DSColors.primary),
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (updateState.isDownloading) {
-      final pct = (updateState.downloadProgress * 100).toStringAsFixed(0);
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Downloading… $pct%',
-                style: DSTypography.caption(
-                  color: isDark
-                      ? DSColors.labelSecondaryDark
-                      : DSColors.labelSecondary,
-                ).copyWith(fontWeight: FontWeight.w800),
-              ),
-              Text(
-                '$pct%',
-                style: DSTypography.label(color: DSColors.primary).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: DSTypography.sizeXs,
-                ),
-              ),
-            ],
-          ),
-          DSSpacing.hSm,
-          ClipRRect(
-            borderRadius: DSStyles.circularRadius,
-            child: LinearProgressIndicator(
-              value: updateState.downloadProgress,
-              backgroundColor: isDark
-                  ? DSColors.separatorDark
-                  : DSColors.separatorLight,
-              color: DSColors.primary,
-              minHeight: 6,
-            ),
-          ),
-          DSSpacing.hSm,
-          TextButton.icon(
-            onPressed: onCancel,
-            icon: const Icon(Icons.close_rounded, size: DSIconSize.sm),
-            label: const Text('Cancel Download'),
-            style: TextButton.styleFrom(
-              foregroundColor: DSColors.error,
-              minimumSize: const Size.fromHeight(40),
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (updateState.isCompleted) {
-      return ElevatedButton.icon(
-        onPressed: onInstall,
-        icon: const Icon(Icons.install_mobile_rounded, size: DSIconSize.sm),
-        label: const Text('Install Now'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: DSColors.primary,
-          foregroundColor: DSColors.white,
-          minimumSize: const Size(double.infinity, 44),
-          shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-        ),
-      );
-    }
-
-    // Idle — show download button.
-    return ElevatedButton.icon(
-      onPressed: onDownload,
-      icon: const Icon(Icons.download_rounded, size: DSIconSize.sm),
-      label: const Text('Download & Install Update'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: DSColors.warning,
-        foregroundColor: DSColors.white,
-        minimumSize: const Size(double.infinity, 44),
-        shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
       ),
     );
   }

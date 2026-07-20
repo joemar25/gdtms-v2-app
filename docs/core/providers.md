@@ -80,6 +80,6 @@ Manages the lifecycle of in-app updates. See [Update System](file:///docs/core/u
 | Property | Description |
 |----------|-------------|
 | `updateInfo` | Metadata about the available update (version, notes, etc.) |
-| `showBanner` | True if an update is available and hasn't been dismissed/downloaded |
-| `downloadStatus` | `idle`, `downloading`, `completed`, or `error` |
-| `downloadProgress`| Progress value from 0.0 to 1.0 |
+| `showBanner` | True if an update is available and hasn't been dismissed |
+
+`openUpdate()` opens the platform store listing (Play Store/App Store) via `UpdateService.launchStoreListing()` — there is no in-app download/install state.

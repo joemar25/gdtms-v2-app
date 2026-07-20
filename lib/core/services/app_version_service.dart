@@ -15,6 +15,7 @@ class AppVersionService {
 
   static String _version = '0.0.0';
   static String _buildNumber = '0';
+  static String _packageName = '';
 
   /// Reads version info from the platform. Safe to call multiple times.
   static Future<void> init() async {
@@ -22,6 +23,7 @@ class AppVersionService {
       final info = await PackageInfo.fromPlatform();
       _version = info.version;
       _buildNumber = info.buildNumber;
+      _packageName = info.packageName;
     } catch (_) {
       // Keep fallback values on error.
     }
@@ -32,6 +34,9 @@ class AppVersionService {
 
   /// Build number from pubspec.yaml (e.g. "42").
   static String get buildNumber => _buildNumber;
+
+  /// Android/iOS application identifier (e.g. "itms.fsi.com.ph").
+  static String get packageName => _packageName;
 
   /// Display string for UI (e.g. "v1.2.3 (42)").
   static String get displayVersion =>

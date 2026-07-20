@@ -1,14 +1,18 @@
 # Update System
 
-The application features an in-app update system that allows couriers to download and install new versions of the app without needing to visit an app store. This is particularly useful for internal distribution and ensuring all riders are on compatible versions.
+The app checks a remote version manifest on startup and prompts the courier
+to update when a newer version is available, deep-linking to the platform
+app store listing (Play Store on Android, App Store on iOS).
 
 ## Architecture
 
 The system is split into three layers:
 
 1.  **`UpdateInfo` (Model)**: Represents the metadata fetched from the server.
-2.  **`UpdateService` (Service)**: A singleton handling the technical operations (HTTP GET, file download, checksum verification, and installation triggers).
-3.  **`UpdateProvider` (Riverpod)**: Manages the UI state, progress tracking, and user interaction logic.
+2.  **`UpdateService` (Service)**: A singleton handling the version check and
+    opening the store listing.
+3.  **`UpdateProvider` (Riverpod)**: Manages UI state (`updateInfo`,
+    `isDismissed`) and exposes `checkForUpdate()` / `openUpdate()`.
 
 ---
 
@@ -22,17 +26,18 @@ The system expects a JSON file at `${apiBaseUrl}/mobile-version.json`.
 {
   "latest_version": "1.0.5",
   "minimum_version": "1.0.0",
-  "download_url": "https://example.com/downloads/app-v1.0.5.apk",
   "release_notes": "Added new delivery status tracking and performance improvements.",
-  "file_size_mb": 70.5,
-  "checksum_sha256": "a1b2c3d4e5f6..."
+  "force_update": false
 }
 ```
 
 - **`latest_version`**: The newest available version.
 - **`minimum_version`**: The lowest version allowed to run. If the app is below this, the update is **Mandatory**.
-- **`download_url`**: Direct link to the APK (Android) or informational link.
-- **`checksum_sha256`**: (Optional) Used to verify the integrity of the downloaded file.
+- **`force_update`**: Optional override that forces the Mandatory state regardless of version.
+
+The backend may still serve `android_download_url` / `ios_store_url` /
+`file_size_mb` / `checksum_sha256` fields for other consumers, but the app no
+longer reads them — see "Direct APK distribution (removed)" below.
 
 ---
 
@@ -47,37 +52,66 @@ Triggered on app startup in `app.dart` via `ref.read(updateProvider.notifier).ch
 
 ### 2. Mandatory vs. Optional
 
-- **Mandatory**: If current version < `minimum_version`. The UI should block navigation or show a non-dismissible overlay.
-- **Optional**: If current version >= `minimum_version` but < `latest_version`. Shows a dismissible banner.
+- **Mandatory**: If current version < `minimum_version` (or `force_update` is true). `_MandatoryUpdateOverlay` in `app.dart` shows a non-dismissible full-screen overlay.
+- **Optional**: Otherwise. `UpdateBannerOverlay` shows a dismissible banner.
 
-### 3. Download & Verify
+Both route the user to `/update` (`UpdateScreen` → `AppUpdateCard`).
 
-When the user taps "Update":
+### 3. Opening the store
 
-1.  The APK is downloaded to the app's temporary directory (`${tmp}/app_update/app-latest.apk`).
-2.  Progress is reported via `UpdateState.downloadProgress` (0.0 to 1.0).
-3.  Once finished, the `checksum_sha256` (if provided) is verified against the file's SHA-256 hash.
-4.  If verification fails, the file is deleted and an error is shown.
+Tapping the update CTA calls `UpdateNotifier.openUpdate()` →
+`UpdateService.launchStoreListing()`:
 
-### 4. Installation
+- **Android**: Opens `https://play.google.com/store/apps/details?id=<packageName>`
+  when `kIsPlayStoreDistribution` (see `lib/core/config.dart`) is true.
+- **iOS**: Opens the configured App Store URL (`_kIosAppStoreUrl` in `UpdateService`).
 
-- **Android**: Uses `open_filex` to launch the system package installer for the downloaded APK.
-- **iOS**: Redirects the user to the App Store URL (configured in `UpdateService`), as sideloading is not supported.
+There is no in-app download/progress/install step — the store handles the
+binary transfer and installation.
+
+---
+
+## Direct APK distribution (removed)
+
+Earlier versions of this app downloaded the APK directly from
+`android_download_url` and installed it via the `open_filex` plugin
+(`UpdateService.downloadUpdate` / `verifyChecksum` / `installUpdate`). That
+mechanism was removed because:
+
+1. `open_filex` declares `android.permission.REQUEST_INSTALL_PACKAGES` in its
+   own library manifest, which Gradle's manifest merger injects into the
+   built app **regardless of the app's own AndroidManifest.xml** — removing
+   the `<uses-permission>` line alone does not remove it from a build that
+   still depends on `open_filex`.
+2. Google Play only approves this permission for apps whose core purpose is
+   installing other apps (browsers, app stores, file managers, MDM); a
+   courier delivery app doesn't qualify, so shipping it risked Play Store
+   rejection/suspension.
+
+If direct/internal APK distribution (outside Play Store) is needed again,
+re-add the `open_filex` dependency and the removed service methods (see git
+history for the commit that removed them) on a build meant only for that
+channel — not by flipping `kIsPlayStoreDistribution`, which only controls
+the harmless Play Store deep-link and cannot restore a working installer
+inside a build that no longer bundles `open_filex`.
 
 ---
 
 ## UI Components
 
-### `UpdateBannerWidget`
+### `UpdateBannerOverlay` / `_MandatoryUpdateOverlay`
 
-- Listens to `updateProvider`.
-- Displays at the top of the Dashboard when `showBanner` is true.
-- Shows progress bars during download.
+- Root `OverlayEntry`s in `app.dart`, route-aware (hidden on `/profile`, `/update`, `/splash`, etc).
+- Tap navigates to `/update`.
+
+### `AppUpdateCard` (`update_card_widget.dart`)
+
+- Shows current vs. latest version, Required/Optional badge, collapsible release notes.
+- Single "Update on Play Store" button calling `openUpdate()`.
 
 ### `ProfileScreen`
 
-- Contains a "Check for Updates" section.
-- Allows manual triggering of the check and shows detailed release notes.
+- Contains a "Check for Updates" section using the same `AppUpdateCard`.
 
 ---
 

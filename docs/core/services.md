@@ -35,7 +35,7 @@ Singleton or stateless service classes that perform a focused task.
 | `report_service.dart`        | Submits bug/issue reports to the server                                   |
 | `review_prompt_service.dart` | Decides when to show the in-app review prompt                             |
 | `runtime_environment_service.dart` | Persists and exposes runtime Production/Developer mode base URL        |
-| `update_service.dart`        | Handles APK downloads, checksums, and version manifest fetching           |
+| `update_service.dart`        | Fetches the version manifest and opens the store listing for updates      |
 | `version_check_service.dart` | Compares app version to server's minimum supported version (legacy/store) |
 
 ---
@@ -107,9 +107,8 @@ Call this wherever a catch block needs to record something reviewable in the err
 The core engine for the [Update System](file:///docs/core/update-system.md).
 
 - `checkForUpdate()`: Fetches `mobile-version.json` and parses into `UpdateInfo`.
-- `downloadUpdate(url, onProgress)`: Downloads APK to a temporary directory with progress tracking.
-- `verifyChecksum(path, sha256)`: Ensures file integrity before installation.
-- `installUpdate(path)`: Triggers `open_filex` (Android) or opens App Store (iOS).
+- `launchStoreListing()`: Opens the Play Store listing (Android, when `kIsPlayStoreDistribution`) or the App Store URL (iOS).
+- No longer downloads or installs an APK directly — that mechanism was removed because it required `android.permission.REQUEST_INSTALL_PACKAGES`, which conflicts with Play Store distribution. See `docs/core/update-system.md`.
 
 ---
 
@@ -118,4 +117,4 @@ The core engine for the [Update System](file:///docs/core/update-system.md).
 - `check()` — GET `/app/version`.
 - Compares server `min_version` with `AppVersionService.version`.
 - If behind: shows a non-dismissible update banner on dashboard.
-- **Note**: This is largely superseded by the newer `UpdateService` which supports direct APK sideloading.
+- **Note**: This is largely superseded by the newer `UpdateService`.

@@ -83,6 +83,8 @@ linux/flutter/ephemeral/
 test_results.json
 mcps
 terminals
+*graphify*
+
 # ITMS upload keystore — app signing credentials (referenced by docs/gdtms-to-itms-migration.md, do not delete)
 /android/key.properties
 /android/upload-keystore.jks

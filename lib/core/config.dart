@@ -146,6 +146,23 @@ const bool kEnableProfileEdit = bool.fromEnvironment(
   defaultValue: false,
 );
 
+/// Whether the "update available" UI should deep-link to the Play Store
+/// listing (`UpdateService.launchStoreListing`).
+///
+/// - Set via --dart-define=IS_PLAYSTORE_DISTRIBUTION=true/false.
+/// - Default: true (Play Store build).
+///
+/// This does NOT control whether the app can install a downloaded APK —
+/// that mechanism (open_filex + android.permission.REQUEST_INSTALL_PACKAGES)
+/// was removed entirely because it conflicts with Play Store distribution.
+/// Flipping this to false only stops the Play Store link from being
+/// launched; it does not restore APK self-update. See
+/// docs/core/update-system.md for what re-adding that would require.
+const bool kIsPlayStoreDistribution = bool.fromEnvironment(
+  'IS_PLAYSTORE_DISTRIBUTION',
+  defaultValue: true,
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Delivery Visibility Windows
 // ─────────────────────────────────────────────────────────────────────────────

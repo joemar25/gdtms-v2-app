@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/services/update_service.dart';
 import 'package:fsi_courier_app/models/update_info.dart';
@@ -24,20 +23,17 @@ void main() {
   });
 
   group('UpdateNotifier', () {
-    final testInfo = UpdateInfo(
+    const testInfo = UpdateInfo(
       latestVersion: '2.0.0',
       minimumVersion: '1.0.0',
-      downloadUrl: 'https://example.com/app.apk',
-      fileSizeMb: 15.5,
       releaseNotes: 'New features',
-      checksumSha256: 'abc',
       isMandatory: false,
     );
 
-    test('initial state is idle', () {
+    test('initial state has no update', () {
       final state = container.read(updateProvider);
-      expect(state.downloadStatus, UpdateDownloadStatus.idle);
-      expect(state.downloadProgress, 0.0);
+      expect(state.hasUpdate, false);
+      expect(state.showBanner, false);
     });
 
     test('checkForUpdate updates state with info', () async {
@@ -50,115 +46,50 @@ void main() {
       final state = container.read(updateProvider);
       expect(state.updateInfo, testInfo);
       expect(state.hasUpdate, true);
+      expect(state.showBanner, true);
     });
 
-    test(
-      'startDownload handles successful download and verification',
-      () async {
-        // Setup state with update info
-        when(
-          () => mockService.checkForUpdate(),
-        ).thenAnswer((_) async => testInfo);
-        await container.read(updateProvider.notifier).checkForUpdate();
+    test('checkForUpdate leaves state unchanged when already up to date', () async {
+      when(() => mockService.checkForUpdate()).thenAnswer((_) async => null);
 
-        // Mock download and verification
-        when(
-          () => mockService.downloadUpdate(
-            any(),
-            any(),
-            expectedChecksum: any(named: 'expectedChecksum'),
-            cancelToken: any(named: 'cancelToken'),
-          ),
-        ).thenAnswer((invocation) async {
-          final onProgress =
-              invocation.positionalArguments[1] as Function(double);
-          onProgress(0.5);
-          return '/mock/path/app.apk';
-        });
-        when(
-          () => mockService.verifyChecksum(any(), any()),
-        ).thenAnswer((_) async => true);
+      await container.read(updateProvider.notifier).checkForUpdate();
 
-        final future = container.read(updateProvider.notifier).startDownload();
+      final state = container.read(updateProvider);
+      expect(state.hasUpdate, false);
+    });
 
-        // Check downloading state
-        var state = container.read(updateProvider);
-        expect(state.downloadStatus, UpdateDownloadStatus.downloading);
-
-        await future;
-
-        // Check completed state
-        state = container.read(updateProvider);
-        expect(state.downloadStatus, UpdateDownloadStatus.completed);
-        expect(state.downloadProgress, 1.0);
-        expect(state.downloadedFilePath, '/mock/path/app.apk');
-      },
-    );
-
-    test('installUpdate calls service with correct path', () async {
-      // Mock completed state
+    test('dismissBanner hides the banner but keeps the update info', () async {
       when(
         () => mockService.checkForUpdate(),
       ).thenAnswer((_) async => testInfo);
       await container.read(updateProvider.notifier).checkForUpdate();
 
-      when(
-        () => mockService.downloadUpdate(
-          any(),
-          any(),
-          expectedChecksum: any(named: 'expectedChecksum'),
-          cancelToken: any(named: 'cancelToken'),
-        ),
-      ).thenAnswer((_) async => '/mock/path/app.apk');
-      when(
-        () => mockService.verifyChecksum(any(), any()),
-      ).thenAnswer((_) async => true);
+      container.read(updateProvider.notifier).dismissBanner();
 
-      await container.read(updateProvider.notifier).startDownload();
-
-      when(() => mockService.installUpdate('/mock/path/app.apk')).thenAnswer(
-        (_) async => OpenResult(type: ResultType.done, message: 'ok'),
-      );
-
-      final result = await container
-          .read(updateProvider.notifier)
-          .installUpdate();
-
-      expect(result?.type, ResultType.done);
-      verify(() => mockService.installUpdate('/mock/path/app.apk')).called(1);
+      final state = container.read(updateProvider);
+      expect(state.hasUpdate, true);
+      expect(state.showBanner, false);
     });
 
-    test(
-      'startDownload clears updateInfo on failure (broken link handling)',
-      () async {
-        // Setup state with update info
-        when(
-          () => mockService.checkForUpdate(),
-        ).thenAnswer((_) async => testInfo);
-        await container.read(updateProvider.notifier).checkForUpdate();
+    test('openUpdate delegates to UpdateService.launchStoreListing', () async {
+      when(
+        () => mockService.launchStoreListing(),
+      ).thenAnswer((_) async => true);
 
-        // Mock download failure
-        when(
-          () => mockService.downloadUpdate(
-            any(),
-            any(),
-            expectedChecksum: any(named: 'expectedChecksum'),
-            cancelToken: any(named: 'cancelToken'),
-          ),
-        ).thenThrow(
-          UpdateDownloadException(
-            'Invalid URL',
-            type: UpdateDownloadErrorType.unknown,
-          ),
-        );
+      final result = await container.read(updateProvider.notifier).openUpdate();
 
-        await container.read(updateProvider.notifier).startDownload();
+      expect(result, true);
+      verify(() => mockService.launchStoreListing()).called(1);
+    });
 
-        final state = container.read(updateProvider);
-        expect(state.updateInfo, isNull);
-        expect(state.downloadStatus, UpdateDownloadStatus.idle);
-        expect(state.hasUpdate, false);
-      },
-    );
+    test('openUpdate returns false when the store listing cannot be opened', () async {
+      when(
+        () => mockService.launchStoreListing(),
+      ).thenAnswer((_) async => false);
+
+      final result = await container.read(updateProvider.notifier).openUpdate();
+
+      expect(result, false);
+    });
   });
 }

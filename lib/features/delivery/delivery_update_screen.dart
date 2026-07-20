@@ -359,11 +359,11 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
   // ── Camera permission ─────────────────────────────────────────────────────
   Future<bool> _handleCameraPermission() async {
     final perms = ref.read(extraPermissionsProvider);
-    if (perms.cameraStatus.isGranted) {
+    if (perms.cameraStatus == PermissionStatus.granted) {
       return true;
     }
 
-    if (perms.cameraStatus.isPermanentlyDenied) {
+    if (perms.cameraStatus == PermissionStatus.permanentlyDenied) {
       if (mounted) {
         showErrorNotification(
           context,
@@ -377,7 +377,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     await ref.read(extraPermissionsProvider.notifier).requestCamera();
     final updated = ref.read(extraPermissionsProvider);
 
-    if (updated.cameraStatus.isGranted) {
+    if (updated.cameraStatus == PermissionStatus.granted) {
       return true;
     }
 

@@ -3,15 +3,11 @@ import 'package:fsi_courier_app/models/update_info.dart';
 
 void main() {
   group('UpdateInfo.fromJson', () {
-    test('correctly parses Android update JSON', () {
+    test('correctly parses update JSON', () {
       final json = {
         "latest_version": "1.0.1",
         "minimum_version": "1.0.0",
-        "android_download_url": "https://example.com/android.apk",
-        "ios_store_url": "https://example.com/ios",
         "release_notes": "test",
-        "file_size_mb": 81.1,
-        "checksum_sha256": "A0EDD1BF...",
         "force_update": false,
       };
 
@@ -19,8 +15,7 @@ void main() {
 
       expect(info.latestVersion, '1.0.1');
       expect(info.minimumVersion, '1.0.0');
-      // In tests (non-iOS environment), it should pick android_download_url
-      expect(info.downloadUrl, 'https://example.com/android.apk');
+      expect(info.releaseNotes, 'test');
       expect(info.isMandatory, false);
     });
 
@@ -28,11 +23,7 @@ void main() {
       final json = {
         "latest_version": "1.0.1",
         "minimum_version": "1.0.0",
-        "android_download_url": "https://example.com/android.apk",
-        "ios_store_url": null,
         "release_notes": "test",
-        "file_size_mb": 10.0,
-        "checksum_sha256": "abc",
         "force_update": true,
       };
 
@@ -44,11 +35,7 @@ void main() {
       final json = {
         "latest_version": "2.0.0",
         "minimum_version": "1.5.0",
-        "android_download_url": "https://example.com/android.apk",
-        "ios_store_url": null,
         "release_notes": "test",
-        "file_size_mb": 10.0,
-        "checksum_sha256": "abc",
         "force_update": false,
       };
 

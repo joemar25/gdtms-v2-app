@@ -85,7 +85,7 @@ class LocationProviderNotifier extends Notifier<LocationState>
 
     if (!serviceEnabled) {
       currentStatus = LocationStatus.serviceDisabled;
-    } else if (permission.isPermanentlyDenied) {
+    } else if (permission == PermissionStatus.permanentlyDenied) {
       currentStatus = LocationStatus.permissionPermanentlyDenied;
     } else if (permission.isDenied || permission.isRestricted) {
       currentStatus = LocationStatus.permissionDenied;

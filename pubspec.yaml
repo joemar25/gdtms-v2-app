@@ -13,6 +13,8 @@ publish_to: 'none'
 # The part before '+' (1.0.3) is the user-visible version shown in the app UI
 # via AppVersionService.version (reads pubspec at runtime via PackageInfo).
 #
+# example +2(this is treated as version code in playstore) https://play.google.com/console
+#
 # The part after '+' (the build number) is what the Play Store / App Store use
 # internally. It must be incremented on every store upload — two builds with the
 # same display version but different build numbers are valid (e.g. hotfixes).
@@ -21,7 +23,7 @@ publish_to: 'none'
 #
 # This is the ONLY place to update the version — no dart-define, no config.dart.
 # ──────────────────────────────────────────────────────────────────────────────
-version: 1.1.18+1
+version: 1.1.19+9
 
 environment:
   sdk: ^3.9.0
@@ -68,7 +70,6 @@ dependencies:
   flutter_spinkit: ^5.2.1
   firebase_messaging: ^16.2.0
   screen_protector: ^1.5.1
-  open_filex: ^4.3.4
   flutter_native_splash: ^2.4.1
   google_fonts: ^6.2.1
 

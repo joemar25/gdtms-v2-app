@@ -168,7 +168,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   Future<void> _requestPermission() async {
     final status = await Permission.camera.request();
     if (!mounted) return;
-    final granted = status.isGranted;
+    final granted = status == PermissionStatus.granted;
     if (granted) {
       final size =
           WidgetsBinding.instance.platformDispatcher.views.first.physicalSize;
