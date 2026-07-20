@@ -92,8 +92,8 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
         title: 'sync.title'.tr(),
         actions: const [DSSpacing.wSm],
       ),
-      body: SecureView(
-        child: Column(
+      // Screenshots allowed so couriers can share Sync/History with support.
+      body: Column(
           children: [
             SyncHeader(connectionStatus: connectionStatus),
             Expanded(
@@ -121,7 +121,6 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
               ).dsFadeEntry(duration: DSAnimations.dNormal),
             ),
           ],
-        ),
       ),
     );
   }

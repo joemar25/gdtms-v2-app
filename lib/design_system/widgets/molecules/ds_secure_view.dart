@@ -75,17 +75,18 @@ class _SecureManager {
 ///
 /// **Allow screenshots** (do **not** wrap in [SecureView]):
 /// - Wallet (overview, payout detail/request, payout history sheet)
-/// - Dispatch eligibility / dispatch list (details for support)
+/// - Dispatch eligibility / dispatch list
 /// - Profile
+/// - Sync / History
+/// - Delivery lists: **DELIVERED** and **MISROUTED**
 ///
 /// **Keep protected** (wrap in [SecureView]):
 /// - Recipient **account details** sheets (`showDeliveryAccountDetails`)
-/// - Delivery lists that show recipient PII (non-DELIVERED status lists)
+/// - Delivery lists: **FOR_DELIVERY** / **FAILED_DELIVERY** (active recipient PII)
 /// - Delivery update / signature capture (POD + recipient data)
-/// - Sync history when it must stay restricted
 ///
-/// Rationale: couriers may screenshot Wallet / Dispatch / Profile to send to
-/// support, but must not screenshot recipient account name/address/contact.
+/// Rationale: couriers may screenshot support-friendly screens, but must not
+/// freely capture full recipient account name/address/contact sheets.
 class SecureView extends StatefulWidget {
   final Widget child;
   const SecureView({super.key, required this.child});

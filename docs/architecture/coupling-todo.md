@@ -9,16 +9,16 @@ Prepared 2026-07-20 from a graphify deep-dive of the knowledge graph
 
 Shipped / safe to ship without changing courier-visible operations:
 
-| Item | Status | Ops impact |
-| ---- | ------ | ---------- |
-| A8 `requestFlush` coalescing | **Done** | Same queue content; fewer dropped concurrent kicks |
-| A2 `completeWrite` helper | **Done** (hot paths) | Same offline-first write → flush → refresh pattern |
-| A9 theme/auth `select` | **Done** | Fewer MaterialApp rebuilds; same theme |
-| Max flush re-run cap (5) | **Done** | Pathological enqueue storms only; leftover deferred to next auto-sync |
-| processQueue → requestFlush | **Done** | Legacy callers coalesce; no payload change |
-| API-down flush guard | **Done** | No new flush when `!isOnlineProvider`; mid-loop abort |
-| Reconnect/login skip debounce | **Done** | Offline backlog drains when API returns |
-| Abort bootstrap if API drops mid-sync | **Done** | No pull when online flipped false after flush |
+| Item                                  | Status               | Ops impact                                                            |
+| ------------------------------------- | -------------------- | --------------------------------------------------------------------- |
+| A8 `requestFlush` coalescing          | **Done**             | Same queue content; fewer dropped concurrent kicks                    |
+| A2 `completeWrite` helper             | **Done** (hot paths) | Same offline-first write → flush → refresh pattern                    |
+| A9 theme/auth `select`                | **Done**             | Fewer MaterialApp rebuilds; same theme                                |
+| Max flush re-run cap (5)              | **Done**             | Pathological enqueue storms only; leftover deferred to next auto-sync |
+| processQueue → requestFlush           | **Done**             | Legacy callers coalesce; no payload change                            |
+| API-down flush guard                  | **Done**             | No new flush when `!isOnlineProvider`; mid-loop abort                 |
+| Reconnect/login skip debounce         | **Done**             | Offline backlog drains when API returns                               |
+| Abort bootstrap if API drops mid-sync | **Done**             | No pull when online flipped false after flush                         |
 
 **Explicitly NOT done for production yet** (would change timing/UX if wrong):
 
@@ -31,10 +31,10 @@ Shipped / safe to ship without changing courier-visible operations:
 
 **Companion to** [`sync-performance-todo.md`](./sync-performance-todo.md):
 
-| Document | Focus |
-| -------- | ----- |
-| `sync-performance-todo.md` | Bootstrap / API / SQLite **speed** (measured RTTs, paging, N+1) |
-| **coupling-todo.md** | **Coupling** of auth ↔ connectivity ↔ sync ↔ submit ↔ global refresh |
+| Document                   | Focus                                                                |
+| -------------------------- | -------------------------------------------------------------------- |
+| `sync-performance-todo.md` | Bootstrap / API / SQLite **speed** (measured RTTs, paging, N+1)      |
+| **coupling-todo.md**       | **Coupling** of auth ↔ connectivity ↔ sync ↔ submit ↔ global refresh |
 
 Accuracy constraints from the performance plan still apply: never weaken
 Rules 1–4 ([accuracy-and-scale.md](./accuracy-and-scale.md),
@@ -49,15 +49,15 @@ Hub: [README.md](./README.md) · [system-map.md](./system-map.md)
 
 ### God nodes (most connected symbols)
 
-| Symbol | Edges | Home community (label) | Role |
-| ------ | ----- | ---------------------- | ---- |
-| `authProvider` | 44 | Sync Manager Core | Session gate for almost everything |
-| `apiClientProvider` | 39 | Auth Login AutoSync | Raw HTTP used from many screens |
-| `syncManagerProvider` | 29 | Bagsakan Screen 2 | Offline queue + push |
-| `isOnlineProvider` | 28 | Auth Login AutoSync | Online gate for submit + auto-sync |
-| `connectionStatusProvider` | 27 | Bagsakan Screen 2 | Banner / richer connectivity UI |
-| `deliveryRefreshProvider` | 21 | Bagsakan Screen 2 | Global “reload all lists” counter |
-| `Route /dashboard` | 12 | Dispatch Screen 3 | Shared post-action navigation hub |
+| Symbol                     | Edges | Home community (label) | Role                               |
+| -------------------------- | ----- | ---------------------- | ---------------------------------- |
+| `authProvider`             | 44    | Sync Manager Core      | Session gate for almost everything |
+| `apiClientProvider`        | 39    | Auth Login AutoSync    | Raw HTTP used from many screens    |
+| `syncManagerProvider`      | 29    | Bagsakan Screen 2      | Offline queue + push               |
+| `isOnlineProvider`         | 28    | Auth Login AutoSync    | Online gate for submit + auto-sync |
+| `connectionStatusProvider` | 27    | Bagsakan Screen 2      | Banner / richer connectivity UI    |
+| `deliveryRefreshProvider`  | 21    | Bagsakan Screen 2      | Global “reload all lists” counter  |
+| `Route /dashboard`         | 12    | Dispatch Screen 3      | Shared post-action navigation hub  |
 
 ### Community that is not really a feature
 
@@ -136,7 +136,7 @@ shows `app.dart` as top consumer of `authProvider` / `apiClientProvider` /
 
 - Move trigger policy + `_runFullSync` into `lib/core/sync/auto_sync_coordinator.dart`
   (or a Riverpod notifier).
-- Keep overlays as thin widgets that only *watch* sync/update state.
+- Keep overlays as thin widgets that only _watch_ sync/update state.
 - Location pings → stay in `LocationPingService` start/stop API only (no HTTP in UI).
 
 Accuracy: unchanged if `_runFullSync` order stays processQueue → waitUntilIdle →
@@ -317,17 +317,17 @@ A10                        ── ongoing
 
 ## Quick reference — files in the hot path
 
-| Concern | Primary files |
-| ------- | --------------- |
-| Auto-sync orchestration | `lib/app.dart` (`_AutoSyncListener`) |
-| Bootstrap / pull | `lib/core/sync/delivery_bootstrap_service.dart` |
-| Offline queue | `lib/core/sync/sync_manager.dart`, `lib/core/providers/sync_provider.dart` |
-| Session | `lib/core/auth/auth_provider.dart`, `auth_storage.dart` |
-| Connectivity | `lib/core/providers/connectivity_provider.dart` |
-| Global list refresh | `lib/core/providers/delivery_refresh_provider.dart` |
-| Delivery write path | `lib/features/delivery/delivery_update_screen.dart` |
-| Login write path | `lib/features/auth/login_screen.dart` |
-| Dispatch write path | `lib/features/dispatch/dispatch_eligibility_screen.dart` |
+| Concern                 | Primary files                                                              |
+| ----------------------- | -------------------------------------------------------------------------- |
+| Auto-sync orchestration | `lib/app.dart` (`_AutoSyncListener`)                                       |
+| Bootstrap / pull        | `lib/core/sync/delivery_bootstrap_service.dart`                            |
+| Offline queue           | `lib/core/sync/sync_manager.dart`, `lib/core/providers/sync_provider.dart` |
+| Session                 | `lib/core/auth/auth_provider.dart`, `auth_storage.dart`                    |
+| Connectivity            | `lib/core/providers/connectivity_provider.dart`                            |
+| Global list refresh     | `lib/core/providers/delivery_refresh_provider.dart`                        |
+| Delivery write path     | `lib/features/delivery/delivery_update_screen.dart`                        |
+| Login write path        | `lib/features/auth/login_screen.dart`                                      |
+| Dispatch write path     | `lib/features/dispatch/dispatch_eligibility_screen.dart`                   |
 
 ---
 

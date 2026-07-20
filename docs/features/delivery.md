@@ -53,13 +53,14 @@ Controlled by `PaginationBar`. Page size is defined in `constants.dart`. Changin
 
 | Area | Screenshots |
 | ---- | ----------- |
-| Wallet / Dispatch / Profile | **Allowed** (no `SecureView`) for support |
-| Delivery list **DELIVERED** | **Allowed** (barcode/product only) |
-| Delivery list other statuses | **Blocked** (`SecureView`) — recipient info on cards |
+| Wallet / Dispatch / Profile / Sync | **Allowed** (no `SecureView`) for support |
+| Delivery list **DELIVERED** / **MISROUTED** | **Allowed** |
+| Delivery list **FOR_DELIVERY** / **FAILED_DELIVERY** | **Blocked** (`SecureView`) — active recipient PII |
 | `showDeliveryAccountDetails` sheet | **Blocked** — full account name/address/phone |
 | Delivery update + signature | **Blocked** — POD + recipient fields |
 
-The list body is wrapped in `_ConditionalSecureView(secure: !_isDelivered, …)`:
+The list body uses `_ConditionalSecureView(secure: !_allowScreenshots)` where
+`_allowScreenshots` is true for DELIVERED and MISROUTED:
 
 - **All statuses except `DELIVERED`** are wrapped in `SecureView`, which enables OS-level screenshot/screen-recording protection (`screen_protector`).
 - **The `DELIVERED` list opts out** (`secure: false`) so couriers can capture proof of delivery. This is safe because delivered cards expose **no recipient account name** — only the barcode, transaction ID/date, and product. (`_isDelivered` returns `widget.status.toUpperCase() == kStatusDelivered`.)

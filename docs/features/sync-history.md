@@ -39,6 +39,11 @@ Architecture: [../architecture/system-map.md](../architecture/system-map.md),
 **Support (stuck pending / failed / conflict — do not wipe app data first):**
 [../architecture/ops-runbook.md](../architecture/ops-runbook.md).
 
+## Screenshots
+
+**Allowed** on Sync / History so couriers can send queue status to support
+(no `SecureView` wrap).
+
 ## Status badges
 
 | Status | Color | Meaning |

@@ -108,11 +108,15 @@ class _DeliveryStatusListScreenState
   bool get _isFailedDelivery =>
       widget.status.toUpperCase() == kStatusFailedDelivery;
 
-  /// Screenshots are permitted on the DELIVERED list: these cards expose no
-  /// recipient account name (only barcode, transaction, and product), so
-  /// couriers may legitimately capture proof of delivery. Every other status
-  /// remains screenshot-protected via [SecureView].
+  /// Screenshots allowed on DELIVERED + MISROUTED lists for courier support.
+  /// FOR_DELIVERY / FAILED_DELIVERY stay protected (active recipient PII on cards).
+  /// Account-details sheet remains SecureView regardless of list status.
   bool get _isDelivered => widget.status.toUpperCase() == kStatusDelivered;
+
+  bool get _isMisrouted => widget.status.toUpperCase() == kStatusMisrouted;
+
+  /// When false, body is not wrapped in [SecureView].
+  bool get _allowScreenshots => _isDelivered || _isMisrouted;
 
   int get _effectiveTotal => _isFailedDelivery
       ? (_failedSubFilter == 'rts' ? _totalRtsCount : _totalRedeliveryCount)
@@ -492,7 +496,7 @@ class _DeliveryStatusListScreenState
           actions: _buildActions(context),
         ),
         body: _ConditionalSecureView(
-          secure: !_isDelivered,
+          secure: !_allowScreenshots,
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onHorizontalDragEnd: (details) {
@@ -811,9 +815,8 @@ class _DeliveryStatusListScreenState
   }
 }
 
-/// Wraps [child] in a [SecureView] only when [secure] is true. Used so the
-/// DELIVERED list can opt out of screenshot protection (no recipient account
-/// name is shown there) while every other status keeps it enabled.
+/// Wraps [child] in a [SecureView] only when [secure] is true.
+/// DELIVERED and MISROUTED lists opt out for courier support screenshots.
 class _ConditionalSecureView extends StatelessWidget {
   const _ConditionalSecureView({required this.secure, required this.child});
 
