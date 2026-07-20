@@ -10,6 +10,7 @@ import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/database/bagsakan_dao.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
+import 'package:fsi_courier_app/core/sync/sync_upsert_policy.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
@@ -291,7 +292,7 @@ class LocalDeliveryDao {
     // Collect all local records so we can decide what to do per-item.
     final existingRows = await db.query(
       'local_deliveries',
-      columns: ['barcode', 'sync_status', 'bagsakan_id'],
+      columns: ['barcode', 'sync_status', 'bagsakan_id', 'data_checksum'],
     );
     final syncStatusByBarcode = <String, String?>{
       for (final row in existingRows)
@@ -303,6 +304,11 @@ class LocalDeliveryDao {
       for (final row in existingRows)
         row['barcode'] as String: row['bagsakan_id'] as int?,
     };
+    // P5: skip SQLite rewrite when server data_checksum matches local.
+    final checksumByBarcode = <String, String?>{
+      for (final row in existingRows)
+        row['barcode'] as String: row['data_checksum'] as String?,
+    };
 
     final terminalStatuses = {
       kStatusDelivered,
@@ -311,6 +317,7 @@ class LocalDeliveryDao {
     };
     final batch = db.batch();
     final serverStatusUpper = serverStatus.toUpperCase();
+    var skippedUnchanged = 0;
 
     for (final json in items) {
       final delivery = LocalDelivery.fromApiItem(
@@ -337,6 +344,16 @@ class LocalDeliveryDao {
       final syncStatus = syncStatusByBarcode[delivery.barcode];
       final isDirty = syncStatus == 'dirty';
       final isServerTerminal = terminalStatuses.contains(serverStatusUpper);
+
+      // P5: identical checksum → no real server change; skip write (accuracy-safe).
+      if (SyncUpsertPolicy.shouldSkipUnchangedChecksum(
+        isDirty: isDirty,
+        existingChecksum: checksumByBarcode[delivery.barcode],
+        incomingChecksum: delivery.dataChecksum,
+      )) {
+        skippedUnchanged++;
+        continue;
+      }
 
       if (isDirty) {
         // Rule: Never overwrite status of dirty (unsynced courier update).
@@ -416,7 +433,8 @@ class LocalDeliveryDao {
       'SELECT COUNT(*) as c FROM local_deliveries',
     );
     debugPrint(
-      '[DAO] insertAllFromApiItems done — total rows in DB: ${totalRows.first['c']}',
+      '[DAO] insertAllFromApiItems done — total rows in DB: '
+      '${totalRows.first['c']}, skipped_unchanged=$skippedUnchanged',
     );
   }
 

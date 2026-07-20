@@ -49,22 +49,36 @@ Covers the three files that boot the app and hand control to the router.
 ### Responsibilities
 
 - Hosts `MaterialApp.router` bound to `AppRouter`.
-- Listens to `isOnlineProvider`; triggers `DeliveryBootstrapService` on the **first `false → true` transition** per session.
-- Runs an auto-sync timer every **3 minutes** (`_kAutoSyncInterval`) when online.
-- Starts `LocationPingService` after authentication.
-- Runs `CleanupService` once per calendar day on app launch.
+- Theme via `authProvider.select(themeMode)` (avoids full app rebuild on courier field updates).
+- `_AutoSyncListener`: multi-trigger full sync (flush queue then bootstrap).
+- Starts `LocationPingService` after authentication when online.
+- Overlay entries: sync pill, update banner, mandatory update.
 
-### Key constant
+### Key constants
 
 ```dart
 const _kAutoSyncInterval = Duration(minutes: 3);
+static const _kSyncDebounce = Duration(seconds: 30);
+// Skip debounce for: reconnected, login  (offline backlog must drain)
 ```
 
-Change this value here only — do not hard-code it elsewhere.
+Change interval/debounce here only — do not hard-code elsewhere.
 
-### Bootstrap trigger rule
+### Auto-sync triggers
 
-Bootstrap fires **only** on the connectivity transition `false → true`. It will not re-fire if the app is already online when it starts.
+| Trigger | Reason | Debounce |
+| ------- | ------ | -------- |
+| Startup if already online | `startup` | 30s |
+| Login `false→true` | `login` | **skipped** |
+| Online `false→true` (network or API back) | `reconnected` | **skipped** |
+| App resume | `app_resume` | 30s |
+| Periodic timer while online | `periodic` | 30s |
+
+Full sync body: `requestFlush(awaitIdle: true)` → if still `isOnline` → `syncFromApi` → list refresh → cleanup.
+
+**Online gate:** `isOnlineProvider` = network **and** API reachable. API-down is offline for sync.
+
+See [architecture/system-map.md](architecture/system-map.md) and [core/sync.md](core/sync.md).
 
 ---
 

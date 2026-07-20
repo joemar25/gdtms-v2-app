@@ -1,5 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/core/providers.md — update that file when you edit this one.
+// DOCS: docs/architecture/system-map.md
 
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';

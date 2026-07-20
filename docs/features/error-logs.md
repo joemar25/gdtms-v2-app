@@ -34,3 +34,5 @@ Reads from `ErrorLogDao.getAll()` — the local `error_logs` SQLite table. No ne
 
 - Access is via Profile → Developer Options (or a hidden tap sequence — do not advertise this route to end users).
 - Entries are written by `ErrorLogService.log(...)` in catch blocks throughout the app. See `docs/core/services.md`.
+- For courier “updates not syncing” issues, pair this screen with History status and the
+  [ops runbook](../architecture/ops-runbook.md) — **do not clear app data** to fix sync.

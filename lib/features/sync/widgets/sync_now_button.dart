@@ -1,6 +1,8 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/sync-history.md — update that file when you edit this one.
 
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -24,7 +26,7 @@ enum SyncNowButtonVariant {
 /// A dedicated "Sync Now" entry-point that can be placed anywhere in the app.
 ///
 /// Tapping it:
-/// 1. Kicks off [SyncManagerNotifier.processQueue] immediately.
+/// 1. Kicks off [SyncManagerNotifier.requestFlush] immediately.
 /// 2. Shows [_SyncNowSheet] — a modal bottom-sheet with live progress,
 ///    stat chips (Pending / Synced / Failed), and a progress bar.
 /// 3. Auto-dismisses the sheet once syncing completes.
@@ -118,15 +120,19 @@ class SyncNowButton extends ConsumerWidget {
 // without going through the SyncNowButton widget (e.g., dashboard actions).
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Starts [SyncManagerNotifier.processQueue] and shows [SyncOverlay] as a
-/// fullscreen non-dismissible dialog with live sync progress.
+/// Starts a coalesced [SyncManagerNotifier.requestFlush] and shows
+/// [SyncOverlay] as a fullscreen non-dismissible dialog with live sync progress.
 ///
 /// Use this directly in any [ConsumerWidget] instead of embedding
 /// [SyncNowButton] when gesture-arena conflicts would be an issue
 /// (e.g., when the button sits inside another tappable container).
 Future<void> showSyncOverlay(BuildContext context, WidgetRef ref) async {
   // Kick off the queue before showing the sheet so progress is live.
-  ref.read(syncManagerProvider.notifier).processQueue();
+  unawaited(
+    ref
+        .read(syncManagerProvider.notifier)
+        .requestFlush(reason: 'sync_now_overlay', awaitIdle: false),
+  );
 
   await showDialog<void>(
     context: context,

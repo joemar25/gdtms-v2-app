@@ -1,7 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/bagsakan.md — update that file when you edit this one.
 
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -11,10 +10,10 @@ import 'package:go_router/go_router.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
-import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
+import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
@@ -88,14 +87,24 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                   final isOnline = ref.read(isOnlineProvider);
                   if (isOnline) {
                     final api = ref.read(apiClientProvider);
-                    final sync = ref.read(syncManagerProvider.notifier);
-
-                    // Rule: online data is priority. Pull the latest state first,
-                    // then push any pending local changes to reconcile.
+                    // Rule: online data is priority. Pull first, then flush queue.
                     await DeliveryBootstrapService.instance.syncFromApi(api);
-                    await sync.processQueue();
+                    await ref
+                        .read(syncWriteCoordinatorProvider)
+                        .completeWrite(
+                          reason: 'bagsakan_list_pull_refresh',
+                          awaitIdle: true,
+                          refreshDeliveries: true,
+                        );
+                  } else {
+                    await ref
+                        .read(syncWriteCoordinatorProvider)
+                        .completeWrite(
+                          reason: 'bagsakan_list_pull_refresh_offline',
+                          kickQueue: false,
+                          refreshDeliveries: true,
+                        );
                   }
-                  ref.read(deliveryRefreshProvider.notifier).increment();
                 },
                 color: DSColors.primary,
                 child: groupsAsync.when(
@@ -212,16 +221,13 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                                       .read(syncManagerProvider.notifier)
                                       .loadEntries();
 
-                                  // Auto-sync after deletion
-                                  unawaited(
-                                    ref
-                                        .read(syncManagerProvider.notifier)
-                                        .processQueue(),
-                                  );
-
-                                  ref
-                                      .read(deliveryRefreshProvider.notifier)
-                                      .increment();
+                                  await ref
+                                      .read(syncWriteCoordinatorProvider)
+                                      .completeWrite(
+                                        reason: 'bagsakan_delete_group',
+                                        awaitIdle: false,
+                                        refreshDeliveries: true,
+                                      );
 
                                   if (context.mounted) {
                                     showSuccessNotification(

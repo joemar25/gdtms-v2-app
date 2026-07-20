@@ -25,31 +25,45 @@ Global Riverpod providers that are not feature-specific.
 | `delivery_refresh_provider.dart` | `deliveryRefreshProvider` | `StateProvider<int>` |
 | `location_provider.dart` | `locationProvider` | `StateNotifierProvider<LocationNotifier, LocationState>` |
 | `notifications_provider.dart` | `notificationsProvider` | `StateNotifierProvider` |
-| `sync_provider.dart` | `syncManagerProvider` | `StateNotifierProvider<SyncManagerNotifier, SyncState>` |
+| `sync_provider.dart` | `syncManagerProvider` | `NotifierProvider<SyncManagerNotifier, SyncState>` |
+| `../sync/sync_write_coordinator.dart` | `syncWriteCoordinatorProvider` | `Provider<SyncWriteCoordinator>` |
 | `update_provider.dart` | `updateProvider` | `NotifierProvider<UpdateNotifier, UpdateState>` |
 
 ---
 
-## `connectivity_provider.dart` — `isOnlineProvider`
+## `connectivity_provider.dart` — online gate for sync
 
-- Wraps `connectivity_plus` stream.
-- API reachability pings the runtime-selected base URL from `RuntimeEnvironmentService`.
-- **Defaults to `false`** while the stream is loading or on error. This enables offline cold-start without blocking the UI.
-- `app.dart` watches this to trigger bootstrap on the first `false → true` transition.
+| Provider | Meaning |
+| -------- | ------- |
+| `isNetworkOnlineProvider` | Device has a network interface |
+| `apiReachabilityProvider` | Periodic ping to API base URL (~10s) |
+| `connectionStatusProvider` | `online` \| `networkOffline` \| `apiUnreachable` |
+| **`isOnlineProvider`** | **`true` only when network + API OK** |
 
-> Do not change the default to `true` — that would block offline cold-start.
+- Defaults to offline while loading/error → offline cold-start works.
+- `app.dart` auto-sync and `requestFlush` / `completeWrite` use **`isOnlineProvider`**.
+- **API unreachable** is treated like offline for flush and bootstrap (queue retained).
+
+> Do not default `isOnlineProvider` to `true`.  
+> System map: [../architecture/system-map.md](../architecture/system-map.md).
 
 ---
 
 ## `delivery_refresh_provider.dart` — `deliveryRefreshProvider`
 
-Simple counter. Increment it to signal that any screen watching deliveries should reload:
+Generation counter that signals delivery lists to reload (A3).
 
 ```dart
-ref.read(deliveryRefreshProvider.notifier).state++;
+// Preferred after writes (via coordinator):
+ref.read(deliveryRefreshProvider.notifier).invalidate(barcodes: {'BC1'});
+// Full refresh (bootstrap):
+ref.read(deliveryRefreshProvider.notifier).increment(); // == invalidate()
 ```
 
-Used after a successful sync or delivery update to refresh list/detail screens without full navigation.
+- Bumps are **debounced (~80ms)** so queue flush + completeWrite in one tick
+  collapse to one UI rebuild.
+- `lastDeliveryRefreshBarcodesProvider` stores optional scope (`null` = full).
+- Prefer `syncWriteCoordinatorProvider.completeWrite(..., barcodes: …)`.
 
 ---
 
@@ -73,9 +87,19 @@ Manages local notification state. Currently reserved; `flutter_local_notificatio
 
 ---
 
+## `sync_provider.dart` / write coordinator
+
+- Watch `syncManagerProvider` for queue UI state (`isSyncing`, entries, progress).
+- Kick the queue with `requestFlush(reason:, awaitIdle:)` (not raw parallel `processQueue`).
+- After feature writes: `syncWriteCoordinatorProvider.completeWrite(...)`.
+
+See [sync.md](sync.md) and [../architecture/system-map.md](../architecture/system-map.md).
+
+---
+
 ## `update_provider.dart` — `updateProvider`
 
-Manages the lifecycle of in-app updates. See [Update System](file:///docs/core/update-system.md) for a detailed breakdown of the update workflow.
+Manages the lifecycle of in-app updates. See [Update System](update-system.md) for a detailed breakdown of the update workflow.
 
 | Property | Description |
 |----------|-------------|

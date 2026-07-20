@@ -16,8 +16,8 @@ import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
-import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
+import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/ds_segmented_selector.dart';
@@ -296,19 +296,18 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
       }
       await ref.read(syncManagerProvider.notifier).loadEntries();
 
-      // When online, immediately flush queued Bagsakan operations.
-      // We AWAIT this when online to ensure the authoritative server ID is
-      // obtained and remapped locally before we return to the list screen,
-      // satisfying the "Online Priority" and "Respect Sync Always" requirements.
-      final isOnline =
-          ref.read(connectionStatusProvider) == ConnectionStatus.online;
-      if (isOnline) {
-        try {
-          await ref.read(syncManagerProvider.notifier).processQueue();
-        } catch (e) {
-          debugPrint('[BAGSAKAN] immediate sync failed: $e');
-          // Non-blocking for the UI pop, the queue will retry automatically.
-        }
+      // When online, await coalesced flush so server ID remap finishes before
+      // popping (Online Priority). Offline: refresh lists only.
+      try {
+        await ref
+            .read(syncWriteCoordinatorProvider)
+            .completeWrite(
+              reason: 'bagsakan_form_save',
+              awaitIdle: true,
+              refreshDeliveries: true,
+            );
+      } catch (e) {
+        debugPrint('[BAGSAKAN] completeWrite failed: $e');
       }
 
       if (mounted) {
@@ -318,7 +317,6 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
               ? 'bagsakan.success_updated'.tr(args: [name])
               : 'bagsakan.success_created'.tr(args: [name]),
         );
-        ref.read(deliveryRefreshProvider.notifier).increment();
         context.pop();
       }
     } catch (e) {

@@ -7,6 +7,7 @@ import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
 
@@ -60,6 +61,8 @@ void main() {
         localDeliveryDaoProvider.overrideWithValue(mockLocalDao),
         apiClientProvider.overrideWithValue(mockApiClient),
         authProvider.overrideWith(MockAuthNotifier.new),
+        // requestFlush no-ops when offline (API-down defense).
+        isOnlineProvider.overrideWithValue(true),
       ],
     );
   });
@@ -121,6 +124,67 @@ void main() {
         expect(state.total, 0);
 
         verify(() => mockSyncDao.getPending('courier_123')).called(1);
+      },
+    );
+
+    test(
+      'Given concurrent requestFlush calls, when first is in-flight, then second coalesces and awaitIdle waits',
+      () async {
+        when(
+          () => mockSyncDao.getPending('courier_123'),
+        ).thenAnswer((_) async {
+          await Future<void>.delayed(const Duration(milliseconds: 40));
+          return <SyncOperation>[];
+        });
+        when(
+          () => mockSyncDao.getAll('courier_123'),
+        ).thenAnswer((_) async => <SyncOperation>[]);
+
+        final notifier = container.read(syncManagerProvider.notifier);
+
+        // Fire-and-forget first flush.
+        final first = notifier.requestFlush(
+          reason: 'test_first',
+          awaitIdle: false,
+        );
+        // Second joins and waits for the leader (and any re-run).
+        final second = notifier.requestFlush(
+          reason: 'test_second',
+          awaitIdle: true,
+        );
+
+        await Future.wait([first, second]);
+
+        final state = container.read(syncManagerProvider);
+        expect(state.isSyncing, false);
+        // Leader run + possible re-run after second joined mid-flight.
+        final pendingCalls = verify(
+          () => mockSyncDao.getPending('courier_123'),
+        ).callCount;
+        expect(pendingCalls, greaterThanOrEqualTo(1));
+        expect(pendingCalls, lessThanOrEqualTo(2));
+      },
+    );
+
+    test(
+      'Given offline device, when requestFlush is called, then queue is not touched',
+      () async {
+        final offlineContainer = ProviderContainer(
+          overrides: [
+            syncOperationsDaoProvider.overrideWithValue(mockSyncDao),
+            localDeliveryDaoProvider.overrideWithValue(mockLocalDao),
+            apiClientProvider.overrideWithValue(mockApiClient),
+            authProvider.overrideWith(MockAuthNotifier.new),
+            isOnlineProvider.overrideWithValue(false),
+          ],
+        );
+        addTearDown(offlineContainer.dispose);
+
+        await offlineContainer
+            .read(syncManagerProvider.notifier)
+            .requestFlush(reason: 'test_offline', awaitIdle: true);
+
+        verifyNever(() => mockSyncDao.getPending(any()));
       },
     );
   });

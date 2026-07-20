@@ -25,7 +25,7 @@
 |------|-------|---------|
 | `delivery_status_list_screen.dart` | `/deliveries` | Paginated list of the courier's deliveries |
 | `delivery_detail_screen.dart` | `/deliveries/:barcode` | Detail view + timeline |
-| `delivery_update_screen.dart` | `/deliveries/:barcode/update` | POD update form (status, photos, signature) |
+| `delivery_update_screen.dart` | `/deliveries/:barcode/update` | POD update form (status, photos, signature); offline queue + `completeWrite` |
 | `signature_capture_screen.dart` | `/deliveries/:barcode/signature` | Full-screen signature pad |
 | `widgets/` | — | Form helpers and sub-components |
 
@@ -100,9 +100,17 @@ The `DeliveryUpdateScreen` uses the **Integrated Header Pattern**. The `AppHeade
 
 All delivery updates follow a unified **Offline-First** flow. There are no separate "online" vs "offline" submission code paths.
 
-1.  **Form Submission**: All status changes (DELIVERED, FAILED_DELIVERY, OSA) are persisted locally to the `delivery_update_queue` and the `local_deliveries` table immediately.
-2.  **Sync Registration**: A `SyncOperation` is created with a `pending` status.
-3.  **Background Processing**: `SyncManager` handles the actual server communication. If the device is online at the time of submission, `processQueue()` is triggered immediately (unawaited), otherwise it waits for the next connectivity event or manual refresh.
+1. **Form submission** — status changes persist to the sync queue + `local_deliveries` immediately.
+2. **Sync registration** — `SyncOperation` with `pending` status.
+3. **Side effects** — `syncWriteCoordinatorProvider.completeWrite(reason: 'submit_delivery')`:
+   - refreshes lists always;
+   - coalesced `requestFlush` only when `isOnlineProvider` (network + API);
+   - if offline/API down, queue waits for reconnect / login / periodic / Sync Now.
+
+System map & accuracy: [../architecture/system-map.md](../architecture/system-map.md),
+[../architecture/accuracy-and-scale.md](../architecture/accuracy-and-scale.md).  
+If updates look “stuck” or missing on web: [../architecture/ops-runbook.md](../architecture/ops-runbook.md)
+(**queue first — never reinstall to “fix” sync**).
 
 ### Delivery Confirmation Code (conditional)
 

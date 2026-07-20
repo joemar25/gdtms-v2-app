@@ -35,7 +35,7 @@ import 'package:uuid/uuid.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
-import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
+import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
 import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -176,7 +176,14 @@ class _DispatchEligibilityScreenState
         ref.read(apiClientProvider),
       );
       if (!mounted) return;
-      ref.read(deliveryRefreshProvider.notifier).increment();
+      await ref
+          .read(syncWriteCoordinatorProvider)
+          .completeWrite(
+            reason: 'dispatch_accept',
+            kickQueue: false,
+            refreshDeliveries: true,
+          );
+      if (!mounted) return;
       setState(() => _loading = false);
       showSuccessNotification(context, 'Dispatch accepted successfully.');
       context.go('/dashboard');

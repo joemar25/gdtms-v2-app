@@ -21,6 +21,9 @@ class AppDatabase {
   static Database? _instance;
   static Future<Database>? _openFuture;
 
+  /// When set (tests only), open this path instead of the app documents path.
+  static String? debugDatabasePath;
+
   /// Returns the open database, initializing it on first call.
   static Future<Database> getInstance() async {
     if (_instance != null && _instance!.isOpen) return _instance!;
@@ -40,9 +43,19 @@ class AppDatabase {
     }
   }
 
+  /// Closes and forgets the singleton (unit tests with sqflite_ffi).
+  static Future<void> debugResetForTests() async {
+    final db = _instance;
+    _instance = null;
+    _openFuture = null;
+    if (db != null && db.isOpen) {
+      await db.close();
+    }
+  }
+
   static Future<Database> _open() async {
-    final dir = await getDatabasesPath();
-    final path = p.join(dir, 'fsi_courier.db');
+    final path =
+        debugDatabasePath ?? p.join(await getDatabasesPath(), 'fsi_courier.db');
     final db = await openDatabase(
       path,
       version: kVersion,

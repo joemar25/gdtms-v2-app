@@ -42,6 +42,15 @@ Full index: [docs/index.md](docs/index.md)
 
 - [Entry points](docs/entry-points.md) — `main.dart`, `app.dart`, `splash_screen.dart`
 
+### Architecture & ops (sync / accuracy)
+
+- [Architecture hub](docs/architecture/README.md) — system map, accuracy contract, plans
+- [System map](docs/architecture/system-map.md) — write → queue → flush → bootstrap
+- [Accuracy & scale](docs/architecture/accuracy-and-scale.md) — Rules 1–4 and device vs fleet scale
+- [Ops runbook](docs/architecture/ops-runbook.md) — **support:** never lose courier updates; stuck pending playbooks
+- [Coupling plan](docs/architecture/coupling-todo.md) — A2/A8 status, remaining thrash work
+- [Sync performance plan](docs/architecture/sync-performance-todo.md) — measured bootstrap speed (P1–P8)
+
 ### Core
 
 - [API client & S3 upload](docs/core/api.md)
@@ -52,7 +61,7 @@ Full index: [docs/index.md](docs/index.md)
 - [Providers](docs/core/providers.md)
 - [Services](docs/core/services.md)
 - [Settings & config](docs/core/settings.md)
-- [Sync — SyncManager, bootstrap, background tasks](docs/core/sync.md)
+- [Sync — SyncManager, write coordinator, bootstrap](docs/core/sync.md)
 
 ### Features
 
@@ -85,10 +94,15 @@ Full index: [docs/index.md](docs/index.md)
 
 - [Courier User Manual](docs/manual/index.html) — Beautiful, interactive, and friendly HTML user manual designed specifically for non-technical couriers.
 
+### Scale, retention & contracts
+
+- [Large dataset readiness](docs/production-readiness-large-datasets.md)
+- [Delivery retention rules](docs/mobile-delivery-retention.md)
+- [Timestamp sync contract](docs/features/timestamp-sync-contract.md)
+
 ### Legacy / Specific Reports
 
-- [Delivery Retention Rules & API v2.0](docs/mobile-delivery-retention.md)
-- [API Timestamp Bug Report](docs/api-timestamp-bug-report.md)
+- [API Timestamp Bug Report](docs/api_timestamp_bug_report.md)
 
 ## Key Features
 

@@ -1,5 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/core/sync.md — update that file when you edit this one.
+// DOCS: docs/architecture/accuracy-and-scale.md
 
 import 'package:flutter/foundation.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
@@ -7,6 +8,7 @@ import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
 import 'package:fsi_courier_app/core/database/bagsakan_dao.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
+import 'package:fsi_courier_app/core/sync/sync_upsert_policy.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 
 /// Fetches the courier's current delivery list from the server and seeds the
@@ -52,6 +54,13 @@ class DeliveryBootstrapService {
     DeliveryStatus.delivered.toApiString(), // 'DELIVERED'
   ];
 
+  /// Page size for delivery list / delta sync (P2). Server paging is cheap;
+  /// fewer RTTs dominate total sync time after the timeline index fix.
+  static const int kSyncPerPage = 150;
+
+  /// Max concurrent page fetches within one status (P1). Polite to API.
+  static const int _kPageConcurrency = 3;
+
   int _asPositiveInt(dynamic value, {int fallback = 1}) {
     if (value is num) {
       final v = value.toInt();
@@ -91,18 +100,17 @@ class DeliveryBootstrapService {
       // Phase 2 cleanup will only remove items that were PENDING but are now gone.
       serverBarcodesPerStatus['DELTA'] = deltaBarcodes;
     } else {
-      const statusLabels = {
-        'FOR_DELIVERY': 'Fetching for-delivery items...',
-        'FAILED_DELIVERY': 'Fetching failed deliveries...',
-        'MISROUTED': 'Fetching MISROUTED orders...',
-        'DELIVERED': 'Fetching delivered orders...',
-      };
-
-      for (final status in _statuses) {
-        onProgress?.call(statusLabels[status] ?? 'Syncing $status...');
-        final barcodes = await _syncStatus(client, status);
-        debugPrint('[SYNC] $status — fetched ${barcodes.length} barcodes');
-        serverBarcodesPerStatus[status] = barcodes;
+      // P1: parallel status sweeps (same requests as sequential; Phase 2 waits).
+      onProgress?.call('Fetching deliveries (all statuses)...');
+      final sweep = await Future.wait(
+        _statuses.map((status) async {
+          final barcodes = await _syncStatus(client, status);
+          debugPrint('[SYNC] $status — fetched ${barcodes.length} barcodes');
+          return MapEntry(status, barcodes);
+        }),
+      );
+      for (final e in sweep) {
+        serverBarcodesPerStatus[e.key] = e.value;
       }
     }
 
@@ -195,10 +203,16 @@ class DeliveryBootstrapService {
       debugPrint('[SYNC] DELTA — fetched ${deltaBarcodes.length} barcodes');
       serverBarcodesPerStatus['DELTA'] = deltaBarcodes;
     } else {
-      for (final status in _statuses) {
-        final barcodes = await _syncStatus(client, status);
-        debugPrint('[SYNC] $status — fetched ${barcodes.length} barcodes');
-        serverBarcodesPerStatus[status] = barcodes;
+      // P1: parallel status sweeps — Phase 2 cleanup still waits for all.
+      final sweep = await Future.wait(
+        _statuses.map((status) async {
+          final barcodes = await _syncStatus(client, status);
+          debugPrint('[SYNC] $status — fetched ${barcodes.length} barcodes');
+          return MapEntry(status, barcodes);
+        }),
+      );
+      for (final e in sweep) {
+        serverBarcodesPerStatus[e.key] = e.value;
       }
     }
 
@@ -327,152 +341,181 @@ class DeliveryBootstrapService {
     return s.isEmpty ? null : s;
   }
 
+  /// One page of GET /deliveries (status or delta query).
+  Future<({List<Map<String, dynamic>> items, int lastPage})?>
+  _fetchDeliveriesPage(
+    ApiClient client, {
+    required Map<String, dynamic> query,
+    required String logLabel,
+  }) async {
+    try {
+      final result = await client.get<Map<String, dynamic>>(
+        '/deliveries',
+        queryParameters: query,
+        parser: parseApiMap,
+      );
+
+      if (result is! ApiSuccess<Map<String, dynamic>>) {
+        debugPrint('[SYNC] $logLabel non-success: $result');
+        return null;
+      }
+
+      final data = result.data;
+      final rawList = data['data'];
+      final items = <Map<String, dynamic>>[];
+      if (rawList is List) {
+        for (final item in rawList) {
+          if (item is Map<String, dynamic>) {
+            items.add(item);
+          } else if (item is Map) {
+            items.add(Map<String, dynamic>.from(item));
+          }
+        }
+      } else {
+        debugPrint(
+          '[SYNC] $logLabel — data.data is not a List: ${rawList.runtimeType}',
+        );
+        return null;
+      }
+
+      var lastPage = 1;
+      final meta = data['pagination'] ?? data['meta'];
+      if (meta is Map<String, dynamic>) {
+        lastPage = _asPositiveInt(meta['last_page']);
+      } else {
+        debugPrint('[SYNC] $logLabel — no pagination meta');
+      }
+
+      debugPrint(
+        '[SYNC] $logLabel — ${items.length} items (last_page=$lastPage)',
+      );
+      return (items: items, lastPage: lastPage);
+    } catch (e) {
+      debugPrint('[SYNC] $logLabel EXCEPTION: $e');
+      return null;
+    }
+  }
+
+  Future<void> _upsertPageItems(
+    List<Map<String, dynamic>> items, {
+    String? serverStatus,
+    required Set<String> allBarcodes,
+  }) async {
+    if (items.isEmpty) return;
+    if (serverStatus != null) {
+      await LocalDeliveryDao.instance.insertAllFromApiItems(
+        items,
+        serverStatus: serverStatus,
+      );
+    } else {
+      await LocalDeliveryDao.instance.insertAllFromApiItems(items);
+    }
+    for (final item in items) {
+      final b = (item['barcode']?.toString() ?? '').trim();
+      if (b.isNotEmpty) allBarcodes.add(b);
+    }
+  }
+
   /// Fetches all pages for [status], upserts them, and returns all barcodes.
+  ///
+  /// P1: page 1 first (learn last_page), then pages 2..N with concurrency cap.
+  /// P2: [kSyncPerPage] items per request.
   Future<Set<String>> _syncStatus(ApiClient client, String status) async {
     final allBarcodes = <String>{};
-    int page = 1;
-    int lastPage = 1;
+    final first = await _fetchDeliveriesPage(
+      client,
+      query: {'status': status, 'per_page': kSyncPerPage, 'page': 1},
+      logLabel: '_syncStatus($status) page=1',
+    );
+    if (first == null) return allBarcodes;
 
-    do {
-      try {
-        final result = await client.get<Map<String, dynamic>>(
-          '/deliveries',
-          queryParameters: {'status': status, 'per_page': 50, 'page': page},
-          parser: parseApiMap,
+    await _upsertPageItems(
+      first.items,
+      serverStatus: status,
+      allBarcodes: allBarcodes,
+    );
+
+    final lastPage = first.lastPage;
+    if (lastPage <= 1) return allBarcodes;
+
+    final remaining = DeliverySyncPaging.remainingPages(lastPage);
+    for (final chunk in DeliverySyncPaging.chunkPages(
+      remaining,
+      _kPageConcurrency,
+    )) {
+      final pages = await Future.wait(
+        chunk.map(
+          (page) => _fetchDeliveriesPage(
+            client,
+            query: {
+              'status': status,
+              'per_page': kSyncPerPage,
+              'page': page,
+            },
+            logLabel: '_syncStatus($status) page=$page',
+          ),
+        ),
+      );
+      for (final pageResult in pages) {
+        if (pageResult == null) continue;
+        await _upsertPageItems(
+          pageResult.items,
+          serverStatus: status,
+          allBarcodes: allBarcodes,
         );
-
-        if (result is! ApiSuccess<Map<String, dynamic>>) {
-          debugPrint(
-            '[SYNC] _syncStatus($status) page=$page non-success: $result',
-          );
-          break;
-        }
-
-        final data = result.data;
-        final rawList = data['data'];
-        final items = <Map<String, dynamic>>[];
-        if (rawList is List) {
-          for (final item in rawList) {
-            if (item is Map<String, dynamic>) {
-              items.add(item);
-            } else if (item is Map) {
-              items.add(Map<String, dynamic>.from(item));
-            }
-          }
-        } else {
-          debugPrint(
-            '[SYNC] _syncStatus($status) page=$page — data.data is not a List: ${rawList.runtimeType}',
-          );
-          break;
-        }
-
-        debugPrint(
-          '[SYNC] _syncStatus($status) page=$page — ${items.length} items',
-        );
-
-        if (items.isNotEmpty) {
-          await LocalDeliveryDao.instance.insertAllFromApiItems(
-            items,
-            serverStatus: status,
-          );
-          for (final item in items) {
-            final b = (item['barcode']?.toString() ?? '').trim();
-            if (b.isNotEmpty) allBarcodes.add(b);
-          }
-        }
-
-        final meta = data['pagination'] ?? data['meta'];
-        if (meta is Map<String, dynamic>) {
-          lastPage = _asPositiveInt(meta['last_page']);
-          debugPrint('[SYNC] _syncStatus($status) page=$page/$lastPage');
-        } else {
-          debugPrint(
-            '[SYNC] _syncStatus($status) — no pagination meta, stopping',
-          );
-          break;
-        }
-        page++;
-      } catch (e) {
-        debugPrint('[SYNC] _syncStatus($status) page=$page EXCEPTION: $e');
-        break;
       }
-    } while (page <= lastPage);
+    }
 
     return allBarcodes;
   }
 
   /// Fetches delta updates using updated_since and upserts them.
+  /// P1/P2: same page concurrency + [kSyncPerPage] as status sweep.
   Future<Set<String>> _syncDelta(ApiClient client, int updatedSince) async {
     final allBarcodes = <String>{};
-    int page = 1;
-    int lastPage = 1;
+    final sinceIso = DateTime.fromMillisecondsSinceEpoch(
+      updatedSince,
+    ).toUtc().toIso8601String();
 
-    do {
-      try {
-        final result = await client.get<Map<String, dynamic>>(
-          '/deliveries',
-          queryParameters: {
-            'updated_since': DateTime.fromMillisecondsSinceEpoch(
-              updatedSince,
-            ).toUtc().toIso8601String(),
-            'per_page': 50,
-            'page': page,
-          },
-          parser: parseApiMap,
-        );
+    final first = await _fetchDeliveriesPage(
+      client,
+      query: {
+        'updated_since': sinceIso,
+        'per_page': kSyncPerPage,
+        'page': 1,
+      },
+      logLabel: '_syncDelta page=1',
+    );
+    if (first == null) return allBarcodes;
 
-        if (result is! ApiSuccess<Map<String, dynamic>>) {
-          debugPrint(
-            '[SYNC] _syncDelta updated_since=$updatedSince page=$page non-success: $result',
-          );
-          break;
-        }
+    await _upsertPageItems(first.items, allBarcodes: allBarcodes);
 
-        final data = result.data;
-        final rawList = data['data'];
-        final items = <Map<String, dynamic>>[];
-        if (rawList is List) {
-          for (final item in rawList) {
-            if (item is Map<String, dynamic>) {
-              items.add(item);
-            } else if (item is Map) {
-              items.add(Map<String, dynamic>.from(item));
-            }
-          }
-        } else {
-          debugPrint(
-            '[SYNC] _syncDelta page=$page — data.data is not a List: ${rawList.runtimeType}',
-          );
-          break;
-        }
+    final lastPage = first.lastPage;
+    if (lastPage <= 1) return allBarcodes;
 
-        debugPrint('[SYNC] _syncDelta page=$page — ${items.length} items');
-
-        if (items.isNotEmpty) {
-          // Note: Delta items will have their own delivery_status which we respect.
-          // We can't specify a single serverStatus for the whole batch here, so we omit iter.
-          // Wait, insertAllFromApiItems takes an optional serverStatus. If omitted, it reads from item!
-          await LocalDeliveryDao.instance.insertAllFromApiItems(items);
-          for (final item in items) {
-            final b = (item['barcode']?.toString() ?? '').trim();
-            if (b.isNotEmpty) allBarcodes.add(b);
-          }
-        }
-
-        final meta = data['pagination'] ?? data['meta'];
-        if (meta is Map<String, dynamic>) {
-          lastPage = _asPositiveInt(meta['last_page']);
-        } else {
-          break;
-        }
-        page++;
-      } catch (e) {
-        debugPrint(
-          '[SYNC] _syncDelta updated_since=$updatedSince page=$page EXCEPTION: $e',
-        );
-        break;
+    final remaining = DeliverySyncPaging.remainingPages(lastPage);
+    for (final chunk in DeliverySyncPaging.chunkPages(
+      remaining,
+      _kPageConcurrency,
+    )) {
+      final pages = await Future.wait(
+        chunk.map(
+          (page) => _fetchDeliveriesPage(
+            client,
+            query: {
+              'updated_since': sinceIso,
+              'per_page': kSyncPerPage,
+              'page': page,
+            },
+            logLabel: '_syncDelta page=$page',
+          ),
+        ),
+      );
+      for (final pageResult in pages) {
+        if (pageResult == null) continue;
+        await _upsertPageItems(pageResult.items, allBarcodes: allBarcodes);
       }
-    } while (page <= lastPage);
+    }
 
     return allBarcodes;
   }

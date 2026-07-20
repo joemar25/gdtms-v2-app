@@ -52,8 +52,8 @@ import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
-import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
+import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
 import 'package:fsi_courier_app/shared/helpers/formatters.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -269,7 +269,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             ref.read(apiClientProvider),
           );
           if (!mounted) return;
-          ref.read(deliveryRefreshProvider.notifier).increment();
+          await ref
+              .read(syncWriteCoordinatorProvider)
+              .completeWrite(
+                reason: 'scan_dispatch_accept',
+                kickQueue: false,
+                refreshDeliveries: true,
+              );
           if (mounted) {
             showSuccessNotification(context, 'Dispatch accepted successfully!');
             context.go('/dashboard');

@@ -38,6 +38,11 @@ class MockSyncManagerNotifier extends SyncManagerNotifier {
   Future<void> loadEntries() async {}
   @override
   Future<void> processQueue() async {}
+  @override
+  Future<void> requestFlush({
+    String reason = 'unspecified',
+    bool awaitIdle = false,
+  }) async {}
 }
 
 void main() {

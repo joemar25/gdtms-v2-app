@@ -29,7 +29,15 @@ Shows the courier's sync operation history and allows manual sync trigger.
 
 ## Manual sync trigger
 
-Tapping the header SYNC button calls `SyncManagerNotifier.runSync()`. The button shows a loading indicator while sync is running. Pagination continues to work while sync runs — they are independent.
+Manual / overlay paths use coalesced **`requestFlush(reason:, awaitIdle:)`** (see
+`sync_now_button.dart` / `showSyncOverlay`). Screen open and pull-to-refresh also
+flush when `ConnectionStatus.online`.
+
+Architecture: [../architecture/system-map.md](../architecture/system-map.md),
+[../core/sync.md](../core/sync.md).
+
+**Support (stuck pending / failed / conflict — do not wipe app data first):**
+[../architecture/ops-runbook.md](../architecture/ops-runbook.md).
 
 ## Status badges
 

@@ -45,6 +45,20 @@ All files use kebab-case names. Organized to mirror the `lib/` folder structure.
 
 ---
 
+## Architecture & ops (`docs/architecture/`)
+
+System map, accuracy contract, and plans for sync/coupling/performance.
+**Start here** when changing offline write or sync behavior.
+
+- [architecture/README.md](architecture/README.md) — hub + doc index
+- [architecture/system-map.md](architecture/system-map.md) — write → queue → flush → bootstrap → UI
+- [architecture/accuracy-and-scale.md](architecture/accuracy-and-scale.md) — Rules 1–4, scale boundaries, verification
+- [architecture/ops-runbook.md](architecture/ops-runbook.md) — **support:** stuck pending / failed / conflict; never lose updates
+- [architecture/coupling-todo.md](architecture/coupling-todo.md) — coupling / thrash plan (A2/A8 status)
+- [architecture/sync-performance-todo.md](architecture/sync-performance-todo.md) — measured bootstrap speed (P1–P8)
+
+---
+
 ## Core (`lib/core/`)
 
 - [core/api.md](core/api.md) — `api_client.dart`, `api_result.dart`, `s3_upload_service.dart`
@@ -55,7 +69,7 @@ All files use kebab-case names. Organized to mirror the `lib/` folder structure.
 - [core/providers.md](core/providers.md) — `isOnlineProvider`, `deliveryRefreshProvider`, `locationProvider`, etc.
 - [core/services.md](core/services.md) — all service classes under `lib/core/services/`
 - [core/settings.md](core/settings.md) — `config.dart`, `constants.dart`, `app_settings.dart`, `compact_mode_provider.dart`
-- [core/sync.md](core/sync.md) — `sync_manager.dart`, `delivery_bootstrap_service.dart`, `workmanager_setup.dart`
+- [core/sync.md](core/sync.md) — `sync_manager.dart`, `sync_write_coordinator.dart`, bootstrap, WorkManager
 
 ---
 
@@ -98,15 +112,22 @@ All files use kebab-case names. Organized to mirror the `lib/` folder structure.
 
 ---
 
+## Scale, retention & contracts
+
+- [production-readiness-large-datasets.md](production-readiness-large-datasets.md) — list/UI patterns for large local datasets
+- [mobile-delivery-retention.md](mobile-delivery-retention.md) — delivery retention rules, history, cleanup, API v2
+- [features/timestamp-sync-contract.md](features/timestamp-sync-contract.md) — time / frozen payload contract
+- [time-enforcement.md](time-enforcement.md) — device time integrity
+
 ## Legacy / Specific Reports
 
-- [mobile-delivery-retention.md](mobile-delivery-retention.md) — delivery retention rules, history behavior, local cleanup, API v2
-- [api-timestamp-bug-report.md](api-timestamp-bug-report.md) — API timestamp/timezone bug report
+- [api_timestamp_bug_report.md](api_timestamp_bug_report.md) — API timestamp/timezone bug report
 
 ---
 
 ## How to use this system
 
 1. **When you edit a source file** — open its matching doc (the `DOCS:` comment at the top of the file tells you which one) and update it.
-2. **When you add a new file or folder** — create a matching doc, add it to this index, and add it to the `README.md` Documentation section.
-3. **When you remove a file** — remove or update its entry here and in `README.md`.
+2. **When you change sync / offline write** — update [architecture/system-map.md](architecture/system-map.md) and [core/sync.md](core/sync.md); never weaken Rules 1–4 in [architecture/accuracy-and-scale.md](architecture/accuracy-and-scale.md).
+3. **When you add a new file or folder** — create a matching doc, add it to this index, and add it to the `README.md` Documentation section.
+4. **When you remove a file** — remove or update its entry here and in `README.md`.

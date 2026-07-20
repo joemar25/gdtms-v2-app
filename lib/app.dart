@@ -1,5 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/entry-points.md — update that file when you edit this one.
+// DOCS: docs/architecture/system-map.md
 
 import 'dart:async';
 
@@ -42,7 +43,9 @@ class FsiCourierApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
-    final auth = ref.watch(authProvider);
+    // Watch theme only — avoids rebuilding MaterialApp on courier/session
+    // field updates (production-safe A9; same theme semantics).
+    final themeMode = ref.watch(authProvider.select((s) => s.themeMode));
 
     return Builder(
       builder: (context) => MaterialApp.router(
@@ -52,7 +55,7 @@ class FsiCourierApp extends ConsumerWidget {
         localizationsDelegates: context.localizationDelegates,
         supportedLocales: context.supportedLocales,
         locale: context.locale,
-        themeMode: auth.themeMode,
+        themeMode: themeMode,
         theme: DSTheme.build(Brightness.light),
         darkTheme: DSTheme.build(Brightness.dark),
         routerConfig: router,
@@ -235,10 +238,15 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     }
   }
 
+  /// Reasons that must flush offline backlog as soon as API is healthy
+  /// (skip 30s debounce). Periodic/resume still debounced to avoid thrash.
+  static const _kSkipDebounceReasons = {'reconnected', 'login'};
+
   /// Fires a sync only if:
-  /// - The user is authenticated and online.
+  /// - The user is authenticated and online (network + API reachable).
   /// - Not already syncing.
-  /// - Enough time has passed since the last sync (debounce).
+  /// - Enough time has passed since the last sync (debounce), unless
+  ///   [reason] is `reconnected` or `login` (offline backlog must drain).
   void _maybeTriggerSync({required String reason}) {
     if (!mounted) return;
     if (!ref.read(authProvider).isAuthenticated) return;
@@ -246,7 +254,10 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     if (_isSyncing) return;
 
     final now = DateTime.now();
-    if (_lastSyncAt != null && now.difference(_lastSyncAt!) < _kSyncDebounce) {
+    final skipDebounce = _kSkipDebounceReasons.contains(reason);
+    if (!skipDebounce &&
+        _lastSyncAt != null &&
+        now.difference(_lastSyncAt!) < _kSyncDebounce) {
       return;
     }
 
@@ -254,41 +265,51 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     _lastSyncAt = now;
 
     // ignore: discarded_futures
-    _runFullSync();
+    _runFullSync(reason: reason);
   }
 
-  /// Sequential full sync:
+  /// Sequential full sync (same order as pre-A8 production behavior):
   ///
   /// Step 1 — Push dirty offline queue entries to the server first.
-  ///   The server must have the courier's latest offline updates before we
-  ///   pull from it, otherwise bootstrap would fetch stale server state.
+  /// Step 2 — Pull server statuses and reconcile with SQLite.
   ///
-  /// Step 2 — Pull all server statuses (pending / delivered / failed delivery / misrouted)
-  ///   and reconcile with SQLite. Because the queue is now drained, the
-  ///   server reflects the courier's true current state, making this pull
-  ///   authoritative.
-  ///
-  /// deliveryRefreshProvider is incremented:
-  ///   • by processQueue() itself when entries succeed (early UI refresh), and
-  ///   • once more after bootstrap completes (final authoritative refresh).
-  Future<void> _runFullSync() async {
+  /// Only concurrency/coalescing of the queue flush changed — not reconciliation
+  /// Rules 1–4, not which statuses sync, not debounce intervals (except
+  /// reconnect/login skip debounce so API recovery flushes backlog promptly).
+  Future<void> _runFullSync({required String reason}) async {
     try {
-      // Step 1: Flush dirty queue → server.
-      // processQueue() skips immediately when isSyncing=true (a fire-and-forget
-      // call from delivery_update_screen may already be running). Wait for it
-      // to finish so syncFromApi always sees a fully drained queue.
-      await ref.read(syncManagerProvider.notifier).processQueue();
-      await ref.read(syncManagerProvider.notifier).waitUntilIdle();
+      debugPrint('[SYNC] _runFullSync start reason=$reason');
+      // Step 1: Coalesced queue flush. Joins any in-flight UI submit flush and
+      // re-runs if items were enqueued mid-pass.
+      await ref
+          .read(syncManagerProvider.notifier)
+          .requestFlush(reason: 'auto_sync_$reason', awaitIdle: true);
 
-      debugPrint('[SYNC] _runFullSync: after processQueue, mounted=$mounted');
+      debugPrint(
+        '[SYNC] _runFullSync: after requestFlush reason=$reason '
+        'mounted=$mounted',
+      );
       if (!mounted) return;
+
+      // If API dropped mid-flush, do not start bootstrap pull (burns errors and
+      // can race a dying server). Queue leftovers retry on next online trigger.
+      if (!ref.read(isOnlineProvider)) {
+        debugPrint(
+          '[SYNC] _runFullSync: abort pull — API no longer online '
+          'reason=$reason',
+        );
+        return;
+      }
 
       // Step 2: Pull server → SQLite (full reconcile across all statuses).
       await DeliveryBootstrapService.instance.syncFromApi(
         ref.read(apiClientProvider),
       );
 
-      debugPrint('[SYNC] _runFullSync: after syncFromApi, mounted=$mounted');
+      debugPrint(
+        '[SYNC] _runFullSync: after syncFromApi reason=$reason '
+        'mounted=$mounted',
+      );
       if (mounted) {
         final now = DateTime.now();
         ref.read(lastSyncTimeProvider.notifier).setValue(now);
@@ -305,7 +326,7 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       // Automatically clean up old data after successful sync
       await CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
     } catch (e) {
-      debugPrint('[SYNC] _runFullSync ERROR: $e');
+      debugPrint('[SYNC] _runFullSync ERROR reason=$reason: $e');
     } finally {
       if (mounted) _isSyncing = false;
     }
@@ -376,7 +397,10 @@ class _SyncFloatingPill extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(authProvider).isAuthenticated) {
+    final isAuthenticated = ref.watch(
+      authProvider.select((s) => s.isAuthenticated),
+    );
+    if (!isAuthenticated) {
       return const SizedBox.shrink();
     }
 

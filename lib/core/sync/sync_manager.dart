@@ -1,5 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/core/sync.md — update that file when you edit this one.
+// DOCS: docs/architecture/system-map.md
 
 // =============================================================================
 // sync_manager.dart
@@ -11,7 +12,7 @@
 //   DO NOT use this for profile changes or Courier authentication updates.
 // =============================================================================
 
-import 'dart:async' show unawaited;
+import 'dart:async' show Completer, unawaited;
 import 'dart:convert';
 import 'dart:io';
 
@@ -25,6 +26,7 @@ import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/config.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/services/error_log_service.dart';
@@ -97,6 +99,17 @@ class SyncState {
 class SyncManagerNotifier extends Notifier<SyncState> {
   bool _disposed = false;
 
+  /// In-flight coalesced flush (A8). Concurrent [requestFlush] callers join this.
+  Future<void>? _activeFlush;
+
+  /// When true, the active flush loop runs another pass after the current one
+  /// so items enqueued mid-flight are not stranded.
+  bool _pendingRerun = false;
+
+  /// Safety cap: prevent a runaway re-run loop under pathological enqueue storms.
+  /// Does not change normal courier ops (1–2 passes is typical).
+  static const int _kMaxFlushPasses = 5;
+
   @override
   SyncState build() {
     ref.onDispose(() => _disposed = true);
@@ -116,6 +129,98 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     final entries = await ref.read(syncOperationsDaoProvider).getAll(courierId);
     if (!_disposed) state = state.copyWith(entries: entries);
     _autoCleanupIfEligible(entries);
+  }
+
+  /// Coalesced offline-queue flush (ARCHITECTURE A8).
+  ///
+  /// Preferred entry point for UI and auto-sync. Concurrent callers share one
+  /// run; extra kicks set a re-run flag so newly queued ops are not lost.
+  ///
+  /// - [awaitIdle] `false` (default): start/join a flush and return immediately
+  ///   (UI submit paths).
+  /// - [awaitIdle] `true`: wait until the coalesced flush (including re-runs)
+  ///   finishes (auto-sync, Sync screen, bagsakan online save).
+  ///
+  /// [reason] is logged for diagnostics (`submit_delivery`, `auto_sync_login`, …).
+  ///
+  /// **Production-safe:** same queue semantics as before — only concurrency
+  /// control and logging change. Does not alter payloads, status rules, or
+  /// which operations are sent.
+  Future<void> requestFlush({
+    String reason = 'unspecified',
+    bool awaitIdle = false,
+  }) async {
+    debugPrint(
+      '[SYNC] requestFlush reason=$reason awaitIdle=$awaitIdle '
+      'active=${_activeFlush != null} isSyncing=${state.isSyncing}',
+    );
+
+    // Defense-in-depth: do not start a new flush when network or API is down.
+    // In-flight flush (API died mid-pass) still runs out; joiners await it.
+    // Offline work stays queued until isOnline becomes true again.
+    if (_activeFlush == null && !ref.read(isOnlineProvider)) {
+      debugPrint(
+        '[SYNC] requestFlush skipped — offline/API unreachable reason=$reason',
+      );
+      return;
+    }
+
+    if (_activeFlush != null) {
+      _pendingRerun = true;
+      if (awaitIdle) {
+        await _activeFlush;
+        // Leader may have finished just before we set the flag; drain again
+        // only if we are still online (API may have dropped during the wait).
+        if (_pendingRerun &&
+            _activeFlush == null &&
+            !_disposed &&
+            ref.read(isOnlineProvider)) {
+          await requestFlush(reason: '$reason/followup', awaitIdle: true);
+        } else if (_activeFlush != null) {
+          await _activeFlush;
+        }
+      }
+      return;
+    }
+
+    final completer = Completer<void>();
+    _activeFlush = completer.future;
+
+    Future<void> run() async {
+      var passes = 0;
+      try {
+        do {
+          _pendingRerun = false;
+          passes++;
+          // Abort further passes if API dropped mid-loop (partial pass OK).
+          if (!ref.read(isOnlineProvider)) {
+            debugPrint(
+              '[SYNC] requestFlush abort pass — offline mid-loop '
+              'reason=$reason pass=$passes',
+            );
+            break;
+          }
+          await _runProcessQueuePass();
+          if (_pendingRerun && passes >= _kMaxFlushPasses) {
+            debugPrint(
+              '[SYNC] requestFlush reason=$reason hit max passes '
+              '($_kMaxFlushPasses); remaining work deferred to next trigger',
+            );
+            _pendingRerun = false;
+            break;
+          }
+        } while (_pendingRerun && !_disposed);
+      } finally {
+        _activeFlush = null;
+        if (!completer.isCompleted) completer.complete();
+      }
+    }
+
+    if (awaitIdle) {
+      await run();
+    } else {
+      unawaited(run());
+    }
   }
 
   /// Checks whether any synced entry in [entries] has passed its retention
@@ -161,11 +266,21 @@ class SyncManagerNotifier extends Notifier<SyncState> {
 
   /// Processes every [pending] queue entry sequentially.
   ///
-  /// - Skips silently if already [isSyncing].
+  /// **Backward-compatible entry:** routes through [requestFlush] so concurrent
+  /// callers coalesce. Prefer calling [requestFlush] directly with a reason.
+  Future<void> processQueue() =>
+      requestFlush(reason: 'processQueue', awaitIdle: true);
+
+  /// Single pass over the pending queue. Only called from [requestFlush].
+  ///
   /// - Updates [state] in real time so the UI stays reactive.
-  /// - Runs [CleanupService] when all entries have been processed.
-  Future<void> processQueue() async {
-    if (state.isSyncing) return;
+  /// - Runs cleanup after the pass (non-blocking concern).
+  Future<void> _runProcessQueuePass() async {
+    if (state.isSyncing) {
+      // Another pass is unexpectedly active — request another loop iteration.
+      _pendingRerun = true;
+      return;
+    }
 
     final courier = ref.read(authProvider).courier ?? {};
     final courierId = courier['id']?.toString() ?? '';
@@ -967,34 +1082,35 @@ class SyncManagerNotifier extends Notifier<SyncState> {
     }
   }
 
-  /// Waits until [isSyncing] is false, polling at short intervals.
+  /// Waits until [isSyncing] is false and no coalesced [requestFlush] is active.
   ///
-  /// Call this in [_runFullSync] after [processQueue] returns to ensure any
-  /// concurrent fire-and-forget [processQueue] invocation has fully drained
-  /// before starting `syncFromApi`. Without this guard the two operations can
-  /// overlap: `syncFromApi` overwrites the local DB while `processQueue` is
-  /// still mid-flight, causing the PATCH to arrive after the server has
-  /// already applied the status — producing spurious 400 errors.
+  /// Prefer [requestFlush] with `awaitIdle: true` for new code. Kept for
+  /// callers that already started a fire-and-forget flush and need to barrier
+  /// before bootstrap pull.
   Future<void> waitUntilIdle() async {
+    if (_activeFlush != null) {
+      await _activeFlush;
+    }
     while (state.isSyncing) {
       await Future.delayed(const Duration(milliseconds: 150));
+    }
+    if (_activeFlush != null) {
+      await _activeFlush;
     }
   }
 
   /// Resets a single [failed] entry back to [pending] and immediately
   /// processes the queue. Intended for manual retry from the Sync screen.
   Future<void> retrySingle(String id) async {
-    if (state.isSyncing) return;
     await ref.read(syncOperationsDaoProvider).resetToPending(id);
-    await processQueue();
+    await requestFlush(reason: 'retry_single', awaitIdle: true);
   }
 
   /// Resets failed entries for a specific barcode back to [pending] and immediately
   /// processes the queue. Intended for manual retry from the Error Logs screen.
   Future<void> retryByBarcode(String barcode) async {
-    if (state.isSyncing) return;
     await ref.read(syncOperationsDaoProvider).resetToPendingByBarcode(barcode);
-    await processQueue();
+    await requestFlush(reason: 'retry_by_barcode', awaitIdle: true);
   }
 
   /// Clears all failed entries (and their media files) then refreshes the list.

@@ -11,7 +11,10 @@ export 'package:fsi_courier_app/core/sync/sync_manager.dart'
 /// The primary sync manager provider.
 ///
 /// Watch [syncManagerProvider] to observe sync state.
-/// Read [syncManagerProvider.notifier] to trigger [processQueue] or [retrySingle].
+/// Read [syncManagerProvider.notifier] to trigger [requestFlush], [processQueue],
+/// or [retrySingle]. Prefer [requestFlush] for coalesced queue kicks (A8).
+/// For post-write side effects (queue + list refresh), use
+/// `syncWriteCoordinatorProvider` (A2) in `lib/core/sync/sync_write_coordinator.dart`.
 final syncManagerProvider = NotifierProvider<SyncManagerNotifier, SyncState>(
   SyncManagerNotifier.new,
 );

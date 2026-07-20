@@ -69,10 +69,9 @@ import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/models/photo_entry.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
-import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/features/permissions/providers/location_provider.dart';
 import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
-import 'package:fsi_courier_app/core/providers/sync_provider.dart';
+import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
 import 'package:fsi_courier_app/features/delivery/signature_capture_screen.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
@@ -617,7 +616,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       return;
     }
     final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
-    final isOnline = ref.read(isOnlineProvider);
     final String? resolvedReason = _reason == 'Other'
         ? _reasonSpecify.text.trim().toUpperCase()
         : _reason?.toUpperCase();
@@ -701,12 +699,16 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       ),
     );
     await LocalDeliveryDao.instance.updateStatus(widget.barcode, _status);
-    if (isOnline) {
-      // ignore: unawaited_futures
-      ref.read(syncManagerProvider.notifier).processQueue();
-    }
+    // A2: coalesced queue kick + list refresh (fire-and-forget flush when online).
+    await ref
+        .read(syncWriteCoordinatorProvider)
+        .completeWrite(
+          reason: 'submit_delivery',
+          awaitIdle: false,
+          refreshDeliveries: true,
+          barcodes: {widget.barcode},
+        );
     if (!mounted) return;
-    ref.read(deliveryRefreshProvider.notifier).increment();
     setState(() => _loading = false);
     showSuccessNotification(
       context,

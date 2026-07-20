@@ -47,7 +47,9 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
       }
       if (!mounted) return;
       if (ref.read(connectionStatusProvider) == ConnectionStatus.online) {
-        await ref.read(syncManagerProvider.notifier).processQueue();
+        await ref
+            .read(syncManagerProvider.notifier)
+            .requestFlush(reason: 'sync_screen_open', awaitIdle: true);
       }
     });
   }
@@ -100,7 +102,12 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                   if (!mounted) return;
                   if (ref.read(connectionStatusProvider) ==
                       ConnectionStatus.online) {
-                    await ref.read(syncManagerProvider.notifier).processQueue();
+                    await ref
+                        .read(syncManagerProvider.notifier)
+                        .requestFlush(
+                          reason: 'sync_screen_pull_refresh',
+                          awaitIdle: true,
+                        );
                   }
                   if (!mounted) return;
                   await ref.read(syncManagerProvider.notifier).loadEntries();

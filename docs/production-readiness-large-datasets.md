@@ -1,8 +1,16 @@
 # Production Readiness Guide: Large Dataset Handling (50K-100K+ Items)
 
+> **Related:** [architecture/accuracy-and-scale.md](architecture/accuracy-and-scale.md) (what the device stores vs fleet scale),
+> [architecture/sync-performance-todo.md](architecture/sync-performance-todo.md) (bootstrap throughput).
+
 ## Overview
 
 This guide provides optimization strategies and best practices for handling production-scale data (50,000 - 100,000+ items) in the Bagsakan feature and similar listing screens.
+
+**Note:** Fleet totals may grow into millions over time on the **server**. The mobile
+app only holds the **courier-scoped** working set and paginates UI/DAO access.
+Accuracy is defined by reconciliation Rules 1–4, not by loading the entire fleet
+onto the device.
 
 ---
 

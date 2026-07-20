@@ -5,6 +5,7 @@ import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/database/sync_operations_dao.dart';
 import 'package:fsi_courier_app/core/database/bagsakan_dao.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
+import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:fsi_courier_app/core/database/local_delivery_dao.dart';
@@ -78,6 +79,7 @@ void main() {
         syncOperationsDaoProvider.overrideWithValue(mockSyncDao),
         bagsakanDaoProvider.overrideWithValue(mockBagsakanDao),
         localDeliveryDaoProvider.overrideWithValue(mockLocalDao),
+        isOnlineProvider.overrideWithValue(true),
       ],
     );
   });

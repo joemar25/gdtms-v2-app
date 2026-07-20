@@ -1,7 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/bagsakan.md — update that file when you edit this one.
 
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +16,7 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
+import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -218,8 +218,14 @@ class _BagsakanGroupItemsScreenState
               propagationStatus: sourceStatusApi,
             );
         await ref.read(syncManagerProvider.notifier).loadEntries();
+        await ref
+            .read(syncWriteCoordinatorProvider)
+            .completeWrite(
+              reason: 'bagsakan_submit_group',
+              awaitIdle: false,
+              refreshDeliveries: true,
+            );
         await _loadData();
-        ref.read(deliveryRefreshProvider.notifier).increment();
         if (mounted) {
           showSuccessNotification(context, 'bagsakan.success_submitted'.tr());
         }
@@ -304,11 +310,15 @@ class _BagsakanGroupItemsScreenState
             .unassignFromBagsakan(delivery.barcode, courierId);
 
         await ref.read(syncManagerProvider.notifier).loadEntries();
-        // Trigger auto-sync for background reconciliation
-        unawaited(ref.read(syncManagerProvider.notifier).processQueue());
+        await ref
+            .read(syncWriteCoordinatorProvider)
+            .completeWrite(
+              reason: 'bagsakan_remove_item',
+              awaitIdle: false,
+              refreshDeliveries: true,
+            );
 
         await _loadData();
-        ref.read(deliveryRefreshProvider.notifier).increment();
 
         if (mounted) {
           showSuccessNotification(
@@ -454,7 +464,13 @@ class _BagsakanGroupItemsScreenState
                       ref.read(apiClientProvider),
                     );
                   }
-                  ref.read(deliveryRefreshProvider.notifier).increment();
+                  await ref
+                      .read(syncWriteCoordinatorProvider)
+                      .completeWrite(
+                        reason: 'bagsakan_group_pull_refresh',
+                        kickQueue: false,
+                        refreshDeliveries: true,
+                      );
                 },
                 child: _items.isEmpty && !_isLoading
                     ? BagsakanListEmptyState(
