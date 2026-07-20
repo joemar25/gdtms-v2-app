@@ -19,6 +19,11 @@
 | `profile_screen.dart` | `/profile` | View profile, preferences, storage info, logout |
 | `profile_edit_screen.dart` | `/profile/edit` | Edit courier details |
 
+## Screenshots
+
+**Allowed** on Profile and profile edit for courier support (no `SecureView` wrap).
+Recipient PII is not shown here; delivery account-detail sheets remain protected.
+
 ---
 
 ## `profile_screen.dart`

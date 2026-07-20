@@ -49,6 +49,16 @@ Controlled by `PaginationBar`. Page size is defined in `constants.dart`. Changin
 
 ### Screenshot protection
 
+### Screenshot policy (support vs PII)
+
+| Area | Screenshots |
+| ---- | ----------- |
+| Wallet / Dispatch / Profile | **Allowed** (no `SecureView`) for support |
+| Delivery list **DELIVERED** | **Allowed** (barcode/product only) |
+| Delivery list other statuses | **Blocked** (`SecureView`) — recipient info on cards |
+| `showDeliveryAccountDetails` sheet | **Blocked** — full account name/address/phone |
+| Delivery update + signature | **Blocked** — POD + recipient fields |
+
 The list body is wrapped in `_ConditionalSecureView(secure: !_isDelivered, …)`:
 
 - **All statuses except `DELIVERED`** are wrapped in `SecureView`, which enables OS-level screenshot/screen-recording protection (`screen_protector`).

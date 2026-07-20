@@ -298,8 +298,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             }
           }
         },
-        child: SecureView(
-          child: Scaffold(
+        // Screenshots allowed on Wallet for courier support (no recipient PII
+        // here). Recipient account details stay protected via SecureView on
+        // delivery account-detail sheets only.
+        child: Scaffold(
             extendBody: true,
             appBar: AppHeaderBar(
               title: 'wallet.screen.title'.tr(),
@@ -414,7 +416,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       ],
                     ),
                   ),
-          ),
         ),
       ),
     );

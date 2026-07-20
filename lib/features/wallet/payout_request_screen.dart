@@ -326,8 +326,8 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
     // Standard scaffolding following FSI Design System rules.
     final scaffoldBg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
 
-    return SecureView(
-      child: Scaffold(
+    // Screenshots allowed for courier support (payout request UI, not recipient PII).
+    return Scaffold(
         backgroundColor: scaffoldBg,
         appBar: AppHeaderBar(
           title: widget.isConsolidation
@@ -404,7 +404,6 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 

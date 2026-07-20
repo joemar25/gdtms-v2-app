@@ -21,6 +21,15 @@
 | `payout_detail_screen.dart` | `/wallet/payout/:id` | Single payout detail + horizontal stepper |
 | `payout_request_screen.dart` | `/wallet/payout/request` | Request a new payout |
 
+## Screenshots
+
+**Allowed** on all Wallet screens (overview, payout detail, request, history sheet)
+so couriers can send earnings/payout UI to support.
+
+**Still blocked:** recipient **account details** bottom sheets elsewhere in the app
+(`showDeliveryAccountDetails` + delivery list SecureView for non-DELIVERED). Do not
+wrap Wallet in `SecureView`.
+
 ---
 
 ## `wallet_screen.dart`

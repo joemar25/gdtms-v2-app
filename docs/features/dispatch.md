@@ -19,6 +19,14 @@
 | `dispatch_eligibility_screen.dart` | `/dispatch/eligibility` | Gate — checks if courier can start dispatch |
 | `dispatch_list_screen.dart` | `/dispatch/list` | Lists parcels to scan and accept |
 
+## Screenshots
+
+**Allowed** on Dispatch eligibility and list (dispatch details) for courier support.
+These screens are **not** wrapped in `SecureView`.
+
+**Still blocked:** opening **Account Details** from a delivery card uses
+`showDeliveryAccountDetails` → `SecureView` (recipient name/address/phone).
+
 ---
 
 ## `dispatch_eligibility_screen.dart`

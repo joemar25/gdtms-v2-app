@@ -130,8 +130,8 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         ? formatDate('${_data['requested_at']}', includeTime: true)
         : null;
 
-    return SecureView(
-      child: Scaffold(
+    // Screenshots allowed for courier support (wallet earnings, not recipient PII).
+    return Scaffold(
         appBar: AppHeaderBar(
           title: reference,
           actions: [
@@ -178,7 +178,6 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
                   ],
                 ),
               ),
-      ),
     );
   }
 

@@ -33,8 +33,8 @@ Future<void> showPayoutHistorySheet({
     isScrollControlled: true,
     backgroundColor: DSColors.transparent,
     builder: (ctx) {
-      return SecureView(
-        child: Container(
+      // Screenshots allowed (wallet support); not recipient account details.
+      return Container(
           decoration: BoxDecoration(
             color: isDark ? DSColors.cardDark : DSColors.cardLight,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -112,7 +112,6 @@ Future<void> showPayoutHistorySheet({
               DSSpacing.hMd,
             ],
           ),
-        ),
       );
     },
   );
