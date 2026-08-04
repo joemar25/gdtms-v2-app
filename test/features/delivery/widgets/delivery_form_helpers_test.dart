@@ -104,7 +104,7 @@ void main() {
       expect(
         message,
         contains(
-          'Good day, this is FSI Courier! Your document/ID (Tracking Code: FSIEE586361) is scheduled for delivery TOMORROW.',
+          'Good day, this is your FSI Courier! Your document/ID (Tracking Code: FSIEE586361) is scheduled for delivery TOMORROW.',
         ),
       );
     });
@@ -122,7 +122,7 @@ void main() {
       expect(
         message,
         contains(
-          'Good day, this is FSI Courier! Your document/ID (Tracking Code: FSIEE586361) is scheduled for delivery TOMORROW.',
+          'Good day, this is your FSI Courier! Your document/ID (Tracking Code: FSIEE586361) is scheduled for delivery TOMORROW.',
         ),
       );
     });

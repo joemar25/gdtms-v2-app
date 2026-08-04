@@ -34,10 +34,10 @@ void main() {
 
       expect(
         message,
-        "Good day, this is FSI Courier! Your document/ID (Tracking Code: FSIEE586361) is scheduled for delivery TOMORROW. "
+        "Good day, this is your FSI Courier! Your document/ID (Tracking Code: FSIEE586361) is scheduled for delivery TOMORROW. "
         "Kindly leave your Delivery Confirmation Code (if applicable) or an authorization "
-        "letter with your representative if you're away. Please note that our riders "
-        "cannot give exact delivery time due to high demand and have a 10-minute "
+        "letter with your representative if you're away. Please note that I cannot give an "
+        "exact delivery time due to the volume of deliveries, and I have a 10-minute "
         "waiting limit per stop. Thank you!",
       );
     });
