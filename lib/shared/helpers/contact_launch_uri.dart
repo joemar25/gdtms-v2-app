@@ -17,12 +17,16 @@ String resolveContactGreetingName({
 String buildDeliveryContactMessage({
   required String recipientName,
   required String barcode,
+  String schedule = 'TOMORROW',
 }) {
-  final name = recipientName.trim();
-  final tracking = barcode.trim().isNotEmpty ? barcode.trim() : 'your delivery';
-  final greeting = name.isNotEmpty ? 'Hi $name, ' : 'Hi, ';
-  return '${greeting}FSI Courier here for $tracking. '
-      'Please be ready or contact me to reschedule. Thank you.';
+  final tracking = barcode.trim().isNotEmpty
+      ? ' (Tracking Code: ${barcode.trim()})'
+      : '';
+  return "Good day, this is your FSI Courier! Your document/ID$tracking is scheduled for delivery $schedule. "
+      "Kindly leave your Delivery Confirmation Code (if applicable) or an authorization "
+      "letter with your representative if you're away. Please note that I cannot give an "
+      "exact delivery time due to the volume of deliveries, and I have a 10-minute "
+      "waiting limit per stop. Thank you!";
 }
 
 /// Encodes [text] for messaging-app deep-link query params.

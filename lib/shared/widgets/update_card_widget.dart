@@ -232,10 +232,7 @@ class _AppUpdateCardState extends ConsumerState<AppUpdateCard> {
                           color: DSColors.white,
                         ),
                       )
-                    : const Icon(
-                        Icons.storefront_rounded,
-                        size: DSIconSize.sm,
-                      ),
+                    : const Icon(Icons.storefront_rounded, size: DSIconSize.sm),
                 label: const Text('Update on Play Store'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: DSColors.warning,

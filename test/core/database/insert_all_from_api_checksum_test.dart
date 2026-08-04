@@ -94,39 +94,41 @@ void main() {
     expect(r['data_checksum'], 'v2');
   });
 
-  test('accuracy: dirty row status not overwritten by matching checksum path',
-      () async {
-    await LocalDeliveryDao.instance.insertAllFromApiItems([
-      apiItem(barcode: 'B3', status: 'FOR_DELIVERY', checksum: 'same'),
-    ], serverStatus: 'FOR_DELIVERY');
+  test(
+    'accuracy: dirty row status not overwritten by matching checksum path',
+    () async {
+      await LocalDeliveryDao.instance.insertAllFromApiItems([
+        apiItem(barcode: 'B3', status: 'FOR_DELIVERY', checksum: 'same'),
+      ], serverStatus: 'FOR_DELIVERY');
 
-    final db = await AppDatabase.getInstance();
-    await db.update(
-      'local_deliveries',
-      {
-        'sync_status': 'dirty',
-        'delivery_status': 'DELIVERED',
-        'recipient_name': 'Courier Local POD',
-      },
-      where: 'barcode = ?',
-      whereArgs: ['B3'],
-    );
+      final db = await AppDatabase.getInstance();
+      await db.update(
+        'local_deliveries',
+        {
+          'sync_status': 'dirty',
+          'delivery_status': 'DELIVERED',
+          'recipient_name': 'Courier Local POD',
+        },
+        where: 'barcode = ?',
+        whereArgs: ['B3'],
+      );
 
-    // Server still says pending with same checksum — dirty status must win.
-    await LocalDeliveryDao.instance.insertAllFromApiItems([
-      apiItem(
-        barcode: 'B3',
-        status: 'FOR_DELIVERY',
-        checksum: 'same',
-        name: 'Server Pending Name',
-      ),
-    ], serverStatus: 'FOR_DELIVERY');
+      // Server still says pending with same checksum — dirty status must win.
+      await LocalDeliveryDao.instance.insertAllFromApiItems([
+        apiItem(
+          barcode: 'B3',
+          status: 'FOR_DELIVERY',
+          checksum: 'same',
+          name: 'Server Pending Name',
+        ),
+      ], serverStatus: 'FOR_DELIVERY');
 
-    final r = await row('B3');
-    expect(r!['sync_status'], 'dirty');
-    expect(r['delivery_status'], 'DELIVERED');
-    expect(r['recipient_name'], 'Courier Local POD');
-  });
+      final r = await row('B3');
+      expect(r!['sync_status'], 'dirty');
+      expect(r['delivery_status'], 'DELIVERED');
+      expect(r['recipient_name'], 'Courier Local POD');
+    },
+  );
 
   test('new barcode is inserted when no local row exists', () async {
     await LocalDeliveryDao.instance.insertAllFromApiItems([

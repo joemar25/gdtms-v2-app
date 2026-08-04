@@ -26,53 +26,20 @@ void main() {
   });
 
   group('buildDeliveryContactMessage', () {
-    test('includes recipient name and barcode', () {
+    test('returns the static delivery message', () {
       final message = buildDeliveryContactMessage(
         recipientName: 'ROMEO CRIZALDO LANUZA',
         barcode: 'FSIEE586361',
       );
 
-      expect(message, contains('Hi ROMEO CRIZALDO LANUZA,'));
-      expect(message, contains('FSI Courier here for FSIEE586361'));
-      expect(message, contains('Please be ready or contact me to reschedule'));
-    });
-
-    test('trims recipient name whitespace', () {
-      final message = buildDeliveryContactMessage(
-        recipientName: '  JUAN DELA CRUZ  ',
-        barcode: 'FSIEE123456',
+      expect(
+        message,
+        "Good day, this is FSI Courier! Your document/ID (Tracking Code: FSIEE586361) is scheduled for delivery TOMORROW. "
+        "Kindly leave your Delivery Confirmation Code (if applicable) or an authorization "
+        "letter with your representative if you're away. Please note that our riders "
+        "cannot give exact delivery time due to high demand and have a 10-minute "
+        "waiting limit per stop. Thank you!",
       );
-
-      expect(message, startsWith('Hi JUAN DELA CRUZ,'));
-    });
-
-    test('uses generic greeting when recipient name is empty', () {
-      final message = buildDeliveryContactMessage(
-        recipientName: '',
-        barcode: 'FSIEE586361',
-      );
-
-      expect(message, startsWith('Hi, FSI Courier here for FSIEE586361'));
-      expect(message, isNot(contains('Hi ,')));
-    });
-
-    test('falls back to your delivery when barcode is empty', () {
-      final message = buildDeliveryContactMessage(
-        recipientName: 'MARIA SANTOS',
-        barcode: '',
-      );
-
-      expect(message, contains('FSI Courier here for your delivery'));
-    });
-
-    test('avoids apostrophes and exclamation marks in body', () {
-      final message = buildDeliveryContactMessage(
-        recipientName: 'ROMEO CRIZALDO LANUZA',
-        barcode: 'FSIEE586361',
-      );
-
-      expect(message, isNot(contains("'")));
-      expect(message, isNot(contains('!')));
     });
   });
 

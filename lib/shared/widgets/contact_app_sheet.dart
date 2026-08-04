@@ -15,6 +15,8 @@ Future<void> showContactAppSheet(
   BuildContext context,
   String phone, {
   String? messageTemplate,
+  String Function(String schedule)? messageBuilder,
+  List<String>? scheduleOptions,
   String title = 'CONTACT RECIPIENT',
 }) async {
   final cleaned = phone.trim();
@@ -23,53 +25,37 @@ Future<void> showContactAppSheet(
   final displayPhone = formatPhoneForDisplay(cleaned);
   final telPhone = normalizePhoneForTel(cleaned);
 
-  final apps = <_CommApp>[
-    _CommApp(
-      label: 'SMS',
-      icon: Icons.message_rounded,
-      color: DSColors.socialSms,
-      uri: buildSmsLaunchUri(cleaned, body: messageTemplate),
-    ),
-    _CommApp(
-      label: 'Call',
-      icon: Icons.phone_rounded,
-      color: DSColors.socialCall,
-      uri: Uri(scheme: 'tel', path: telPhone),
-    ),
-    _CommApp(
-      label: 'Viber',
-      icon: Icons.chat_bubble_rounded,
-      color: DSColors.socialViber,
-      uri: buildViberLaunchUri(cleaned, body: messageTemplate),
-    ),
-    _CommApp(
-      label: 'WhatsApp',
-      icon: Icons.chat_bubble_rounded,
-      color: DSColors.socialWhatsApp,
-      uri: buildWhatsappLaunchUri(cleaned, body: messageTemplate),
-    ),
-    _CommApp(
-      label: 'Telegram',
-      icon: Icons.near_me_rounded,
-      color: DSColors.socialTelegram,
-      uri: buildTelegramLaunchUri(cleaned),
-    ),
-  ];
-
   if (!context.mounted) return;
 
-  await showModalBottomSheet<void>(
+  final selectedApp = await showModalBottomSheet<_CommApp>(
     context: context,
     backgroundColor: DSColors.transparent,
     isScrollControlled: true,
     builder: (ctx) => _ContactAppSheet(
       phone: displayPhone,
       telPhone: telPhone,
-      apps: apps,
+      cleanedPhone: cleaned,
       title: title,
-      messageTemplate: messageTemplate,
+      initialMessageTemplate: messageTemplate,
+      messageBuilder: messageBuilder,
+      scheduleOptions: scheduleOptions,
     ),
   );
+
+  if (selectedApp != null && context.mounted) {
+    // We launch after the bottom sheet has fully closed. This prevents the
+    // "stuck pointer events" bug where the app goes to background mid-animation.
+    final launched = await launchUrl(
+      selectedApp.uri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && context.mounted) {
+      showErrorNotification(
+        context,
+        '${selectedApp.label} is not installed or could not be opened.',
+      );
+    }
+  }
 }
 
 class _CommApp {
@@ -85,24 +71,94 @@ class _CommApp {
   final Uri uri;
 }
 
-class _ContactAppSheet extends StatelessWidget {
+class _ContactAppSheet extends StatefulWidget {
   const _ContactAppSheet({
     required this.phone,
     required this.telPhone,
-    required this.apps,
+    required this.cleanedPhone,
     required this.title,
-    this.messageTemplate,
+    this.initialMessageTemplate,
+    this.messageBuilder,
+    this.scheduleOptions,
   });
   final String phone;
   final String telPhone;
-  final List<_CommApp> apps;
+  final String cleanedPhone;
   final String title;
-  final String? messageTemplate;
+  final String? initialMessageTemplate;
+  final String Function(String)? messageBuilder;
+  final List<String>? scheduleOptions;
+
+  @override
+  State<_ContactAppSheet> createState() => _ContactAppSheetState();
+}
+
+class _ContactAppSheetState extends State<_ContactAppSheet> {
+  late String _selectedSchedule;
+  late String? _currentMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSchedule = widget.scheduleOptions?.first ?? 'TOMORROW';
+    _currentMessage = widget.messageBuilder != null
+        ? widget.messageBuilder!(_selectedSchedule)
+        : widget.initialMessageTemplate;
+  }
+
+  void _onScheduleChanged(String newSchedule) {
+    setState(() {
+      _selectedSchedule = newSchedule;
+      if (widget.messageBuilder != null) {
+        _currentMessage = widget.messageBuilder!(_selectedSchedule);
+      }
+    });
+  }
+
+  List<_CommApp> _buildApps() {
+    return [
+      _CommApp(
+        label: 'SMS',
+        icon: Icons.message_rounded,
+        color: DSColors.socialSms,
+        uri: buildSmsLaunchUri(widget.cleanedPhone, body: _currentMessage),
+      ),
+      _CommApp(
+        label: 'Call',
+        icon: Icons.phone_rounded,
+        color: DSColors.socialCall,
+        uri: Uri(scheme: 'tel', path: widget.telPhone),
+      ),
+      _CommApp(
+        label: 'Viber',
+        icon: Icons.chat_bubble_rounded,
+        color: DSColors.socialViber,
+        uri: buildViberLaunchUri(widget.cleanedPhone, body: _currentMessage),
+      ),
+      _CommApp(
+        label: 'WhatsApp',
+        icon: Icons.chat_bubble_rounded,
+        color: DSColors.socialWhatsApp,
+        uri: buildWhatsappLaunchUri(widget.cleanedPhone, body: _currentMessage),
+      ),
+      _CommApp(
+        label: 'Telegram',
+        icon: Icons.near_me_rounded,
+        color: DSColors.socialTelegram,
+        uri: buildTelegramLaunchUri(widget.cleanedPhone),
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? DSColors.cardDark : DSColors.cardLight;
+    final title = widget.title;
+    final phone = widget.phone;
+    final telPhone = widget.telPhone;
+    final messageTemplate = _currentMessage;
+    final apps = _buildApps();
 
     return Container(
       decoration: BoxDecoration(
@@ -168,7 +224,41 @@ class _ContactAppSheet extends StatelessWidget {
               ),
             ),
           ),
-          if (messageTemplate != null && messageTemplate!.isNotEmpty) ...[
+          if (widget.scheduleOptions != null &&
+              widget.scheduleOptions!.isNotEmpty) ...[
+            DSSpacing.hMd,
+            Text(
+              'Delivery Schedule',
+              style:
+                  DSTypography.caption(
+                    color: isDark
+                        ? DSColors.labelTertiaryDark
+                        : DSColors.labelTertiary,
+                  ).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: DSTypography.sizeSm,
+                    letterSpacing: 0.5,
+                  ),
+            ),
+            DSSpacing.hXs,
+            Wrap(
+              spacing: DSSpacing.sm,
+              runSpacing: DSSpacing.sm,
+              children: widget.scheduleOptions!.map((opt) {
+                final isSelected = opt == _selectedSchedule;
+                return ChoiceChip(
+                  label: Text(opt),
+                  selected: isSelected,
+                  onSelected: (_) => _onScheduleChanged(opt),
+                  selectedColor: Theme.of(context).primaryColor,
+                  labelStyle: TextStyle(
+                    color: isSelected ? DSColors.white : null,
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+          if (messageTemplate != null && messageTemplate.isNotEmpty) ...[
             DSSpacing.hMd,
             Text(
               'Message Preview',
@@ -194,7 +284,7 @@ class _ContactAppSheet extends StatelessWidget {
             DSSpacing.hXs,
             GestureDetector(
               onLongPress: () async {
-                await Clipboard.setData(ClipboardData(text: messageTemplate!));
+                await Clipboard.setData(ClipboardData(text: messageTemplate));
                 if (context.mounted) {
                   showSuccessNotification(
                     context,
@@ -203,7 +293,7 @@ class _ContactAppSheet extends StatelessWidget {
                 }
               },
               child: Text(
-                messageTemplate!,
+                messageTemplate,
                 style: DSTypography.body(
                   color: isDark
                       ? DSColors.labelSecondaryDark
@@ -231,24 +321,7 @@ class _AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () async {
-        Navigator.pop(context);
-        // Wait for the sheet's dismiss animation to fully complete before
-        // launching the external app. Without this delay, the app can go
-        // to the background mid-animation, leaving the route in a state
-        // that absorbs pointer events when the user returns.
-        await Future<void>.delayed(const Duration(milliseconds: 350));
-        final launched = await launchUrl(
-          app.uri,
-          mode: LaunchMode.externalApplication,
-        );
-        if (!launched && context.mounted) {
-          showErrorNotification(
-            context,
-            '${app.label} is not installed or could not be opened.',
-          );
-        }
-      },
+      onTap: () => Navigator.pop(context, app),
       borderRadius: DSStyles.cardRadius,
       child: Container(
         width:

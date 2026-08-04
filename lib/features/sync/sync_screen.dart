@@ -94,33 +94,33 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
       ),
       // Screenshots allowed so couriers can share Sync/History with support.
       body: Column(
-          children: [
-            SyncHeader(connectionStatus: connectionStatus),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  if (!mounted) return;
-                  if (ref.read(connectionStatusProvider) ==
-                      ConnectionStatus.online) {
-                    await ref
-                        .read(syncManagerProvider.notifier)
-                        .requestFlush(
-                          reason: 'sync_screen_pull_refresh',
-                          awaitIdle: true,
-                        );
-                  }
-                  if (!mounted) return;
-                  await ref.read(syncManagerProvider.notifier).loadEntries();
-                },
-                child: syncState.entries.isEmpty
-                    ? SyncEmptyState(isSyncing: syncState.isSyncing)
-                    : SyncEntryList(
-                        syncState: syncState,
-                        deliveries: _deliveries,
-                      ),
-              ).dsFadeEntry(duration: DSAnimations.dNormal),
-            ),
-          ],
+        children: [
+          SyncHeader(connectionStatus: connectionStatus),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                if (!mounted) return;
+                if (ref.read(connectionStatusProvider) ==
+                    ConnectionStatus.online) {
+                  await ref
+                      .read(syncManagerProvider.notifier)
+                      .requestFlush(
+                        reason: 'sync_screen_pull_refresh',
+                        awaitIdle: true,
+                      );
+                }
+                if (!mounted) return;
+                await ref.read(syncManagerProvider.notifier).loadEntries();
+              },
+              child: syncState.entries.isEmpty
+                  ? SyncEmptyState(isSyncing: syncState.isSyncing)
+                  : SyncEntryList(
+                      syncState: syncState,
+                      deliveries: _deliveries,
+                    ),
+            ).dsFadeEntry(duration: DSAnimations.dNormal),
+          ),
+        ],
       ),
     );
   }

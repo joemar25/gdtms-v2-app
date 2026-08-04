@@ -43,7 +43,9 @@ class DeliverySyncPaging {
     if (pages.isEmpty) return const [];
     final out = <List<int>>[];
     for (var i = 0; i < pages.length; i += size) {
-      out.add(pages.sublist(i, i + size > pages.length ? pages.length : i + size));
+      out.add(
+        pages.sublist(i, i + size > pages.length ? pages.length : i + size),
+      );
     }
     return out;
   }

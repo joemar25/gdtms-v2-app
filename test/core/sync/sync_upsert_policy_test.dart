@@ -15,16 +15,19 @@ void main() {
       );
     });
 
-    test('does not skip dirty rows even when checksums match (Rule 2 path)', () {
-      expect(
-        SyncUpsertPolicy.shouldSkipUnchangedChecksum(
-          isDirty: true,
-          existingChecksum: 'abc123',
-          incomingChecksum: 'abc123',
-        ),
-        isFalse,
-      );
-    });
+    test(
+      'does not skip dirty rows even when checksums match (Rule 2 path)',
+      () {
+        expect(
+          SyncUpsertPolicy.shouldSkipUnchangedChecksum(
+            isDirty: true,
+            existingChecksum: 'abc123',
+            incomingChecksum: 'abc123',
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('does not skip when checksums differ', () {
       expect(
@@ -116,10 +119,7 @@ void main() {
 
   group('DeliveryBootstrapService P2 constants', () {
     test('per_page is 100–200 for production throughput', () {
-      expect(
-        DeliveryBootstrapService.kSyncPerPage,
-        inInclusiveRange(100, 200),
-      );
+      expect(DeliveryBootstrapService.kSyncPerPage, inInclusiveRange(100, 200));
     });
   });
 }

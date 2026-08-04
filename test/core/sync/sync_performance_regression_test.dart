@@ -17,19 +17,21 @@ void main() {
       );
     });
 
-    test('P1 concurrency model: 4 status * N pages never drops page indices',
-        () {
-      // 4 statuses × 5 pages: each status still needs pages 1..5.
-      const lastPage = 5;
-      final remaining = DeliverySyncPaging.remainingPages(lastPage);
-      final chunks = DeliverySyncPaging.chunkPages(remaining, 3);
-      final flattened = chunks.expand((c) => c).toList();
-      expect(flattened, [2, 3, 4, 5]);
-      expect(
-        DeliverySyncPaging.expectedListCallsForStatus(lastPage),
-        lastPage,
-      );
-    });
+    test(
+      'P1 concurrency model: 4 status * N pages never drops page indices',
+      () {
+        // 4 statuses × 5 pages: each status still needs pages 1..5.
+        const lastPage = 5;
+        final remaining = DeliverySyncPaging.remainingPages(lastPage);
+        final chunks = DeliverySyncPaging.chunkPages(remaining, 3);
+        final flattened = chunks.expand((c) => c).toList();
+        expect(flattened, [2, 3, 4, 5]);
+        expect(
+          DeliverySyncPaging.expectedListCallsForStatus(lastPage),
+          lastPage,
+        );
+      },
+    );
 
     test('P5 never skips dirty rows (protects offline courier POD)', () {
       expect(
@@ -64,20 +66,22 @@ void main() {
       );
     });
 
-    test('requestFlush while offline does not throw and leaves queue alone',
-        () async {
-      final container = ProviderContainer(
-        overrides: [isOnlineProvider.overrideWithValue(false)],
-      );
-      addTearDown(container.dispose);
+    test(
+      'requestFlush while offline does not throw and leaves queue alone',
+      () async {
+        final container = ProviderContainer(
+          overrides: [isOnlineProvider.overrideWithValue(false)],
+        );
+        addTearDown(container.dispose);
 
-      // Empty SyncManager — must complete without error.
-      await container
-          .read(syncManagerProvider.notifier)
-          .requestFlush(reason: 'regression_offline', awaitIdle: true);
+        // Empty SyncManager — must complete without error.
+        await container
+            .read(syncManagerProvider.notifier)
+            .requestFlush(reason: 'regression_offline', awaitIdle: true);
 
-      expect(container.read(syncManagerProvider).isSyncing, isFalse);
-    });
+        expect(container.read(syncManagerProvider).isSyncing, isFalse);
+      },
+    );
 
     test('parallel status list order independence of barcode union', () {
       // Simulates Phase-2 collecting barcodes from parallel status maps.

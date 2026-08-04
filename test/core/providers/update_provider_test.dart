@@ -49,14 +49,17 @@ void main() {
       expect(state.showBanner, true);
     });
 
-    test('checkForUpdate leaves state unchanged when already up to date', () async {
-      when(() => mockService.checkForUpdate()).thenAnswer((_) async => null);
+    test(
+      'checkForUpdate leaves state unchanged when already up to date',
+      () async {
+        when(() => mockService.checkForUpdate()).thenAnswer((_) async => null);
 
-      await container.read(updateProvider.notifier).checkForUpdate();
+        await container.read(updateProvider.notifier).checkForUpdate();
 
-      final state = container.read(updateProvider);
-      expect(state.hasUpdate, false);
-    });
+        final state = container.read(updateProvider);
+        expect(state.hasUpdate, false);
+      },
+    );
 
     test('dismissBanner hides the banner but keeps the update info', () async {
       when(
@@ -82,14 +85,19 @@ void main() {
       verify(() => mockService.launchStoreListing()).called(1);
     });
 
-    test('openUpdate returns false when the store listing cannot be opened', () async {
-      when(
-        () => mockService.launchStoreListing(),
-      ).thenAnswer((_) async => false);
+    test(
+      'openUpdate returns false when the store listing cannot be opened',
+      () async {
+        when(
+          () => mockService.launchStoreListing(),
+        ).thenAnswer((_) async => false);
 
-      final result = await container.read(updateProvider.notifier).openUpdate();
+        final result = await container
+            .read(updateProvider.notifier)
+            .openUpdate();
 
-      expect(result, false);
-    });
+        expect(result, false);
+      },
+    );
   });
 }

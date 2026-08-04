@@ -63,8 +63,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
     final headerColor = backgroundColor ?? Theme.of(context).primaryColor;
-    final courier =
-        ref.watch(authProvider.select((s) => s.courier)) ?? {};
+    final courier = ref.watch(authProvider.select((s) => s.courier)) ?? {};
     final profileUrlStr = courier['profile_picture_url']?.toString();
     final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
         ? null
@@ -349,8 +348,7 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
   @override
   Widget build(BuildContext context) {
     final headerColor = Theme.of(context).primaryColor;
-    final courier =
-        ref.watch(authProvider.select((s) => s.courier)) ?? {};
+    final courier = ref.watch(authProvider.select((s) => s.courier)) ?? {};
 
     final profileUrlStr = courier['profile_picture_url']?.toString();
     final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')

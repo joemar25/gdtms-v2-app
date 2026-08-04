@@ -132,52 +132,52 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
 
     // Screenshots allowed for courier support (wallet earnings, not recipient PII).
     return Scaffold(
-        appBar: AppHeaderBar(
-          title: reference,
-          actions: [
-            if (transactionHistory.isNotEmpty)
-              IconButton(
-                icon: const Icon(Icons.history_rounded),
-                color: DSColors.white,
-                onPressed: () => showPayoutHistorySheet(
-                  context: context,
-                  history: _data['transaction_history'] ?? [],
-                ),
-                tooltip: 'wallet.detail.view_history'.tr(),
+      appBar: AppHeaderBar(
+        title: reference,
+        actions: [
+          if (transactionHistory.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.history_rounded),
+              color: DSColors.white,
+              onPressed: () => showPayoutHistorySheet(
+                context: context,
+                history: _data['transaction_history'] ?? [],
               ),
-          ],
-          showNotificationBell: false,
-        ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _loadError != null
-            ? _buildErrorState(context)
-            : _notFound != null
-            ? _buildNotFoundState(context)
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    DSSpacing.md,
-                    DSSpacing.sm,
-                    DSSpacing.md,
-                    DSSpacing.xl,
-                  ),
-                  children: [
-                    PayoutHeroFlipCard(
-                      amount: amount,
-                      status: status,
-                      reference: reference,
-                      periodLabel: periodLabel,
-                      requestedAt: requestedAt,
-                      totalItems: totalItems,
-                      breakdown: breakdown,
-                    ).dsHeroEntry(),
-                    DSSpacing.hMd,
-                    ..._buildDateStripSection(),
-                  ],
+              tooltip: 'wallet.detail.view_history'.tr(),
+            ),
+        ],
+        showNotificationBell: false,
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+          ? _buildErrorState(context)
+          : _notFound != null
+          ? _buildNotFoundState(context)
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  DSSpacing.md,
+                  DSSpacing.sm,
+                  DSSpacing.md,
+                  DSSpacing.xl,
                 ),
+                children: [
+                  PayoutHeroFlipCard(
+                    amount: amount,
+                    status: status,
+                    reference: reference,
+                    periodLabel: periodLabel,
+                    requestedAt: requestedAt,
+                    totalItems: totalItems,
+                    breakdown: breakdown,
+                  ).dsHeroEntry(),
+                  DSSpacing.hMd,
+                  ..._buildDateStripSection(),
+                ],
               ),
+            ),
     );
   }
 

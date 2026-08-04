@@ -249,10 +249,12 @@ Future<void> showDeliveryAccountDetails(
     await showContactAppSheet(
       context,
       phone,
-      messageTemplate: buildDeliveryContactMessage(
+      messageBuilder: (schedule) => buildDeliveryContactMessage(
         recipientName: greetingName,
         barcode: barcode,
+        schedule: schedule,
       ),
+      scheduleOptions: const ['TOMORROW', 'LATER', 'THIS DAY'],
     );
   }
 

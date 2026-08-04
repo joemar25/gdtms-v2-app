@@ -130,9 +130,7 @@ void main() {
     test(
       'Given concurrent requestFlush calls, when first is in-flight, then second coalesces and awaitIdle waits',
       () async {
-        when(
-          () => mockSyncDao.getPending('courier_123'),
-        ).thenAnswer((_) async {
+        when(() => mockSyncDao.getPending('courier_123')).thenAnswer((_) async {
           await Future<void>.delayed(const Duration(milliseconds: 40));
           return <SyncOperation>[];
         });

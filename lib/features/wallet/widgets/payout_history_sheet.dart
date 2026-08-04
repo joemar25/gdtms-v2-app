@@ -35,83 +35,83 @@ Future<void> showPayoutHistorySheet({
     builder: (ctx) {
       // Screenshots allowed (wallet support); not recipient account details.
       return Container(
-          decoration: BoxDecoration(
-            color: isDark ? DSColors.cardDark : DSColors.cardLight,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: [
-              BoxShadow(
-                color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
-                blurRadius: DSStyles.radiusXL,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          padding: EdgeInsets.fromLTRB(
-            DSSpacing.lg,
-            DSSpacing.sm,
-            DSSpacing.lg,
-            MediaQuery.of(context).padding.bottom + DSSpacing.lg,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Handle ───────────────────────────────────────────────────
-              Center(
-                child: Container(
-                  width: DSIconSize.heroSm,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? DSColors.separatorDark
-                        : DSColors.separatorLight,
-                    borderRadius: DSStyles.cardRadius,
-                  ),
+        decoration: BoxDecoration(
+          color: isDark ? DSColors.cardDark : DSColors.cardLight,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: DSColors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+              blurRadius: DSStyles.radiusXL,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.fromLTRB(
+          DSSpacing.lg,
+          DSSpacing.sm,
+          DSSpacing.lg,
+          MediaQuery.of(context).padding.bottom + DSSpacing.lg,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Handle ───────────────────────────────────────────────────
+            Center(
+              child: Container(
+                width: DSIconSize.heroSm,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? DSColors.separatorDark
+                      : DSColors.separatorLight,
+                  borderRadius: DSStyles.cardRadius,
                 ),
               ),
-              DSSpacing.hMd,
+            ),
+            DSSpacing.hMd,
 
-              // ── Header ───────────────────────────────────────────────────
-              DSSectionHeader(
-                title: 'wallet.detail.request_lifecycle'.tr(),
-                padding: EdgeInsets.zero,
-              ),
+            // ── Header ───────────────────────────────────────────────────
+            DSSectionHeader(
+              title: 'wallet.detail.request_lifecycle'.tr(),
+              padding: EdgeInsets.zero,
+            ),
 
-              DSSpacing.hMd,
+            DSSpacing.hMd,
 
-              // ── Stepper Content ──────────────────────────────────────────
-              Flexible(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: sortedHistory.length,
-                    itemBuilder: (context, index) {
-                      final item = sortedHistory[index];
-                      final isLatest = index == 0;
-                      final isLast = index == sortedHistory.length - 1;
+            // ── Stepper Content ──────────────────────────────────────────
+            Flexible(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: sortedHistory.length,
+                  itemBuilder: (context, index) {
+                    final item = sortedHistory[index];
+                    final isLatest = index == 0;
+                    final isLast = index == sortedHistory.length - 1;
 
-                      return _StatusStepItem(
-                        item: item,
-                        isFirst: isLatest,
-                        isLast: isLast,
-                        isDark: isDark,
-                      ).dsCardEntry(
-                        delay: DSAnimations.stagger(
-                          index,
-                          step: DSAnimations.staggerNormal,
-                        ),
-                        duration: DSAnimations.dFast,
-                      );
-                    },
-                  ),
+                    return _StatusStepItem(
+                      item: item,
+                      isFirst: isLatest,
+                      isLast: isLast,
+                      isDark: isDark,
+                    ).dsCardEntry(
+                      delay: DSAnimations.stagger(
+                        index,
+                        step: DSAnimations.staggerNormal,
+                      ),
+                      duration: DSAnimations.dFast,
+                    );
+                  },
                 ),
               ),
-              DSSpacing.hMd,
-            ],
-          ),
+            ),
+            DSSpacing.hMd,
+          ],
+        ),
       );
     },
   );

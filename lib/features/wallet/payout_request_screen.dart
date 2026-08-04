@@ -328,82 +328,78 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
 
     // Screenshots allowed for courier support (payout request UI, not recipient PII).
     return Scaffold(
-        backgroundColor: scaffoldBg,
-        appBar: AppHeaderBar(
-          title: widget.isConsolidation
-              ? 'wallet.request.appbar_title_consolidate'.tr()
-              : 'wallet.request.appbar_title'.tr(),
-        ),
-        bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              DSSpacing.md,
-              DSSpacing.sm,
-              DSSpacing.md,
-              DSSpacing.md,
+      backgroundColor: scaffoldBg,
+      appBar: AppHeaderBar(
+        title: widget.isConsolidation
+            ? 'wallet.request.appbar_title_consolidate'.tr()
+            : 'wallet.request.appbar_title'.tr(),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            DSSpacing.md,
+            DSSpacing.sm,
+            DSSpacing.md,
+            DSSpacing.md,
+          ),
+          child: FilledButton.icon(
+            icon: _submitting
+                ? const SizedBox(
+                    width: DSIconSize.lg,
+                    height: DSIconSize.lg,
+                    child: CircularProgressIndicator(
+                      strokeWidth: DSStyles.strokeWidth,
+                      color: DSColors.white,
+                    ),
+                  )
+                : const Icon(Icons.payments_rounded),
+            label: Text(
+              widget.isConsolidation
+                  ? 'wallet.request.confirm_button_consolidate'.tr()
+                  : 'wallet.request.confirm_button'.tr(),
+              style: DSTypography.label().copyWith(fontWeight: FontWeight.w700),
             ),
-            child: FilledButton.icon(
-              icon: _submitting
-                  ? const SizedBox(
-                      width: DSIconSize.lg,
-                      height: DSIconSize.lg,
-                      child: CircularProgressIndicator(
-                        strokeWidth: DSStyles.strokeWidth,
-                        color: DSColors.white,
-                      ),
-                    )
-                  : const Icon(Icons.payments_rounded),
-              label: Text(
-                widget.isConsolidation
-                    ? 'wallet.request.confirm_button_consolidate'.tr()
-                    : 'wallet.request.confirm_button'.tr(),
-                style: DSTypography.label().copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: DSColors.primary,
-                minimumSize: const Size.fromHeight(52),
-                shape: RoundedRectangleBorder(
-                  borderRadius: DSStyles.cardRadius,
-                ),
-              ),
-              onPressed:
-                  (_submitting ||
-                      _loading ||
-                      _previewData == null ||
-                      (_previewData!['eligible_delivery_count'] as int? ?? 0) ==
-                          0 ||
-                      _previewData!['has_existing_request_today'] == true)
-                  ? null
-                  : _submit,
+            style: FilledButton.styleFrom(
+              backgroundColor: DSColors.primary,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
             ),
+            onPressed:
+                (_submitting ||
+                    _loading ||
+                    _previewData == null ||
+                    (_previewData!['eligible_delivery_count'] as int? ?? 0) ==
+                        0 ||
+                    _previewData!['has_existing_request_today'] == true)
+                ? null
+                : _submit,
           ),
         ),
-        body: Column(
-          children: [
-            const ConnectionStatusBanner(
-              isMinimal: true,
-              margin: EdgeInsets.fromLTRB(
-                DSSpacing.md,
-                DSSpacing.md,
-                DSSpacing.md,
-                DSSpacing.sm,
-              ),
+      ),
+      body: Column(
+        children: [
+          const ConnectionStatusBanner(
+            isMinimal: true,
+            margin: EdgeInsets.fromLTRB(
+              DSSpacing.md,
+              DSSpacing.md,
+              DSSpacing.md,
+              DSSpacing.sm,
             ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _fetchPreview,
-                color: DSColors.primary,
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _previewData == null
-                    ? _buildErrorState()
-                    : _buildContent(),
-              ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchPreview,
+              color: DSColors.primary,
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _previewData == null
+                  ? _buildErrorState()
+                  : _buildContent(),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -91,7 +91,7 @@ void main() {
   group('delivery account contact message', () {
     const barcode = 'FSIEE586361';
 
-    test('recipient contact uses recipient name in message', () {
+    test('recipient contact uses static message', () {
       final greeting = resolveContactGreetingName(
         targetName: 'ROMEO CRIZALDO LANUZA',
         recipientName: 'ROMEO CRIZALDO LANUZA',
@@ -101,11 +101,15 @@ void main() {
         barcode: barcode,
       );
 
-      expect(message, contains('Hi ROMEO CRIZALDO LANUZA,'));
-      expect(message, contains('FSIEE586361'));
+      expect(
+        message,
+        contains(
+          'Good day, this is FSI Courier! Your document/ID (Tracking Code: FSIEE586361) is scheduled for delivery TOMORROW.',
+        ),
+      );
     });
 
-    test('auth rep contact uses auth rep name in message', () {
+    test('auth rep contact uses static message', () {
       final greeting = resolveContactGreetingName(
         targetName: 'MA ELIZA CRIZALDO LANUZA',
         recipientName: 'ROMEO CRIZALDO LANUZA',
@@ -115,8 +119,12 @@ void main() {
         barcode: barcode,
       );
 
-      expect(message, contains('Hi MA ELIZA CRIZALDO LANUZA,'));
-      expect(message, isNot(contains('Hi ROMEO CRIZALDO LANUZA,')));
+      expect(
+        message,
+        contains(
+          'Good day, this is FSI Courier! Your document/ID (Tracking Code: FSIEE586361) is scheduled for delivery TOMORROW.',
+        ),
+      );
     });
 
     testWidgets('account details sheet separates multiple recipient numbers', (

@@ -447,11 +447,7 @@ class DeliveryBootstrapService {
         chunk.map(
           (page) => _fetchDeliveriesPage(
             client,
-            query: {
-              'status': status,
-              'per_page': kSyncPerPage,
-              'page': page,
-            },
+            query: {'status': status, 'per_page': kSyncPerPage, 'page': page},
             logLabel: '_syncStatus($status) page=$page',
           ),
         ),
@@ -479,11 +475,7 @@ class DeliveryBootstrapService {
 
     final first = await _fetchDeliveriesPage(
       client,
-      query: {
-        'updated_since': sinceIso,
-        'per_page': kSyncPerPage,
-        'page': 1,
-      },
+      query: {'updated_since': sinceIso, 'per_page': kSyncPerPage, 'page': 1},
       logLabel: '_syncDelta page=1',
     );
     if (first == null) return allBarcodes;
