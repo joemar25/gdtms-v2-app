@@ -4,6 +4,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 /// Dashboard metric tile — solid brand surfaces (not glass, not rainbow).
@@ -253,11 +254,12 @@ class _StatCardState extends State<StatCard> with TickerProviderStateMixin {
                     left: 0,
                     top: 0,
                     bottom: 0,
-                    child: Container(
+                    child: _AccentBar(
                       width: 3 + reveal * 2,
                       color: active || reveal > 0.2
                           ? accent
                           : DSColors.primary.withValues(alpha: 0.25),
+                      pulse: active && reveal < 0.5,
                     ),
                   ),
                   // Compact face
@@ -383,7 +385,37 @@ class _StatCardState extends State<StatCard> with TickerProviderStateMixin {
   }
 }
 
-/// Compact face — count + label; tiny hold affordance when details exist.
+/// Left accent strip — soft opacity pulse when the card has active work.
+class _AccentBar extends StatelessWidget {
+  const _AccentBar({
+    required this.width,
+    required this.color,
+    required this.pulse,
+  });
+
+  final double width;
+  final Color color;
+  final bool pulse;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    Widget bar = Container(width: width, color: color);
+    if (pulse && !reduceMotion) {
+      bar = bar
+          .animate(onPlay: (c) => c.repeat(reverse: true))
+          .fade(
+            begin: 0.55,
+            end: 1,
+            duration: DSAnimations.dHero,
+            curve: Curves.easeInOut,
+          );
+    }
+    return bar;
+  }
+}
+
+/// Compact face — count + label; modern micro-motion when active.
 class _StatCardFace extends StatelessWidget {
   const _StatCardFace({
     required this.icon,
@@ -411,6 +443,120 @@ class _StatCardFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final countValue = int.tryParse(count);
+
+    Widget iconBadge = Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: active
+            ? accent.withValues(alpha: isDark ? 0.22 : 0.14)
+            : (isDark
+                  ? DSColors.secondarySurfaceDark
+                  : DSColors.secondarySurfaceLight),
+        borderRadius: BorderRadius.circular(DSStyles.radiusLG),
+      ),
+      child: Icon(
+        icon,
+        size: DSIconSize.md,
+        color: active
+            ? accent
+            : (isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary),
+      ),
+    );
+
+    // Soft pulse on active work tiles (respect reduced motion).
+    if (active && !reduceMotion) {
+      iconBadge = iconBadge
+          .animate(onPlay: (c) => c.repeat(reverse: true))
+          .scale(
+            begin: const Offset(1, 1),
+            end: const Offset(1.07, 1.07),
+            duration: DSAnimations.dHeroX2,
+            curve: Curves.easeInOut,
+          );
+    }
+
+    Widget? openChip;
+    if (active) {
+      openChip = Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: DSSpacing.sm,
+          vertical: 2,
+        ),
+        decoration: BoxDecoration(
+          color: DSColors.primary.withValues(alpha: isDark ? 0.2 : 0.12),
+          borderRadius: DSStyles.fullRadius,
+        ),
+        child: Text(
+          'OPEN',
+          style:
+              DSTypography.label(
+                color: isDark ? DSColors.primaryDark : DSColors.primary,
+              ).copyWith(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+        ),
+      );
+      if (!reduceMotion) {
+        openChip = openChip
+            .animate()
+            .fadeIn(duration: DSAnimations.dFast)
+            .scale(
+              begin: const Offset(0.6, 0.6),
+              end: const Offset(1, 1),
+              duration: DSAnimations.dNormal,
+              curve: Curves.easeOutBack,
+            );
+      }
+    }
+
+    final countStyle = DSTypography.display(color: countColor).copyWith(
+      height: 1.0,
+      fontWeight: FontWeight.w800,
+      fontSize: 28,
+      letterSpacing: -0.5,
+    );
+
+    Widget countWidget;
+    if (countValue != null && !reduceMotion) {
+      countWidget = TweenAnimationBuilder<double>(
+        key: ValueKey(countValue),
+        tween: Tween(begin: 0, end: countValue.toDouble()),
+        duration: DSAnimations.dNormal,
+        curve: Curves.easeOutCubic,
+        builder: (context, value, _) {
+          return Text(
+            '${value.round()}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: countStyle,
+          );
+        },
+      );
+    } else {
+      countWidget = Text(
+        count,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: countStyle,
+      );
+    }
+    if (!reduceMotion) {
+      countWidget = countWidget
+          .animate()
+          .fadeIn(duration: DSAnimations.dFast)
+          .slideY(
+            begin: 0.25,
+            end: 0,
+            duration: DSAnimations.dNormal,
+            curve: Curves.easeOutCubic,
+          );
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         DSSpacing.md + 4,
@@ -424,74 +570,31 @@ class _StatCardFace extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: active
-                      ? accent.withValues(alpha: isDark ? 0.22 : 0.14)
-                      : (isDark
-                            ? DSColors.secondarySurfaceDark
-                            : DSColors.secondarySurfaceLight),
-                  borderRadius: BorderRadius.circular(DSStyles.radiusLG),
-                ),
-                child: Icon(
-                  icon,
-                  size: DSIconSize.md,
-                  color: active
-                      ? accent
-                      : (isDark
-                            ? DSColors.labelTertiaryDark
-                            : DSColors.labelTertiary),
-                ),
-              ),
+              iconBadge,
               const Spacer(),
-              if (active)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: DSSpacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: DSColors.primary.withValues(
-                      alpha: isDark ? 0.2 : 0.12,
-                    ),
-                    borderRadius: DSStyles.fullRadius,
-                  ),
-                  child: Text(
-                    'OPEN',
-                    style:
-                        DSTypography.label(
-                          color: isDark
-                              ? DSColors.primaryDark
-                              : DSColors.primary,
-                        ).copyWith(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
-                        ),
-                  ),
-                )
+              if (openChip != null)
+                openChip
               else if (showHoldHint)
                 Icon(
-                  Icons.touch_app_outlined,
-                  size: 14,
-                  color: hintColor.withValues(alpha: 0.7),
-                ),
+                      Icons.touch_app_outlined,
+                      size: 14,
+                      color: hintColor.withValues(alpha: 0.7),
+                    )
+                    .animate(
+                      onPlay: reduceMotion
+                          ? null
+                          : (c) => c.repeat(reverse: true),
+                    )
+                    .fade(
+                      begin: 0.45,
+                      end: 1,
+                      duration: DSAnimations.dHero,
+                      curve: Curves.easeInOut,
+                    ),
             ],
           ),
           DSSpacing.hSm,
-          Text(
-            count,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: DSTypography.display(color: countColor).copyWith(
-              height: 1.0,
-              fontWeight: FontWeight.w800,
-              fontSize: 28,
-              letterSpacing: -0.5,
-            ),
-          ),
+          countWidget,
           DSSpacing.hXs,
           Text(
             label,
@@ -784,20 +887,42 @@ class _ScanButtonState extends State<ScanButton> with TickerProviderStateMixin {
                           mainAxisAlignment: MainAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: DSColors.white.withValues(alpha: 0.18),
-                                borderRadius: BorderRadius.circular(
-                                  DSStyles.radiusXL,
-                                ),
-                              ),
-                              child: Icon(
-                                widget.icon,
-                                color: DSColors.white,
-                                size: DSIconSize.lg,
-                              ),
+                            Builder(
+                              builder: (context) {
+                                final reduce = MediaQuery.disableAnimationsOf(
+                                  context,
+                                );
+                                Widget badge = Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: DSColors.white.withValues(
+                                      alpha: 0.18,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      DSStyles.radiusXL,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    widget.icon,
+                                    color: DSColors.white,
+                                    size: DSIconSize.lg,
+                                  ),
+                                );
+                                if (!reduce && reveal < 0.5) {
+                                  badge = badge
+                                      .animate(
+                                        onPlay: (c) => c.repeat(reverse: true),
+                                      )
+                                      .scale(
+                                        begin: const Offset(1, 1),
+                                        end: const Offset(1.06, 1.06),
+                                        duration: DSAnimations.dHeroX2,
+                                        curve: Curves.easeInOut,
+                                      );
+                                }
+                                return badge;
+                              },
                             ),
                             DSSpacing.hSm,
                             Text(

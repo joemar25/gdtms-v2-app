@@ -2,6 +2,8 @@
 
 This document outlines the design tokens and components used in the GDTMS v2 Mobile App. All UI elements should be built using these tokens to ensure consistency and a premium feel.
 
+> **Composition rules** (shell vs gate, brand-only metric tiles, hold-to-reveal, dashboard motion, sync overlay) live in **[design-system.md](design-system.md)**. Use that doc when aligning Bagsakan / Wallet / Profile / lists to the dashboard language.
+
 ## Architecture
 
 The Design System is located in `lib/design_system/` and follows a token-based architecture:

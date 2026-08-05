@@ -23,20 +23,21 @@ Home screen after login. Shows the courier's daily summary and navigation cards.
 
 ## Layout
 
-- **Stat chips** at the top: total deliveries, pending, delivered, failed counts pulled from `local_deliveries`.
-- **Navigation cards**:
-  - DISPATCH — navigates to `/dispatch/eligibility`
-  - DELIVERIES — navigates to `/deliveries`
-  - HISTORY — navigates to `/history` (sync history screen)
-  - WALLET — navigates to `/wallet`
-- **Version check banner**: shown if the app is behind the server's `min_version`.
-- **Offline banner**: shown via `OfflineBanner` widget when `isOnlineProvider` is `false`.
+**Composition reference** for post-login UI: [design-system.md](../design-system.md).
+
+- **Shell**: transparent tab `Scaffold`; scenery from `ScaffoldWithNavBar` (`DsBackdrop.shell`).
+- **Section titles**: shared i18n (`overview_title`, `quick_title`) — uppercase caption.
+- **Metric grid (`StatCard`)**: Dispatch (gold), Deliveries / Delivered / Attempted / Misrouted / Sync (primary). Hold-to-reveal details; fixed height; brand palette only.
+- **Quick actions (`ScanButton`)**: Dispatch scan (gold), POD scan (primary); hold-to-reveal; fixed height.
+- **Motion**: `.dsDashboardCardEntry` / `.dsDashboardCtaEntry` + stagger; in-card count-up / active pulse.
+- **Sync Now** (new-feel / dashboard sync strip): `showSyncOverlay` — same loader as initial sync.
 
 ## Data source
 
-Stats are computed from `LocalDeliveryDao.getAll(courierId)` — **never** from a live API call. The dashboard is always offline-capable.
+Stats are computed from local DB / summary map — **never** only a live API call for the grid. Offline-capable.
 
 ## Notes
 
-- The SYNC card was renamed to HISTORY. If a future card needs to be added, add it here and update this doc.
+- SYNC card opens `/sync` (history). Sync Now uses the shared overlay, not a dark spinner dialog.
 - Auto-refresh: watches `deliveryRefreshProvider` — incremented by sync completion.
+- When aligning Bagsakan / Wallet / Profile, follow design-system.md §10 apply map.

@@ -115,6 +115,32 @@ class DSAnimations {
     ),
   ];
 
+  /// Richer dashboard tile entry — fade + lift + soft scale (modern grid).
+  static List<Effect> dashboardCardEntry({
+    Duration? delay,
+    Duration? duration,
+  }) {
+    final d = duration ?? dNormal;
+    final del = delay ?? Duration.zero;
+    return [
+      FadeEffect(duration: d, delay: del, curve: Curves.easeOut),
+      SlideEffect(
+        begin: const Offset(0, 0.14),
+        end: Offset.zero,
+        duration: d,
+        delay: del,
+        curve: Curves.easeOutCubic,
+      ),
+      ScaleEffect(
+        begin: const Offset(0.9, 0.9),
+        end: const Offset(1.0, 1.0),
+        duration: d,
+        delay: del,
+        curve: Curves.easeOutCubic,
+      ),
+    ];
+  }
+
   /// Fade-in + scale from 95% → use for primary CTA buttons.
   static List<Effect> ctaEntry({Duration? delay, Duration? duration}) => [
     FadeEffect(duration: duration, delay: delay ?? Duration.zero),
@@ -125,6 +151,29 @@ class DSAnimations {
       delay: delay ?? Duration.zero,
     ),
   ];
+
+  /// Dashboard scan CTA entry — deeper pop + slight lift.
+  static List<Effect> dashboardCtaEntry({Duration? delay, Duration? duration}) {
+    final d = duration ?? dNormal;
+    final del = delay ?? Duration.zero;
+    return [
+      FadeEffect(duration: d, delay: del, curve: Curves.easeOut),
+      SlideEffect(
+        begin: const Offset(0, 0.1),
+        end: Offset.zero,
+        duration: d,
+        delay: del,
+        curve: Curves.easeOutCubic,
+      ),
+      ScaleEffect(
+        begin: const Offset(0.88, 0.88),
+        end: const Offset(1.0, 1.0),
+        duration: d,
+        delay: del,
+        curve: Curves.easeOutBack,
+      ),
+    ];
+  }
 
   /// Plain fade-in → use for labels, spinners, and secondary text.
   static List<Effect> fadeEntry({Duration? delay, Duration? duration}) => [
@@ -193,9 +242,19 @@ extension DSAnimationsX on Widget {
     effects: DSAnimations.cardEntry(delay: delay, duration: duration),
   );
 
+  /// Dashboard metric tile entrance (fade + lift + scale).
+  Widget dsDashboardCardEntry({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.dashboardCardEntry(delay: delay, duration: duration),
+  );
+
   /// Primary CTA button entrance (fadeIn + scaleXY 95→100%).
   Widget dsCtaEntry({Duration? delay, Duration? duration}) => animate(
     effects: DSAnimations.ctaEntry(delay: delay, duration: duration),
+  );
+
+  /// Dashboard scan CTA entrance (pop + lift).
+  Widget dsDashboardCtaEntry({Duration? delay, Duration? duration}) => animate(
+    effects: DSAnimations.dashboardCtaEntry(delay: delay, duration: duration),
   );
 
   /// Plain fade-in for labels, spinners, and misc elements.

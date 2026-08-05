@@ -39,6 +39,11 @@ All files use kebab-case names. Organized to mirror the `lib/` folder structure.
 
 ---
 
+## Design system
+
+- [design-system.md](design-system.md) — **post-login shell language** (palette, StatCard/ScanButton, motion, sync overlay, apply map for other tabs)
+- [styles.md](styles.md) — tokens (colors, type, spacing, glass)
+
 ## Entry Points
 
 - [entry-points.md](entry-points.md) — `main.dart`, `app.dart`, `splash_screen.dart`
