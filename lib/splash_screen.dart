@@ -17,6 +17,7 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/database/app_database.dart';
 import 'package:fsi_courier_app/core/database/cleanup_service.dart';
 import 'package:fsi_courier_app/core/services/app_version_service.dart';
@@ -26,8 +27,10 @@ import 'package:fsi_courier_app/core/services/version_check_service.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/core/settings/dashboard_feel_provider.dart';
+import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
 import 'package:fsi_courier_app/core/sync/workmanager_setup.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/features/auth/widgets/auth_illustration.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -62,7 +65,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     await _initialize();
     if (!mounted) return;
     // Brief minimum delay so splash animations have time to play.
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await Future.delayed(const Duration(milliseconds: 1600));
     if (!mounted) return;
     final auth = ref.read(authProvider);
     context.go(auth.isAuthenticated ? '/dashboard' : '/login');
@@ -80,6 +83,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       BackgroundSyncSetup.init(),
       RuntimeEnvironmentService.instance.init(),
     ], eagerError: false);
+
+    // Release + persisted developer mode: re-sync tools after prefs load.
+    if (mounted) {
+      ref.read(debugToolsProvider.notifier).syncFromRuntime();
+    }
 
     // Firebase-dependent steps.
     if (mounted) {
@@ -126,14 +134,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _initialize() async {
     try {
+      // Developer mode must load before debug-tools gate (release + dev path).
+      await RuntimeEnvironmentService.instance.init();
       await ref.read(authProvider.notifier).initialize();
-      final compactMode = await ref.read(appSettingsProvider).getCompactMode();
-      final dashboardFeel = await ref
-          .read(appSettingsProvider)
-          .getDashboardFeel();
+      final settings = ref.read(appSettingsProvider);
+      final compactMode = await settings.getCompactMode();
+      final dashboardFeel = await settings.getDashboardFeel();
+      final debugUiVisible = await settings.getDebugUiVisible();
       if (mounted) {
+        ref.read(debugToolsProvider.notifier).syncFromRuntime();
         ref.read(compactModeProvider.notifier).setValue(compactMode);
         ref.read(dashboardFeelProvider.notifier).setValue(dashboardFeel);
+        ref.read(debugUiProvider.notifier).setValue(debugUiVisible);
       }
       // ignore: discarded_futures
       CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
@@ -153,21 +165,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
-    final backgroundColor = isDark ? DSColors.scaffoldDark : DSColors.white;
-    final backgroundEndColor = isDark ? DSColors.cardDark : DSColors.white;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? DSColors.white : DSColors.labelPrimary;
-    final subtitleColor = (isDark ? DSColors.white : DSColors.labelPrimary)
-        .withValues(alpha: DSStyles.alphaMuted);
+    final muted = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
 
-    // Apply system UI overlay style to match the splash theme immediately.
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: DSColors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: backgroundEndColor,
+        systemNavigationBarColor: isDark
+            ? DSColors.scaffoldDark
+            : const Color(0xFFEAF6EC),
         systemNavigationBarIconBrightness: isDark
             ? Brightness.light
             : Brightness.dark,
@@ -175,28 +185,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     );
 
     return Scaffold(
-      backgroundColor: backgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Background Gradient (Fades in) ──────────────────────────────
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [backgroundColor, backgroundEndColor],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ).animate().fadeIn(duration: DSAnimations.dSlow),
+          // Quieter than login — brand present, not competing with gate UX.
+          const DsBrandBackdrop(intensity: DsBackdropIntensity.quiet),
 
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isSmallScreen = constraints.maxHeight < 600;
-                final logoSize = isSmallScreen
-                    ? DSIconSize.heroMd * 1.8
-                    : DSIconSize.heroLg;
+                final logoSize = isSmallScreen ? 96.0 : 112.0;
 
                 return SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -206,79 +205,86 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
+                        horizontal: DSSpacing.lg,
                         vertical: DSSpacing.xl,
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Logo Container (Netflix-style zoom entry)
-                          Container(
-                                width: logoSize,
-                                height: logoSize,
-                                padding: const EdgeInsets.all(DSSpacing.md),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? DSColors.cardElevatedDark
-                                      : DSColors.white,
-                                  borderRadius: DSStyles.sheetRadius,
-                                  boxShadow: DSStyles.shadowXL(context),
-                                ),
-                                child: Image.asset(
-                                  'assets/images/app_icon.png',
-                                  fit: BoxFit.contain,
-                                ),
+                          // Brand mark — softer motion than login (no pulse).
+                          AuthLogoMark(
+                                size: logoSize,
+                                assetPath: AppAssets.fsiIcon,
+                                pulse: false,
                               )
                               .animate()
+                              .fadeIn(duration: DSAnimations.dNormal)
                               .scale(
-                                begin: const Offset(0.8, 0.8),
-                                end: const Offset(1.0, 1.0),
-                                duration: DSAnimations.dSlow,
+                                begin: const Offset(0.72, 0.72),
+                                end: const Offset(1, 1),
+                                duration: DSAnimations.dHero,
                                 curve: Curves.easeOutBack,
-                              )
-                              .fadeIn(duration: DSAnimations.dNormal),
+                              ),
 
                           isSmallScreen ? DSSpacing.hLg : DSSpacing.hXl,
 
-                          // App Name (Staggered entrance)
                           Text(
                                 'splash.title'.tr(),
                                 style: DSTypography.display(color: textColor)
                                     .copyWith(
                                       fontSize: isSmallScreen
-                                          ? DSTypography.sizeXl * 1.5
+                                          ? DSTypography.sizeXl * 1.35
                                           : DSTypography.sizeHero,
                                       letterSpacing:
                                           DSTypography.lsExtraLoose *
-                                          (isSmallScreen ? 3 : 5),
+                                          (isSmallScreen ? 2.5 : 4),
                                     ),
                               )
                               .animate()
-                              .fadeIn(delay: 400.ms, duration: 600.ms)
+                              .fadeIn(
+                                delay: 280.ms,
+                                duration: DSAnimations.dSlow,
+                              )
                               .slideY(
-                                begin: 0.2,
+                                begin: 0.18,
                                 end: 0,
-                                curve: Curves.easeOutQuad,
+                                delay: 280.ms,
+                                duration: DSAnimations.dSlow,
+                                curve: Curves.easeOutCubic,
                               ),
 
                           DSSpacing.hSm,
 
-                          // Tagline
                           Text(
-                            'splash.tagline'.tr(),
-                            style: DSTypography.label(color: subtitleColor),
-                          ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+                                'splash.tagline'.tr(),
+                                textAlign: TextAlign.center,
+                                style: DSTypography.label(
+                                  color: muted,
+                                ).copyWith(letterSpacing: DSTypography.lsWide),
+                              )
+                              .animate()
+                              .fadeIn(
+                                delay: 420.ms,
+                                duration: DSAnimations.dNormal,
+                              )
+                              .slideY(
+                                begin: 0.12,
+                                end: 0,
+                                delay: 420.ms,
+                                duration: DSAnimations.dNormal,
+                              ),
 
                           isSmallScreen ? DSSpacing.hLg : DSSpacing.hXl,
-                          if (!isSmallScreen) DSSpacing.hLg,
+                          if (!isSmallScreen) DSSpacing.hMd,
 
-                          // Feature chips
+                          // Feature chips — glass cards matching auth form.
                           Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: DSSpacing.md,
+                              horizontal: DSSpacing.sm,
                             ),
                             child: Wrap(
-                              spacing: DSSpacing.md,
-                              runSpacing: DSSpacing.md,
+                              spacing: DSSpacing.sm,
+                              runSpacing: DSSpacing.sm,
                               alignment: WrapAlignment.center,
                               children: [
                                 _SplashChip(
@@ -286,22 +292,79 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                                       label: 'splash.feature.accept'.tr(),
                                     )
                                     .animate()
-                                    .fadeIn(delay: 800.ms)
-                                    .scale(begin: const Offset(0.9, 0.9)),
+                                    .fadeIn(
+                                      delay:
+                                          DSAnimations.stagger(
+                                            1,
+                                            step: DSAnimations.staggerCoarse,
+                                          ) +
+                                          500.ms,
+                                      duration: DSAnimations.dNormal,
+                                    )
+                                    .scale(
+                                      begin: const Offset(0.88, 0.88),
+                                      end: const Offset(1, 1),
+                                      delay:
+                                          DSAnimations.stagger(
+                                            1,
+                                            step: DSAnimations.staggerCoarse,
+                                          ) +
+                                          500.ms,
+                                      duration: DSAnimations.dNormal,
+                                      curve: Curves.easeOutBack,
+                                    ),
                                 _SplashChip(
                                       icon: LucideIcons.package,
                                       label: 'splash.feature.deliver'.tr(),
                                     )
                                     .animate()
-                                    .fadeIn(delay: 950.ms)
-                                    .scale(begin: const Offset(0.9, 0.9)),
+                                    .fadeIn(
+                                      delay:
+                                          DSAnimations.stagger(
+                                            2,
+                                            step: DSAnimations.staggerCoarse,
+                                          ) +
+                                          500.ms,
+                                      duration: DSAnimations.dNormal,
+                                    )
+                                    .scale(
+                                      begin: const Offset(0.88, 0.88),
+                                      end: const Offset(1, 1),
+                                      delay:
+                                          DSAnimations.stagger(
+                                            2,
+                                            step: DSAnimations.staggerCoarse,
+                                          ) +
+                                          500.ms,
+                                      duration: DSAnimations.dNormal,
+                                      curve: Curves.easeOutBack,
+                                    ),
                                 _SplashChip(
                                       icon: LucideIcons.wallet,
                                       label: 'splash.feature.payout'.tr(),
                                     )
                                     .animate()
-                                    .fadeIn(delay: 1100.ms)
-                                    .scale(begin: const Offset(0.9, 0.9)),
+                                    .fadeIn(
+                                      delay:
+                                          DSAnimations.stagger(
+                                            3,
+                                            step: DSAnimations.staggerCoarse,
+                                          ) +
+                                          500.ms,
+                                      duration: DSAnimations.dNormal,
+                                    )
+                                    .scale(
+                                      begin: const Offset(0.88, 0.88),
+                                      end: const Offset(1, 1),
+                                      delay:
+                                          DSAnimations.stagger(
+                                            3,
+                                            step: DSAnimations.staggerCoarse,
+                                          ) +
+                                          500.ms,
+                                      duration: DSAnimations.dNormal,
+                                      curve: Curves.easeOutBack,
+                                    ),
                               ],
                             ),
                           ),
@@ -314,25 +377,40 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
           ),
 
-          // ── Footer ─────────────────────────────────────────────────────────
+          // Footer — loader + brand
           Positioned(
             left: 0,
             right: 0,
             bottom: DSSpacing.xl,
-            child: Column(
-              children: [
-                const SpinKitThreeBounce(
-                  color: DSColors.primary,
-                  size: DSIconSize.md,
-                ).animate().fadeIn(delay: 1300.ms),
-                DSSpacing.hLg,
-                Text(
-                  'splash.footer_brand'.tr(),
-                  style: DSTypography.caption(
-                    color: subtitleColor,
-                  ).copyWith(fontWeight: FontWeight.w600, letterSpacing: 1.2),
-                ).animate().fadeIn(delay: 1500.ms),
-              ],
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  const SpinKitThreeBounce(
+                        color: DSColors.primary,
+                        size: DSIconSize.md,
+                      )
+                      .animate()
+                      .fadeIn(delay: 900.ms, duration: DSAnimations.dNormal)
+                      .scale(
+                        begin: const Offset(0.9, 0.9),
+                        end: const Offset(1, 1),
+                        delay: 900.ms,
+                        duration: DSAnimations.dNormal,
+                      ),
+                  DSSpacing.hMd,
+                  Text(
+                    'splash.footer_brand'.tr(),
+                    style: DSTypography.caption(color: muted).copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: DSTypography.lsWide,
+                    ),
+                  ).animate().fadeIn(
+                    delay: 1050.ms,
+                    duration: DSAnimations.dNormal,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -341,6 +419,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 }
 
+/// Glass feature chip — same surface language as auth form cards.
 class _SplashChip extends StatelessWidget {
   const _SplashChip({required this.icon, required this.label});
 
@@ -352,36 +431,55 @@ class _SplashChip extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      width: 100, // Fixed width for consistent grid look
+      width: 104,
       padding: const EdgeInsets.symmetric(
         vertical: DSSpacing.md,
         horizontal: DSSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: (isDark ? DSColors.white : DSColors.primary).withValues(
-          alpha: DSStyles.alphaSoft,
-        ),
-        borderRadius: DSStyles.cardRadius,
+        color: isDark
+            ? DSColors.cardElevatedDark.withValues(alpha: 0.90)
+            : DSColors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(DSStyles.radius2XL),
         border: Border.all(
-          color: (isDark ? DSColors.white : DSColors.primary).withValues(
-            alpha: DSStyles.alphaSubtle,
-          ),
-          width: DSStyles.borderWidth,
+          color: isDark
+              ? DSColors.white.withValues(alpha: 0.10)
+              : DSColors.primary.withValues(alpha: 0.10),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: DSColors.primary.withValues(alpha: isDark ? 0.16 : 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: DSColors.primary, size: DSIconSize.md),
-          DSSpacing.hXs,
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: DSColors.primary.withValues(alpha: DSStyles.alphaSubtle),
+              borderRadius: DSStyles.pillRadius,
+            ),
+            child: Icon(icon, color: DSColors.primary, size: DSIconSize.md),
+          ),
+          DSSpacing.hSm,
           Text(
             label,
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: DSTypography.label(
-              color: isDark ? DSColors.white : DSColors.labelPrimary,
-            ).copyWith(fontSize: 10, letterSpacing: 0.5),
+            style:
+                DSTypography.label(
+                  color: isDark ? DSColors.white : DSColors.labelPrimary,
+                ).copyWith(
+                  fontSize: DSTypography.sizeXs,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: DSTypography.lsWide,
+                ),
           ),
         ],
       ),

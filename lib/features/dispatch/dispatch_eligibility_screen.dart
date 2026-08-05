@@ -37,7 +37,7 @@ import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
 import 'package:fsi_courier_app/core/services/dispatch_service.dart';
-import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
+import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/post_submit_navigation.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
@@ -350,9 +350,9 @@ class _DispatchEligibilityScreenState
     final reason =
         _eligibilityResponse['message']?.toString() ??
         'You are not eligible for this dispatch.';
-    final isDev = RuntimeEnvironmentService.instance.isDeveloperMode;
-    final maskedCode = (widget.showFullCode || isDev)
-        ? (isDev ? '$dispatchCode (debug)' : dispatchCode)
+    final showDebugUi = ref.watch(showDebugUiProvider);
+    final maskedCode = (widget.showFullCode || showDebugUi)
+        ? (showDebugUi ? '$dispatchCode (debug)' : dispatchCode)
         : dispatchCode.length > last4.length
         ? '${dispatchCode.substring(0, dispatchCode.length - last4.length)}****'
         : '****';

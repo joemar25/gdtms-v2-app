@@ -15,6 +15,7 @@ export 'ds_theme.dart';
 // Atoms
 export 'widgets/atoms/ds_input.dart';
 export 'widgets/atoms/ds_loading.dart';
+export 'widgets/atoms/ds_form_action_link.dart';
 
 // Molecules
 export 'widgets/molecules/ds_card.dart';
@@ -25,3 +26,6 @@ export 'widgets/molecules/ds_switch_tile.dart';
 export 'widgets/molecules/ds_hero_card.dart';
 export 'widgets/molecules/ds_secure_view.dart';
 export 'widgets/molecules/ds_slide_to_confirm.dart';
+
+// Scenery (shared across splash / auth / future marketing screens)
+export 'widgets/ds_brand_backdrop.dart';

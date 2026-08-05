@@ -4,7 +4,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:fsi_courier_app/core/config.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/utils/formatters.dart';
 
@@ -90,7 +91,7 @@ class StatusBadgeLight extends StatelessWidget {
 }
 
 /// A premium hero card for Payout Details that supports a flip animation to reveal breakdown.
-class PayoutHeroFlipCard extends StatefulWidget {
+class PayoutHeroFlipCard extends ConsumerStatefulWidget {
   const PayoutHeroFlipCard({
     super.key,
     required this.amount,
@@ -111,10 +112,10 @@ class PayoutHeroFlipCard extends StatefulWidget {
   final Map<String, dynamic> breakdown;
 
   @override
-  State<PayoutHeroFlipCard> createState() => _PayoutHeroFlipCardState();
+  ConsumerState<PayoutHeroFlipCard> createState() => _PayoutHeroFlipCardState();
 }
 
-class _PayoutHeroFlipCardState extends State<PayoutHeroFlipCard>
+class _PayoutHeroFlipCardState extends ConsumerState<PayoutHeroFlipCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _isFront = true;
@@ -340,7 +341,9 @@ class _PayoutHeroFlipCardState extends State<PayoutHeroFlipCard>
           DSSpacing.hMd,
           ...widget.breakdown.entries
               .where((e) {
-                if (e.key == 'coordinator_incentive') return kAppDebugMode;
+                if (e.key == 'coordinator_incentive') {
+                  return ref.watch(showDebugUiProvider);
+                }
                 return true;
               })
               .map((e) {

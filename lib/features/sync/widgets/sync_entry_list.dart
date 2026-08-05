@@ -5,7 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/models/sync_operation.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
-import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
 import 'package:fsi_courier_app/shared/widgets/confirmation_dialog.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/features/sync/widgets/sync_entry_tile.dart';
@@ -66,6 +66,7 @@ class SyncEntryList extends ConsumerWidget {
     final failedDeliveryCountByBarcode = ref.watch(
       failedDeliveryCountsProvider,
     );
+    final showDebugUi = ref.watch(showDebugUiProvider);
 
     final entries = _collapseBagsakanEntries(syncState.entries);
 
@@ -105,7 +106,7 @@ class SyncEntryList extends ConsumerWidget {
                         }
                       }
                     : null,
-                onDismiss: (entry.status == 'conflict' && kAppDebugMode)
+                onDismiss: (entry.status == 'conflict' && showDebugUi)
                     ? () async {
                         final confirmed = await ConfirmationDialog.show(
                           context,
@@ -137,7 +138,7 @@ class SyncEntryList extends ConsumerWidget {
                         }
                       }
                     : null,
-                onDelete: (entry.status == 'synced' && kAppDebugMode)
+                onDelete: (entry.status == 'synced' && showDebugUi)
                     ? () async {
                         final confirmed = await ConfirmationDialog.show(
                           context,

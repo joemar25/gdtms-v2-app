@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/utils/formatters.dart';
-import 'package:fsi_courier_app/core/config.dart'; // for kAppDebugMode
+import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
 
 /// A card displaying the financial summary of a payout request, including
 /// gross earnings, penalties, incentives, and the final net amount.
-class PayoutSummaryCard extends StatelessWidget {
+class PayoutSummaryCard extends ConsumerWidget {
   const PayoutSummaryCard({
     super.key,
     required this.eligibleCount,
@@ -25,8 +26,9 @@ class PayoutSummaryCard extends StatelessWidget {
   final String deliveriesLabel;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final showDebugUi = ref.watch(showDebugUiProvider);
 
     return Container(
       width: double.infinity,
@@ -153,7 +155,7 @@ class PayoutSummaryCard extends StatelessWidget {
                               color: DSColors.white,
                             ),
                           ],
-                          if (kAppDebugMode && estimatedIncentive != 0) ...[
+                          if (showDebugUi && estimatedIncentive != 0) ...[
                             DSSpacing.hXs,
                             _PayoutAmountRow(
                               label:

@@ -44,7 +44,12 @@
       "error_try_again_seconds": "Try again in {seconds} seconds.",
       "error_login_failed": "Login failed.",
       "update_now": "Update Now",
-      "update_to_sign_in": "Update to Sign In"
+      "update_to_sign_in": "Update to Sign In",
+      "secure_session": "Secured session · your credentials stay on this device",
+      "debug_view_splash": "View splash screen"
+    },
+    "reset_password": {
+      "courier_code_hint": "Don't know your courier code? Contact your admin or manager."
     }
   },
   "splash": {

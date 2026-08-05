@@ -4,8 +4,10 @@
   This file documents:
     lib/core/settings/app_settings.dart
     lib/core/settings/compact_mode_provider.dart
+    lib/core/settings/debug_ui_provider.dart
     lib/core/config.dart
     lib/core/constants.dart
+    lib/shared/widgets/debug_ui_toggle.dart
 
   Update this document whenever you change any of those files.
   Each of those files carries a header comment: "DOCS: docs/core/settings.md"
@@ -22,6 +24,8 @@
 | `lib/core/constants.dart` | App-wide constants |
 | `lib/core/settings/app_settings.dart` | User preferences stored in `SharedPreferences` |
 | `lib/core/settings/compact_mode_provider.dart` | Riverpod provider for compact-mode toggle |
+| `lib/core/settings/debug_ui_provider.dart` | Debug chrome preference + `showDebugUiProvider` |
+| `lib/shared/widgets/debug_ui_toggle.dart` | Top-left chip (debug/dev only) |
 
 ---
 
@@ -74,3 +78,36 @@ User preferences persisted via `SharedPreferences`.
 `compactModeProvider` — `StateNotifierProvider<CompactModeNotifier, bool>`.
 
 Reads initial value from `AppSettings.compactMode`. Toggled from Profile → Preferences. Delivery list screens watch this to switch between normal and compact `DeliveryCard` variants.
+
+---
+
+## Debug UI chrome (global)
+
+Works in **debug builds** and **release + developer mode**. Top-left chip opens a **dev shortcuts** sheet (not a mode switch).
+
+| API | Role |
+|-----|------|
+| `computeDebugToolsAvailable` / `computeShowDebugUi` | Pure gates (unit-tested) |
+| `debugToolsProvider` | Reactive tools gate — `syncFromRuntime()` after init / dev-mode flip |
+| `debugUiProvider` | Preference (default true, key `debug_ui_visible`) |
+| `showDebugUiProvider` | **Screens use this** — tools && preference |
+| `DebugUiToggle` | Chip watches **tools** (not show) so it stays when chrome is off |
+
+### DEBUG chip → Dev shortcuts
+
+Floating fixed-size chip (drag anywhere; clamped to safe area). Tap → bottom sheet with hard-to-reach screens (develop only):
+
+| Shortcut | Route | Notes |
+|----------|-------|--------|
+| Splash screen | `/splash` | Allowed even when authenticated (preview) |
+| Initial sync | `/initial-sync` | Requires sign-in; allowed after sync completed |
+| Edit profile | `/profile/edit` | Requires sign-in; bypasses `kEnableProfileEdit` |
+| Hide / show debug chrome | — | Toggles `debugUiProvider` (labels / API panels) |
+
+Router: when `debugToolsProvider` is true, those three routes skip normal guards (auth→dashboard bounce, post-sync redirect, profile-edit feature flag, terms/permissions gates for the preview).
+
+```dart
+if (ref.watch(showDebugUiProvider)) ...[ /* debug-only */ ],
+```
+
+Splash loads `RuntimeEnvironmentService` early then `debugToolsProvider.syncFromRuntime()`. Profile after developer-mode flip: same sync.

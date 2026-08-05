@@ -37,6 +37,7 @@ import 'package:fsi_courier_app/features/legal/user_guide_screen.dart';
 import 'package:fsi_courier_app/features/report/report_issue_screen.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:fsi_courier_app/shared/widgets/bottom_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -172,6 +173,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           path == '/login' || path == '/reset-password' || path == '/splash';
       final isUpdateRoute = path == '/update';
       final isLegalRoute = path == '/terms' || path == '/privacy';
+      // Dev shortcuts (DEBUG chip): allow hard-to-reach screens while tools on.
+      final debugTools = ref.read(debugToolsProvider);
+      final isDevPreviewRoute =
+          debugTools &&
+          (path == '/splash' ||
+              path == '/initial-sync' ||
+              path == '/profile/edit');
 
       // Allow unauthenticated users to access auth routes
       if (!auth.isAuthenticated) {
@@ -183,7 +191,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // ── TERMS & CONDITIONS GATE ──
       // After auth, before anything else: ensure the courier has accepted T&C.
-      if (!isLegalRoute && !isAuthRoute) {
+      // Dev preview routes skip so shortcuts stay usable mid-session.
+      if (!isLegalRoute && !isAuthRoute && !isDevPreviewRoute) {
         final prefs = await SharedPreferences.getInstance();
         if (prefs.getString('terms_accepted_version') != kTermsVersion) {
           return '/terms';
@@ -191,7 +200,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // ── GLOBAL PERMISSIONS GUARD (location → camera → notifications) ──
-      if (path != '/splash' && !isUpdateRoute && !isLegalRoute) {
+      if (path != '/splash' &&
+          !isUpdateRoute &&
+          !isLegalRoute &&
+          !isDevPreviewRoute) {
         final allReady = locationState.isReady && permsState.isReady;
         if (!allReady) {
           if (path != '/permissions-required') {
@@ -203,8 +215,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         }
       }
 
+      // Authenticated users leave auth routes — except DEBUG splash preview.
       if (auth.isAuthenticated && isAuthRoute) {
-        return '/dashboard';
+        if (!(debugTools && path == '/splash')) {
+          return '/dashboard';
+        }
+        return null;
       }
 
       // ── INITIAL SYNC GUARD ──
@@ -213,11 +229,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           !isLegalRoute) {
         return '/initial-sync';
       }
-      if (auth.initialSyncCompleted && path == '/initial-sync') {
+      // Allow re-open via DEBUG shortcut even after sync completed.
+      if (auth.initialSyncCompleted && path == '/initial-sync' && !debugTools) {
         return '/dashboard';
       }
 
-      if (path == '/profile/edit' && !kEnableProfileEdit) {
+      // Profile edit is feature-flagged; DEBUG tools bypass for develop only.
+      if (path == '/profile/edit' && !kEnableProfileEdit && !debugTools) {
         return '/profile';
       }
 

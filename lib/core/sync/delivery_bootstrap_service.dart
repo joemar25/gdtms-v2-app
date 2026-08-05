@@ -94,13 +94,14 @@ class DeliveryBootstrapService {
     debugPrint(
       '[SYNC] syncFromApiWithProgress — start (updatedSince: $updatedSince)',
     );
-    onProgress?.call('Reconciling local data...');
+    // Progress strings are courier-facing (initial sync UI) — keep them plain.
+    onProgress?.call('Checking your saved deliveries...');
     await _priorityPendingReconciliation(client);
 
     final serverBarcodesPerStatus = <String, Set<String>>{};
 
     if (updatedSince != null && updatedSince > 0) {
-      onProgress?.call('Fetching updates since last sync...');
+      onProgress?.call('Getting your latest delivery updates...');
       final deltaBarcodes = await _syncDelta(client, updatedSince);
       debugPrint('[SYNC] DELTA — fetched ${deltaBarcodes.length} barcodes');
       // For delta sync, we don't have separate status sets, so we just collect all.
@@ -110,7 +111,7 @@ class DeliveryBootstrapService {
       onForDeliveryReady?.call();
     } else {
       // P1: parallel status sweeps (same requests as sequential; Phase 2 waits).
-      onProgress?.call('Fetching deliveries (all statuses)...');
+      onProgress?.call('Downloading your deliveries...');
       final forDeliveryStatus = DeliveryStatus.pending.toApiString();
       final sweep = await Future.wait(
         _statuses.map((status) async {
@@ -126,7 +127,7 @@ class DeliveryBootstrapService {
     }
 
     // ── Phase 1b: Sync Bagsakan Groups (Authoritative) ───────────────────────
-    onProgress?.call('Syncing bagsakan groups...');
+    onProgress?.call('Loading your bagsakan groups...');
     // Returns null when the network was unreachable — skip stale purge in that
     // case to avoid deleting groups that are merely temporarily inaccessible.
     final serverGroupIds = await _syncBagsakanGroupsFromUnifiedSync(client);
@@ -134,7 +135,7 @@ class DeliveryBootstrapService {
       await BagsakanDao.instance.removeStaleGroups(serverGroupIds);
     }
 
-    onProgress?.call('Cleaning up stale data...');
+    onProgress?.call('Tidying up old records...');
     try {
       final allServerBarcodes = <String>{
         for (final barcodes in serverBarcodesPerStatus.values) ...barcodes,
@@ -160,7 +161,7 @@ class DeliveryBootstrapService {
     }
 
     // ── Phase 3: Immediate purge of verified records ─────────────────────────
-    onProgress?.call('Finalizing cleanup...');
+    onProgress?.call('Almost done...');
     try {
       final purgedCount = await LocalDeliveryDao.instance
           .purgeVerifiedRecords();
@@ -191,7 +192,7 @@ class DeliveryBootstrapService {
     void Function(String message)? onProgress,
     void Function()? onForDeliveryReady,
   }) async {
-    onProgress?.call('Clearing local data...');
+    onProgress?.call('Starting fresh on this device...');
     await AuthStorage().setLastSyncTime(0); // Force full sync
     await LocalDeliveryDao.instance.deleteAll();
     await BagsakanDao.instance.deleteAllGroups();

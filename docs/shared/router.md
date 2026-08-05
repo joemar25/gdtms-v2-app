@@ -59,6 +59,9 @@
 2. If `AuthState.authenticated` + location `denied` → `/location-required`.
 3. Otherwise → allow.
 
+**Dev preview bypass** (when `debugToolsProvider` is true — DEBUG chip shortcuts):
+`/splash`, `/initial-sync`, and `/profile/edit` skip bounce-away guards (auth→dashboard, post-sync redirect, profile-edit feature flag, terms/permissions for those previews). See `docs/core/settings.md`.
+
 ### Tab transitions
 
 Bottom-nav tabs use `_tabTransitionPage()` — a 380ms fade + horizontal slide (`Curves.easeOutQuart`). Do not use the default `GoRoute` transition for tab-level routes.

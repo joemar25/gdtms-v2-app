@@ -53,6 +53,7 @@ import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/core/settings/dashboard_feel_provider.dart';
+import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
 import 'package:fsi_courier_app/core/services/push_notification_service.dart';
 import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
@@ -331,6 +332,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       ref.invalidate(apiClientProvider);
       ref.invalidate(updateServiceProvider);
+      ref.read(debugToolsProvider.notifier).syncFromRuntime();
 
       if (!mounted) return;
 
@@ -456,6 +458,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         : '-';
     final isActive = courier['is_active'] != false;
     final isCompact = ref.watch(compactModeProvider);
+    final showDebugUi = ref.watch(showDebugUiProvider);
     final connStatus = ref.watch(connectionStatusProvider);
     final isOnline = connStatus == ConnectionStatus.online;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -523,6 +526,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   isDark: isDark,
                   isOnline: isOnline,
                   isDeveloperMode: _isDeveloperMode,
+                  showDebugUi: showDebugUi,
                 ).dsHeroEntry(),
                 DSSpacing.hMd,
 
@@ -671,7 +675,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
 
                     // Debug/developer-only: Sync Retention
-                    if (kDebugMode || _isDeveloperMode) ...[
+                    if (showDebugUi) ...[
                       _CardDivider(isDark: isDark),
                       _SyncRetentionTile(
                         syncRetentionDays: _syncRetentionDays,
@@ -740,7 +744,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _ModernCard(
                   isDark: isDark,
                   children: [
-                    if (kAppDebugMode || _isDeveloperMode) ...[
+                    if (showDebugUi) ...[
                       DSDetailTile(
                         icon: Icons.cloud_outlined,
                         iconColor: DSColors.success,
@@ -783,7 +787,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       title: AppVersionService.displayVersion,
                       isSubtitleTop: true,
                     ),
-                    if (kAppDebugMode || _isDeveloperMode) ...[
+                    if (showDebugUi) ...[
                       _CardDivider(isDark: isDark),
                       DSDetailTile(
                         icon: Icons.code_rounded,
@@ -910,7 +914,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                       ),
-                      if (_isDeveloperMode) ...[
+                      if (showDebugUi && _isDeveloperMode) ...[
                         DSSpacing.hXs,
                         Text(
                           'Developer Mode',
@@ -960,6 +964,7 @@ class _ProfileHeroCard extends StatelessWidget {
     required this.isDark,
     required this.isOnline,
     required this.isDeveloperMode,
+    required this.showDebugUi,
   });
 
   final Map<String, dynamic> courier;
@@ -967,6 +972,7 @@ class _ProfileHeroCard extends StatelessWidget {
   final bool isDark;
   final bool isOnline;
   final bool isDeveloperMode;
+  final bool showDebugUi;
 
   @override
   Widget build(BuildContext context) {
@@ -1052,7 +1058,7 @@ class _ProfileHeroCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     DSSpacing.hXs,
-                    if (kDebugMode || isDeveloperMode)
+                    if (showDebugUi)
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: DSSpacing.sm,

@@ -94,8 +94,19 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> markInitialSyncCompleted() async {
-    await _authStorage.setInitialSyncCompleted(true);
+    // Update in-memory first so router can leave /initial-sync even if
+    // secure-storage write is slow or flaky.
     state = state.copyWith(initialSyncCompleted: true);
+    try {
+      await _authStorage.setInitialSyncCompleted(true);
+    } catch (e) {
+      // State already reflects completion for this session; persist best-effort.
+      assert(() {
+        // ignore: avoid_print
+        print('[Auth] setInitialSyncCompleted failed: $e');
+        return true;
+      }());
+    }
   }
 
   Future<void> clearAuth() async {

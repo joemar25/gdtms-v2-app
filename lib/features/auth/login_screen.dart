@@ -1,30 +1,33 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/auth.md — update that file when you edit this one.
 
+import 'dart:async';
+
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:async';
-
-import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/auth/auth_storage.dart';
 import 'package:fsi_courier_app/core/config.dart';
+import 'package:fsi_courier_app/core/constants.dart';
+import 'package:fsi_courier_app/core/database/app_database.dart';
+import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/core/services/app_version_service.dart';
 import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
-import 'package:fsi_courier_app/core/database/app_database.dart';
-import 'package:fsi_courier_app/core/constants.dart';
-import 'package:fsi_courier_app/core/providers/update_provider.dart';
+import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/features/auth/widgets/auth_layout.dart';
 import 'package:fsi_courier_app/models/update_info.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/post_submit_navigation.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
-import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/shared/widgets/contact_app_sheet.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -34,9 +37,13 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneFocus = FocusNode();
+  final _passwordFocus = FocusNode();
   final Map<String, String> _errors = {};
+
   bool _loading = false;
   bool _obscurePassword = true;
   int _rateLimitRemaining = 0;
@@ -76,39 +83,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _rateLimitTimer?.cancel();
     _phoneController.dispose();
     _passwordController.dispose();
+    _phoneFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
   void _startRateLimitCountdown(int seconds) {
     _rateLimitTimer?.cancel();
-    setState(() {
-      _rateLimitRemaining = seconds;
-    });
+    setState(() => _rateLimitRemaining = seconds);
 
     _rateLimitTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
-
       if (_rateLimitRemaining <= 1) {
         timer.cancel();
-        setState(() {
-          _rateLimitRemaining = 0;
-        });
+        setState(() => _rateLimitRemaining = 0);
         return;
       }
-
-      setState(() {
-        _rateLimitRemaining -= 1;
-      });
+      setState(() => _rateLimitRemaining -= 1);
     });
   }
 
   Future<void> _submit() async {
-    setState(() {
-      _errors.clear();
-    });
+    setState(() => _errors.clear());
 
     if (_phoneController.text.trim().isEmpty) {
       _errors['phone_number'] = 'common.field_required'.tr();
@@ -116,7 +115,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_passwordController.text.isEmpty) {
       _errors['password'] = 'common.field_required'.tr();
     }
-
     if (_errors.isNotEmpty) {
       setState(() {});
       return;
@@ -157,8 +155,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final courier = mapFromKey(payload, 'courier');
         final mergedCourier = <String, dynamic>{...user, ...courier};
 
-        // Session fingerprint check — wipe stale local data if courier or
-        // server changed since the last session (safety net for force-quit).
+        // Session fingerprint — wipe stale local data if courier/server changed.
         final courierId = mergedCourier['id']?.toString() ?? '';
         final runtimeBaseUrl =
             RuntimeEnvironmentService.instance.activeApiBaseUrl;
@@ -167,11 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final prevFingerprint = prefs.getString('_session_fingerprint') ?? '';
 
         final lastCourierId = await authStorage.getLastCourierId();
-        // P4: first install or courier/server identity change needs a full
-        // wipe + resweep. A same-courier re-login (e.g. after logout, or a
-        // force-quit recovery with matching identity) can skip the wipe and
-        // run the normal delta sync against the still-valid local data —
-        // `initial_sync_screen.dart` reads this flag to decide.
+        // P4: first install or courier/server identity change → full wipe.
         final isFirstInstall = prevFingerprint.isEmpty && lastCourierId == null;
         final identityChanged =
             (prevFingerprint.isNotEmpty && prevFingerprint != newFingerprint) ||
@@ -179,9 +172,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final needsFullResync = isFirstInstall || identityChanged;
         if (needsFullResync) {
           await AppDatabase.clearAllDeliveryData();
-          // clearAllDeliveryData wipes local_deliveries but not the
-          // secure-storage last_sync_time — reset it too so the next sync
-          // can't mistake the empty table for "nothing changed since".
           await authStorage.setLastSyncTime(0);
         }
         await authStorage.setNeedsFullResync(needsFullResync);
@@ -235,337 +225,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final subtitleColor = colorScheme.onSurfaceVariant;
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final updateState = ref.watch(updateProvider);
-    final hasUpdate = updateState.hasUpdate;
-
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDark
-                ? [DSColors.scaffoldDark, DSColors.cardElevatedDark]
-                : [
-                    DSColors.primary.withValues(alpha: DSStyles.alphaSoft),
-                    DSColors.white,
-                  ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // ── Theme Toggle (Top Right) ──────────────────────────────────
-            Positioned(
-              top: MediaQuery.of(context).padding.top + DSSpacing.sm,
-              right: DSSpacing.sm,
-              child: Material(
-                color: DSColors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    final nextMode = isDark ? ThemeMode.light : ThemeMode.dark;
-                    ref.read(authProvider.notifier).setThemeMode(nextMode);
-                  },
-                  borderRadius: BorderRadius.circular(100),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    padding: const EdgeInsets.all(DSSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? DSColors.white.withValues(alpha: 0.12)
-                          : DSColors.primary.withValues(alpha: 0.08),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isDark
-                            ? DSColors.white.withValues(alpha: 0.1)
-                            : DSColors.primary.withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: Icon(
-                      isDark
-                          ? Icons.light_mode_rounded
-                          : Icons.dark_mode_rounded,
-                      size: DSIconSize.md,
-                      color: isDark ? DSColors.white : DSColors.primary,
-                    ),
-                  ),
-                ),
-              ),
-            ).dsFadeEntry(delay: const Duration(milliseconds: 600)),
-
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 28,
-                    vertical: DSSpacing.xs,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // ── Logo ──────────────────────────────────────────
-                        Center(
-                          child: Container(
-                            width: DSIconSize.heroSm,
-                            height: DSIconSize.heroSm,
-                            decoration: BoxDecoration(
-                              color: DSColors.primary,
-                              borderRadius: DSStyles
-                                  .sheetRadius, // 28.0 (Legacy radiusSheet)
-                              boxShadow: [
-                                BoxShadow(
-                                  color: DSColors.primary.withValues(
-                                    alpha: DSStyles.alphaMuted,
-                                  ),
-                                  blurRadius: DSStyles.radiusXL,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.local_shipping_rounded,
-                              size: DSIconSize.xl,
-                              color: DSColors.white,
-                            ),
-                          ),
-                        ).dsHeroEntry(),
-                        DSSpacing.hXl,
-
-                        // ── Title ────────────────────────────────────────
-                        Text(
-                          'auth.login_screen.title'.tr(),
-                          textAlign: TextAlign.center,
-                          style: DSTypography.heading().copyWith(
-                            fontSize: DSTypography.sizeXl,
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.onSurface,
-                            letterSpacing: DSTypography.lsSlightlyTight,
-                          ),
-                        ).dsFadeEntry(
-                          delay: DSAnimations.stagger(
-                            1,
-                            step: DSAnimations.staggerNormal,
-                          ),
-                        ),
-                        DSSpacing.hSm,
-                        Text(
-                          'auth.login_screen.subtitle'.tr(),
-                          textAlign: TextAlign.center,
-                          style: DSTypography.body().copyWith(
-                            fontSize: DSTypography.sizeMd,
-                            color: subtitleColor,
-                          ),
-                        ).dsFadeEntry(
-                          delay: DSAnimations.stagger(
-                            2,
-                            step: DSAnimations.staggerNormal,
-                          ),
-                        ),
-                        DSSpacing.hXl,
-
-                        // ── Phone Number ──────────────────────────────────
-                        _fieldLabel(
-                          'auth.login_screen.phone_number'.tr(),
-                        ).dsFadeEntry(
-                          delay: DSAnimations.stagger(
-                            3,
-                            step: DSAnimations.staggerNormal,
-                          ),
-                        ),
-                        DSSpacing.hSm,
-                        TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            hintText: 'auth.login_screen.phone_hint'.tr(),
-                            prefixIcon: const Icon(
-                              Icons.phone_outlined,
-                              size: DSIconSize.md,
-                            ),
-                            errorText: _errors['phone_number'],
-                          ),
-                        ).dsFieldEntry(
-                          delay: DSAnimations.stagger(
-                            4,
-                            step: DSAnimations.staggerNormal,
-                          ),
-                        ),
-                        DSSpacing.hMd,
-
-                        // ── Password ──────────────────────────────────────
-                        _fieldLabel(
-                          'auth.login_screen.password'.tr(),
-                        ).dsFadeEntry(
-                          delay: DSAnimations.stagger(
-                            5,
-                            step: DSAnimations.staggerNormal,
-                          ),
-                        ),
-                        DSSpacing.hSm,
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            hintText: 'auth.login_screen.password_hint'.tr(),
-                            prefixIcon: const Icon(
-                              Icons.lock_outline,
-                              size: DSIconSize.md,
-                            ),
-                            errorText: _errors['password'],
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                size: DSIconSize.md,
-                              ),
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                            ),
-                          ),
-                        ).dsFieldEntry(
-                          delay: DSAnimations.stagger(
-                            6,
-                            step: DSAnimations.staggerNormal,
-                          ),
-                        ),
-
-                        // ── Forgot Password ───────────────────────────────
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => context.push('/reset-password'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: DSColors.primary,
-                            ),
-                            child: Text('auth.forgot_password'.tr()),
-                          ),
-                        ),
-                        DSSpacing.hXs,
-
-                        // ── Update Required Banner ────────────────────────
-                        if (hasUpdate) ...[
-                          _LoginUpdateBanner(
-                            info: updateState.updateInfo!,
-                            isDark: isDark,
-                          ).dsFadeEntry(
-                            delay: DSAnimations.stagger(
-                              7,
-                              step: DSAnimations.staggerNormal,
-                            ),
-                          ),
-                          DSSpacing.hSm,
-                        ],
-
-                        // ── Sign In Button ────────────────────────────────
-                        FilledButton(
-                          onPressed:
-                              _loading || _rateLimitRemaining > 0 || hasUpdate
-                              ? null
-                              : _submit,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 52),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: DSStyles.cardRadius, // 16.0
-                            ),
-                          ),
-                          child: Text(
-                            hasUpdate
-                                ? 'auth.login_screen.update_to_sign_in'.tr()
-                                : _rateLimitRemaining > 0
-                                ? 'auth.login_screen.wait_seconds'.tr(
-                                    namedArgs: {
-                                      'seconds': '$_rateLimitRemaining',
-                                    },
-                                  )
-                                : 'auth.login_screen.sign_in'.tr(),
-                            style: DSTypography.button().copyWith(
-                              fontSize: DSTypography.sizeMd,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ).dsCtaEntry(
-                          delay: DSAnimations.stagger(
-                            8,
-                            step: DSAnimations.staggerNormal,
-                          ),
-                        ),
-                        DSSpacing.hXl,
-
-                        // ── Contact Admin Footer ──────────────────────────
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: DSSpacing.xs,
-                          children: [
-                            Text(
-                              'auth.login_screen.having_trouble'.tr(),
-                              style: DSTypography.body().copyWith(
-                                fontSize: DSTypography.sizeMd,
-                                color: subtitleColor,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: _callAdmin,
-                              child: Text(
-                                'auth.login_screen.contact_admin'.tr(),
-                                style: DSTypography.body().copyWith(
-                                  fontSize: DSTypography.sizeMd,
-                                  color: DSColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        DSSpacing.hXl,
-
-                        // ── Version Number ────────────────────────────────
-                        Text(
-                          AppVersionService.displayVersion,
-                          textAlign: TextAlign.center,
-                          style: DSTypography.caption(
-                            color: subtitleColor.withValues(alpha: 0.5),
-                          ),
-                        ).dsFadeEntry(delay: DSAnimations.stagger(10)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (_loading)
-              ColoredBox(
-                color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _fieldLabel(String text) {
-    return Text(
-      text,
-      style: DSTypography.label().copyWith(
-        fontSize: DSTypography.sizeMd,
-        fontWeight: FontWeight.w600,
-        color: Theme.of(context).colorScheme.onSurface,
-      ),
-    );
-  }
-
   Future<void> _callAdmin() async {
     await showContactAppSheet(
       context,
@@ -573,13 +232,363 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       title: 'auth.login_screen.contact_admin'.tr(),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final updateState = ref.watch(updateProvider);
+    final hasUpdate = updateState.hasUpdate;
+    final canSubmit = !_loading && _rateLimitRemaining == 0 && !hasUpdate;
+
+    final fieldStep = DSAnimations.staggerCoarse;
+
+    return AuthShell(
+      loading: _loading,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AuthHeader(
+              showLogo: true,
+              logoAssetPath: AppAssets.fsiIcon,
+              logoSize: 92,
+            ),
+            DSSpacing.hXl,
+
+            AuthFormCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: _phoneController,
+                        focusNode: _phoneFocus,
+                        keyboardType: TextInputType.phone,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [
+                          AutofillHints.telephoneNumber,
+                          AutofillHints.username,
+                        ],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]')),
+                        ],
+                        onSubmitted: (_) => _passwordFocus.requestFocus(),
+                        decoration: InputDecoration(
+                          labelText: 'auth.login_screen.phone_number'.tr(),
+                          hintText: 'auth.login_screen.phone_hint'.tr(),
+                          prefixIcon: const Icon(
+                            Icons.phone_outlined,
+                            size: DSIconSize.md,
+                          ),
+                          errorText: _errors['phone_number'],
+                        ),
+                      ).dsFieldEntry(
+                        delay: DSAnimations.stagger(1, step: fieldStep),
+                        duration: DSAnimations.dNormal,
+                      ),
+                      DSSpacing.hFormField,
+                      TextField(
+                        controller: _passwordController,
+                        focusNode: _passwordFocus,
+                        obscureText: _obscurePassword,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.password],
+                        onSubmitted: (_) {
+                          if (canSubmit) _submit();
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'auth.login_screen.password'.tr(),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            size: DSIconSize.md,
+                          ),
+                          errorText: _errors['password'],
+                          suffixIcon: IconButton(
+                            tooltip: _obscurePassword
+                                ? 'Show password'
+                                : 'Hide password',
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              size: DSIconSize.md,
+                            ),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                          ),
+                        ),
+                      ).dsFieldEntry(
+                        delay: DSAnimations.stagger(2, step: fieldStep),
+                        duration: DSAnimations.dNormal,
+                      ),
+                      // DS form rhythm: field → formFieldToAction → link → formActionToCta → CTA
+                      DSFormActionLink(
+                        label: 'auth.forgot_password'.tr(),
+                        onPressed: () => context.push('/reset-password'),
+                      ).animate().fadeIn(
+                        delay: DSAnimations.stagger(3, step: fieldStep),
+                        duration: DSAnimations.dFast,
+                      ),
+                      if (hasUpdate) ...[
+                        _LoginUpdateBanner(
+                              info: updateState.updateInfo!,
+                              isDark: isDark,
+                            )
+                            .animate()
+                            .fadeIn(duration: DSAnimations.dNormal)
+                            .slideY(
+                              begin: -0.08,
+                              end: 0,
+                              duration: DSAnimations.dNormal,
+                              curve: Curves.easeOutCubic,
+                            ),
+                        DSSpacing.hFormField,
+                      ],
+                      AuthPrimaryButton(
+                        label: hasUpdate
+                            ? 'auth.login_screen.update_to_sign_in'.tr()
+                            : _rateLimitRemaining > 0
+                            ? 'auth.login_screen.wait_seconds'.tr(
+                                namedArgs: {'seconds': '$_rateLimitRemaining'},
+                              )
+                            : 'auth.login_screen.sign_in'.tr(),
+                        onPressed: canSubmit ? _submit : null,
+                      ).dsCtaEntry(
+                        delay: DSAnimations.stagger(4, step: fieldStep),
+                        duration: DSAnimations.dNormal,
+                      ),
+                    ],
+                  ),
+                )
+                .animate()
+                .fadeIn(
+                  delay: DSAnimations.stagger(1, step: fieldStep),
+                  duration: DSAnimations.dSlow,
+                )
+                .slideY(
+                  begin: 0.08,
+                  end: 0,
+                  delay: DSAnimations.stagger(1, step: fieldStep),
+                  duration: DSAnimations.dSlow,
+                  curve: Curves.easeOutCubic,
+                )
+                .scale(
+                  begin: const Offset(0.97, 0.97),
+                  end: const Offset(1, 1),
+                  delay: DSAnimations.stagger(1, step: fieldStep),
+                  duration: DSAnimations.dSlow,
+                  curve: Curves.easeOutCubic,
+                ),
+
+            DSSpacing.hLg,
+            TextButton.icon(
+                  onPressed: _callAdmin,
+                  icon: const Icon(
+                    Icons.support_agent_rounded,
+                    size: DSIconSize.md,
+                  ),
+                  label: Text('auth.login_screen.contact_admin'.tr()),
+                  style: TextButton.styleFrom(
+                    foregroundColor: DSColors.primary,
+                  ),
+                )
+                .animate()
+                .fadeIn(
+                  delay: DSAnimations.stagger(5, step: fieldStep),
+                  duration: DSAnimations.dNormal,
+                )
+                .slideY(
+                  begin: 0.12,
+                  end: 0,
+                  delay: DSAnimations.stagger(5, step: fieldStep),
+                  duration: DSAnimations.dNormal,
+                ),
+            DSSpacing.hSm,
+            _LoginBuildFooter(isDark: isDark, muted: muted).animate().fadeIn(
+              delay: DSAnimations.stagger(6, step: fieldStep),
+              duration: DSAnimations.dNormal,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-// ── Update banner shown inline on the login screen ────────────────────────────
-//
-// Displayed when the update provider reports an available version so the user
-// can tap "Update Now" and navigate to the full update flow, while the Sign In
-// button stays disabled until the app is updated.
+// ── Build / environment footer (version always; API only when debug UI on) ────
+
+class _LoginBuildFooter extends ConsumerWidget {
+  const _LoginBuildFooter({required this.isDark, required this.muted});
+
+  final bool isDark;
+  final Color muted;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showApi = ref.watch(showDebugUiProvider);
+    final apiUrl = RuntimeEnvironmentService.instance.activeApiBaseUrl;
+    final uri = Uri.tryParse(apiUrl);
+    final host = (uri != null && uri.host.isNotEmpty) ? uri.host : apiUrl;
+    final path = uri?.path ?? '';
+    final isDevMode = RuntimeEnvironmentService.instance.isDeveloperMode;
+    final modeLabel = kAppDebugMode
+        ? (isDevMode ? 'DEBUG · DEV' : 'DEBUG')
+        : 'DEVELOPER';
+
+    final soft = muted.withValues(alpha: isDark ? 0.55 : 0.5);
+    final surface = isDark
+        ? DSColors.white.withValues(alpha: 0.06)
+        : DSColors.primary.withValues(alpha: 0.06);
+    final border = isDark
+        ? DSColors.white.withValues(alpha: 0.10)
+        : DSColors.primary.withValues(alpha: 0.12);
+    final accent = isDark ? DSColors.warningDark : DSColors.warningText;
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: DSSpacing.sm + 2,
+            vertical: DSSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: DSStyles.fullRadius,
+            border: Border.all(color: border),
+          ),
+          child: Text(
+            AppVersionService.displayVersion,
+            style: DSTypography.caption(color: soft).copyWith(
+              fontWeight: FontWeight.w600,
+              letterSpacing: DSTypography.lsWide,
+            ),
+          ),
+        ),
+        if (showApi) ...[
+          DSSpacing.hSm,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              horizontal: DSSpacing.md,
+              vertical: DSSpacing.sm + 2,
+            ),
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: DSStyles.cardRadius,
+              border: Border.all(color: border),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: DSColors.success,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: DSColors.success.withValues(alpha: 0.45),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                    ),
+                    DSSpacing.wSm,
+                    Text(
+                      modeLabel,
+                      style: DSTypography.label(color: accent).copyWith(
+                        fontSize: DSTypography.sizeXs,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                DSSpacing.hSm,
+                Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_outlined,
+                      size: DSIconSize.sm,
+                      color: isDark ? DSColors.primaryDark : DSColors.primary,
+                    ),
+                    DSSpacing.wSm,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            host,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                DSTypography.caption(
+                                  color: isDark
+                                      ? DSColors.white.withValues(alpha: 0.85)
+                                      : DSColors.black.withValues(alpha: 0.75),
+                                ).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: DSTypography.sizeSm,
+                                ),
+                          ),
+                          if (path.isNotEmpty && path != '/')
+                            Text(
+                              path,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: DSTypography.caption(color: soft).copyWith(
+                                fontSize: DSTypography.sizeXs,
+                                fontFamily: 'ui-monospace',
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                DSSpacing.hSm,
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.go('/splash'),
+                    icon: const Icon(
+                      Icons.restart_alt_rounded,
+                      size: DSIconSize.sm,
+                    ),
+                    label: Text('auth.login_screen.debug_view_splash'.tr()),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: accent,
+                      side: BorderSide(color: border),
+                      minimumSize: const Size(0, 40),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: DSSpacing.md,
+                        vertical: DSSpacing.xs,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: DSStyles.cardRadius,
+                      ),
+                      textStyle: DSTypography.label(color: accent).copyWith(
+                        fontSize: DSTypography.sizeXs,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Update banner shown inline on the login screen ───────────────────────────
 
 class _LoginUpdateBanner extends StatelessWidget {
   const _LoginUpdateBanner({required this.info, required this.isDark});

@@ -93,4 +93,15 @@ class AppSettings {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(AppKeys.syncRetentionDays, days);
   }
+
+  /// Whether debug UI chrome is visible (debug/dev builds only). Default true.
+  Future<bool> getDebugUiVisible() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(AppKeys.debugUiVisible) ?? true;
+  }
+
+  Future<void> setDebugUiVisible(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(AppKeys.debugUiVisible, value);
+  }
 }

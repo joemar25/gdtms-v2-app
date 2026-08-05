@@ -9,44 +9,42 @@
 //   Allows a courier to reset or change their account password.
 //
 // Modes:
-//   • Unauthenticated (default) — accessed from the login screen when a courier
-//     has forgotten their password. Requires the courier code and a new password.
-//     On success, the user is redirected to the login screen.
+//   • Unauthenticated (default) — from login when courier forgot password.
+//     Requires courier code + new password. Success → /login.
 //
-//   • Authenticated (authenticatedMode: true) — accessed from the profile page
-//     by a logged-in courier who wants to change their current password. The
-//     courier code is auto-filled and read-only; an additional "Current Password"
-//     field is shown. On success, the user is sent back to the dashboard.
+//   • Authenticated (authenticatedMode: true) — from profile to change
+//     password. Courier code auto-filled (read-only); current password required.
+//     Success → dashboard.
 //
 // API:
-//   PATCH /auth/reset-password
+//   POST /reset-password  (unauthenticated)
+//   POST /change-password (authenticated)
 //
 // Navigation:
-//   Route: /reset-password
-//   Pushed from: LoginScreen (unauthenticated), ProfileScreen (authenticated)
+//   Route: /reset-password | /change-password
 // =============================================================================
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/courier_session_provider.dart';
-import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
+import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/features/auth/widgets/auth_layout.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/post_submit_navigation.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
-import 'package:fsi_courier_app/design_system/design_system.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key, this.authenticatedMode = false});
 
-  /// When [true], the screen is accessed by an authenticated courier from the
-  /// profile page. The courier code is auto-filled and read-only, a
-  /// "Current Password" field is shown, and on success the user is sent back
-  /// to the dashboard instead of the login screen.
+  /// When [true], accessed by a logged-in courier from profile.
   final bool authenticatedMode;
 
   @override
@@ -61,8 +59,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _confirmPassword = TextEditingController();
   final _errors = <String, String>{};
 
+  final _codeFocus = FocusNode();
+  final _currentFocus = FocusNode();
+  final _newFocus = FocusNode();
+  final _confirmFocus = FocusNode();
+
   bool _loading = false;
-  bool _isDeveloperMode = false;
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
@@ -70,8 +72,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   void initState() {
     super.initState();
-    _isDeveloperMode = RuntimeEnvironmentService.instance.isDeveloperMode;
-    // Pre-fill courier code for authenticated users (read-only).
     if (widget.authenticatedMode) {
       final courier = ref.read(courierSessionProvider).courier ?? {};
       _code = TextEditingController(
@@ -80,14 +80,24 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     } else {
       _code = TextEditingController();
     }
+    _newPassword.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _newPassword.removeListener(_onPasswordChanged);
     _code.dispose();
     _currentPassword.dispose();
     _newPassword.dispose();
     _confirmPassword.dispose();
+    _codeFocus.dispose();
+    _currentFocus.dispose();
+    _newFocus.dispose();
+    _confirmFocus.dispose();
     super.dispose();
   }
 
@@ -102,6 +112,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     }
     if (_newPassword.text.isEmpty) {
       _errors['new_password'] = 'This field is required.';
+    } else if (_newPassword.text.length < 8) {
+      _errors['new_password'] = 'Password must be at least 8 characters.';
     }
     if (_confirmPassword.text.isEmpty) {
       _errors['new_password_confirmation'] = 'This field is required.';
@@ -182,160 +194,98 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     final title = widget.authenticatedMode
         ? 'Change Password'
         : 'Reset Password';
+    final showDebugUi = ref.watch(showDebugUiProvider);
+    final codeLabel = widget.authenticatedMode
+        ? (showDebugUi
+              ? 'Courier Code (${kDebugMode ? 'Debug' : 'Dev'})'
+              : 'Courier Code')
+        : 'Courier Code';
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      appBar: AppHeaderBar(
-        title: title,
-        showNotificationBell: widget.authenticatedMode,
-      ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              DSSpacing.lg,
-              DSSpacing.xl,
-              DSSpacing.lg,
-              DSSpacing.xl,
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+    final formBody = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AuthHeader(
+          title: title,
+          leadingIcon: widget.authenticatedMode
+              ? Icons.shield_rounded
+              : Icons.lock_reset_rounded,
+        ),
+        DSSpacing.hLg,
+        AuthFormCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Icon + heading ─────────────────────────────────
-                  Center(
-                    child: Container(
-                      width: DSIconSize.heroMd,
-                      height: DSIconSize.heroMd,
-                      decoration: BoxDecoration(
-                        color: DSColors.primary.withValues(
-                          alpha: DSStyles.alphaSubtle,
+                  if (!widget.authenticatedMode) ...[
+                    const _CourierCodeInstruction()
+                        .animate()
+                        .fadeIn(duration: DSAnimations.dNormal)
+                        .slideY(
+                          begin: 0.06,
+                          end: 0,
+                          duration: DSAnimations.dNormal,
+                          curve: Curves.easeOutCubic,
                         ),
-                        borderRadius: DSStyles.cardRadius,
+                    DSSpacing.hFormField,
+                  ],
+                  TextField(
+                    controller: _code,
+                    focusNode: _codeFocus,
+                    readOnly: widget.authenticatedMode,
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.characters,
+                    autofillHints: widget.authenticatedMode
+                        ? null
+                        : const [AutofillHints.username],
+                    onSubmitted: (_) {
+                      if (widget.authenticatedMode) {
+                        _currentFocus.requestFocus();
+                      } else {
+                        _newFocus.requestFocus();
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: codeLabel,
+                      prefixIcon: const Icon(
+                        Icons.badge_outlined,
+                        size: DSIconSize.md,
                       ),
-                      child: const Icon(
-                        Icons.lock_reset_rounded,
-                        size: DSIconSize.xl,
-                        color: DSColors.primary,
-                      ),
+                      errorText: _errors['courier_code'],
+                      filled: true,
+                      fillColor: widget.authenticatedMode
+                          ? (Theme.of(context).brightness == Brightness.dark
+                                ? DSColors.secondarySurfaceDark
+                                : DSColors.secondarySurfaceLight)
+                          : null,
+                      suffixIcon: widget.authenticatedMode
+                          ? Icon(
+                              Icons.lock_outline,
+                              size: DSIconSize.sm,
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? DSColors.labelTertiaryDark
+                                  : DSColors.labelTertiary,
+                            )
+                          : null,
                     ),
-                  ).dsHeroEntry(),
-                  DSSpacing.hLg,
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: DSTypography.heading().copyWith(
-                      fontSize: DSTypography.sizeLg,
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? DSColors.labelPrimaryDark
-                          : DSColors.labelPrimary,
-                      letterSpacing: -0.3,
-                    ),
-                  ).dsFadeEntry(
+                  ).dsFieldEntry(
                     delay: DSAnimations.stagger(
                       1,
-                      step: DSAnimations.staggerNormal,
+                      step: DSAnimations.staggerCoarse,
                     ),
+                    duration: DSAnimations.dNormal,
                   ),
-                  DSSpacing.hSm,
-                  Text(
-                    widget.authenticatedMode
-                        ? 'Update your current password securely.'
-                        : 'Enter your courier code and new password.',
-                    textAlign: TextAlign.center,
-                    style: DSTypography.body().copyWith(
-                      fontSize: DSTypography.sizeMd,
-                      color: isDark
-                          ? DSColors.labelSecondaryDark
-                          : DSColors.labelSecondary,
-                    ),
-                  ).dsFadeEntry(
-                    delay: DSAnimations.stagger(
-                      2,
-                      step: DSAnimations.staggerNormal,
-                    ),
-                  ),
-                  DSSpacing.hXl,
-
-                  // ── Courier Code ───────────────────────────────────
-                  // Label changes dynamically based on authenticatedMode
-                  _fieldLabel(
-                    context,
-                    isDark,
-                    widget.authenticatedMode
-                        ? (kDebugMode || _isDeveloperMode
-                              ? 'Courier Code (${kDebugMode ? 'Debug' : 'Dev'})'
-                              : 'Courier Code')
-                        : 'Courier Code',
-                  ).dsFadeEntry(
-                    delay: DSAnimations.stagger(
-                      3,
-                      step: DSAnimations.staggerNormal,
-                    ),
-                  ),
-                  DSSpacing.hSm,
-
-                  (widget.authenticatedMode
-                          ? TextField(
-                              controller: _code,
-                              readOnly: true,
-                              decoration: InputDecoration(
-                                hintText: 'Your courier code',
-                                prefixIcon: const Icon(
-                                  Icons.badge_outlined,
-                                  size: DSIconSize.md,
-                                ),
-                                errorText: _errors['courier_code'],
-                                filled: true,
-                                fillColor: isDark
-                                    ? DSColors.secondarySurfaceDark
-                                    : DSColors.secondarySurfaceLight,
-                                suffixIcon: Icon(
-                                  Icons.lock_outline,
-                                  size: DSIconSize.sm,
-                                  color: isDark
-                                      ? DSColors.labelTertiaryDark
-                                      : DSColors.labelTertiary,
-                                ),
-                              ),
-                            )
-                          : TextField(
-                              controller: _code,
-                              readOnly:
-                                  false, // Editable input when not authenticated
-                              decoration: InputDecoration(
-                                hintText: 'Your courier code',
-                                prefixIcon: const Icon(
-                                  Icons.badge_outlined,
-                                  size: DSIconSize.md,
-                                ),
-                                errorText: _errors['courier_code'],
-                                filled: false,
-                                suffixIcon: null,
-                              ),
-                            ))
-                      .dsFieldEntry(
-                        delay: DSAnimations.stagger(
-                          4,
-                          step: DSAnimations.staggerNormal,
-                        ),
-                      ),
-
-                  DSSpacing.hMd,
-
-                  // ── Current Password (auth mode only) ──────────────
+                  DSSpacing.hFormField,
                   if (widget.authenticatedMode) ...[
-                    _fieldLabel(context, isDark, 'Current Password'),
-                    DSSpacing.hSm,
                     TextField(
                       controller: _currentPassword,
+                      focusNode: _currentFocus,
                       obscureText: _obscureCurrent,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.password],
+                      onSubmitted: (_) => _newFocus.requestFocus(),
                       decoration: InputDecoration(
-                        hintText: 'Your current password',
+                        labelText: 'Current Password',
                         prefixIcon: const Icon(
                           Icons.lock_outline,
                           size: DSIconSize.md,
@@ -355,26 +305,23 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       ),
                     ).dsFieldEntry(
                       delay: DSAnimations.stagger(
-                        5,
-                        step: DSAnimations.staggerNormal,
+                        2,
+                        step: DSAnimations.staggerCoarse,
                       ),
+                      duration: DSAnimations.dNormal,
                     ),
-                    DSSpacing.hMd,
+                    DSSpacing.hFormField,
                   ],
-
-                  // ── New Password ───────────────────────────────────
-                  _fieldLabel(context, isDark, 'New Password').dsFadeEntry(
-                    delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? 6 : 5,
-                      step: DSAnimations.staggerNormal,
-                    ),
-                  ),
-                  DSSpacing.hSm,
                   TextField(
                     controller: _newPassword,
+                    focusNode: _newFocus,
                     obscureText: _obscureNew,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.newPassword],
+                    onSubmitted: (_) => _confirmFocus.requestFocus(),
                     decoration: InputDecoration(
-                      hintText: 'At least 8 characters',
+                      labelText: 'New Password',
+                      hintText: 'Min. 8 characters',
                       prefixIcon: const Icon(
                         Icons.lock_outline,
                         size: DSIconSize.md,
@@ -393,29 +340,24 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                   ).dsFieldEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? 7 : 6,
-                      step: DSAnimations.staggerNormal,
+                      widget.authenticatedMode ? 3 : 2,
+                      step: DSAnimations.staggerCoarse,
                     ),
+                    duration: DSAnimations.dNormal,
                   ),
-                  DSSpacing.hMd,
-
-                  // ── Confirm New Password ───────────────────────────
-                  _fieldLabel(
-                    context,
-                    isDark,
-                    'Confirm New Password',
-                  ).dsFadeEntry(
-                    delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? 8 : 7,
-                      step: DSAnimations.staggerNormal,
-                    ),
-                  ),
-                  DSSpacing.hSm,
+                  AuthPasswordStrengthMeter(password: _newPassword.text),
+                  DSSpacing.hFormField,
                   TextField(
                     controller: _confirmPassword,
+                    focusNode: _confirmFocus,
                     obscureText: _obscureConfirm,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: const [AutofillHints.newPassword],
+                    onSubmitted: (_) {
+                      if (!_loading) _submit();
+                    },
                     decoration: InputDecoration(
-                      hintText: 'Re-enter your new password',
+                      labelText: 'Confirm Password',
                       prefixIcon: const Icon(
                         Icons.lock_outline,
                         size: DSIconSize.md,
@@ -434,55 +376,132 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ),
                   ).dsFieldEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? 9 : 8,
-                      step: DSAnimations.staggerNormal,
+                      widget.authenticatedMode ? 4 : 3,
+                      step: DSAnimations.staggerCoarse,
                     ),
+                    duration: DSAnimations.dNormal,
                   ),
-                  DSSpacing.hXl,
-
-                  // ── Submit Button ──────────────────────────────────
-                  FilledButton(
+                  DSSpacing.hFormFieldToCta,
+                  AuthPrimaryButton(
+                    label: widget.authenticatedMode
+                        ? 'Change Password'
+                        : 'Submit',
                     onPressed: _loading ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: DSStyles.cardRadius, // 16.0
-                      ),
-                    ),
-                    child: Text(
-                      widget.authenticatedMode ? 'Change Password' : 'Submit',
-                      style: DSTypography.button().copyWith(
-                        fontSize: DSTypography.sizeMd,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ).dsCtaEntry(
                     delay: DSAnimations.stagger(
-                      widget.authenticatedMode ? 10 : 9,
-                      step: DSAnimations.staggerNormal,
+                      widget.authenticatedMode ? 5 : 4,
+                      step: DSAnimations.staggerCoarse,
                     ),
+                    duration: DSAnimations.dNormal,
                   ),
+                  if (!widget.authenticatedMode) ...[
+                    DSSpacing.hSm,
+                    TextButton(
+                      onPressed: _loading ? null : () => context.go('/login'),
+                      child: const Text('Back to Sign In'),
+                    ).animate().fadeIn(
+                      delay: DSAnimations.stagger(
+                        5,
+                        step: DSAnimations.staggerCoarse,
+                      ),
+                      duration: DSAnimations.dFast,
+                    ),
+                  ],
                 ],
+              ),
+            )
+            .animate()
+            .fadeIn(delay: 80.ms, duration: DSAnimations.dSlow)
+            .slideY(
+              begin: 0.08,
+              end: 0,
+              delay: 80.ms,
+              duration: DSAnimations.dSlow,
+              curve: Curves.easeOutCubic,
+            ),
+      ],
+    );
+
+    // Unauthenticated: full AuthShell (no app bar). Authenticated: app bar.
+    if (!widget.authenticatedMode) {
+      return AuthShell(loading: _loading, child: formBody);
+    }
+
+    return Scaffold(
+      appBar: AppHeaderBar(title: title, showNotificationBell: true),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                DSSpacing.lg,
+                DSSpacing.md,
+                DSSpacing.lg,
+                DSSpacing.xl + MediaQuery.paddingOf(context).bottom,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: formBody,
               ),
             ),
           ),
           if (_loading)
             ColoredBox(
               color: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
-              child: Center(child: CircularProgressIndicator()),
+              child: const Center(child: CircularProgressIndicator()),
             ),
         ],
       ),
     );
   }
+}
 
-  Widget _fieldLabel(BuildContext context, bool isDark, String text) {
-    return Text(
-      text,
-      style: DSTypography.label().copyWith(
-        fontSize: DSTypography.sizeMd,
-        fontWeight: FontWeight.w600,
-        color: isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary,
+/// Soft DS callout: contact admin/manager if courier code unknown.
+/// Unauthenticated reset only — authenticated mode already has the code.
+class _CourierCodeInstruction extends StatelessWidget {
+  const _CourierCodeInstruction();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? DSColors.primaryDark : DSColors.primary;
+    final bgColor = isDark
+        ? accent.withValues(alpha: DSStyles.alphaSubtle)
+        : DSColors.primarySurface;
+    final textColor = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.neutralText;
+
+    return Container(
+      padding: const EdgeInsets.all(DSSpacing.md),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: DSStyles.cardRadius,
+        border: Border.all(
+          color: accent.withValues(alpha: DSStyles.alphaMuted),
+          width: DSStyles.borderWidth,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.support_agent_rounded, size: DSIconSize.md, color: accent),
+          DSSpacing.wSm,
+          Expanded(
+            child: Text(
+              'auth.reset_password.courier_code_hint'.tr(),
+              style: DSTypography.caption(color: textColor).copyWith(
+                fontSize: DSTypography.sizeSm,
+                height: DSStyles.heightNormal,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

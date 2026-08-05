@@ -9,6 +9,14 @@ abstract final class AppAssets {
   // ── Images ───────────────────────────────────────────────────────────────
   static const String logo = 'assets/logo.png';
   static const String icon = 'assets/favicon-32x32.png';
+  static const String appIcon = 'assets/images/app_icon.png';
+  static const String splashLogo = 'assets/images/splash_logo.png';
+
+  /// FSI brand mark (icon only) — auth headers, compact brand spots.
+  static const String fsiIcon = 'assets/images/fsi_icon.svg';
+
+  /// FSI wordmark + mark — wider brand placements.
+  static const String fsiLogo = 'assets/images/fsi_logo.svg';
 
   // ── Animations ───────────────────────────────────────────────────────────
   static const String animHourGlass = 'assets/anim/hour-glass.json';
@@ -31,6 +39,10 @@ abstract final class AppKeys {
   static const String syncRetentionDays = 'sync_retention_days';
   static const String dashboardFeel = 'dashboard_feel';
   static const String developerMode = 'developer_mode';
+
+  /// When true (default), debug/dev chrome is shown. Global toggle hides it
+  /// so UI/UX can be reviewed as production while still on a debug build.
+  static const String debugUiVisible = 'debug_ui_visible';
 }
 
 const int kDashboardPerPage = 5;

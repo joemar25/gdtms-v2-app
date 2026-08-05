@@ -4,6 +4,8 @@
   This file documents:
     lib/features/auth/login_screen.dart
     lib/features/auth/reset_password_screen.dart
+    lib/features/auth/widgets/auth_layout.dart
+    lib/features/auth/widgets/auth_illustration.dart
 
   Update this document whenever you change any of those files.
   Each of those files carries a header comment: "DOCS: docs/features/auth.md"
@@ -16,8 +18,27 @@
 
 | File | Route | Purpose |
 |------|-------|---------|
-| `lib/features/auth/login_screen.dart` | `/login` | Email + password login form |
-| `lib/features/auth/reset_password_screen.dart` | `/reset-password` | Request password reset email |
+| `lib/features/auth/login_screen.dart` | `/login` | Phone + password login |
+| `lib/features/auth/reset_password_screen.dart` | `/reset-password` | Forgot password (unauth) |
+| `lib/features/auth/reset_password_screen.dart` | `/change-password` | Change password (auth) |
+| `lib/features/auth/widgets/auth_layout.dart` | — | Shell, form card, header, icon badge, CTA, strength meter |
+| `lib/features/auth/widgets/auth_animated_background.dart` | — | Soft drifting brand orbs (reduced-motion aware) |
+| `lib/features/auth/widgets/auth_illustration.dart` | — | Brand SVG/PNG loader (`AuthLogoMark`) |
+
+---
+
+## Brand assets
+
+| Constant | Path | Use |
+|----------|------|-----|
+| `AppAssets.fsiIcon` | `assets/images/fsi_icon.svg` | Login logo mark |
+| `AppAssets.fsiLogo` | `assets/images/fsi_logo.svg` | Wider wordmark placements |
+
+UI chrome that is **not** brand art uses Material icons only:
+- Secure session → `Icons.verified_user_outlined`
+- Contact admin → `Icons.support_agent_rounded`
+- Reset / change password → `Icons.lock_reset_rounded` / `Icons.shield_rounded` via `AuthIconBadge`
+- Theme toggle → light/dark mode icons
 
 ---
 
@@ -25,29 +46,52 @@
 
 ### Flow
 
-1. Courier enters email and password.
-2. Calls `AuthService.login(email, password)`.
-3. On success: `AuthNotifier.login(token)` → router redirects to `/dashboard`.
-4. On `ApiUnauthorized`: shows "Invalid credentials" inline error.
-5. On `ApiNetworkError`: shows offline snackbar.
+1. Courier enters **phone number** and password.
+2. `POST /login` with device metadata.
+3. On success: store token + courier, session fingerprint check, navigate via `goToDashboardAfterSubmit`.
+4. Errors: validation inline, unauthorized/network/rate-limit snackbars; update banner can disable Sign In.
 
-### Notes
+### UI
 
-- Does not redirect to `/initial-sync` — that is handled by the router redirect logic after `authProvider` transitions to `authenticated`.
-- "Forgot password?" link navigates to `/reset-password`.
-- Session fingerprint now uses the runtime-selected API base URL so production and developer-mode sessions remain isolated.
+- `AuthShell` + `DsBrandBackdrop` at **standard** intensity (login-level scenery)
+- Logo only (`AppAssets.fsiIcon`) — no filler subtitle / secure-session copy
+- Floating labels on fields, glass form card, compact contact + version footer
+
+### Backdrop intensity (DX)
+
+Scenic chrome is **not** one-size-fits-all. Use presets from
+`lib/design_system/widgets/ds_brand_backdrop.dart`:
+
+| Preset | Use |
+|--------|-----|
+| `DsBackdropIntensity.none` | Dense tools / no scenery |
+| `DsBackdropIntensity.quiet` | Splash, brief gates |
+| `DsBackdropIntensity.standard` | Login / reset (default `AuthShell`) |
+| `DsBackdropIntensity.vivid` | Marketing peaks only |
+
+```dart
+// Login (default)
+AuthShell(child: ...)
+
+// Splash
+DsBrandBackdrop(intensity: DsBackdropIntensity.quiet)
+
+// Custom mix
+DsBrandBackdrop(config: DsBrandBackdropConfig.standard.copyWith(showParticles: false))
+```
+
+`AuthLogoMark(pulse: false)` for quieter brand marks (splash).
+- **Debug UI chrome** (when `showDebugUiProvider` is true): API host panel + **View splash screen**. Global top-left **DEBUG** chip toggles chrome (see `docs/core/settings.md`)
 
 ---
 
 ## `reset_password_screen.dart`
 
-### Flow
+| Mode | Entry | API | Success |
+|------|-------|-----|---------|
+| Unauthenticated | Login → Forgot password | `POST /reset-password` | → `/login` |
+| Authenticated | Profile → Change password | `POST /change-password` | → dashboard |
 
-1. Courier enters registered email.
-2. Calls `AuthService.resetPassword(email)`.
-3. On success: shows confirmation message; courier checks email.
-4. On error: inline error display.
+UI: icon badge header (no custom illustration SVG), form card, password strength meter, min 8 chars client check.
 
-### Notes
-
-- This screen does **not** handle the reset token link — that is a web flow handled by the backend.
+**Unauthenticated only:** DS callout above courier-code field — if code unknown, contact admin or manager (`auth.reset_password.courier_code_hint`). Uses `Icons.support_agent_rounded` + primary surface tokens (same contact chrome as login).

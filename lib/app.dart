@@ -16,6 +16,7 @@ import 'shared/router/app_router.dart';
 import 'core/providers/update_provider.dart';
 import 'models/update_info.dart';
 import 'shared/widgets/update_banner_widget.dart';
+import 'shared/widgets/debug_ui_toggle.dart';
 import 'shared/router/router_keys.dart';
 import 'shared/widgets/time_enforcer.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -44,8 +45,18 @@ class FsiCourierApp extends ConsumerWidget {
         theme: DSTheme.build(Brightness.light),
         darkTheme: DSTheme.build(Brightness.dark),
         routerConfig: router,
-        builder: (context, child) =>
-            TimeEnforcer(child: _AutoSyncListener(child: child!)),
+        builder: (context, child) => TimeEnforcer(
+          child: _AutoSyncListener(
+            // Stack keeps global chrome above routes without OverlayEntry races.
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                child ?? const SizedBox.shrink(),
+                const DebugUiToggle(),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

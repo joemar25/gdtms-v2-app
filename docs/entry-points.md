@@ -127,3 +127,4 @@ Shows the app logo while checking auth state. Redirects based on outcome:
 
 - Auth check uses `AuthStorage` (secure storage) — no network call.
 - Route guards in `app_router.dart` enforce these same rules on every navigation.
+- Visual system shares auth language but **quieter**: `DsBrandBackdrop(intensity: quiet)`, `AuthLogoMark(pulse: false)`, glass chips, DS stagger. Do not reuse login `standard` intensity on splash.
