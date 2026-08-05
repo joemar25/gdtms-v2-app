@@ -77,9 +77,16 @@ class DeliveryBootstrapService {
 
   /// Full sync with progress callbacks. Used by [InitialSyncScreen] to show
   /// live status messages during the first-time data pull.
+  ///
+  /// [onForDeliveryReady] (P6): fires as soon as the FOR_DELIVERY-specific
+  /// fetch completes — the data a courier acts on immediately — while
+  /// FAILED_DELIVERY/MISROUTED/DELIVERED, bagsakan, and cleanup keep going.
+  /// Purely additive: doesn't change fetch order, concurrency, or when Phase
+  /// 2/3 run relative to each other.
   Future<void> syncFromApiWithProgress(
     ApiClient client, {
     void Function(String message)? onProgress,
+    void Function()? onForDeliveryReady,
   }) async {
     final startTime = DateTime.now().millisecondsSinceEpoch;
     final updatedSince = await AuthStorage().getLastSyncTime();
@@ -99,13 +106,17 @@ class DeliveryBootstrapService {
       // For delta sync, we don't have separate status sets, so we just collect all.
       // Phase 2 cleanup will only remove items that were PENDING but are now gone.
       serverBarcodesPerStatus['DELTA'] = deltaBarcodes;
+      // No per-status granularity in delta mode — everything just fetched.
+      onForDeliveryReady?.call();
     } else {
       // P1: parallel status sweeps (same requests as sequential; Phase 2 waits).
       onProgress?.call('Fetching deliveries (all statuses)...');
+      final forDeliveryStatus = DeliveryStatus.pending.toApiString();
       final sweep = await Future.wait(
         _statuses.map((status) async {
           final barcodes = await _syncStatus(client, status);
           debugPrint('[SYNC] $status — fetched ${barcodes.length} barcodes');
+          if (status == forDeliveryStatus) onForDeliveryReady?.call();
           return MapEntry(status, barcodes);
         }),
       );
@@ -178,12 +189,17 @@ class DeliveryBootstrapService {
   Future<void> clearAndSyncFromApiWithProgress(
     ApiClient client, {
     void Function(String message)? onProgress,
+    void Function()? onForDeliveryReady,
   }) async {
     onProgress?.call('Clearing local data...');
     await AuthStorage().setLastSyncTime(0); // Force full sync
     await LocalDeliveryDao.instance.deleteAll();
     await BagsakanDao.instance.deleteAllGroups();
-    await syncFromApiWithProgress(client, onProgress: onProgress);
+    await syncFromApiWithProgress(
+      client,
+      onProgress: onProgress,
+      onForDeliveryReady: onForDeliveryReady,
+    );
   }
 
   /// Full sync: reconcile local pending items FIRST, then sweep statuses (or delta).
@@ -703,6 +719,12 @@ class DeliveryBootstrapService {
   /// The server excludes bagsakan-assigned deliveries from the standard delivery
   /// list (hard gate: `WHERE deliveries.bagsakan_id IS NULL`). This method
   /// bridges that gap so upsertGroupsFromSync can find existing rows to update.
+  ///
+  /// P3 mobile-side stopgap: same bounded-concurrency pattern as the P1 status
+  /// sweep ([_kPageConcurrency]) instead of one request at a time — same
+  /// request count, much less wall-clock time for large groups. The real fix
+  /// (a single `GET /deliveries?bagsakan_id={id}` call) needs a backend change
+  /// (gdtms-v2-web) and is tracked separately.
   Future<void> _fetchAndInsertGroupDeliveries(
     ApiClient client,
     List<String> barcodes,
@@ -712,7 +734,7 @@ class DeliveryBootstrapService {
 
     final deliveryItems = <Map<String, dynamic>>[];
 
-    for (final barcode in barcodes) {
+    Future<void> fetchOne(String barcode) async {
       try {
         final result = await client.get<Map<String, dynamic>>(
           '/deliveries/$barcode',
@@ -737,6 +759,10 @@ class DeliveryBootstrapService {
       } catch (e) {
         debugPrint('[SYNC] group $groupId: delivery $barcode fetch error: $e');
       }
+    }
+
+    for (final chunk in DeliverySyncPaging.chunk(barcodes, _kPageConcurrency)) {
+      await Future.wait(chunk.map(fetchOne));
     }
 
     if (deliveryItems.isNotEmpty) {

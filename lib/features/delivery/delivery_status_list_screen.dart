@@ -41,7 +41,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/config.dart';
-import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/courier_session_provider.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
@@ -207,6 +207,40 @@ class _DeliveryStatusListScreenState
 
   // ─── MARK: Data Loading ───────────────────────────────────────────────────
 
+  /// A3: full reload on any [deliveryRefreshProvider] bump, unless a barcode
+  /// scope was recorded and none of the scoped barcodes are relevant to this
+  /// screen — then skip the (potentially expensive, paginated) reload.
+  Future<void> _maybeReloadOnRefresh() async {
+    final scope = ref.read(lastDeliveryRefreshBarcodesProvider);
+    if (scope != null &&
+        scope.isNotEmpty &&
+        !await _scopeAffectsThisScreen(scope)) {
+      return;
+    }
+    if (!mounted) return;
+    _currentPage = 0;
+    _load();
+  }
+
+  /// True if any barcode in [scope] is already displayed on this screen, or
+  /// currently has this screen's status (about to enter it).
+  Future<bool> _scopeAffectsThisScreen(Set<String> scope) async {
+    final alreadyShown = scope.any(
+      (b) => _items.any((d) => d['barcode']?.toString() == b),
+    );
+    if (alreadyShown) return true;
+
+    final dao = ref.read(localDeliveryDaoProvider);
+    final targetStatus = widget.status.toUpperCase();
+    for (final barcode in scope) {
+      final row = await dao.getByBarcode(barcode);
+      if (row != null && row.deliveryStatus.toUpperCase() == targetStatus) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   Future<void> _load() async {
     if (!mounted) return;
     setState(() => _loading = true);
@@ -214,7 +248,7 @@ class _DeliveryStatusListScreenState
     final status = widget.status.toUpperCase();
     final dao = ref.read(localDeliveryDaoProvider);
     final syncDao = ref.read(syncOperationsDaoProvider);
-    final auth = ref.read(authProvider);
+    final session = ref.read(courierSessionProvider);
     final pageSize = _kPageSize;
 
     // 1. Get total count
@@ -282,7 +316,7 @@ class _DeliveryStatusListScreenState
     }
 
     // 4. Sync-lock check
-    final courierId = auth.courier?['id']?.toString() ?? '';
+    final courierId = session.courierId;
     _queuedBarcodes = await syncDao.getSyncQueuedBarcodes(courierId);
     if (!mounted) return;
 
@@ -450,8 +484,7 @@ class _DeliveryStatusListScreenState
   @override
   Widget build(BuildContext context) {
     ref.listen<int>(deliveryRefreshProvider, (_, _) {
-      _currentPage = 0;
-      _load();
+      _maybeReloadOnRefresh();
     });
 
     ref.listen<bool>(compactModeProvider, (_, _) {

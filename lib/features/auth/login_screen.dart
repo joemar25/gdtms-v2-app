@@ -22,6 +22,7 @@ import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/providers/update_provider.dart';
 import 'package:fsi_courier_app/models/update_info.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/post_submit_navigation.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
@@ -166,10 +167,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final prevFingerprint = prefs.getString('_session_fingerprint') ?? '';
 
         final lastCourierId = await authStorage.getLastCourierId();
-        if ((prevFingerprint.isNotEmpty && prevFingerprint != newFingerprint) ||
-            (lastCourierId != null && lastCourierId != courierId)) {
+        // P4: first install or courier/server identity change needs a full
+        // wipe + resweep. A same-courier re-login (e.g. after logout, or a
+        // force-quit recovery with matching identity) can skip the wipe and
+        // run the normal delta sync against the still-valid local data —
+        // `initial_sync_screen.dart` reads this flag to decide.
+        final isFirstInstall = prevFingerprint.isEmpty && lastCourierId == null;
+        final identityChanged =
+            (prevFingerprint.isNotEmpty && prevFingerprint != newFingerprint) ||
+            (lastCourierId != null && lastCourierId != courierId);
+        final needsFullResync = isFirstInstall || identityChanged;
+        if (needsFullResync) {
           await AppDatabase.clearAllDeliveryData();
+          // clearAllDeliveryData wipes local_deliveries but not the
+          // secure-storage last_sync_time — reset it too so the next sync
+          // can't mistake the empty table for "nothing changed since".
+          await authStorage.setLastSyncTime(0);
         }
+        await authStorage.setNeedsFullResync(needsFullResync);
         await prefs.setString('_session_fingerprint', newFingerprint);
 
         await authStorage.setToken(token);
@@ -177,7 +192,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         await authStorage.setLastCourierId(courierId);
         await _saveCredentials();
         await ref.read(authProvider.notifier).initialize();
-        if (mounted) context.go('/dashboard');
+        if (mounted) goToDashboardAfterSubmit(context);
         break;
       case ApiValidationError<Map<String, dynamic>>(:final errors):
         errors.forEach((key, value) => _errors[key] = value.first);

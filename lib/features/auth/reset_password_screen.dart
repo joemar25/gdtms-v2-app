@@ -32,9 +32,10 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/courier_session_provider.dart';
 import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/post_submit_navigation.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
@@ -72,7 +73,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     _isDeveloperMode = RuntimeEnvironmentService.instance.isDeveloperMode;
     // Pre-fill courier code for authenticated users (read-only).
     if (widget.authenticatedMode) {
-      final courier = ref.read(authProvider).courier ?? {};
+      final courier = ref.read(courierSessionProvider).courier ?? {};
       _code = TextEditingController(
         text: courier['courier_code']?.toString() ?? '',
       );
@@ -153,7 +154,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               : 'Password reset successful.',
         );
         if (widget.authenticatedMode) {
-          context.go('/dashboard');
+          goToDashboardAfterSubmit(context);
         } else {
           context.go('/login');
         }

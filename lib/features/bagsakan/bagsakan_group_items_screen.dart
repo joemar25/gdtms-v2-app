@@ -15,13 +15,14 @@ import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
+import 'package:fsi_courier_app/core/services/bagsakan_service.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
-import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/courier_session_provider.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_providers.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_components.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_submit_fab.dart';
@@ -53,6 +54,31 @@ class _BagsakanGroupItemsScreenState
     _loadData();
   }
 
+  /// A3: full reload on any [deliveryRefreshProvider] bump, unless a barcode
+  /// scope was recorded and none of the scoped barcodes belong to (or are
+  /// about to belong to) this group — then skip the reload.
+  Future<void> _maybeReloadOnRefresh() async {
+    final scope = ref.read(lastDeliveryRefreshBarcodesProvider);
+    if (scope != null &&
+        scope.isNotEmpty &&
+        !await _scopeAffectsThisGroup(scope)) {
+      return;
+    }
+    _loadData();
+  }
+
+  Future<bool> _scopeAffectsThisGroup(Set<String> scope) async {
+    final alreadyInGroup = scope.any((b) => _items.any((d) => d.barcode == b));
+    if (alreadyInGroup) return true;
+
+    final dao = ref.read(localDeliveryDaoProvider);
+    for (final barcode in scope) {
+      final row = await dao.getByBarcode(barcode);
+      if (row != null && row.bagsakanId == _activeGroupId) return true;
+    }
+    return false;
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
@@ -67,8 +93,7 @@ class _BagsakanGroupItemsScreenState
           });
         }
 
-        final isOnline =
-            ref.read(connectionStatusProvider) == ConnectionStatus.online;
+        final isOnline = ref.read(isOnlineProvider);
         if (isOnline) {
           await _loadGroupDetailsFromApi();
         }
@@ -85,11 +110,8 @@ class _BagsakanGroupItemsScreenState
     if (createPending) return;
 
     final result = await ref
-        .read(apiClientProvider)
-        .get<Map<String, dynamic>>(
-          '/bagsakan/groups/$_activeGroupId',
-          parser: parseApiMap,
-        );
+        .read(bagsakanServiceProvider)
+        .getGroupDetail(_activeGroupId);
     if (result is! ApiSuccess<Map<String, dynamic>> || !mounted) return;
 
     final groupData = mapFromKey(result.data, 'data');
@@ -207,8 +229,7 @@ class _BagsakanGroupItemsScreenState
     if (confirmed == true && mounted) {
       setState(() => _isLoading = true);
       try {
-        final courierId =
-            ref.read(authProvider).courier?['id']?.toString() ?? '';
+        final courierId = ref.read(courierSessionProvider).courierId;
         await ref
             .read(bagsakanDaoProvider)
             .submitBagsakanGroup(
@@ -303,8 +324,7 @@ class _BagsakanGroupItemsScreenState
     if (confirmed == true && mounted) {
       setState(() => _isLoading = true);
       try {
-        final courierId =
-            ref.read(authProvider).courier?['id']?.toString() ?? '';
+        final courierId = ref.read(courierSessionProvider).courierId;
         await ref
             .read(bagsakanDaoProvider)
             .unassignFromBagsakan(delivery.barcode, courierId);
@@ -367,7 +387,7 @@ class _BagsakanGroupItemsScreenState
     // Listen for refreshes
     ref.listen(deliveryRefreshProvider, (prev, next) {
       if (prev != next) {
-        _loadData();
+        _maybeReloadOnRefresh();
       }
     });
 

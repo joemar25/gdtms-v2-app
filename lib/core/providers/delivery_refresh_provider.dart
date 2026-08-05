@@ -9,7 +9,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Last barcode set passed to [DeliveryRefreshNotifier.invalidate].
 /// `null` means a full refresh was requested (all lists should reload).
 ///
-/// Screens may optionally filter on this; most still reload on generation change.
+/// Consumed by `delivery_status_list_screen.dart` and
+/// `bagsakan_group_items_screen.dart` (A3) to skip a reload when the scope
+/// doesn't affect what's on screen. Other screens (dashboard counts, wallet
+/// balance, sync screen) ignore this and always reload — their query is
+/// cheap enough that scoping isn't worth the complexity.
 final lastDeliveryRefreshBarcodesProvider =
     NotifierProvider<_LastRefreshBarcodesNotifier, Set<String>?>(
       _LastRefreshBarcodesNotifier.new,

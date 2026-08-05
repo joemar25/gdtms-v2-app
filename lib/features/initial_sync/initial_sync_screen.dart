@@ -11,6 +11,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/auth_storage.dart';
+import 'package:fsi_courier_app/core/providers/delivery_refresh_provider.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
@@ -37,19 +39,70 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
 
   Future<void> _runSync() async {
     debugPrint('[InitialSync] _runSync start');
+    // Captured up front (not via `ref` later) so the background continuation
+    // below can still signal a refresh after this screen navigates away and
+    // disposes — `ref` itself becomes unusable post-dispose, but a container
+    // reference grabbed before that point stays valid for the app's lifetime.
+    final container = ProviderScope.containerOf(context, listen: false);
     final client = ref.read(apiClientProvider);
-    try {
-      await DeliveryBootstrapService.instance.clearAndSyncFromApiWithProgress(
-        client,
-        onProgress: (msg) {
-          debugPrint('[InitialSync] progress: $msg');
-          if (mounted) setState(() => _progressText = msg);
-        },
-      );
-    } catch (e) {
-      debugPrint('[InitialSync] sync error: $e');
-      // Best-effort — allow user to proceed even if sync partially fails.
+    final authStorage = ref.read(authStorageProvider);
+    void onProgress(String msg) {
+      debugPrint('[InitialSync] progress: $msg');
+      if (mounted) setState(() => _progressText = msg);
     }
+
+    final forDeliveryReady = Completer<void>();
+    void onForDeliveryReady() {
+      debugPrint('[InitialSync] FOR_DELIVERY ready — offering early continue');
+      if (!forDeliveryReady.isCompleted) forDeliveryReady.complete();
+    }
+
+    // P4: only wipe + full-resweep on first install or courier/server
+    // identity change (set by login_screen.dart). A same-courier re-login
+    // runs the normal delta path against the still-valid local data instead
+    // of throwing it all away.
+    final needsFullResync = await authStorage.needsFullResync();
+
+    // Errors are swallowed on the future itself (not a try/catch around the
+    // await below) so the same handling covers both the FOR_DELIVERY-ready
+    // race and the remainder finishing in the background afterward.
+    final syncFuture =
+        (needsFullResync
+                ? DeliveryBootstrapService.instance
+                      .clearAndSyncFromApiWithProgress(
+                        client,
+                        onProgress: onProgress,
+                        onForDeliveryReady: onForDeliveryReady,
+                      )
+                : DeliveryBootstrapService.instance.syncFromApiWithProgress(
+                    client,
+                    onProgress: onProgress,
+                    onForDeliveryReady: onForDeliveryReady,
+                  ))
+            .then((_) {
+              // The dashboard/status-list screens may already be mounted by
+              // the time the background remainder (FAILED_DELIVERY/
+              // MISROUTED/DELIVERED/bagsakan/cleanup) finishes if FOR_DELIVERY
+              // won the race below — nudge them to reload the newly-synced
+              // data instead of leaving those tabs stale until some later,
+              // unrelated auto-sync trigger.
+              container.read(deliveryRefreshProvider.notifier).increment();
+            })
+            .catchError((e) {
+              debugPrint('[InitialSync] sync error: $e');
+              // Best-effort — allow user to proceed even if sync partially
+              // or fully fails; local data (if any) is still usable offline.
+            });
+
+    // P6: let the courier continue as soon as FOR_DELIVERY — the data they
+    // act on immediately — is ready, instead of blocking on
+    // FAILED_DELIVERY/MISROUTED/DELIVERED/bagsakan/cleanup too. If
+    // FOR_DELIVERY wins the race, `syncFuture` keeps running unawaited in
+    // the background (safe: `DeliveryBootstrapService` doesn't touch this
+    // screen's `ref`/`context`, its own `onProgress` calls already no-op
+    // once `mounted` is false, and the refresh signal above uses the
+    // container captured before disposal, not `ref`).
+    await Future.any([forDeliveryReady.future, syncFuture]);
 
     if (!mounted) return;
     _animationCompleter = Completer<void>();

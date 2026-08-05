@@ -16,7 +16,7 @@ import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
-import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/courier_session_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/features/bagsakan/bagsakan_components.dart';
@@ -208,15 +208,18 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
 
                               if (confirmed == true && context.mounted) {
                                 try {
-                                  final courierId =
-                                      ref
-                                          .read(authProvider)
-                                          .courier?['id']
-                                          ?.toString() ??
-                                      '';
+                                  final courierId = ref
+                                      .read(courierSessionProvider)
+                                      .courierId;
                                   await ref
                                       .read(bagsakanDaoProvider)
                                       .deleteBagsakanGroup(id, courierId);
+                                  // deleteBagsakanGroup mutates sync_operations directly
+                                  // (cancels pending ops or queues DELETE_BAGSAKAN_GROUP),
+                                  // bypassing SyncManager. completeWrite's flush below is
+                                  // fire-and-forget (awaitIdle: false) and skipped entirely
+                                  // when offline, so entries must be refreshed explicitly
+                                  // here for the Sync/History screen to reflect it.
                                   await ref
                                       .read(syncManagerProvider.notifier)
                                       .loadEntries();

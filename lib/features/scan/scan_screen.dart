@@ -46,11 +46,13 @@ import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
+import 'package:fsi_courier_app/core/services/delivery_service.dart';
+import 'package:fsi_courier_app/core/services/dispatch_service.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
-import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/post_submit_navigation.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
@@ -204,15 +206,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     final requestId = uuid.v4();
 
     final eligibilityResult = await ref
-        .read(apiClientProvider)
-        .post<Map<String, dynamic>>(
-          '/check-dispatch-eligibility',
-          data: {
-            'partial_code': code,
-            'client_request_id': requestId,
-            'device_info': await ref.read(deviceInfoProvider).toMap(),
-          },
-          parser: parseApiMap,
+        .read(dispatchServiceProvider)
+        .checkEligibility(
+          partialCode: code,
+          clientRequestId: requestId,
+          deviceInfo: await ref.read(deviceInfoProvider).toMap(),
         );
 
     if (!mounted) return;
@@ -253,15 +251,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       // Auto-accept flow (only for genuine dispatches that are eligible)
       if (autoAccept) {
         final acceptResult = await ref
-            .read(apiClientProvider)
-            .post<Map<String, dynamic>>(
-              '/accept-dispatch',
-              data: {
-                'dispatch_code': dispatchCode,
-                'client_request_id': requestId,
-                'device_info': await ref.read(deviceInfoProvider).toMap(),
-              },
-              parser: parseApiMap,
+            .read(dispatchServiceProvider)
+            .acceptDispatch(
+              dispatchCode: dispatchCode,
+              clientRequestId: requestId,
+              deviceInfo: await ref.read(deviceInfoProvider).toMap(),
             );
         if (!mounted) return;
         if (acceptResult is ApiSuccess<Map<String, dynamic>>) {
@@ -278,7 +272,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
               );
           if (mounted) {
             showSuccessNotification(context, 'Dispatch accepted successfully!');
-            context.go('/dashboard');
+            goToDashboardAfterSubmit(context);
           }
           return;
         } else {
@@ -326,7 +320,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           _ => 'Dispatch already accepted.',
         };
         showInfoNotification(context, msg);
-        context.go('/dashboard');
+        goToDashboardAfterSubmit(context);
         return;
       }
 
@@ -536,8 +530,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     // If the API returns data it still means the item was not assigned to this
     // courier for today, so we block it regardless.
     final result = await ref
-        .read(apiClientProvider)
-        .get<Map<String, dynamic>>('/deliveries/$code', parser: parseApiMap);
+        .read(deliveryServiceProvider)
+        .getDeliveryDetail(code);
 
     if (!mounted) return;
 

@@ -12,8 +12,9 @@ import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_submit_fab.dart';
 import 'package:fsi_courier_app/core/api/api_client.dart';
-import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/courier_session_provider.dart';
 import 'package:fsi_courier_app/core/database/database_providers.dart';
+import 'package:fsi_courier_app/core/services/bagsakan_service.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
@@ -110,15 +111,12 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
       }
 
       // 2. Online Refresh (Priority)
-      final isOnline =
-          ref.read(connectionStatusProvider) == ConnectionStatus.online;
+      final isOnline = ref.read(isOnlineProvider);
       if (isOnline) {
         try {
-          final api = ref.read(apiClientProvider);
-          final res = await api.get<Map<String, dynamic>>(
-            'bagsakan/groups/${widget.groupId}',
-            parser: parseApiMap,
-          );
+          final res = await ref
+              .read(bagsakanServiceProvider)
+              .getGroupDetail(widget.groupId!);
           if (res is ApiSuccess<Map<String, dynamic>>) {
             final groupData = res.data['data'];
             if (groupData is Map<String, dynamic>) {
@@ -174,20 +172,11 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
 
       // Prefer server-qualified results when online so eligibility logic stays
       // aligned with backend rules (v3.8: eligible_for_bagsakan flag).
-      final isOnline =
-          ref.read(connectionStatusProvider) == ConnectionStatus.online;
+      final isOnline = ref.read(isOnlineProvider);
       if (isOnline) {
         final apiResult = await ref
-            .read(apiClientProvider)
-            .get<Map<String, dynamic>>(
-              '/deliveries/search',
-              queryParameters: {
-                'q': query,
-                'eligible_for_bagsakan': 1,
-                'per_page': 50,
-              },
-              parser: parseApiMap,
-            );
+            .read(bagsakanServiceProvider)
+            .searchEligibleDeliveries(query);
 
         if (apiResult case ApiSuccess<Map<String, dynamic>>(:final data)) {
           final serverItems = listOfMapsFromKey(data, 'data');
@@ -246,7 +235,7 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
     setState(() => _isSaving = true);
     try {
       final dao = ref.read(bagsakanDaoProvider);
-      final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
+      final courierId = ref.read(courierSessionProvider).courierId;
       final int groupId;
 
       if (widget.groupId != null) {

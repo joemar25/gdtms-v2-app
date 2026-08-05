@@ -36,8 +36,10 @@ import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/settings/compact_mode_provider.dart';
 import 'package:fsi_courier_app/core/settings/app_settings.dart';
+import 'package:fsi_courier_app/core/services/dispatch_service.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/post_submit_navigation.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
@@ -75,12 +77,8 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
     final isCompact = ref.read(compactModeProvider);
     final pageSize = isCompact ? kCompactDispatchesPerPage : kDispatchesPerPage;
     final result = await ref
-        .read(apiClientProvider)
-        .get<Map<String, dynamic>>(
-          '/pending-dispatches',
-          queryParameters: {'page': 1, 'per_page': pageSize},
-          parser: parseApiMap,
-        );
+        .read(dispatchServiceProvider)
+        .getPendingDispatches(page: 1, perPage: pageSize);
 
     if (!mounted) return;
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
@@ -102,15 +100,11 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
       final requestId = uuid.v4();
       final device = ref.read(deviceInfoProvider);
       final result = await ref
-          .read(apiClientProvider)
-          .post<Map<String, dynamic>>(
-            '/check-dispatch-eligibility',
-            data: {
-              'partial_code': dispatchCode,
-              'client_request_id': requestId,
-              'device_info': await device.toMap(),
-            },
-            parser: parseApiMap,
+          .read(dispatchServiceProvider)
+          .checkEligibility(
+            partialCode: dispatchCode,
+            clientRequestId: requestId,
+            deviceInfo: await device.toMap(),
           );
       if (!mounted) return;
       if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
@@ -139,7 +133,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
             _ => 'Dispatch already accepted.',
           };
           showInfoNotification(context, msg);
-          context.go('/dashboard');
+          goToDashboardAfterSubmit(context);
           return;
         }
 

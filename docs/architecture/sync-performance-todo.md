@@ -50,25 +50,47 @@ That is what this plan addresses.
 `DeliveryBootstrapService.kSyncPerPage = 150` for status + delta list GETs.
 Fewer RTTs for large courier working sets.
 
-### P3 — Kill the bagsakan enrichment N+1 (needs one small API addition)
+### P3 — Kill the bagsakan enrichment N+1 (needs one small API addition) 🟡 mobile-side stopgap done (2026-08-05)
 
-`_fetchAndInsertGroupDeliveries` (`delivery_bootstrap_service.dart:671`) fetches
-`GET /deliveries/{barcode}` **once per barcode** in a sequential loop — a 30-item group
-= 30 round-trips. The server already has `DeliveryQueryBuilder::applyBagsakanFilter($id)`;
-ask the API team to expose `GET /deliveries?bagsakan_id={id}` (or embed full delivery
-objects in the group detail response), then replace the loop with one paged call.
+**Status:** `_fetchAndInsertGroupDeliveries` (`delivery_bootstrap_service.dart`)
+now fetches `GET /deliveries/{barcode}` in concurrency-capped batches
+(`DeliverySyncPaging.chunk`, same `_kPageConcurrency = 3` used by the P1
+status sweep) instead of one at a time — a 30-item group is still 30 requests,
+but they run 3-wide instead of sequentially, cutting wall-clock time roughly
+3x. Verified via `flutter test test/core/sync/`.
 
-### P4 — Stop wiping on every re-login (medium impact, needs care)
+**Still open — real fix needs backend work:** the server already has
+`DeliveryQueryBuilder::applyBagsakanFilter($id)`; ask the API team (gdtms-v2-web)
+to expose `GET /deliveries?bagsakan_id={id}` (or embed full delivery objects
+in the group detail response), then replace the chunked loop with one paged
+call. Cross-repo, out of scope for the mobile app alone.
 
-`initial_sync_screen.dart:42` always calls `clearAndSyncFromApiWithProgress` — full
-local wipe + full sweep. Keep the wipe for first install and courier-identity change,
-but for the same courier re-logging in, run the normal delta path
-(`updated_since` + Phase-0 `verify-status` + Phase-2 cleanup). Those rules already
-guarantee convergence to server truth, so accuracy is preserved while re-login sync
-drops from "everything" to "what changed".
+### P4 — Stop wiping on every re-login (medium impact, needs care) ✅ done (2026-08-05)
 
-- Guard: compare stored courier id/phone against the login response before skipping the wipe.
-- Keep "Reload from Server" on the Sync screen as the manual full-wipe escape hatch.
+**Status:** `login_screen.dart` now computes `needsFullResync` (first install OR
+courier/server fingerprint change) alongside the existing wipe check, persists
+it via `AuthStorage.setNeedsFullResync`, and — when identity changed — also
+resets `last_sync_time` to 0 (previously only `clearAndSyncFromApiWithProgress`
+did this; `AppDatabase.clearAllDeliveryData()` wipes `local_deliveries` but
+never touched the separate secure-storage `last_sync_time`, so leaving it
+stale would have made the very next sync take the delta path against an
+empty table and miss the new courier's backlog).
+
+`initial_sync_screen.dart._runSync` reads the flag: `true` → unchanged
+`clearAndSyncFromApiWithProgress` (wipe + full sweep); `false` → calls
+`syncFromApiWithProgress` directly, which naturally takes the delta path
+(Phase-0 `verify-status` reconciliation → `updated_since` delta → Phase-2
+cleanup) since `last_sync_time` from the prior session is still intact —
+same convergence guarantee, no wipe.
+
+"Reload from Server" on the Sync screen (`clearAndSyncFromApi`) is untouched —
+still the manual full-wipe escape hatch.
+
+Verified via `flutter analyze` + full `flutter test` suite (no existing
+widget-test harness for login/initial-sync/secure-storage in this repo to
+extend). **Needs manual device QA before shipping**: logout → login with the
+_same_ courier (expect delta sync, no spinner-visible wipe) and with a
+_different_ courier (expect full wipe + sweep, unchanged from today).
 
 ### P5 — Skip unchanged upserts using `data_checksum` (small win, safe) ✅ done (2026-07-20)
 
@@ -76,18 +98,65 @@ drops from "everything" to "what changed".
 match (and row is not dirty), skip the SQLite write. Dirty/courier-local rows and
 verified purge paths are unchanged.
 
-### P6 — Progressive UI during initial sync (perceived speed)
+### P6 — Progressive UI during initial sync (perceived speed) ✅ done (2026-08-05)
 
-The delivery list renders only after all 4 sweeps finish. FOR_DELIVERY is synced first —
-navigate to the list (or show partial data with a "syncing…" banner) as soon as the
-FOR_DELIVERY sweep completes; let the remaining statuses finish in the background.
+**Status:** `delivery_bootstrap_service.dart` — `syncFromApiWithProgress` /
+`clearAndSyncFromApiWithProgress` gained an optional `onForDeliveryReady`
+callback, fired the moment the FOR_DELIVERY-specific fetch resolves (full
+sweep: as soon as that one status's mapped future completes inside the
+existing `Future.wait`, independent of the other 3; delta mode: right after
+the single delta call, since there's no per-status split there). Purely
+additive — same fetch order, same concurrency, same Phase 2/3 gating.
 
-### P7 — Verify gzip end-to-end (verification task)
+`initial_sync_screen.dart._runSync` races
+`Future.any([forDeliveryReady, syncFuture])` — the courier sees "All set!"
+and can continue as soon as FOR_DELIVERY is ready, while
+FAILED_DELIVERY/MISROUTED/DELIVERED/bagsakan/cleanup keep running
+unawaited in the background if they haven't finished yet.
 
-Dart's HttpClient sends `Accept-Encoding: gzip` and auto-decompresses by default, but
-confirm the servers (Herd/nginx local, prod) actually return `Content-Encoding: gzip`
-for `application/json`. Delivery payloads carry full recipient metadata; compression
-matters on mobile data.
+Two correctness details this needed, beyond the callback itself:
+
+- The background continuation can outlive this screen (once the courier
+  continues to `/dashboard`), so it can't touch this screen's `ref` —
+  `ProviderScope.containerOf(context, listen: false)` is captured up front
+  (same API `ref.read()` uses internally) and used for the follow-up
+  `deliveryRefreshProvider.increment()` instead.
+- That increment itself is new: the original code never needed one, because
+  the full sync always finished *before* navigation, so dashboard/list
+  screens' first `_load()` already saw complete data. With early
+  navigation, those screens can now mount *before* the background remainder
+  finishes — without the increment, FAILED_DELIVERY/MISROUTED/DELIVERED
+  tabs would sit stale until some unrelated later trigger (next periodic
+  auto-sync, manual pull-to-refresh).
+
+Verified via `flutter analyze` (whole project, clean) and full `flutter
+test` suite (green — no existing test exercises these methods directly, and
+both new parameters are optional so no signature break). **Needs manual
+device QA before shipping** — this is the most UX-visible timing change in
+the whole pass: verify on a slow/throttled connection that (a) the courier
+can genuinely continue before FAILED_DELIVERY/MISROUTED/DELIVERED are
+synced, (b) those tabs populate correctly once the background sync lands
+without a manual refresh, and (c) the normal (small-dataset, sync-finishes-
+before-checkmark-ends) case looks unchanged.
+
+### P7 — Verify gzip end-to-end (verification task) — still open, needs manual check outside the app
+
+Dio's default `IOHttpClientAdapter` (wrapping `dart:io` `HttpClient`) sends
+`Accept-Encoding: gzip` and auto-decompresses by default — confirmed in
+`lib/core/api/api_client.dart`, no custom adapter or header override. That
+also means **the app itself can never observe `Content-Encoding` on a
+response** (`dart:io` strips it after auto-decompression), so this cannot be
+verified with a unit/widget test or by adding logging inside `ApiClient`.
+
+Verify outside the app instead, against both environments:
+
+- Herd/nginx local: `curl -v --compressed http://<herd-domain>/api/mbl/deliveries -H "Accept: application/json" -H "Authorization: Bearer <token>"` and check for `Content-Encoding: gzip` in the response headers (curl's `-v` shows raw headers even with `--compressed` auto-decoding the body).
+- Prod: same command against the prod base URL.
+- Or use a proxy (mitmproxy/Charles) while running the app and inspect the raw response headers for a `GET /deliveries` call.
+
+Record pass/fail + date here once checked — not yet run as of this pass
+(no local Herd domain / prod URL available in-repo to probe from this
+session).
 
 ### P8 — Later: single unified stream instead of 4 sweeps
 

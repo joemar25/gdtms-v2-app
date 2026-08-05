@@ -58,9 +58,10 @@ import 'package:uuid/uuid.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
+import 'package:fsi_courier_app/core/services/delivery_service.dart';
 import 'package:fsi_courier_app/core/services/review_prompt_service.dart';
 import 'package:fsi_courier_app/core/services/time_validation_service.dart';
-import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/courier_session_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/models/local_delivery.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
@@ -82,6 +83,7 @@ import 'package:fsi_courier_app/features/delivery/widgets/delivery_update_screen
 import 'package:fsi_courier_app/features/delivery/widgets/searchable_selection_sheet.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/delivery_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/post_submit_navigation.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/string_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
@@ -230,11 +232,8 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
     final isOnline = ref.read(isOnlineProvider);
     if (isOnline) {
       final result = await ref
-          .read(apiClientProvider)
-          .get<Map<String, dynamic>>(
-            '/deliveries/${widget.barcode}',
-            parser: parseApiMap,
-          );
+          .read(deliveryServiceProvider)
+          .getDeliveryDetail(widget.barcode);
 
       if (!mounted) return;
 
@@ -615,7 +614,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       showErrorNotification(context, timeCheck.reason!);
       return;
     }
-    final courierId = ref.read(authProvider).courier?['id']?.toString() ?? '';
+    final courierId = ref.read(courierSessionProvider).courierId;
     final String? resolvedReason = _reason == 'Other'
         ? _reasonSpecify.text.trim().toUpperCase()
         : _reason?.toUpperCase();
@@ -715,7 +714,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
       'delivery_update.status.updated_success'.tr(),
     );
     ReviewPromptService.instance.onDeliveryCompleted();
-    context.go('/dashboard');
+    goToDashboardAfterSubmit(context);
   }
 
   void _clearDeliveredFields() {

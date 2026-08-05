@@ -38,13 +38,20 @@ class DeliverySyncPaging {
   }
 
   /// Split [pages] into concurrent batches of size [concurrency] (min 1).
-  static List<List<int>> chunkPages(List<int> pages, int concurrency) {
+  static List<List<int>> chunkPages(List<int> pages, int concurrency) =>
+      chunk(pages, concurrency);
+
+  /// Split [items] into concurrent batches of size [concurrency] (min 1).
+  /// Generic version of [chunkPages] — used wherever a list of requests
+  /// (barcodes, ids, ...) needs the same bounded-concurrency treatment as
+  /// page fetches (P1/P3).
+  static List<List<T>> chunk<T>(List<T> items, int concurrency) {
     final size = concurrency < 1 ? 1 : concurrency;
-    if (pages.isEmpty) return const [];
-    final out = <List<int>>[];
-    for (var i = 0; i < pages.length; i += size) {
+    if (items.isEmpty) return [];
+    final out = <List<T>>[];
+    for (var i = 0; i < items.length; i += size) {
       out.add(
-        pages.sublist(i, i + size > pages.length ? pages.length : i + size),
+        items.sublist(i, i + size > items.length ? items.length : i + size),
       );
     }
     return out;

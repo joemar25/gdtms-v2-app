@@ -36,8 +36,9 @@ import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/core/sync/delivery_bootstrap_service.dart';
 import 'package:fsi_courier_app/core/sync/sync_write_coordinator.dart';
+import 'package:fsi_courier_app/core/services/dispatch_service.dart';
 import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
-import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
+import 'package:fsi_courier_app/shared/helpers/post_submit_navigation.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
@@ -153,15 +154,11 @@ class _DispatchEligibilityScreenState
     final device = ref.read(deviceInfoProvider);
 
     final result = await ref
-        .read(apiClientProvider)
-        .post<Map<String, dynamic>>(
-          '/accept-dispatch',
-          data: {
-            'dispatch_code': _resolvedDispatchCode,
-            'client_request_id': acceptId,
-            'device_info': await device.toMap(),
-          },
-          parser: parseApiMap,
+        .read(dispatchServiceProvider)
+        .acceptDispatch(
+          dispatchCode: _resolvedDispatchCode,
+          clientRequestId: acceptId,
+          deviceInfo: await device.toMap(),
         );
 
     if (!mounted) return;
@@ -186,7 +183,7 @@ class _DispatchEligibilityScreenState
       if (!mounted) return;
       setState(() => _loading = false);
       showSuccessNotification(context, 'Dispatch accepted successfully.');
-      context.go('/dashboard');
+      goToDashboardAfterSubmit(context);
       return;
     }
 
@@ -196,7 +193,7 @@ class _DispatchEligibilityScreenState
         context,
         'Dispatch already accepted. Opening dashboard.',
       );
-      context.go('/dashboard');
+      goToDashboardAfterSubmit(context);
       return;
     }
 
@@ -245,17 +242,13 @@ class _DispatchEligibilityScreenState
     final device = ref.read(deviceInfoProvider);
 
     final result = await ref
-        .read(apiClientProvider)
-        .post<Map<String, dynamic>>(
-          '/reject-dispatch',
-          data: {
-            'dispatch_code': _resolvedDispatchCode,
-            'client_request_id': requestId,
-            'reason': reason,
-            'remarks': _rejectRemarks,
-            'device_info': await device.toMap(),
-          },
-          parser: parseApiMap,
+        .read(dispatchServiceProvider)
+        .rejectDispatch(
+          dispatchCode: _resolvedDispatchCode,
+          clientRequestId: requestId,
+          reason: reason,
+          remarks: _rejectRemarks,
+          deviceInfo: await device.toMap(),
         );
 
     if (!mounted) return;
@@ -263,7 +256,7 @@ class _DispatchEligibilityScreenState
 
     if (result is ApiSuccess<Map<String, dynamic>>) {
       showSuccessNotification(context, 'Dispatch rejected.');
-      context.go('/dashboard');
+      goToDashboardAfterSubmit(context);
     } else {
       final errorMessage = switch (result) {
         ApiBadRequest(:final message) => message,

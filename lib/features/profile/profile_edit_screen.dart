@@ -35,6 +35,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:fsi_courier_app/core/api/api_client.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/core/auth/courier_session_provider.dart';
 import 'package:fsi_courier_app/core/providers/connectivity_provider.dart';
 import 'package:fsi_courier_app/shared/helpers/api_payload_helper.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -71,7 +72,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   }
 
   void _loadCurrentProfile() {
-    final courier = ref.read(authProvider).courier;
+    final courier = ref.read(courierSessionProvider).courier;
     if (courier != null) {
       _usernameController.text = courier['name']?.toString() ?? '';
       _firstNameController.text = courier['first_name']?.toString() ?? '';
@@ -192,7 +193,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final courier = ref.watch(authProvider).courier;
+    final courier = ref.watch(courierSessionProvider).courier;
     final currentProfilePic = courier?['profile_picture_url']?.toString();
 
     return LoadingOverlay(

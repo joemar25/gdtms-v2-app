@@ -12,6 +12,7 @@ const _courierKey = 'courier_data';
 const _deviceIdKey = 'device_id';
 const _courierIdKey = 'last_courier_id';
 const _initialSyncKey = 'initial_sync_completed';
+const _needsFullResyncKey = 'needs_full_resync';
 const _pendingFcmKey = 'pending_fcm_token';
 const _lastSyncedFcmKey = 'last_synced_fcm_token';
 
@@ -81,6 +82,19 @@ class AuthStorage {
 
   Future<void> setInitialSyncCompleted(bool completed) =>
       _storage.write(key: _initialSyncKey, value: completed.toString());
+
+  /// Whether the next `/initial-sync` run should wipe local delivery data
+  /// and do a full sweep (`true`), or run the normal delta path against the
+  /// existing local data (`false`). Set by the login flow based on whether
+  /// courier identity changed since the last session (P4). Defaults to
+  /// `true` when unset — safe fallback matching the old always-wipe behavior.
+  Future<bool> needsFullResync() async {
+    final val = await _storage.read(key: _needsFullResyncKey);
+    return val == null || val == 'true';
+  }
+
+  Future<void> setNeedsFullResync(bool value) =>
+      _storage.write(key: _needsFullResyncKey, value: value.toString());
 
   Future<void> clearAll() async {
     await _storage.delete(key: _tokenKey);

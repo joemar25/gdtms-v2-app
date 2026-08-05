@@ -2,27 +2,15 @@
 // DOCS: docs/entry-points.md — update that file when you edit this one.
 // DOCS: docs/architecture/system-map.md
 
-import 'dart:async';
-
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart' as geolocator;
 
-import 'core/api/api_client.dart';
-import 'shared/helpers/api_payload_helper.dart';
 import 'core/auth/auth_provider.dart';
-import 'core/auth/auth_storage.dart';
 import 'core/providers/connectivity_provider.dart';
-import 'core/providers/delivery_refresh_provider.dart';
-import 'core/providers/notifications_provider.dart';
 import 'core/providers/sync_provider.dart';
-import 'core/services/location_ping_service.dart';
-import 'core/settings/app_settings.dart';
-import 'core/services/push_notification_service.dart';
-import 'core/sync/delivery_bootstrap_service.dart';
-import 'core/database/cleanup_service.dart';
+import 'core/sync/auto_sync_coordinator.dart';
 import 'package:go_router/go_router.dart';
 import 'shared/router/app_router.dart';
 import 'core/providers/update_provider.dart';
@@ -33,9 +21,6 @@ import 'shared/widgets/time_enforcer.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
 // ─── MARK: App Initialization ───────────────────────────────────────────────
-
-// How often to automatically re-sync data in the background while online.
-const _kAutoSyncInterval = Duration(minutes: 3);
 
 class FsiCourierApp extends ConsumerWidget {
   const FsiCourierApp({super.key});
@@ -66,7 +51,9 @@ class FsiCourierApp extends ConsumerWidget {
   }
 }
 
-/// Keeps data accurate for average users by syncing in multiple scenarios:
+/// Thin widget shell wiring app-lifecycle and provider events into
+/// [AutoSyncCoordinator], which keeps data accurate by syncing in multiple
+/// scenarios:
 ///
 /// 1. **App startup** — runs immediately if the device is already online.
 /// 2. **Login** — runs after a fresh login while online.
@@ -74,10 +61,13 @@ class FsiCourierApp extends ConsumerWidget {
 /// 4. **App resume** — runs when the courier switches back to this app from
 ///    another app (e.g., they checked messages and came back). This is the
 ///    most common trigger for delivery couriers during their working day.
-/// 5. **Periodic** — runs every [_kAutoSyncInterval] minutes while the app
-///    is in the foreground and online, so data never goes stale mid-shift.
+/// 5. **Periodic** — runs every few minutes while the app is in the
+///    foreground and online, so data never goes stale mid-shift.
 ///
-/// All syncs are fire-and-forget and use debouncing to prevent overlapping calls.
+/// All syncs are fire-and-forget and use debouncing to prevent overlapping
+/// calls (A1: trigger policy + debounce lives in [AutoSyncCoordinator], not
+/// here — this widget only owns `WidgetsBindingObserver` registration and
+/// root overlay insertion).
 class _AutoSyncListener extends ConsumerStatefulWidget {
   const _AutoSyncListener({required this.child});
   final Widget child;
@@ -88,16 +78,11 @@ class _AutoSyncListener extends ConsumerStatefulWidget {
 
 class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     with WidgetsBindingObserver {
-  Timer? _periodicTimer;
-  final _locationPing = LocationPingService.instance;
-  bool _isSyncing = false;
-  DateTime? _lastSyncAt;
   OverlayEntry? _syncPillEntry;
   OverlayEntry? _updateBannerEntry;
   OverlayEntry? _mandatoryUpdateEntry;
 
-  // Minimum gap between syncs to prevent overlapping calls.
-  static const _kSyncDebounce = Duration(seconds: 30);
+  AutoSyncCoordinator get _coordinator => ref.read(autoSyncCoordinatorProvider);
 
   @override
   void initState() {
@@ -105,14 +90,10 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     WidgetsBinding.instance.addObserver(this);
     // Trigger 1: App startup — run after first frame so providers are ready.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkOnStartup();
+      _coordinator.onStartup();
       _insertSyncPill();
       _insertUpdateBanner();
       _insertMandatoryUpdateOverlay();
-      // Delay version check so it never blocks the splash/login flow.
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) ref.read(updateProvider.notifier).checkForUpdate();
-      });
     });
   }
 
@@ -166,8 +147,6 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
       }
       _mandatoryUpdateEntry = null;
     }
-    _periodicTimer?.cancel();
-    _locationPing.stop();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -175,160 +154,16 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
   // Trigger 4: App returns to foreground (e.g., courier switches back to app).
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _maybeTriggerSync(reason: 'app_resume');
-      if (ref.read(isOnlineProvider) &&
-          ref.read(authProvider).isAuthenticated) {
-        _locationPing.start(_sendLocationPing);
-      }
-    } else if (state == AppLifecycleState.paused) {
-      // Stop background services while app is not visible.
-      _periodicTimer?.cancel();
-      _locationPing.stop();
-    } else if (state == AppLifecycleState.detached) {
-      _periodicTimer?.cancel();
-      _locationPing.stop();
-    }
-  }
-
-  void _checkOnStartup() {
-    if (!mounted) return;
-    if (!ref.read(authProvider).isAuthenticated) return;
-    if (ref.read(isOnlineProvider)) {
-      _maybeTriggerSync(reason: 'startup');
-      _locationPing.start(_sendLocationPing);
-      ref.read(notificationsProvider.notifier).loadUnreadCount();
-      PushNotificationService.instance.init(ref.read(apiClientProvider));
-    }
-  }
-
-  void _startPeriodicSync() {
-    _periodicTimer?.cancel();
-    _periodicTimer = Timer.periodic(_kAutoSyncInterval, (_) {
-      _maybeTriggerSync(reason: 'periodic');
-    });
-    _locationPing.start(_sendLocationPing);
-  }
-
-  /// Captures the device's current GPS position and sends a background
-  /// location update to the server.  Errors are silently swallowed because
-  /// location pings are best-effort and must never interrupt the courier flow.
-  Future<void> _sendLocationPing(geolocator.Position position) async {
-    if (!mounted) return;
-    if (!ref.read(authProvider).isAuthenticated) return;
-    try {
-      await ref
-          .read(apiClientProvider)
-          .post<Map<String, dynamic>>(
-            '/location',
-            data: {
-              'latitude': position.latitude,
-              'longitude': position.longitude,
-              'accuracy': position.accuracy,
-              'timestamp': position.timestamp.toUtc().toIso8601String(),
-              'is_buffered': false,
-            },
-            parser: parseApiMap,
-          );
-      debugPrint(
-        '[LOCATION] ping sent: ${position.latitude}, ${position.longitude}',
-      );
-    } catch (e) {
-      debugPrint('[LOCATION] ping error: $e');
-    }
-  }
-
-  /// Reasons that must flush offline backlog as soon as API is healthy
-  /// (skip 30s debounce). Periodic/resume still debounced to avoid thrash.
-  static const _kSkipDebounceReasons = {'reconnected', 'login'};
-
-  /// Fires a sync only if:
-  /// - The user is authenticated and online (network + API reachable).
-  /// - Not already syncing.
-  /// - Enough time has passed since the last sync (debounce), unless
-  ///   [reason] is `reconnected` or `login` (offline backlog must drain).
-  void _maybeTriggerSync({required String reason}) {
-    if (!mounted) return;
-    if (!ref.read(authProvider).isAuthenticated) return;
-    if (!ref.read(isOnlineProvider)) return;
-    if (_isSyncing) return;
-
-    final now = DateTime.now();
-    final skipDebounce = _kSkipDebounceReasons.contains(reason);
-    if (!skipDebounce &&
-        _lastSyncAt != null &&
-        now.difference(_lastSyncAt!) < _kSyncDebounce) {
-      return;
-    }
-
-    _isSyncing = true;
-    _lastSyncAt = now;
-
-    // ignore: discarded_futures
-    _runFullSync(reason: reason);
-  }
-
-  /// Sequential full sync (same order as pre-A8 production behavior):
-  ///
-  /// Step 1 — Push dirty offline queue entries to the server first.
-  /// Step 2 — Pull server statuses and reconcile with SQLite.
-  ///
-  /// Only concurrency/coalescing of the queue flush changed — not reconciliation
-  /// Rules 1–4, not which statuses sync, not debounce intervals (except
-  /// reconnect/login skip debounce so API recovery flushes backlog promptly).
-  Future<void> _runFullSync({required String reason}) async {
-    try {
-      debugPrint('[SYNC] _runFullSync start reason=$reason');
-      // Step 1: Coalesced queue flush. Joins any in-flight UI submit flush and
-      // re-runs if items were enqueued mid-pass.
-      await ref
-          .read(syncManagerProvider.notifier)
-          .requestFlush(reason: 'auto_sync_$reason', awaitIdle: true);
-
-      debugPrint(
-        '[SYNC] _runFullSync: after requestFlush reason=$reason '
-        'mounted=$mounted',
-      );
-      if (!mounted) return;
-
-      // If API dropped mid-flush, do not start bootstrap pull (burns errors and
-      // can race a dying server). Queue leftovers retry on next online trigger.
-      if (!ref.read(isOnlineProvider)) {
-        debugPrint(
-          '[SYNC] _runFullSync: abort pull — API no longer online '
-          'reason=$reason',
-        );
-        return;
-      }
-
-      // Step 2: Pull server → SQLite (full reconcile across all statuses).
-      await DeliveryBootstrapService.instance.syncFromApi(
-        ref.read(apiClientProvider),
-      );
-
-      debugPrint(
-        '[SYNC] _runFullSync: after syncFromApi reason=$reason '
-        'mounted=$mounted',
-      );
-      if (mounted) {
-        final now = DateTime.now();
-        ref.read(lastSyncTimeProvider.notifier).setValue(now);
-        ref
-            .read(authStorageProvider)
-            .setLastSyncTime(now.millisecondsSinceEpoch);
-
-        // Notify all listening screens (dashboard, delivery lists) to reload.
-        final prev = ref.read(deliveryRefreshProvider);
-        ref.read(deliveryRefreshProvider.notifier).increment();
-        debugPrint('[SYNC] deliveryRefreshProvider: $prev → ${prev + 1}');
-      }
-
-      // Automatically clean up old data after successful sync
-      await CleanupService.instance.runIfNeeded(ref.read(appSettingsProvider));
-    } catch (e) {
-      debugPrint('[SYNC] _runFullSync ERROR reason=$reason: $e');
-    } finally {
-      if (mounted) _isSyncing = false;
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _coordinator.onResume();
+      case AppLifecycleState.paused:
+        _coordinator.onPause();
+      case AppLifecycleState.detached:
+        _coordinator.onDetached();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+        break;
     }
   }
 
@@ -337,38 +172,19 @@ class _AutoSyncListenerState extends ConsumerState<_AutoSyncListener>
     // Trigger 3: Offline → Online transition.
     ref.listen<bool>(isOnlineProvider, (previous, current) {
       if (previous == false && current == true) {
-        if (!ref.read(authProvider).isAuthenticated) return;
-        Future.delayed(const Duration(seconds: 2), () async {
-          if (!mounted) return;
-          _maybeTriggerSync(reason: 'reconnected');
-          _startPeriodicSync(); // Resume periodic timer once online.
-          ref.read(notificationsProvider.notifier).loadUnreadCount();
-          try {
-            await PushNotificationService.instance.init(
-              ref.read(apiClientProvider),
-            );
-          } catch (e) {
-            debugPrint('[APP] Push init on reconnect failed: $e');
-          }
-        });
+        _coordinator.onReconnect();
       } else if (current == false) {
-        _periodicTimer?.cancel(); // Pause periodic timer when offline.
-        _locationPing.stop();
+        _coordinator.onOffline();
       }
     });
 
     // Trigger 2: Fresh login.
     ref.listen<AuthState>(authProvider, (previous, current) {
       if (previous?.isAuthenticated == false &&
-          current.isAuthenticated == true &&
-          ref.read(isOnlineProvider)) {
-        _maybeTriggerSync(reason: 'login');
-        _startPeriodicSync();
-        ref.read(notificationsProvider.notifier).loadUnreadCount();
-        PushNotificationService.instance.init(ref.read(apiClientProvider));
+          current.isAuthenticated == true) {
+        _coordinator.onLogin();
       } else if (current.isAuthenticated == false) {
-        _periodicTimer?.cancel();
-        _locationPing.stop();
+        _coordinator.onLogout();
       }
     });
 
