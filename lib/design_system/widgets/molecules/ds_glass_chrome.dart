@@ -42,47 +42,66 @@ class DSGlassChrome extends StatelessWidget {
                 )
               : null);
 
-    final frosted = ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: DSGlass.filterFor(context),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Primary tint (mode-aware density via [DSGlass.fill]).
-            ColoredBox(color: fill),
-            // Light-only sheen — keeps dense green from looking like solid paint.
-            if (!isDark)
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x26FFFFFF), // white @ ~0.15
-                      Color(0x00FFFFFF),
-                    ],
-                  ),
-                ),
-              ),
-            // Edge + optional child content.
-            DecoratedBox(
-              decoration: BoxDecoration(borderRadius: radius, border: border),
-              child: child ?? const SizedBox.expand(),
+    // Nested boxes (not StackFit.expand): expand under tight parents
+    // (AppBar flexibleSpace, SizedBox height) without crashing when max
+    // height is infinite (e.g. AppBar mistakenly placed in a Column).
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        Widget painted = DecoratedBox(
+          // Primary tint (mode-aware density via [DSGlass.fill]).
+          decoration: BoxDecoration(color: fill, borderRadius: radius),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border: border,
+              // Light-only sheen — keeps dense green from looking like solid paint.
+              gradient: isDark
+                  ? null
+                  : const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x26FFFFFF), // white @ ~0.15
+                        Color(0x00FFFFFF),
+                      ],
+                    ),
             ),
-          ],
-        ),
-      ),
-    );
+            child: child,
+          ),
+        );
 
-    if (!boxShadow) return frosted;
+        if (constraints.hasBoundedWidth && constraints.hasBoundedHeight) {
+          // AppBar flexibleSpace / fixed-height nav — fill parent.
+          painted = SizedBox.expand(child: painted);
+        } else if (child == null) {
+          // Unbounded + no child: still paint a chrome strip instead of 0×0.
+          painted = SizedBox(
+            width: constraints.hasBoundedWidth
+                ? constraints.maxWidth
+                : double.infinity,
+            height: DSGlass.chromeHeight,
+            child: painted,
+          );
+        }
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        boxShadow: DSGlass.shadow(context, tone: DSGlassTone.chrome),
-      ),
-      child: frosted,
+        final frosted = ClipRRect(
+          borderRadius: radius,
+          child: BackdropFilter(
+            filter: DSGlass.filterFor(context),
+            child: painted,
+          ),
+        );
+
+        if (!boxShadow) return frosted;
+
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            boxShadow: DSGlass.shadow(context, tone: DSGlassTone.chrome),
+          ),
+          child: frosted,
+        );
+      },
     );
   }
 }

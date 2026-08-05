@@ -94,16 +94,25 @@ class _TermsScreenState extends State<TermsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = isDark ? DSColors.labelSecondaryDark : DSColors.labelTertiary;
 
+    // AppHeaderBar must be Scaffold.appBar (PreferredSize). Putting it in a
+    // Column gives unbounded height → DSGlassChrome / AppBar Stack layout crash.
     return Scaffold(
+      backgroundColor: DSColors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppHeaderBar(
+        title: 'Terms & Conditions',
+        leading: widget.viewOnly ? null : const SizedBox.shrink(),
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
           const DsBrandBackdrop(variant: DsBackdrop.gate),
           Column(
             children: [
-              AppHeaderBar(
-                title: 'Terms & Conditions',
-                leading: widget.viewOnly ? null : const SizedBox.shrink(),
+              // Clear status bar + chrome so content sits below glass header.
+              SizedBox(
+                height:
+                    MediaQuery.paddingOf(context).top + DSGlass.chromeHeight,
               ),
               Expanded(
                 child: _content.isEmpty

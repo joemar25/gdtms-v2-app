@@ -27,16 +27,17 @@ motion.
 
 ## 1. Screen roles (pick one shell)
 
-| Role | Wrapper | Backdrop | Examples |
-|------|---------|----------|----------|
-| **Tab root** | Transparent `Scaffold` inside `ScaffoldWithNavBar` | `DsBackdrop.shell` (once, in nav shell) | Dashboard, Bagsakan, Wallet, Profile |
-| **Pushed list / detail** | **`DsAppScaffold`** | `shell` automatic | Dispatch list, deliveries, sync history, payout detail |
-| **Auth** | `AuthShell` | `auth` | Login |
-| **Gate** | `DSGateShell` | `gate` | Splash, permissions, update, terms |
-| **Loader / full-screen focus** | Custom `Scaffold` + `DsBrandBackdrop` | `auth`-like or custom | Initial sync, **Sync Now overlay** |
-| **Camera / immersive** | Plain `Scaffold` | none | Scan, signature |
+| Role                           | Wrapper                                            | Backdrop                                | Examples                                               |
+| ------------------------------ | -------------------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
+| **Tab root**                   | Transparent `Scaffold` inside `ScaffoldWithNavBar` | `DsBackdrop.shell` (once, in nav shell) | Dashboard, Bagsakan, Wallet, Profile                   |
+| **Pushed list / detail**       | **`DsAppScaffold`**                                | `shell` automatic                       | Dispatch list, deliveries, sync history, payout detail |
+| **Auth**                       | `AuthShell`                                        | `auth`                                  | Login                                                  |
+| **Gate**                       | `DSGateShell`                                      | `gate`                                  | Splash, permissions, update, terms                     |
+| **Loader / full-screen focus** | Custom `Scaffold` + `DsBrandBackdrop`              | `auth`-like or custom                   | Initial sync, **Sync Now overlay**                     |
+| **Camera / immersive**         | Plain `Scaffold`                                   | none                                    | Scan, signature                                        |
 
 **Rules**
+
 - Never paint a second brand backdrop under a tab that already has shell.
 - Never use solid rainbow scaffolds for post-login work screens.
 - Prefer `DsAppScaffold` over bare `Scaffold` for every pushed route.
@@ -51,16 +52,17 @@ kill the scenery.
 
 Dashboard metric tiles and primary CTAs use **only**:
 
-| Token | Use |
-|-------|-----|
-| `DSColors.primary` | Default accent, most tiles, POD scan, success chrome |
-| `DSColors.gold` | Highlight primary *work* (dispatch accept / scan dispatch) |
+| Token                 | Use                                                              |
+| --------------------- | ---------------------------------------------------------------- |
+| `DSColors.primary`    | Default accent, most tiles, POD scan, success chrome             |
+| `DSColors.gold`       | Highlight primary _work_ (dispatch accept / scan dispatch)       |
 | Neutral card surfaces | `cardLight` / `cardElevatedDark` + soft primary wash when active |
 
 **Do not** use status rainbow (`error` / `pending` / `returned` / `accent`) as
-*decorative* tile colors on overview grids.
+_decorative_ tile colors on overview grids.
 
 Status colors **are** correct for:
+
 - Delivery status badges in lists
 - Connectivity dots (online / API / offline)
 - Error text, destructive actions, validation
@@ -75,14 +77,15 @@ Status colors **are** correct for:
 
 ## 3. Surfaces & chrome
 
-| Surface | API | Notes |
-|---------|-----|--------|
-| Shell scenery | `DsBrandBackdrop` / `DsBrandBackdropConfig.shell` | One painter; intensity only in config |
-| Header + bottom nav | `DSGlass` / `DSGlassChrome` | Primary frosted chrome; theme bars transparent |
-| Content cards | Solid elevated cards (not glass for work metrics) | `StatCard`, `DSCard` |
-| Glass cards | `DSGlassCard` | Auth / marketing only — not metric grids |
+| Surface             | API                                               | Notes                                          |
+| ------------------- | ------------------------------------------------- | ---------------------------------------------- |
+| Shell scenery       | `DsBrandBackdrop` / `DsBrandBackdropConfig.shell` | One painter; intensity only in config          |
+| Header + bottom nav | `DSGlass` / `DSGlassChrome`                       | Primary frosted chrome; theme bars transparent |
+| Content cards       | Solid elevated cards (not glass for work metrics) | `StatCard`, `DSCard`                           |
+| Glass cards         | `DSGlassCard`                                     | Auth / marketing only — not metric grids       |
 
 **Card box rules (`StatCard` / `ScanButton`)**
+
 - **Fixed height** (not soft min-only that collapses on reverse face).
 - Radius: `DSStyles.radius2XL`.
 - Soft shadow; active = light primary border wash.
@@ -115,21 +118,23 @@ Text(
 
 **File:** `lib/shared/widgets/stat_widgets.dart`
 
-| Concern | Rule |
-|---------|------|
-| Color | `primary` or `gold` only |
-| Empty | `subdued: true` when count is 0 |
-| Details | Pass `details:` for hold-to-reveal |
-| Height | Lock with `minHeight` (dashboard uses **132**) |
-| Entry | `.dsDashboardCardEntry(delay: DSAnimations.stagger(n))` |
+| Concern | Rule                                                    |
+| ------- | ------------------------------------------------------- |
+| Color   | `primary` or `gold` only                                |
+| Empty   | `subdued: true` when count is 0                         |
+| Details | Pass `details:` for hold-to-reveal                      |
+| Height  | Lock with `minHeight` (dashboard uses **132**)          |
+| Entry   | `.dsDashboardCardEntry(delay: DSAnimations.stagger(n))` |
 
 **Hold-to-reveal (NBA 2K pattern)**
+
 1. Hold → reverse face **stays open**
 2. Tap **✕** → hide details only
 3. Tap rest of card → `onTap` (navigate)
 4. Face shows “Hold for details”; reverse shows full blurb + “Tap card to open”
 
 **In-card motion (respect reduced motion)**
+
 - Count-up `0 → N`
 - Icon pulse + accent bar pulse when active
 - OPEN chip scale-in
@@ -141,26 +146,26 @@ rebuild rainbow tiles.
 
 ## 6. Scan / primary CTAs — `ScanButton`
 
-| Concern | Rule |
-|---------|------|
-| Color | Gold = dispatch path; primary = POD / default |
-| Height | Fixed (**128** on dashboard) |
-| Details | Hold-to-reveal same as `StatCard` |
-| Entry | `.dsDashboardCtaEntry(delay: …)` |
-| Face | Large centered icon + label + hold hint |
-| Reverse | Same fixed box; never collapse |
+| Concern | Rule                                          |
+| ------- | --------------------------------------------- |
+| Color   | Gold = dispatch path; primary = POD / default |
+| Height  | Fixed (**128** on dashboard)                  |
+| Details | Hold-to-reveal same as `StatCard`             |
+| Entry   | `.dsDashboardCtaEntry(delay: …)`              |
+| Face    | Large centered icon + label + hold hint       |
+| Reverse | Same fixed box; never collapse                |
 
 ---
 
 ## 7. Motion system
 
-| Preset | Extension | Use |
-|--------|-----------|-----|
-| Card grid entry | `dsDashboardCardEntry` | Stat grids |
-| CTA entry | `dsDashboardCtaEntry` | Scan / filled CTAs |
-| Generic card | `dsCardEntry` | Lists, forms |
-| Generic CTA | `dsCtaEntry` | Buttons outside dashboard |
-| Stagger | `DSAnimations.stagger(n)` | 80 ms default step |
+| Preset          | Extension                 | Use                       |
+| --------------- | ------------------------- | ------------------------- |
+| Card grid entry | `dsDashboardCardEntry`    | Stat grids                |
+| CTA entry       | `dsDashboardCtaEntry`     | Scan / filled CTAs        |
+| Generic card    | `dsCardEntry`             | Lists, forms              |
+| Generic CTA     | `dsCtaEntry`              | Buttons outside dashboard |
+| Stagger         | `DSAnimations.stagger(n)` | 80 ms default step        |
 
 **Do not** invent random durations; use `dMicro` / `dFast` / `dNormal` / `dHero`.
 
@@ -170,12 +175,13 @@ Always honor `MediaQuery.disableAnimationsOf(context)`.
 
 ## 8. Sync UX (one visual language)
 
-| Context | UI |
-|---------|----|
-| Post-login bootstrap | `InitialSyncScreen` + `sync_ai_visuals.dart` |
+| Context                               | UI                                                                      |
+| ------------------------------------- | ----------------------------------------------------------------------- |
+| Post-login bootstrap                  | `InitialSyncScreen` + `sync_ai_visuals.dart`                            |
 | Manual Sync Now (dashboard / history) | `showSyncOverlay` → same orb, phase rail, status stream, brand backdrop |
 
 Shared pieces:
+
 - `SyncAiOrb`
 - `SyncAiPhaseRail` (Start → Load → Sort → Done)
 - `SyncAiStatusStream`
@@ -197,16 +203,16 @@ Shared pieces:
 
 Priority for **standardization** (highest first):
 
-| Page | Shell | Cards / color | Motion | Notes |
-|------|-------|---------------|--------|-------|
-| **Bagsakan** tab | Ensure transparent + shell; no solid opaque full bg | Stat-like summaries → `StatCard` brand palette | `dsDashboardCardEntry` on group cards | Replace rainbow chips if any |
-| **Wallet** tab | Same | Earnings / pending tiles → primary/gold only | Stagger entry | Keep SecureView for PII |
-| **Profile** tab | Same | Prefer `DSCard` + section caption style | `dsCardEntry` | Already partial DS |
-| **Dispatch list** | `DsAppScaffold` ✓ | List rows stay status-colored badges | `dsCardEntry` on rows | OK semantic status |
-| **Deliveries list** | `DsAppScaffold` ✓ | Status badges OK | Stagger | |
-| **Sync history** | `DsAppScaffold` ✓ | Header Sync Now uses overlay ✓ | | Overlay already aligned |
-| **Notifications** | `DsAppScaffold` ✓ | Error accent OK for alerts | `dsCardEntry` | |
-| **Scan** | Immersive | N/A | N/A | Keep camera-first |
+| Page                | Shell                                               | Cards / color                                  | Motion                                | Notes                        |
+| ------------------- | --------------------------------------------------- | ---------------------------------------------- | ------------------------------------- | ---------------------------- |
+| **Bagsakan** tab    | Ensure transparent + shell; no solid opaque full bg | Stat-like summaries → `StatCard` brand palette | `dsDashboardCardEntry` on group cards | Replace rainbow chips if any |
+| **Wallet** tab      | Same                                                | Earnings / pending tiles → primary/gold only   | Stagger entry                         | Keep SecureView for PII      |
+| **Profile** tab     | Same                                                | Prefer `DSCard` + section caption style        | `dsCardEntry`                         | Already partial DS           |
+| **Dispatch list**   | `DsAppScaffold` ✓                                   | List rows stay status-colored badges           | `dsCardEntry` on rows                 | OK semantic status           |
+| **Deliveries list** | `DsAppScaffold` ✓                                   | Status badges OK                               | Stagger                               |                              |
+| **Sync history**    | `DsAppScaffold` ✓                                   | Header Sync Now uses overlay ✓                 |                                       | Overlay already aligned      |
+| **Notifications**   | `DsAppScaffold` ✓                                   | Error accent OK for alerts                     | `dsCardEntry`                         |                              |
+| **Scan**            | Immersive                                           | N/A                                            | N/A                                   | Keep camera-first            |
 
 ### Checklist per screen
 
