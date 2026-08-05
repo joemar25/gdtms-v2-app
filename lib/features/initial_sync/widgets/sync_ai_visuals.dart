@@ -32,7 +32,9 @@ extension SyncAiPhaseX on SyncAiPhase {
   int get index => SyncAiPhase.values.indexOf(this);
 }
 
-/// Map bootstrap progress strings → phase (best-effort).
+/// Map progress strings → phase (best-effort).
+///
+/// Used by [InitialSyncScreen] (bootstrap) and [SyncOverlay] (queue flush).
 SyncAiPhase syncPhaseFromProgress(String message, {required bool done}) {
   if (done) return SyncAiPhase.ready;
   final s = message.toLowerCase();
@@ -41,7 +43,8 @@ SyncAiPhase syncPhaseFromProgress(String message, {required bool done}) {
       s.contains('clean') ||
       s.contains('almost') ||
       s.contains('finaliz') ||
-      s.contains('sort')) {
+      s.contains('sort') ||
+      s.contains('wrap')) {
     return SyncAiPhase.organize;
   }
   if (s.contains('download') ||
@@ -49,10 +52,36 @@ SyncAiPhase syncPhaseFromProgress(String message, {required bool done}) {
       s.contains('updat') ||
       s.contains('deliver') ||
       s.contains('fetch') ||
-      s.contains('load')) {
+      s.contains('load') ||
+      s.contains('upload') ||
+      s.contains('queue') ||
+      s.contains('send') ||
+      s.contains('flush') ||
+      s.contains('push')) {
     return SyncAiPhase.fetch;
   }
-  // start / fresh / check / prepar
+  // start / fresh / check / prepar / syncing
+  return SyncAiPhase.init;
+}
+
+/// Phase for manual "Sync Now" queue flush when only counters are available.
+SyncAiPhase syncPhaseFromQueueProgress({
+  required bool done,
+  required String? message,
+  required int processed,
+  required int total,
+}) {
+  if (done) return SyncAiPhase.ready;
+  final msg = message?.trim() ?? '';
+  if (msg.isNotEmpty) {
+    final fromMsg = syncPhaseFromProgress(msg, done: false);
+    if (fromMsg != SyncAiPhase.init) return fromMsg;
+  }
+  if (total > 0) {
+    final ratio = processed / total;
+    if (ratio >= 0.85) return SyncAiPhase.organize;
+    if (processed > 0) return SyncAiPhase.fetch;
+  }
   return SyncAiPhase.init;
 }
 

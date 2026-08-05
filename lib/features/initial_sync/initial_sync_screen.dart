@@ -37,12 +37,11 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
   Completer<void>? _animationCompleter;
 
   /// Tech-tinted scenery: particles + orbs, no marketing waves.
-  static final _backdropConfig = DsBrandBackdropConfig.standard.copyWith(
-    intensity: DsBackdropIntensity.standard,
+  static final _backdropConfig = DsBrandBackdropConfig.auth.copyWith(
     showWaves: false,
     showParticles: true,
-    particleCount: 22,
-    opacity: 0.9,
+    particleCount: 14,
+    opacity: 0.92,
     orbAlphaScale: 0.85,
     driftScale: 0.7,
     loopDuration: const Duration(seconds: 14),

@@ -45,7 +45,7 @@
 
 ### Pagination
 
-Controlled by `PaginationBar`. Page size is defined in `constants.dart`. Changing page size must not break existing scroll position.
+Controlled by `PaginationBar`. Page size is defined in `constants.dart`. Changing page size must not break existing scroll position. The list body is wrapped in `PaginationSwipeArea` (`lib/shared/widgets/pagination_swipe_area.dart`) so swiping left/right also changes page — use that shared widget rather than a screen-local `GestureDetector` if you touch this again, see `docs/shared/widgets.md`.
 
 ### Screenshot protection
 

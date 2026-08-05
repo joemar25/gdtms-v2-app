@@ -55,6 +55,7 @@ import 'package:fsi_courier_app/shared/helpers/delivery_identifier.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/pagination_swipe_area.dart';
 import 'package:fsi_courier_app/shared/widgets/search_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_banner.dart';
 import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
@@ -519,10 +520,7 @@ class _DeliveryStatusListScreenState
           _searchController.clear();
         }
       },
-      child: Scaffold(
-        backgroundColor: isDark
-            ? DSColors.scaffoldDark
-            : DSColors.scaffoldLight,
+      child: DsAppScaffold(
         appBar: AppHeaderBar(
           showBottomBorder: !_isFailedDelivery,
           title: widget.title,
@@ -530,18 +528,10 @@ class _DeliveryStatusListScreenState
         ),
         body: _ConditionalSecureView(
           secure: !_allowScreenshots,
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onHorizontalDragEnd: (details) {
-              final velocity = details.primaryVelocity ?? 0;
-              if (velocity < -200 && _currentPage < _totalPages - 1) {
-                HapticFeedback.mediumImpact();
-                _goToPage(_currentPage + 1);
-              } else if (velocity > 200 && _currentPage > 0) {
-                HapticFeedback.mediumImpact();
-                _goToPage(_currentPage - 1);
-              }
-            },
+          child: PaginationSwipeArea(
+            currentPage: _currentPage,
+            totalPages: _totalPages,
+            onPageChanged: _goToPage,
             child: Column(
               children: [
                 // ── Search bar ─────────────────────────────────────────────────────

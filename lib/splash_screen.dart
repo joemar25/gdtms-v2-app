@@ -189,7 +189,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         fit: StackFit.expand,
         children: [
           // Quieter than login — brand present, not competing with gate UX.
-          const DsBrandBackdrop(intensity: DsBackdropIntensity.quiet),
+          const DsBrandBackdrop(variant: DsBackdrop.gate),
 
           SafeArea(
             child: LayoutBuilder(

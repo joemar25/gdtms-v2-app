@@ -193,7 +193,12 @@ void main() {
         apiClientProvider.overrideWithValue(mockApiClient),
         syncOperationsDaoProvider.overrideWithValue(mockSyncDao),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      // DsAppScaffold's brand backdrop runs a repeating animation;
+      // disabling animations here stops it so pumpAndSettle() settles.
+      child: MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp.router(routerConfig: router),
+      ),
     );
   }
 

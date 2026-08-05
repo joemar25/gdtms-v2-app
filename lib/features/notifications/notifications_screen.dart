@@ -109,8 +109,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final isOnline = ref.watch(isOnlineProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight,
+    return DsAppScaffold(
       appBar: AppHeaderBar(
         showNotificationBell: false,
         titleWidget: Row(

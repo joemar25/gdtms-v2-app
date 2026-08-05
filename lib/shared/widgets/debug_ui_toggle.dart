@@ -63,9 +63,14 @@ class _DebugUiToggleState extends ConsumerState<DebugUiToggle> {
 
     final chromeOn = ref.watch(debugUiProvider);
     final label = chromeOn ? 'DEBUG' : 'UI';
-    final bg = chromeOn
-        ? DSColors.warning
-        : DSColors.black.withValues(alpha: 0.55);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Glass surface always; chrome-on gets warning accent (border + label).
+    final accent = chromeOn
+        ? (isDark ? DSColors.warningDark : DSColors.warningText)
+        : (isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary);
+    final border = chromeOn
+        ? DSColors.warning.withValues(alpha: isDark ? 0.55 : 0.40)
+        : null;
 
     final mq = MediaQuery.of(context);
     final pos = _clamp(_pos ?? _defaultPos(mq), mq.size, mq.padding);
@@ -97,27 +102,28 @@ class _DebugUiToggleState extends ConsumerState<DebugUiToggle> {
         child: AnimatedOpacity(
           duration: DSAnimations.dFast,
           opacity: _dragging ? 0.92 : 1,
-          child: Material(
-            color: bg,
-            elevation: _dragging ? DSStyles.elevationMD : DSStyles.elevationXS,
-            shadowColor: DSColors.black.withValues(alpha: DSStyles.alphaMuted),
-            borderRadius: DSStyles.fullRadius,
-            child: SizedBox(
-              width: DebugUiToggle.chipWidth,
-              height: DebugUiToggle.chipHeight,
-              child: Center(
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.clip,
-                  style: DSTypography.label(color: DSColors.white).copyWith(
-                    fontSize: DSTypography.sizeSm,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: DSTypography.lsWide,
-                    height: DSStyles.heightTight,
-                  ),
-                ),
+          child: DSGlassCard(
+            compact: true,
+            width: DebugUiToggle.chipWidth,
+            height: DebugUiToggle.chipHeight,
+            alignment: Alignment.center,
+            borderColor: border,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              // Floating chrome (MaterialApp.builder Stack) can inherit a
+              // DefaultTextStyle decoration → yellow double underline under
+              // the label. Force none (same fix as profile overlay toast).
+              style: DSTypography.label(color: accent).copyWith(
+                fontSize: DSTypography.sizeSm,
+                fontWeight: FontWeight.w800,
+                letterSpacing: DSTypography.lsNone,
+                height: DSStyles.heightTight,
+                decoration: TextDecoration.none,
+                decorationColor: DSColors.transparent,
+                decorationThickness: 0,
               ),
             ),
           ),
@@ -152,6 +158,17 @@ void _go(String location) {
   GoRouter.of(ctx).go(location);
 }
 
+/// Chip sits *above* the navigator in [MaterialApp.builder], so it stays
+/// tappable while a modal is open. Guard so sheets never stack; second tap
+/// closes the open sheet instead.
+bool _devSheetOpen = false;
+
+/// Test helper — module flag survives widget tree dispose across tests.
+@visibleForTesting
+void debugResetDevShortcutsSheetGate() {
+  _devSheetOpen = false;
+}
+
 void _openDevShortcuts(WidgetRef ref) {
   final sheetHost = _navHostContext();
   if (sheetHost == null) {
@@ -160,147 +177,253 @@ void _openDevShortcuts(WidgetRef ref) {
     return;
   }
 
-  final chromeOn = ref.read(debugUiProvider);
-  final authed = ref.read(authProvider).isAuthenticated;
+  final nav = Navigator.of(sheetHost, rootNavigator: true);
 
+  // Already open → pop (toggle). Do not push another sheet.
+  if (_devSheetOpen) {
+    if (nav.canPop()) {
+      nav.pop();
+      return;
+    }
+    // Stale flag (e.g. route disposed without whenComplete) — recover.
+    _devSheetOpen = false;
+  }
+
+  _devSheetOpen = true;
   showModalBottomSheet<void>(
     context: sheetHost,
     useRootNavigator: true,
     backgroundColor: DSColors.transparent,
     isScrollControlled: true,
-    builder: (sheetContext) {
-      final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
-      final surface = isDark ? DSColors.cardElevatedDark : DSColors.cardLight;
-      final label = isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary;
-      final muted = isDark
-          ? DSColors.labelSecondaryDark
-          : DSColors.labelSecondary;
+    builder: (sheetContext) => const _DevShortcutsSheet(),
+  ).whenComplete(() {
+    _devSheetOpen = false;
+  });
+}
 
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            DSSpacing.md,
-            DSSpacing.sm,
-            DSSpacing.md,
-            DSSpacing.md,
+/// Live sheet body — watches theme + chrome so Light/System/Dark updates in place.
+class _DevShortcutsSheet extends ConsumerWidget {
+  const _DevShortcutsSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chromeOn = ref.watch(debugUiProvider);
+    final authed = ref.watch(authProvider.select((s) => s.isAuthenticated));
+    final themeMode = ref.watch(authProvider.select((s) => s.themeMode));
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? DSColors.cardElevatedDark : DSColors.cardLight;
+    final label = isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary;
+    final muted = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
+    final dividerColor = isDark
+        ? DSColors.separatorDark
+        : DSColors.separatorLight;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          DSSpacing.md,
+          DSSpacing.sm,
+          DSSpacing.md,
+          DSSpacing.md,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(DSStyles.radiusSheet),
+            border: Border.all(
+              color: isDark
+                  ? DSColors.white.withValues(alpha: 0.08)
+                  : DSColors.separatorLight,
+              width: DSStyles.borderWidth,
+            ),
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: surface,
-              borderRadius: BorderRadius.circular(DSStyles.radiusSheet),
-              border: Border.all(
-                color: isDark
-                    ? DSColors.white.withValues(alpha: 0.08)
-                    : DSColors.separatorLight,
-                width: DSStyles.borderWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  DSSpacing.md,
+                  DSSpacing.md,
+                  DSSpacing.md,
+                  DSSpacing.sm,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DEV SHORTCUTS',
+                      style: DSTypography.label(color: muted).copyWith(
+                        fontSize: DSTypography.sizeXs,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: DSTypography.lsNone,
+                      ),
+                    ),
+                    DSSpacing.hXs,
+                    Text(
+                      'Hard-to-reach screens for develop only',
+                      style: DSTypography.caption(
+                        color: muted,
+                      ).copyWith(fontSize: DSTypography.sizeSm),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    DSSpacing.md,
-                    DSSpacing.md,
-                    DSSpacing.md,
-                    DSSpacing.sm,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'DEV SHORTCUTS',
-                        style: DSTypography.label(color: muted).copyWith(
-                          fontSize: DSTypography.sizeXs,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: DSTypography.lsWide,
+              Divider(
+                height: DSStyles.borderWidth,
+                thickness: DSStyles.borderWidth,
+                color: dividerColor,
+              ),
+              _DevShortcutTile(
+                icon: Icons.auto_awesome_motion_rounded,
+                label: 'Splash screen',
+                subtitle: 'Cold start / brand gate',
+                enabled: true,
+                labelColor: label,
+                mutedColor: muted,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _go('/splash');
+                },
+              ),
+              _DevShortcutTile(
+                icon: Icons.sync_rounded,
+                label: 'Initial sync',
+                subtitle: authed
+                    ? 'Post-login bootstrap gate'
+                    : 'Sign in required',
+                enabled: authed,
+                labelColor: label,
+                mutedColor: muted,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _go('/initial-sync');
+                },
+              ),
+              _DevShortcutTile(
+                icon: Icons.manage_accounts_rounded,
+                label: 'Edit profile',
+                subtitle: authed ? 'Profile edit form' : 'Sign in required',
+                enabled: authed,
+                labelColor: label,
+                mutedColor: muted,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _go('/profile/edit');
+                },
+              ),
+              Divider(
+                height: DSStyles.borderWidth,
+                thickness: DSStyles.borderWidth,
+                color: dividerColor,
+              ),
+              // Same Light / System / Dark control as Profile.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  DSSpacing.md,
+                  DSSpacing.sm,
+                  DSSpacing.md,
+                  DSSpacing.sm,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.palette_outlined,
+                          size: DSIconSize.md,
+                          color: DSColors.pending,
                         ),
+                        DSSpacing.wSm,
+                        Text(
+                          'Theme',
+                          style: DSTypography.body(color: label).copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: DSTypography.sizeMd,
+                          ),
+                        ),
+                      ],
+                    ),
+                    DSSpacing.hXs,
+                    Text(
+                      'Light, dark, or system default',
+                      style: DSTypography.caption(
+                        color: muted,
+                      ).copyWith(fontSize: DSTypography.sizeSm),
+                    ),
+                    DSSpacing.hSm,
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<ThemeMode>(
+                        showSelectedIcon: false,
+                        // Same segments as Profile — labels only, no icons.
+                        segments: const [
+                          ButtonSegment(
+                            value: ThemeMode.light,
+                            label: Text('Light'),
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.system,
+                            label: Text('System'),
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.dark,
+                            label: Text('Dark'),
+                          ),
+                        ],
+                        selected: {themeMode},
+                        style: ButtonStyle(
+                          textStyle: WidgetStateProperty.all(
+                            DSTypography.button().copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: DSTypography.sizeSm,
+                              letterSpacing: DSTypography.lsNone,
+                            ),
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onSelectionChanged: (modes) {
+                          if (modes.isEmpty) return;
+                          HapticFeedback.selectionClick();
+                          ref
+                              .read(authProvider.notifier)
+                              .setThemeMode(modes.first);
+                        },
                       ),
-                      DSSpacing.hXs,
-                      Text(
-                        'Hard-to-reach screens for develop only',
-                        style: DSTypography.caption(
-                          color: muted,
-                        ).copyWith(fontSize: DSTypography.sizeSm),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Divider(
-                  height: DSStyles.borderWidth,
-                  thickness: DSStyles.borderWidth,
-                  color: isDark
-                      ? DSColors.separatorDark
-                      : DSColors.separatorLight,
-                ),
-                _DevShortcutTile(
-                  icon: Icons.auto_awesome_motion_rounded,
-                  label: 'Splash screen',
-                  subtitle: 'Cold start / brand gate',
-                  enabled: true,
-                  labelColor: label,
-                  mutedColor: muted,
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _go('/splash');
-                  },
-                ),
-                _DevShortcutTile(
-                  icon: Icons.sync_rounded,
-                  label: 'Initial sync',
-                  subtitle: authed
-                      ? 'Post-login bootstrap gate'
-                      : 'Sign in required',
-                  enabled: authed,
-                  labelColor: label,
-                  mutedColor: muted,
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _go('/initial-sync');
-                  },
-                ),
-                _DevShortcutTile(
-                  icon: Icons.manage_accounts_rounded,
-                  label: 'Edit profile',
-                  subtitle: authed ? 'Profile edit form' : 'Sign in required',
-                  enabled: authed,
-                  labelColor: label,
-                  mutedColor: muted,
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _go('/profile/edit');
-                  },
-                ),
-                Divider(
-                  height: DSStyles.borderWidth,
-                  thickness: DSStyles.borderWidth,
-                  color: isDark
-                      ? DSColors.separatorDark
-                      : DSColors.separatorLight,
-                ),
-                _DevShortcutTile(
-                  icon: chromeOn
-                      ? Icons.visibility_rounded
-                      : Icons.visibility_off_rounded,
-                  label: chromeOn ? 'Hide debug chrome' : 'Show debug chrome',
-                  subtitle: 'Toggle labels / API panels on screens',
-                  enabled: true,
-                  labelColor: label,
-                  mutedColor: muted,
-                  onTap: () async {
-                    Navigator.of(sheetContext).pop();
-                    await ref.read(debugUiProvider.notifier).toggle();
-                  },
-                ),
-                DSSpacing.hSm,
-              ],
-            ),
+              ),
+              Divider(
+                height: DSStyles.borderWidth,
+                thickness: DSStyles.borderWidth,
+                color: dividerColor,
+              ),
+              _DevShortcutTile(
+                icon: chromeOn
+                    ? Icons.visibility_rounded
+                    : Icons.visibility_off_rounded,
+                label: chromeOn ? 'Hide debug chrome' : 'Show debug chrome',
+                subtitle: 'Toggle labels / API panels on screens',
+                enabled: true,
+                labelColor: label,
+                mutedColor: muted,
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await ref.read(debugUiProvider.notifier).toggle();
+                },
+              ),
+              DSSpacing.hSm,
+            ],
           ),
         ),
-      );
-    },
-  );
+      ),
+    );
+  }
 }
 
 class _DevShortcutTile extends StatelessWidget {

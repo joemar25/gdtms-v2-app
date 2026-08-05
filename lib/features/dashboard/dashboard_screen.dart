@@ -149,9 +149,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         },
         child: Scaffold(
           extendBody: true,
-          backgroundColor: isDark
-              ? DSColors.scaffoldDark
-              : DSColors.scaffoldLight,
+          // Transparent — shell paints DsBrandBackdrop.shell once for all tabs.
+          // Do NOT use extendBodyBehindAppBar here: Scaffold already lays body
+          // below the app bar; a manual topInset caused double top gap.
+          backgroundColor: DSColors.transparent,
           appBar: const DashboardHeaderBar(),
           body: _loading
               ? const Center(
@@ -161,6 +162,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 )
               : RefreshIndicator(
+                  color: DSColors.primary,
+                  backgroundColor: isDark
+                      ? DSColors.cardElevatedDark
+                      : DSColors.white,
                   onRefresh: _onRefresh,
                   child: isNewFeel
                       ? DashboardNewFeel(

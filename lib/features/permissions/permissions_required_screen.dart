@@ -1,15 +1,20 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/features/location.md — update that file when you edit this one.
 
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
-
-import 'package:fsi_courier_app/features/permissions/providers/location_provider.dart';
-import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
-import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/features/permissions/providers/location_provider.dart';
+import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
+
+/// Gate before dashboard — location, camera, notifications.
+///
+/// Visual language matches onboarding gates (quiet backdrop + glass cards),
+/// not a plain white form.
 class PermissionsRequiredScreen extends ConsumerWidget {
   const PermissionsRequiredScreen({super.key});
 
@@ -25,165 +30,184 @@ class PermissionsRequiredScreen extends ConsumerWidget {
     final notifGranted =
         permsState.notificationStatus == PermissionStatus.granted;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: DSSpacing.xl),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(vertical: DSSpacing.xl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'permissions.title'.tr(),
-                  textAlign: TextAlign.center,
-                  style: DSTypography.heading(
-                    fontSize: DSTypography.sizeXl,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ).dsFadeEntry(
-                  delay: DSAnimations.stagger(
-                    1,
-                    step: DSAnimations.staggerNormal,
-                  ),
-                ),
-                DSSpacing.hSm,
-                Text(
-                  'permissions.subtitle'.tr(),
-                  textAlign: TextAlign.center,
-                  style: DSTypography.body(
-                    color: DSColors.labelSecondary,
-                  ).copyWith(height: DSStyles.heightRelaxed),
-                ).dsFadeEntry(
-                  delay: DSAnimations.stagger(
-                    2,
-                    step: DSAnimations.staggerNormal,
-                  ),
-                ),
-                DSSpacing.hXl,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark
+        ? DSColors.labelPrimaryDark
+        : DSColors.labelPrimary;
+    final muted = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
 
-                // ── Location ────────────────────────────────────────────────────
-                _PermissionCard(
-                  icon: locationGranted
-                      ? Icons.location_on_rounded
-                      : Icons.location_off_rounded,
-                  label: 'permissions.location.label'.tr(),
-                  description: locationGranted
-                      ? 'permissions.status_granted'.tr()
-                      : _locationDescription(locationState.status),
-                  granted: locationGranted,
-                  buttonLabel: locationGranted
-                      ? 'permissions.button_enabled'.tr()
-                      : _locationButtonLabel(locationState.status),
-                  onTap: locationGranted
-                      ? null
-                      : () => _handleLocation(
-                          locationState.status,
-                          locationNotifier,
-                        ),
-                ).dsCardEntry(
-                  delay: DSAnimations.stagger(
-                    3,
-                    step: DSAnimations.staggerNormal,
+    return DSGateShell(
+      showThemeToggle: true,
+      backdrop: DsBackdrop.gate,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+                child: Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: DSColors.primary.withValues(
+                      alpha: DSStyles.alphaSubtle,
+                    ),
+                    borderRadius: BorderRadius.circular(DSStyles.radius2XL),
+                    border: Border.all(
+                      color: DSColors.primary.withValues(
+                        alpha: DSStyles.alphaMuted,
+                      ),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: DSColors.primary.withValues(alpha: 0.16),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.shield_moon_rounded,
+                    size: DSIconSize.xl,
+                    color: DSColors.primary,
                   ),
                 ),
-                DSSpacing.hMd,
+              )
+              .animate()
+              .fadeIn(duration: DSAnimations.dNormal)
+              .scale(
+                begin: const Offset(0.85, 0.85),
+                end: const Offset(1, 1),
+                duration: DSAnimations.dHero,
+                curve: Curves.easeOutBack,
+              ),
 
-                // ── Camera ──────────────────────────────────────────────────────
-                _PermissionCard(
-                  icon: cameraGranted
-                      ? Icons.camera_alt_rounded
-                      : Icons.no_photography_rounded,
-                  label: 'permissions.camera.label'.tr(),
-                  description: cameraGranted
-                      ? 'permissions.status_granted'.tr()
-                      : permsState.cameraStatus ==
-                            PermissionStatus.permanentlyDenied
-                      ? 'permissions.status_permanently_denied'.tr()
-                      : 'permissions.status_denied'.tr(
-                          namedArgs: {
-                            'reason': 'permissions.camera.reason'.tr(),
-                          },
-                        ),
-                  granted: cameraGranted,
-                  buttonLabel: cameraGranted
-                      ? 'permissions.button_enabled'.tr()
-                      : permsState.cameraStatus ==
-                            PermissionStatus.permanentlyDenied
-                      ? 'permissions.button_settings'.tr()
-                      : 'permissions.button_grant'.tr(),
-                  onTap: cameraGranted
-                      ? null
-                      : permsState.cameraStatus ==
-                            PermissionStatus.permanentlyDenied
-                      ? () => permsNotifier.openSettings()
-                      : () => permsNotifier.requestCamera(),
-                ).dsCardEntry(
-                  delay: DSAnimations.stagger(
-                    4,
-                    step: DSAnimations.staggerNormal,
-                  ),
-                ),
-                DSSpacing.hMd,
+          DSSpacing.hLg,
 
-                // ── Notifications ───────────────────────────────────────────────
-                _PermissionCard(
-                  icon: notifGranted
-                      ? Icons.notifications_rounded
-                      : Icons.notifications_off_rounded,
-                  label: 'permissions.notifications.label'.tr(),
-                  description: notifGranted
-                      ? 'permissions.status_granted'.tr()
-                      : permsState.notificationStatus ==
-                            PermissionStatus.permanentlyDenied
-                      ? 'permissions.status_permanently_denied'.tr()
-                      : 'permissions.status_denied'.tr(
-                          namedArgs: {
-                            'reason': 'permissions.notifications.reason'.tr(),
-                          },
-                        ),
-                  granted: notifGranted,
-                  buttonLabel: notifGranted
-                      ? 'permissions.button_enabled'.tr()
-                      : permsState.notificationStatus ==
-                            PermissionStatus.permanentlyDenied
-                      ? 'permissions.button_settings'.tr()
-                      : 'permissions.button_grant'.tr(),
-                  onTap: notifGranted
-                      ? null
-                      : permsState.notificationStatus ==
-                            PermissionStatus.permanentlyDenied
-                      ? () => permsNotifier.openSettings()
-                      : () => permsNotifier.requestNotification(),
-                ).dsCardEntry(
-                  delay: DSAnimations.stagger(
-                    5,
-                    step: DSAnimations.staggerNormal,
-                  ),
+          Text(
+                'permissions.title'.tr(),
+                textAlign: TextAlign.center,
+                style: DSTypography.heading(color: titleColor).copyWith(
+                  fontSize: DSTypography.sizeXl,
+                  fontWeight: FontWeight.w700,
                 ),
+              )
+              .animate()
+              .fadeIn(delay: 80.ms, duration: DSAnimations.dNormal)
+              .slideY(begin: 0.1, end: 0, delay: 80.ms),
 
-                DSSpacing.hXl,
-                TextButton(
-                  onPressed: () {
-                    locationNotifier.refresh();
-                    permsNotifier.refresh();
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: DSColors.labelSecondary,
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  child: Text('permissions.refresh'.tr()),
-                ).dsFadeEntry(
-                  delay: DSAnimations.stagger(
-                    7,
-                    step: DSAnimations.staggerNormal,
-                  ),
-                ),
-              ],
+          DSSpacing.hSm,
+
+          Text(
+            'permissions.subtitle'.tr(),
+            textAlign: TextAlign.center,
+            style: DSTypography.body(color: muted).copyWith(
+              height: DSStyles.heightRelaxed,
+              fontSize: DSTypography.sizeMd,
             ),
+          ).animate().fadeIn(delay: 120.ms, duration: DSAnimations.dNormal),
+
+          DSSpacing.hXl,
+
+          _PermissionCard(
+            icon: locationGranted
+                ? Icons.location_on_rounded
+                : Icons.location_off_rounded,
+            label: 'permissions.location.label'.tr(),
+            description: locationGranted
+                ? 'permissions.status_granted'.tr()
+                : _locationDescription(locationState.status),
+            granted: locationGranted,
+            buttonLabel: locationGranted
+                ? 'permissions.button_enabled'.tr()
+                : _locationButtonLabel(locationState.status),
+            onTap: locationGranted
+                ? null
+                : () => _handleLocation(locationState.status, locationNotifier),
+          ).dsCardEntry(
+            delay: DSAnimations.stagger(1, step: DSAnimations.staggerCoarse),
           ),
-        ),
+
+          DSSpacing.hFormField,
+
+          _PermissionCard(
+            icon: cameraGranted
+                ? Icons.camera_alt_rounded
+                : Icons.no_photography_rounded,
+            label: 'permissions.camera.label'.tr(),
+            description: cameraGranted
+                ? 'permissions.status_granted'.tr()
+                : permsState.cameraStatus == PermissionStatus.permanentlyDenied
+                ? 'permissions.status_permanently_denied'.tr()
+                : 'permissions.status_denied'.tr(
+                    namedArgs: {'reason': 'permissions.camera.reason'.tr()},
+                  ),
+            granted: cameraGranted,
+            buttonLabel: cameraGranted
+                ? 'permissions.button_enabled'.tr()
+                : permsState.cameraStatus == PermissionStatus.permanentlyDenied
+                ? 'permissions.button_settings'.tr()
+                : 'permissions.button_grant'.tr(),
+            onTap: cameraGranted
+                ? null
+                : permsState.cameraStatus == PermissionStatus.permanentlyDenied
+                ? () => permsNotifier.openSettings()
+                : () => permsNotifier.requestCamera(),
+          ).dsCardEntry(
+            delay: DSAnimations.stagger(2, step: DSAnimations.staggerCoarse),
+          ),
+
+          DSSpacing.hFormField,
+
+          _PermissionCard(
+            icon: notifGranted
+                ? Icons.notifications_rounded
+                : Icons.notifications_off_rounded,
+            label: 'permissions.notifications.label'.tr(),
+            description: notifGranted
+                ? 'permissions.status_granted'.tr()
+                : permsState.notificationStatus ==
+                      PermissionStatus.permanentlyDenied
+                ? 'permissions.status_permanently_denied'.tr()
+                : 'permissions.status_denied'.tr(
+                    namedArgs: {
+                      'reason': 'permissions.notifications.reason'.tr(),
+                    },
+                  ),
+            granted: notifGranted,
+            buttonLabel: notifGranted
+                ? 'permissions.button_enabled'.tr()
+                : permsState.notificationStatus ==
+                      PermissionStatus.permanentlyDenied
+                ? 'permissions.button_settings'.tr()
+                : 'permissions.button_grant'.tr(),
+            onTap: notifGranted
+                ? null
+                : permsState.notificationStatus ==
+                      PermissionStatus.permanentlyDenied
+                ? () => permsNotifier.openSettings()
+                : () => permsNotifier.requestNotification(),
+          ).dsCardEntry(
+            delay: DSAnimations.stagger(3, step: DSAnimations.staggerCoarse),
+          ),
+
+          DSSpacing.hLg,
+
+          TextButton(
+            onPressed: () {
+              locationNotifier.refresh();
+              permsNotifier.refresh();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: muted,
+              minimumSize: const Size.fromHeight(48),
+            ),
+            child: Text('permissions.refresh'.tr()),
+          ).animate().fadeIn(
+            delay: DSAnimations.stagger(4, step: DSAnimations.staggerCoarse),
+            duration: DSAnimations.dFast,
+          ),
+        ],
       ),
     );
   }
@@ -225,8 +249,6 @@ class PermissionsRequiredScreen extends ConsumerWidget {
   }
 }
 
-// ── Permission Card ────────────────────────────────────────────────────────────
-
 class _PermissionCard extends StatelessWidget {
   const _PermissionCard({
     required this.icon,
@@ -246,25 +268,15 @@ class _PermissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = granted ? DSColors.success : DSColors.primary;
+    final borderColor = granted
+        ? DSColors.success.withValues(alpha: 0.35)
+        : null;
 
-    final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final iconColor = granted ? DSColors.primary : DSColors.error;
-    final statusColor = granted ? DSColors.primary : DSColors.labelSecondary;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: DSStyles.cardRadius,
-        border: Border.all(
-          color: granted
-              ? DSColors.primary.withValues(alpha: DSStyles.alphaMuted)
-              : DSColors.separatorLight.withValues(alpha: DSStyles.alphaMuted),
-          width: DSStyles.borderWidth,
-        ),
-      ),
-      padding: EdgeInsets.all(DSSpacing.md),
+    return DSGlassCard(
+      borderColor: borderColor,
+      padding: const EdgeInsets.all(DSSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -276,7 +288,7 @@ class _PermissionCard extends StatelessWidget {
                 height: DSIconSize.heroSm,
                 decoration: BoxDecoration(
                   color: iconColor.withValues(alpha: DSStyles.alphaSubtle),
-                  borderRadius: DSStyles.cardRadius,
+                  borderRadius: BorderRadius.circular(DSStyles.radiusXL),
                 ),
                 child: Icon(icon, color: iconColor, size: DSIconSize.lg),
               ),
@@ -296,7 +308,9 @@ class _PermissionCard extends StatelessWidget {
                     Text(
                       description,
                       style: DSTypography.caption(
-                        color: statusColor,
+                        color: isDark
+                            ? DSColors.labelSecondaryDark
+                            : DSColors.labelSecondary,
                       ).copyWith(height: DSStyles.heightNormal),
                     ),
                   ],
@@ -306,7 +320,7 @@ class _PermissionCard extends StatelessWidget {
                 DSSpacing.wSm,
                 Icon(
                   Icons.check_circle_rounded,
-                  color: DSColors.primary,
+                  color: DSColors.success,
                   size: DSIconSize.xl,
                 ),
               ],
@@ -314,27 +328,21 @@ class _PermissionCard extends StatelessWidget {
           ),
           if (!granted) ...[
             DSSpacing.hMd,
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
                 onPressed: onTap,
-                style: TextButton.styleFrom(
-                  foregroundColor: DSColors.error,
-                  backgroundColor: DSColors.error.withValues(alpha: 0.1),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: DSSpacing.md,
-                    vertical: DSSpacing.sm,
-                  ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: DSColors.primary,
+                  foregroundColor: DSColors.white,
+                  minimumSize: const Size(double.infinity, 44),
                   shape: RoundedRectangleBorder(
-                    borderRadius: DSStyles.pillRadius,
+                    borderRadius: BorderRadius.circular(DSStyles.radiusXL),
                   ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(
                   buttonLabel,
-                  style: DSTypography.button(
-                    color: DSColors.error,
+                  style: DSTypography.button(color: DSColors.white).copyWith(
                     fontSize: DSTypography.sizeSm,
                     fontWeight: FontWeight.w700,
                   ),

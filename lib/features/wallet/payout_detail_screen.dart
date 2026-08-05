@@ -131,7 +131,7 @@ class _PayoutDetailScreenState extends ConsumerState<PayoutDetailScreen> {
         : null;
 
     // Screenshots allowed for courier support (wallet earnings, not recipient PII).
-    return Scaffold(
+    return DsAppScaffold(
       appBar: AppHeaderBar(
         title: reference,
         actions: [

@@ -118,8 +118,7 @@ class _ReportIssueScreenState extends ConsumerState<ReportIssueScreen> {
         ? DSColors.separatorDark
         : DSColors.separatorLight;
 
-    return Scaffold(
-      backgroundColor: isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight,
+    return DsAppScaffold(
       appBar: AppHeaderBar(title: 'Report an Issue'),
       body: Form(
         key: _formKey,

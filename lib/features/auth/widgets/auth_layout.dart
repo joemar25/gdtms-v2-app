@@ -9,14 +9,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
 import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
-import 'package:fsi_courier_app/features/auth/widgets/auth_animated_background.dart';
 import 'package:fsi_courier_app/features/auth/widgets/auth_illustration.dart';
 
 /// Shared shell for unauthenticated auth screens.
 ///
-/// Backdrop intensity defaults to [DsBackdropIntensity.standard] (login).
-/// Splash and other gates should use [DsBackdropIntensity.quiet] instead of
-/// reusing this shell blindly.
+/// Login-style shell. Backdrop defaults to [DsBackdrop.auth].
+/// Gates/splash should use [DsBackdrop.gate] (or [DSGateShell]).
 class AuthShell extends ConsumerWidget {
   const AuthShell({
     super.key,
@@ -24,7 +22,7 @@ class AuthShell extends ConsumerWidget {
     this.loading = false,
     this.showThemeToggle = true,
     this.maxContentWidth = 400,
-    this.backdropIntensity = DsBackdropIntensity.standard,
+    this.backdrop = DsBackdrop.auth,
     this.backdropConfig,
   });
 
@@ -33,10 +31,10 @@ class AuthShell extends ConsumerWidget {
   final bool showThemeToggle;
   final double maxContentWidth;
 
-  /// Scenic intensity. Ignored when [backdropConfig] is set.
-  final DsBackdropIntensity backdropIntensity;
+  /// Scenic variant. Ignored when [backdropConfig] is set.
+  final DsBackdrop backdrop;
 
-  /// Full layer override — use when a screen needs a non-preset mix.
+  /// Full layer override — rare one-offs only.
   final DsBrandBackdropConfig? backdropConfig;
 
   @override
@@ -50,8 +48,8 @@ class AuthShell extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            AuthAnimatedBackground(
-              intensity: backdropConfig == null ? backdropIntensity : null,
+            DsBrandBackdrop(
+              variant: backdropConfig == null ? backdrop : null,
               config: backdropConfig,
             ),
 
@@ -101,7 +99,7 @@ class AuthShell extends ConsumerWidget {
   }
 }
 
-/// Glass form surface with soft animated edge glow on entry.
+/// Glass form surface — delegates to [DSGlassCard] (shared design system).
 class AuthFormCard extends StatelessWidget {
   const AuthFormCard({super.key, required this.child});
 
@@ -109,39 +107,12 @@ class AuthFormCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      width: double.infinity,
+    return DSGlassCard(
       padding: const EdgeInsets.fromLTRB(
         DSSpacing.lg,
         DSSpacing.lg,
         DSSpacing.lg,
         DSSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: isDark
-            ? DSColors.cardElevatedDark.withValues(alpha: 0.90)
-            : DSColors.white.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(DSStyles.radius2XL),
-        border: Border.all(
-          color: isDark
-              ? DSColors.white.withValues(alpha: 0.10)
-              : DSColors.primary.withValues(alpha: 0.08),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: DSColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
-            blurRadius: 40,
-            offset: const Offset(0, 18),
-            spreadRadius: -4,
-          ),
-          BoxShadow(
-            color: DSColors.black.withValues(alpha: isDark ? 0.35 : 0.05),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
       child: child,
     );

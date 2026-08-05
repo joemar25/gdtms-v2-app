@@ -70,7 +70,13 @@ void main() {
         localDeliveryDaoProvider.overrideWithValue(mockLocalDeliveryDao),
         bagsakanDaoProvider.overrideWithValue(mockBagsakanDao),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      // DsAppScaffold's brand backdrop runs a repeating animation; disabling
+      // animations here (same as an OS-level reduce-motion setting) stops it
+      // so pumpAndSettle() can actually settle.
+      child: MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp.router(routerConfig: router),
+      ),
     );
   }
 

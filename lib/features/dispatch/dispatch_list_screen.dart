@@ -45,6 +45,8 @@ import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/empty_state.dart';
 import 'package:fsi_courier_app/shared/widgets/offline_placeholder.dart';
+import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/pagination_swipe_area.dart';
 import 'package:fsi_courier_app/core/device/device_info.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
@@ -61,10 +63,27 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
   // Tracks which card index is checking eligibility
   int? _checkingIndex;
 
+  // Server-side pagination — 0-indexed to match PaginationBar's convention.
+  int _currentPage = 0;
+  int _totalCount = 0;
+  int _lastPage = 1;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  int _asPositiveInt(dynamic value, {int fallback = 1}) {
+    if (value is num) {
+      final v = value.toInt();
+      return v > 0 ? v : fallback;
+    }
+    if (value is String) {
+      final v = int.tryParse(value.trim());
+      if (v != null && v > 0) return v;
+    }
+    return fallback;
   }
 
   Future<void> _load() async {
@@ -78,13 +97,25 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
     final pageSize = isCompact ? kCompactDispatchesPerPage : kDispatchesPerPage;
     final result = await ref
         .read(dispatchServiceProvider)
-        .getPendingDispatches(page: 1, perPage: pageSize);
+        .getPendingDispatches(page: _currentPage + 1, perPage: pageSize);
 
     if (!mounted) return;
     if (result case ApiSuccess<Map<String, dynamic>>(:final data)) {
       _dispatches = listOfMapsFromKey(data, 'pending_dispatches');
+      _totalCount = _asPositiveInt(
+        data['total_count'],
+        fallback: _dispatches.length,
+      );
+      final pagination = mapFromKey(data, 'pagination');
+      _lastPage = _asPositiveInt(pagination['last_page']);
     }
     setState(() => _loading = false);
+  }
+
+  Future<void> _goToPage(int page) async {
+    if (page < 0 || page >= _lastPage || page == _currentPage) return;
+    setState(() => _currentPage = page);
+    await _load();
   }
 
   /// Masks the last 4 characters of the partial code
@@ -155,8 +186,16 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<bool>(compactModeProvider, (_, _) => _load());
+    ref.listen<bool>(compactModeProvider, (_, _) {
+      _currentPage = 0;
+      _load();
+    });
     final isCompact = ref.watch(compactModeProvider);
+    final pageSize = isCompact ? kCompactDispatchesPerPage : kDispatchesPerPage;
+    final firstItem = _dispatches.isEmpty ? 0 : _currentPage * pageSize + 1;
+    final lastItem = _dispatches.isEmpty
+        ? 0
+        : firstItem + _dispatches.length - 1;
     final status = ref.watch(connectionStatusProvider);
     final isOnline = status == ConnectionStatus.online;
 
@@ -164,7 +203,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
         ? 'Server unavailable. Pending dispatches cannot be loaded.'
         : 'Viewing pending dispatches requires an internet connection.';
 
-    return Scaffold(
+    return DsAppScaffold(
       appBar: AppHeaderBar(
         title: 'Dispatch',
         actions: [
@@ -180,98 +219,122 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
           ? OfflinePlaceholder(onRetry: _load, message: offlineMessage)
           : _loading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: _dispatches.isEmpty
-                  ? CustomScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: EmptyState(
-                            message: 'empty_states.dispatch.title'.tr(),
-                            subMessage: 'empty_states.dispatch.subtitle'.tr(),
-                            icon: Icons.local_shipping_rounded,
-                            iconColor: DSColors.primary,
+          : PaginationSwipeArea(
+              currentPage: _currentPage,
+              totalPages: _lastPage,
+              onPageChanged: _goToPage,
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child: _dispatches.isEmpty
+                    ? CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: EmptyState(
+                              message: 'empty_states.dispatch.title'.tr(),
+                              subMessage: 'empty_states.dispatch.subtitle'.tr(),
+                              icon: Icons.local_shipping_rounded,
+                              iconColor: DSColors.primary,
+                            ),
                           ),
-                        ),
-                      ],
-                    )
-                  : ListView.separated(
-                      padding: EdgeInsets.all(DSSpacing.md),
-                      separatorBuilder: (_, _) => DSSpacing.hSm,
-                      itemCount: _dispatches.length,
-                      itemBuilder: (_, i) {
-                        final item = _dispatches[i];
-                        final dispatchCode =
-                            item['dispatch_code']?.toString() ?? '';
-                        final maskedCode = _maskCode(dispatchCode);
-                        final branch = item['branch'] is Map
-                            ? item['branch'] as Map
-                            : <String, dynamic>{};
-                        final branchName =
-                            branch['branch_name']?.toString() ?? '';
-                        final volume = item['volume']?.toString() ?? '-';
-                        final tat = item['tat']?.toString() ?? '';
-                        final isBagsakan = item['is_bagsakan'] == true;
-                        final bagsakanId = item['bagsakan_id']?.toString();
-                        final isChecking = _checkingIndex == i;
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: ListView.separated(
+                              padding: EdgeInsets.all(DSSpacing.md),
+                              separatorBuilder: (_, _) => DSSpacing.hSm,
+                              itemCount: _dispatches.length,
+                              itemBuilder: (_, i) {
+                                final item = _dispatches[i];
+                                final dispatchCode =
+                                    item['dispatch_code']?.toString() ?? '';
+                                final maskedCode = _maskCode(dispatchCode);
+                                final branch = item['branch'] is Map
+                                    ? item['branch'] as Map
+                                    : <String, dynamic>{};
+                                final branchName =
+                                    branch['branch_name']?.toString() ?? '';
+                                final volume =
+                                    item['volume']?.toString() ?? '-';
+                                final tat = item['tat']?.toString() ?? '';
+                                final isBagsakan = item['is_bagsakan'] == true;
+                                final bagsakanId = item['bagsakan_id']
+                                    ?.toString();
+                                final isChecking = _checkingIndex == i;
 
-                        // Add TAT label to reportingDate
-                        final reportingDate = tat.isNotEmpty
-                            ? '${formatDate(tat)} (TAT)'
-                            : '-';
+                                // Add TAT label to reportingDate
+                                final reportingDate = tat.isNotEmpty
+                                    ? '${formatDate(tat)} (TAT)'
+                                    : '-';
 
-                        // Map dispatch data to DeliveryCard format
-                        final deliveryMap = {
-                          'barcode': maskedCode,
-                          'delivery_status': '',
-                          'metadata': [
-                            if (isBagsakan)
-                              {
-                                'icon': Icons.inventory_2_rounded,
-                                'label':
-                                    bagsakanId != null && bagsakanId.isNotEmpty
-                                    ? 'Bagsakan #$bagsakanId'
-                                    : 'Bagsakan Batch',
+                                // Map dispatch data to DeliveryCard format
+                                final deliveryMap = {
+                                  'barcode': maskedCode,
+                                  'delivery_status': '',
+                                  'metadata': [
+                                    if (isBagsakan)
+                                      {
+                                        'icon': Icons.inventory_2_rounded,
+                                        'label':
+                                            bagsakanId != null &&
+                                                bagsakanId.isNotEmpty
+                                            ? 'Bagsakan #$bagsakanId'
+                                            : 'Bagsakan Batch',
+                                      },
+                                    {
+                                      'icon': Icons.store_outlined,
+                                      'label': branchName.isNotEmpty
+                                          ? branchName
+                                          : 'N/A',
+                                    },
+                                    {
+                                      'icon': Icons.inventory_2_outlined,
+                                      'label':
+                                          '$volume item${volume == '1' ? '' : 's'}',
+                                    },
+                                    {
+                                      'icon': Icons.event_outlined,
+                                      'label': reportingDate,
+                                    },
+                                  ],
+                                };
+
+                                return DeliveryCard(
+                                  delivery: deliveryMap,
+                                  compact: isCompact,
+                                  footerText:
+                                      'Tap to view and accept or reject',
+                                  isChecking: isChecking,
+                                  enableHoldToReveal: false,
+                                  showChevron: false,
+                                  showLockIcon: false,
+                                  onTap: isChecking
+                                      ? null
+                                      : () => _openDispatch(i, dispatchCode),
+                                ).dsCardEntry(
+                                  delay: DSAnimations.stagger(
+                                    i,
+                                    step: DSAnimations.staggerFine,
+                                  ),
+                                );
                               },
-                            {
-                              'icon': Icons.store_outlined,
-                              'label': branchName.isNotEmpty
-                                  ? branchName
-                                  : 'N/A',
-                            },
-                            {
-                              'icon': Icons.inventory_2_outlined,
-                              'label':
-                                  '$volume item${volume == '1' ? '' : 's'}',
-                            },
-                            {
-                              'icon': Icons.event_outlined,
-                              'label': reportingDate,
-                            },
-                          ],
-                        };
-
-                        return DeliveryCard(
-                          delivery: deliveryMap,
-                          compact: isCompact,
-                          footerText: 'Tap to view and accept or reject',
-                          isChecking: isChecking,
-                          enableHoldToReveal: false,
-                          showChevron: false,
-                          showLockIcon: false,
-                          onTap: isChecking
-                              ? null
-                              : () => _openDispatch(i, dispatchCode),
-                        ).dsCardEntry(
-                          delay: DSAnimations.stagger(
-                            i,
-                            step: DSAnimations.staggerFine,
+                            ),
                           ),
-                        );
-                      },
-                    ),
+                          if (_lastPage > 1)
+                            PaginationBar(
+                              currentPage: _currentPage,
+                              totalPages: _lastPage,
+                              firstItem: firstItem,
+                              lastItem: lastItem,
+                              totalCount: _totalCount,
+                              onPageChanged: _goToPage,
+                            ),
+                        ],
+                      ),
+              ),
             ),
     );
   }

@@ -33,6 +33,11 @@ Manual / overlay paths use coalesced **`requestFlush(reason:, awaitIdle:)`** (se
 `sync_now_button.dart` / `showSyncOverlay`). Screen open and pull-to-refresh also
 flush when `ConnectionStatus.online`.
 
+**Overlay UI** matches post-login [initial sync](initial-sync.md): brand backdrop,
+`SyncAiOrb`, phase rail (Start → Load → Sort → Done), and status stream — not the
+old dark dialog + spinner. Shared widgets live in
+`lib/features/initial_sync/widgets/sync_ai_visuals.dart`.
+
 Architecture: [../architecture/system-map.md](../architecture/system-map.md),
 [../core/sync.md](../core/sync.md).
 

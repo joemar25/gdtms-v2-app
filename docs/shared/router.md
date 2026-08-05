@@ -23,6 +23,28 @@
 
 ## `app_router.dart`
 
+### Shared post-login background (decoupled)
+
+Module: `lib/design_system/backdrop/` (see `backdrop/README.md`).
+
+| Where | How |
+|--------|-----|
+| Tab roots | `ScaffoldWithNavBar` → `DsBrandBackdrop(variant: shell)` |
+| Lists / detail | `DsAppScaffold` → same `shell` |
+
+**Change shell once:** `DsBrandBackdropConfig.shell` in  
+`lib/design_system/backdrop/ds_backdrop_config.dart`
+
+```dart
+return DsAppScaffold(
+  appBar: AppHeaderBar(title: '...'),
+  body: ...,
+);
+```
+
+Do not set opaque scaffold colors on post-login pages.  
+Exceptions: initial-sync, login, gates, camera.
+
 ### Route table (full)
 
 | Route | Screen | Auth required | Location required |

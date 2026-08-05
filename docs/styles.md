@@ -92,6 +92,38 @@ Replaces the old `StyledTextBox`. Handles text entry, password visibility toggle
 ### `DSCard`
 Replaces raw `Container` or `Card` for lists and summaries. Provides consistent rounding and shadows.
 
+### `DSGlass` + `DSGlassCard`
+Shared frosted-glass language:
+
+| Tone | Base color | Use |
+|------|------------|-----|
+| `DSGlassTone.chrome` | **Primary green** frosted, **mode-aware** | Header + bottom nav |
+| `DSGlassTone.card` | Neutral elevated (α 0.90) | Auth forms, chips |
+
+**Chrome light vs dark** (same API, different density):
+
+| Mode | Fill α | Blur | Why |
+|------|--------|------|-----|
+| Light | **0.88** + white sheen | 24 | Pale scaffolds wash green; denser + sheen = brand glass, readable white glyphs |
+| Dark | **0.50** | 28 | Thinner frost over dark UI / scenery |
+
+**Requirements for real glass (not solid paint):**
+1. `appBarTheme` / `bottomNavigationBarTheme` **transparent** in [DSTheme]
+2. Header frost in `AppBar.flexibleSpace` via [DSGlassChrome]
+3. Tab roots: `extendBody: true` for nav over content; **do not** combine `extendBodyBehindAppBar` with a manual top inset (double gap)
+
+Use `DSGlass` / `DSGlassChrome` only — no hardcoded bar fills.
+
+| API | Use |
+|-----|-----|
+| `DSGlass.fill(context, tone: chrome)` | Primary glass bar fill |
+| `DSGlass.onChrome` / `onChromeMuted` / `onChromeInactive` | White glyphs on primary chrome |
+| `DSGlass.border` / `filter` / `shadow` | Edge, blur, elevation |
+| `DSGlass.chromeHeight` | Header / nav height (72) |
+| `DSGlassCard` | Card widget; `compact: true` for chips |
+
+**Chrome rule:** header + nav use primary glass + white foreground (not neutral card glass).
+
 ### `DSInfoTile`
 The standard for displaying key-value pairs (e.g., in Delivery Details).
 

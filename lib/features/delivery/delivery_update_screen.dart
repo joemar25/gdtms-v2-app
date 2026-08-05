@@ -964,8 +964,7 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           }
         }
       },
-      child: Scaffold(
-        // Inherits scaffoldBackgroundColor from global theme.
+      child: DsAppScaffold(
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: DeliverySubmitFab(
           isLoading: _loading,

@@ -92,105 +92,109 @@ class _TermsScreenState extends State<TermsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight;
-    final cardColor = isDark ? DSColors.cardDark : DSColors.white;
+    final muted = isDark ? DSColors.labelSecondaryDark : DSColors.labelTertiary;
 
     return Scaffold(
-      backgroundColor: bg,
-      appBar: AppHeaderBar(
-        title: 'Terms & Conditions',
-        leading: widget.viewOnly ? null : const SizedBox.shrink(),
-      ),
-      body: Column(
+      body: Stack(
+        fit: StackFit.expand,
         children: [
-          Expanded(
-            child: _content.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : Container(
-                    margin: EdgeInsets.all(DSSpacing.md),
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: DSStyles.cardRadius,
-                    ),
-                    child: SingleChildScrollView(
-                      controller: _scrollCtrl,
-                      padding: EdgeInsets.all(DSSpacing.lg),
-                      child: LegalMarkdownText(
-                        content: _content,
-                        isDark: isDark,
-                      ),
-                    ),
-                  ),
-          ),
-          if (!widget.viewOnly) ...[
-            Container(
-              padding: EdgeInsets.fromLTRB(
-                DSSpacing.md,
-                DSSpacing.sm,
-                DSSpacing.md,
-                DSSpacing.xl,
+          const DsBrandBackdrop(variant: DsBackdrop.gate),
+          Column(
+            children: [
+              AppHeaderBar(
+                title: 'Terms & Conditions',
+                leading: widget.viewOnly ? null : const SizedBox.shrink(),
               ),
-              color: isDark ? DSColors.cardDark : DSColors.white,
-              child: Column(
-                children: [
-                  if (!_scrolledToEnd)
-                    Padding(
-                      padding: EdgeInsets.only(bottom: DSSpacing.sm),
-                      child: Text(
-                        'Scroll to the bottom to accept',
-                        style: DSTypography.caption(
-                          color: isDark
-                              ? DSColors.white.withValues(
-                                  alpha: DSStyles.alphaMuted,
-                                )
-                              : DSColors.labelTertiary,
-                        ).copyWith(fontSize: DSTypography.sizeSm),
-                      ),
-                    ),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: (_scrolledToEnd && !_accepting)
-                          ? _accept
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: DSColors.primary,
-                        foregroundColor: DSColors.white,
-                        disabledBackgroundColor: isDark
-                            ? DSColors.separatorDark
-                            : DSColors.separatorLight,
-                        disabledForegroundColor: isDark
-                            ? DSColors.white.withValues(
-                                alpha: DSStyles.alphaMuted,
-                              )
-                            : DSColors.labelTertiary.withValues(
-                                alpha: DSStyles.alphaMuted,
-                              ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: DSStyles.cardRadius,
+              Expanded(
+                child: _content.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          DSSpacing.md,
+                          DSSpacing.sm,
+                          DSSpacing.md,
+                          DSSpacing.sm,
                         ),
-                        elevation: DSStyles.elevationNone,
-                      ),
-                      child: _accepting
-                          ? const SizedBox(
-                              width: DSIconSize.xl,
-                              height: DSIconSize.xl,
-                              child: CircularProgressIndicator(
-                                strokeWidth: DSStyles.strokeWidth,
-                                color: DSColors.white,
-                              ),
-                            )
-                          : Text(
-                              'I Accept the Terms & Conditions',
-                              style: DSTypography.button(color: DSColors.white),
+                        child: DSGlassCard(
+                          padding: EdgeInsets.zero,
+                          child: SingleChildScrollView(
+                            controller: _scrollCtrl,
+                            padding: const EdgeInsets.all(DSSpacing.lg),
+                            child: LegalMarkdownText(
+                              content: _content,
+                              isDark: isDark,
                             ),
+                          ),
+                        ),
+                      ),
+              ),
+              if (!widget.viewOnly)
+                SafeArea(
+                  top: false,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(
+                      DSSpacing.lg,
+                      DSSpacing.sm,
+                      DSSpacing.lg,
+                      DSSpacing.md,
+                    ),
+                    child: Column(
+                      children: [
+                        if (!_scrolledToEnd)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: DSSpacing.sm,
+                            ),
+                            child: Text(
+                              'Please scroll to the bottom to continue',
+                              style: DSTypography.caption(
+                                color: muted,
+                              ).copyWith(fontSize: DSTypography.sizeSm),
+                            ),
+                          ),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: FilledButton(
+                            onPressed: (_scrolledToEnd && !_accepting)
+                                ? _accept
+                                : null,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: DSColors.primary,
+                              foregroundColor: DSColors.white,
+                              disabledBackgroundColor: isDark
+                                  ? DSColors.separatorDark
+                                  : DSColors.separatorLight,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  DSStyles.radiusXL,
+                                ),
+                              ),
+                            ),
+                            child: _accepting
+                                ? const SizedBox(
+                                    width: DSIconSize.lg,
+                                    height: DSIconSize.lg,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: DSColors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    'I accept the terms',
+                                    style: DSTypography.button(
+                                      color: DSColors.white,
+                                    ).copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ],
+                ),
+            ],
+          ),
         ],
       ),
     );

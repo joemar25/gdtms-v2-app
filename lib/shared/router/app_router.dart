@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fsi_courier_app/core/auth/auth_provider.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/features/permissions/providers/location_provider.dart';
 import 'package:fsi_courier_app/features/permissions/providers/permissions_provider.dart';
 import 'package:fsi_courier_app/features/permissions/permissions_required_screen.dart';
@@ -140,11 +141,20 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
   Widget build(BuildContext context) {
     final currentIndex = widget.navigationShell.currentIndex;
 
+    // CENTRAL: one [DsBrandBackdrop.shell] for Home / Bagsakan / Wallet / Profile.
+    // Change preset in [DsBrandBackdropConfig.shell] — not per-screen.
     return Scaffold(
       extendBody: true,
-      body: KeyedSubtree(
-        key: ValueKey<int>(currentIndex),
-        child: widget.navigationShell,
+      backgroundColor: DSColors.transparent,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const DsBrandBackdrop(variant: DsBackdrop.shell),
+          KeyedSubtree(
+            key: ValueKey<int>(currentIndex),
+            child: widget.navigationShell,
+          ),
+        ],
       ),
       bottomNavigationBar: AppBottomNavBar(
         navigationShell: widget.navigationShell,

@@ -101,7 +101,7 @@ class _ErrorLogsScreenState extends State<ErrorLogsScreen> {
         .where((e) => e.level.toLowerCase() == 'warning')
         .length;
 
-    return Scaffold(
+    return DsAppScaffold(
       appBar: AppHeaderBar(
         title: 'Error Logs',
         actions: [

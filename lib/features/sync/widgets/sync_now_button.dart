@@ -3,13 +3,15 @@
 
 import 'dart:async' show unawaited;
 
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fsi_courier_app/core/providers/sync_provider.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/features/initial_sync/widgets/sync_ai_visuals.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
 /// Visual variant for [SyncNowButton].
@@ -27,9 +29,9 @@ enum SyncNowButtonVariant {
 ///
 /// Tapping it:
 /// 1. Kicks off [SyncManagerNotifier.requestFlush] immediately.
-/// 2. Shows [_SyncNowSheet] — a modal bottom-sheet with live progress,
-///    stat chips (Pending / Synced / Failed), and a progress bar.
-/// 3. Auto-dismisses the sheet once syncing completes.
+/// 2. Shows [SyncOverlay] — fullscreen loader matching [InitialSyncScreen]
+///    (brand backdrop, orb, phase rail, status stream).
+/// 3. Auto-dismisses after a short success countdown (or OK tap).
 ///
 /// When [isOnline] is `false` the button is hidden entirely (returns
 /// [SizedBox.shrink]).
@@ -121,13 +123,14 @@ class SyncNowButton extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Starts a coalesced [SyncManagerNotifier.requestFlush] and shows
-/// [SyncOverlay] as a fullscreen non-dismissible dialog with live sync progress.
+/// [SyncOverlay] as a fullscreen non-dismissible dialog — same visual
+/// language as [InitialSyncScreen] (orb, phase rail, status stream).
 ///
 /// Use this directly in any [ConsumerWidget] instead of embedding
 /// [SyncNowButton] when gesture-arena conflicts would be an issue
 /// (e.g., when the button sits inside another tappable container).
 Future<void> showSyncOverlay(BuildContext context, WidgetRef ref) async {
-  // Kick off the queue before showing the sheet so progress is live.
+  // Kick off the queue before showing the overlay so progress is live.
   unawaited(
     ref
         .read(syncManagerProvider.notifier)
@@ -137,17 +140,20 @@ Future<void> showSyncOverlay(BuildContext context, WidgetRef ref) async {
   await showDialog<void>(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withValues(alpha: 0.85),
+    // Backdrop paints the brand surface; keep barrier clear.
+    barrierColor: DSColors.transparent,
+    useSafeArea: false,
     builder: (_) => const SyncOverlay(),
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Bottom-sheet
+// Fullscreen overlay (matches initial sync visual language)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Fullscreen overlay that shows live sync progress and prevents
-/// interaction. Auto-closes when syncing completes.
+/// interaction. Same loader UI as post-login [InitialSyncScreen].
+/// Auto-closes after a short success countdown (or OK tap).
 ///
 /// Use [showSyncOverlay] to present this overlay from any [ConsumerWidget].
 class SyncOverlay extends ConsumerStatefulWidget {
@@ -157,52 +163,44 @@ class SyncOverlay extends ConsumerStatefulWidget {
   ConsumerState<SyncOverlay> createState() => _SyncOverlayState();
 }
 
-class _SyncOverlayState extends ConsumerState<SyncOverlay>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _rotateController;
-
+class _SyncOverlayState extends ConsumerState<SyncOverlay> {
+  /// Keep the loader visible briefly even if the queue is already empty.
   bool _minVisualSyncing = true;
   int _countdown = 3;
   bool _isNavigating = false;
   bool _countdownStarted = false;
+  bool _doneVisual = false;
+
+  /// Same scenery language as [InitialSyncScreen].
+  static final _backdropConfig = DsBrandBackdropConfig.auth.copyWith(
+    showWaves: false,
+    showParticles: true,
+    particleCount: 14,
+    opacity: 0.92,
+    orbAlphaScale: 0.85,
+    driftScale: 0.7,
+    loopDuration: const Duration(seconds: 14),
+  );
 
   @override
   void initState() {
     super.initState();
-    _rotateController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-
-    // Ensure we show the "Syncing" animation for at least 1.5 seconds
-    // so it doesn't just flash instantly if the queue is empty.
     Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        setState(() => _minVisualSyncing = false);
-      }
+      if (mounted) setState(() => _minVisualSyncing = false);
     });
   }
 
-  @override
-  void dispose() {
-    _rotateController.dispose();
-    super.dispose();
-  }
-
   Future<void> _startCountdown() async {
-    for (int i = 3; i > 0; i--) {
+    for (var i = 3; i > 0; i--) {
       if (!mounted || _isNavigating) break;
       setState(() => _countdown = i);
       await Future.delayed(const Duration(seconds: 1));
     }
     if (!mounted || _isNavigating) return;
-    _isNavigating = true;
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
+    _dismiss();
   }
 
-  void _onOk() {
+  void _dismiss() {
     if (_isNavigating) return;
     _isNavigating = true;
     if (Navigator.canPop(context)) {
@@ -210,190 +208,264 @@ class _SyncOverlayState extends ConsumerState<SyncOverlay>
     }
   }
 
+  String _statusMessage({
+    required bool isSyncing,
+    required String? lastMessage,
+    required DateTime? lastSyncTime,
+    required int processed,
+    required int total,
+  }) {
+    if (isSyncing) {
+      if (lastMessage != null && lastMessage.trim().isNotEmpty) {
+        return lastMessage;
+      }
+      if (total > 0) {
+        return 'Uploading $processed of $total updates…';
+      }
+      return 'Sending your updates…';
+    }
+    if (lastSyncTime != null) {
+      return 'sync.status.last_sync'.tr(
+        args: [formatEpoch(lastSyncTime.millisecondsSinceEpoch)],
+      );
+    }
+    return 'sync.status.up_to_date'.tr();
+  }
+
   @override
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncManagerProvider);
     final lastSyncTime = ref.watch(lastSyncTimeProvider);
     final isSyncing = syncState.isSyncing || _minVisualSyncing;
+    final done = !isSyncing;
 
-    final double? progress = syncState.total > 0
-        ? (syncState.processed / syncState.total).clamp(0.0, 1.0)
-        : null;
+    if (done && !_doneVisual) {
+      // Next frame so SyncAiOrb gets a clean false→true transition.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _doneVisual = true);
+      });
+    }
 
-    if (!isSyncing && !_countdownStarted) {
+    if (done && !_countdownStarted) {
       _countdownStarted = true;
       _startCountdown();
     }
 
+    final message = _statusMessage(
+      isSyncing: isSyncing,
+      lastMessage: syncState.lastMessage,
+      lastSyncTime: lastSyncTime,
+      processed: syncState.processed,
+      total: syncState.total,
+    );
+    final phase = syncPhaseFromQueueProgress(
+      done: done,
+      message: syncState.lastMessage ?? message,
+      processed: syncState.processed,
+      total: syncState.total,
+    );
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark
+        ? DSColors.labelPrimaryDark
+        : DSColors.labelPrimary;
+    final muted = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
+
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: DSColors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: isDark
+            ? DSColors.scaffoldDark
+            : const Color(0xFFEAF6EC),
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
+      ),
+    );
+
     return PopScope(
-          canPop: !isSyncing,
-          child: Center(
-            child: Material(
-              color: Colors.transparent,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _SyncIcon(
-                    isSyncing: isSyncing,
-                    rotateController: _rotateController,
+      canPop: done,
+      child: Material(
+        color: DSColors.transparent,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            DsBrandBackdrop(config: _backdropConfig),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(
+                    DSSpacing.lg,
+                    DSSpacing.xl,
+                    DSSpacing.lg,
+                    DSSpacing.xl,
                   ),
-                  DSSpacing.hLg,
-                  Text(
-                    isSyncing
-                        ? 'sync.actions.syncing'.tr()
-                        : 'sync.status.up_to_date'.tr(),
-                    style: DSTypography.heading(
-                      fontSize: DSTypography.sizeLg,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                  DSSpacing.hSm,
-                  if (isSyncing) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 48),
-                      child: Text(
-                        syncState.lastMessage ??
-                            (lastSyncTime != null
-                                ? 'sync.status.last_sync'.tr(
-                                    args: [
-                                      formatEpoch(
-                                        lastSyncTime.millisecondsSinceEpoch,
-                                      ),
-                                    ],
-                                  )
-                                : '—'),
-                        style: DSTypography.caption(color: Colors.white70),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    DSSpacing.hLg,
-                    SizedBox(
-                      width: 200,
-                      child: ClipRRect(
-                        borderRadius: DSStyles.pillRadius,
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 6,
-                          backgroundColor: Colors.white24,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            DSColors.success,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SyncAiOrb(done: _doneVisual || done, size: 176)
+                            .animate()
+                            .fadeIn(duration: DSAnimations.dSlow)
+                            .scale(
+                              begin: const Offset(0.85, 0.85),
+                              end: const Offset(1, 1),
+                              duration: DSAnimations.dHero,
+                              curve: Curves.easeOutCubic,
+                            ),
+
+                        DSSpacing.hXl,
+
+                        AnimatedSwitcher(
+                          duration: DSAnimations.dNormal,
+                          child: Text(
+                            done
+                                ? 'sync.status.up_to_date'.tr()
+                                : 'sync.actions.syncing'.tr(),
+                            key: ValueKey(done),
+                            textAlign: TextAlign.center,
+                            style: DSTypography.heading(color: titleColor)
+                                .copyWith(
+                                  fontSize: DSTypography.sizeXl,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: DSTypography.lsTight,
+                                ),
                           ),
                         ),
-                      ),
-                    ),
-                    if (syncState.total > 0) ...[
-                      DSSpacing.hSm,
-                      Text(
-                        '${syncState.processed} / ${syncState.total}',
-                        style: DSTypography.caption(color: Colors.white70),
-                      ),
-                    ],
-                  ] else ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 48),
-                      child: Text(
-                        lastSyncTime != null
-                            ? 'sync.status.last_sync'.tr(
-                                args: [
-                                  formatEpoch(
-                                    lastSyncTime.millisecondsSinceEpoch,
-                                  ),
-                                ],
-                              )
-                            : '—',
-                        style: DSTypography.caption(color: Colors.white70),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                  if (!isSyncing) ...[
-                    DSSpacing.hLg,
-                    FilledButton.icon(
-                      onPressed: _onOk,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white24,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: DSSpacing.xl,
-                          vertical: DSSpacing.sm,
+
+                        DSSpacing.hXs,
+
+                        Text(
+                          done
+                              ? 'Your updates are on the server'
+                              : 'Please wait — uploading local changes',
+                          textAlign: TextAlign.center,
+                          style: DSTypography.body(
+                            color: muted,
+                          ).copyWith(fontSize: DSTypography.sizeMd),
                         ),
-                      ),
-                      icon: const Icon(Icons.check_rounded, size: 18),
-                      label: Text('${'common.ok'.tr()} ($_countdown)'),
+
+                        DSSpacing.hXl,
+
+                        SyncAiPhaseRail(active: phase).animate().fadeIn(
+                          delay: 120.ms,
+                          duration: DSAnimations.dNormal,
+                        ),
+
+                        DSSpacing.hLg,
+
+                        SyncAiStatusStream(
+                          message: message,
+                          done: done,
+                        ).animate().fadeIn(
+                          delay: 180.ms,
+                          duration: DSAnimations.dNormal,
+                        ),
+
+                        if (isSyncing && syncState.total > 0) ...[
+                          DSSpacing.hMd,
+                          Text(
+                            '${syncState.processed} / ${syncState.total}',
+                            style: DSTypography.caption(color: muted).copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: DSTypography.lsWide,
+                            ),
+                          ),
+                        ],
+
+                        if (done) ...[
+                          DSSpacing.hXl,
+                          _SyncDoneButton(
+                                countdown: _countdown,
+                                onPressed: _dismiss,
+                              )
+                              .animate()
+                              .fadeIn(duration: DSAnimations.dNormal)
+                              .slideY(
+                                begin: 0.15,
+                                end: 0,
+                                duration: DSAnimations.dNormal,
+                                curve: Curves.easeOutCubic,
+                              )
+                              .scale(
+                                begin: const Offset(0.96, 0.96),
+                                end: const Offset(1, 1),
+                                duration: DSAnimations.dNormal,
+                              ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Primary CTA matching initial-sync continue button styling.
+class _SyncDoneButton extends StatelessWidget {
+  const _SyncDoneButton({required this.countdown, required this.onPressed});
+
+  final int countdown;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(DSStyles.radiusXL),
+        boxShadow: [
+          BoxShadow(
+            color: DSColors.primary.withValues(alpha: 0.4),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Material(
+        color: DSColors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(DSStyles.radiusXL),
+          child: Ink(
+            height: 52,
+            decoration: BoxDecoration(
+              gradient: DSColors.primaryGradient,
+              borderRadius: BorderRadius.circular(DSStyles.radiusXL),
+            ),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.check_rounded,
+                    color: DSColors.white,
+                    size: DSIconSize.md,
+                  ),
+                  DSSpacing.wSm,
+                  Text(
+                    '${'common.ok'.tr()} ($countdown)',
+                    style: DSTypography.button(color: DSColors.white).copyWith(
+                      fontSize: DSTypography.sizeMd,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-        )
-        .animate()
-        .slideY(
-          begin: 0.12,
-          end: 0,
-          duration: DSAnimations.dNormal,
-          curve: Curves.easeOutCubic,
-        )
-        .fadeIn(duration: DSAnimations.dFast);
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Animated gradient sync icon circle
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SyncIcon extends StatelessWidget {
-  const _SyncIcon({required this.isSyncing, required this.rotateController});
-
-  final bool isSyncing;
-  final AnimationController rotateController;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isSyncing
-              ? [DSColors.primary, DSColors.primary.withValues(alpha: 0.65)]
-              : [DSColors.success, DSColors.success.withValues(alpha: 0.65)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: (isSyncing ? DSColors.primary : DSColors.success).withValues(
-              alpha: 0.30,
-            ),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
-      child: isSyncing
-          ? Center(
-              child: RotationTransition(
-                turns: rotateController,
-                child: const Icon(
-                  Icons.sync_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-            )
-          : Center(
-              child:
-                  const Icon(Icons.check_rounded, color: Colors.white, size: 32)
-                      .animate()
-                      .scale(duration: 500.ms, curve: Curves.easeOutBack)
-                      .fadeIn(),
-            ),
     );
   }
 }

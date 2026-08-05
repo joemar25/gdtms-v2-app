@@ -49,6 +49,7 @@ These screens are **not** wrapped in `SecureView`.
 
 - This screen is the only place that attaches device info to an eligibility request. If device info fields change, update `DeviceInfoService` and this screen.
 - Navigate here from: Dashboard DISPATCH card.
+- Eligible deliveries preview is paginated client-side (`_pageSize = 10`) via `PaginationBar` + `PaginationSwipeArea` (swipe left/right also changes page — see `docs/shared/widgets.md`).
 
 ---
 
@@ -65,6 +66,13 @@ These screens are **not** wrapped in `SecureView`.
 
 - Parcels accepted here are seeded into `local_deliveries` immediately so they appear in the delivery list offline.
 - Do not allow re-accepting already-accepted parcels (server returns 409 — handle with `ApiConflict`).
+
+### Pagination
+
+- List is fetched from `GET /pending-dispatches?page=&per_page=` (`kDispatchesPerPage` / `kCompactDispatchesPerPage` in `constants.dart`, 5 / 15 items).
+- Response `total_count` and `pagination.last_page` drive a `PaginationBar` at the bottom of the list (same widget/pattern as `delivery_status_list_screen.dart`), so couriers can page through all pending dispatches instead of only ever seeing page 1.
+- Switching compact mode resets back to page 1 since the page size changes.
+- The list body is wrapped in `PaginationSwipeArea` so swiping left/right also changes page, same as tapping the `PaginationBar` arrows — see `docs/shared/widgets.md`.
 
 ### Scan Actions
 

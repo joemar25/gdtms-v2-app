@@ -1,11 +1,20 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/services.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 
+/// Dashboard metric tile — solid brand surfaces (not glass, not rainbow).
+///
+/// Prefer [DSColors.primary] or [DSColors.gold] for [color]. Active state is a
+/// soft brand tint; empty tiles stay neutral.
+///
+/// **Hold-to-reveal (NBA 2K style):** when [details] is set, press-and-hold
+/// flips to a detail panel that **stays open** so it is readable. Tap the
+/// close (X) icon to hide details; tap anywhere else on the card to run
+/// [onTap] (open the list). Short tap on the compact face also opens the list.
 class StatCard extends StatefulWidget {
   const StatCard({
     super.key,
@@ -23,9 +32,13 @@ class StatCard extends StatefulWidget {
   final String label;
   final String count;
   final IconData icon;
+
+  /// Brand accent only — use primary / gold (not a full status rainbow).
   final Color color;
   final VoidCallback? onTap;
   final bool subdued;
+
+  /// Shown on the reverse face after a hold; stays until close is tapped.
   final String? details;
   final String? heroTag;
   final double? minHeight;
@@ -34,191 +47,334 @@ class StatCard extends StatefulWidget {
   State<StatCard> createState() => _StatCardState();
 }
 
-class _StatCardState extends State<StatCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _scale;
-  late final Animation<Offset> _iconOffset;
+class _StatCardState extends State<StatCard> with TickerProviderStateMixin {
+  late final AnimationController _pressCtrl;
+  late final AnimationController _revealCtrl;
+  late final Animation<double> _pressScale;
+  late final Animation<double> _reveal;
+  late final Animation<double> _liftScale;
+
+  /// True once details are open (stays until close icon).
+  bool _revealed = false;
+
+  bool get _hasActivity {
+    final n = int.tryParse(widget.count);
+    return n != null && n > 0 && !widget.subdued;
+  }
+
+  bool get _canReveal =>
+      widget.details != null && widget.details!.trim().isNotEmpty;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _pressCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
+      duration: DSAnimations.dMicro,
     );
-    _scale = Tween<double>(
+    _pressScale = Tween<double>(
       begin: 1.0,
-      end: 0.96,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _iconOffset = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(0, 0.12),
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+      end: DSAnimations.scalePressed,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOut));
+
+    _revealCtrl = AnimationController(
+      vsync: this,
+      duration: DSAnimations.dFast,
+    );
+    _reveal = CurvedAnimation(
+      parent: _revealCtrl,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    // Slight lift while details are open — 2K card “pop”.
+    _liftScale = Tween<double>(begin: 1.0, end: 1.04).animate(_reveal);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pressCtrl.dispose();
+    _revealCtrl.dispose();
     super.dispose();
   }
 
+  void _showDetails() {
+    if (!_canReveal || _revealed) return;
+    setState(() => _revealed = true);
+    _pressCtrl.reverse();
+    _revealCtrl.forward();
+    HapticFeedback.mediumImpact();
+  }
+
+  void _hideDetails() {
+    if (!_revealed) return;
+    setState(() => _revealed = false);
+    _revealCtrl.reverse();
+    HapticFeedback.selectionClick();
+  }
+
+  void _openList() {
+    if (widget.onTap == null) return;
+    HapticFeedback.selectionClick();
+    widget.onTap!();
+  }
+
   void _onTapDown(TapDownDetails _) {
-    if (widget.onTap != null) _controller.forward();
+    if (widget.onTap != null || _canReveal) _pressCtrl.forward();
   }
 
   void _onTapUp(TapUpDetails _) {
-    if (widget.onTap != null) {
-      _controller.reverse();
-      widget.onTap!();
-    }
+    _pressCtrl.reverse();
   }
 
   void _onTapCancel() {
-    if (widget.onTap != null) _controller.reverse();
+    _pressCtrl.reverse();
   }
+
+  /// Compact face or revealed body (not the close control) → open list.
+  void _onCardTap() {
+    if (widget.onTap == null) return;
+    _openList();
+  }
+
+  void _onLongPress() {
+    if (!_canReveal) return;
+    if (_revealed) return; // already open — long-press is a no-op
+    _showDetails();
+  }
+
+  String get _displayLabel => widget.label
+      .split(' ')
+      .map(
+        (s) => s.isEmpty
+            ? ''
+            : '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}',
+      )
+      .join(' ');
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final effectiveColor = widget.subdued
+    final active = _hasActivity;
+
+    final accent = widget.subdued
         ? widget.color.withValues(alpha: DSStyles.alphaDisabled)
         : widget.color;
-    final isDisabled = widget.onTap == null;
 
-    final displayLabel = widget.label
-        .split(' ')
-        .map(
-          (s) => s.isEmpty
-              ? ''
-              : '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}',
-        )
-        .join(' ');
+    final surface = isDark
+        ? (active
+              ? Color.alphaBlend(
+                  DSColors.primary.withValues(alpha: 0.10),
+                  DSColors.cardElevatedDark,
+                )
+              : DSColors.cardElevatedDark)
+        : (active
+              ? Color.alphaBlend(
+                  DSColors.primary.withValues(alpha: 0.06),
+                  DSColors.cardLight,
+                )
+              : DSColors.cardLight);
 
-    final content = Container(
-      constraints: widget.minHeight != null
-          ? BoxConstraints(minHeight: widget.minHeight!)
-          : null,
-      padding: const EdgeInsets.all(DSSpacing.md),
-      decoration: BoxDecoration(
-        color: isDark ? DSColors.cardDark : DSColors.cardLight,
-        borderRadius: DSStyles.cardRadius,
-        border: Border.all(
-          color: widget.color.withValues(alpha: isDark ? 0.3 : 0.15),
-          width: DSStyles.strokeWidth,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: widget.color.withValues(alpha: isDark ? 0.1 : 0.05),
-            blurRadius: DSStyles.radiusLG,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-                padding: const EdgeInsets.all(DSSpacing.sm),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      widget.color.withValues(alpha: 0.2),
-                      widget.color.withValues(alpha: 0.1),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+    // Reverse face — slightly richer brand wash.
+    final reverseSurface = isDark
+        ? Color.alphaBlend(
+            accent.withValues(alpha: 0.18),
+            DSColors.cardElevatedDark,
+          )
+        : Color.alphaBlend(accent.withValues(alpha: 0.10), DSColors.cardLight);
+
+    final border = isDark
+        ? (active
+              ? DSColors.primary.withValues(alpha: 0.35)
+              : DSColors.separatorDark)
+        : (active
+              ? DSColors.primary.withValues(alpha: 0.22)
+              : DSColors.separatorLight);
+
+    final labelColor = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
+    final countColor = active
+        ? (isDark ? DSColors.labelPrimaryDark : DSColors.labelPrimary)
+        : (isDark ? DSColors.labelSecondaryDark : DSColors.labelSecondary);
+    final detailsColor = isDark
+        ? DSColors.labelSecondaryDark
+        : DSColors.labelSecondary;
+    final hintColor = isDark
+        ? DSColors.labelTertiaryDark
+        : DSColors.labelTertiary;
+
+    final minH = widget.minHeight ?? DSStyles.statCardHeight + 24;
+
+    final card = AnimatedBuilder(
+      animation: Listenable.merge([_pressScale, _reveal, _liftScale]),
+      builder: (context, _) {
+        final reveal = _reveal.value;
+        final scale = _pressScale.value * _liftScale.value;
+        final glow = Border.all(
+          color: Color.lerp(
+            border,
+            accent.withValues(alpha: isDark ? 0.55 : 0.4),
+            reveal,
+          )!,
+          width: 1 + reveal,
+        );
+
+        // Fixed footprint — face / reverse never change the card size.
+        final faceAndReverse = SizedBox(
+          width: double.infinity,
+          height: minH,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Color.lerp(surface, reverseSurface, reveal),
+              borderRadius: BorderRadius.circular(DSStyles.radius2XL),
+              border: glow,
+              boxShadow: [
+                BoxShadow(
+                  color: DSColors.black.withValues(
+                    alpha: (isDark ? 0.28 : 0.06) + reveal * 0.12,
                   ),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: widget.color.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
+                  blurRadius: 12 + reveal * 10,
+                  offset: Offset(0, 4 + reveal * 4),
                 ),
-                child: SlideTransition(
-                  position: _iconOffset,
-                  child: Icon(
-                    widget.icon,
-                    color: effectiveColor,
-                    size: DSIconSize.md,
+                if (reveal > 0.01)
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.22 * reveal),
+                    blurRadius: 18 * reveal,
+                    spreadRadius: 1,
                   ),
-                ),
-              )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .shimmer(
-                duration: DSAnimations.dHeroX4,
-                color: widget.color.withValues(alpha: 0.5),
-              ),
-          DSSpacing.wSm,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  displayLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      DSTypography.label(
-                        color: isDark
-                            ? DSColors.labelSecondaryDark
-                            : DSColors.labelSecondary,
-                      ).copyWith(
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(DSStyles.radius2XL),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 3 + reveal * 2,
+                      color: active || reveal > 0.2
+                          ? accent
+                          : DSColors.primary.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  // Compact face
+                  Opacity(
+                    opacity: (1.0 - reveal).clamp(0.0, 1.0),
+                    child: _StatCardFace(
+                      icon: widget.icon,
+                      count: widget.count,
+                      label: _displayLabel,
+                      accent: accent,
+                      active: active,
+                      isDark: isDark,
+                      labelColor: labelColor,
+                      countColor: countColor,
+                      hintColor: hintColor,
+                      showHoldHint: _canReveal,
+                    ),
+                  ),
+                  // Detail reverse (stays until X)
+                  if (_canReveal)
+                    Opacity(
+                      opacity: reveal.clamp(0.0, 1.0),
+                      child: IgnorePointer(
+                        ignoring: reveal < 0.5,
+                        child: _StatCardReverse(
+                          icon: widget.icon,
+                          count: widget.count,
+                          label: _displayLabel,
+                          details: widget.details!,
+                          accent: accent,
+                          isDark: isDark,
+                          labelColor: labelColor,
+                          countColor: countColor,
+                          detailsColor: detailsColor,
+                          hintColor: hintColor,
+                          canOpen: widget.onTap != null,
+                        ),
                       ),
-                ),
-                Text(
-                  widget.count,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: DSTypography.display(color: effectiveColor).copyWith(
-                    height: 1.1,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 22,
-                  ),
-                ),
-                if (widget.details != null) ...[
-                  DSSpacing.hXs,
-                  Text(
-                    widget.details!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: DSTypography.caption(
-                      color: isDark
-                          ? DSColors.labelSecondaryDark
-                          : DSColors.labelSecondary,
-                    ).copyWith(height: DSStyles.heightTight, fontSize: 10),
-                  ),
+                    ),
                 ],
+              ),
+            ),
+          ),
+        );
+
+        // Close is a *sibling* of the open-list GestureDetector so it never
+        // competes in the same arena — X hides details, body opens the list.
+        return Transform.scale(
+          scale: scale,
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: double.infinity,
+            height: minH,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTapDown: _onTapDown,
+                    onTapUp: _onTapUp,
+                    onTapCancel: _onTapCancel,
+                    onTap: widget.onTap != null ? _onCardTap : null,
+                    onLongPress: _canReveal ? _onLongPress : null,
+                    behavior: HitTestBehavior.opaque,
+                    child: faceAndReverse,
+                  ),
+                ),
+                if (_canReveal && _revealed)
+                  Positioned(
+                    top: DSSpacing.sm,
+                    right: DSSpacing.sm,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _hideDetails,
+                      child: Tooltip(
+                        message: 'dashboard.stats.hold_close_hint'.tr(),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? DSColors.secondarySurfaceDark
+                                : DSColors.secondarySurfaceLight,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isDark
+                                  ? DSColors.separatorDark
+                                  : DSColors.separatorLight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: DSColors.black.withValues(alpha: 0.18),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: DSIconSize.sm,
+                            color: hintColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-
-    if (isDisabled) {
-      return Opacity(opacity: DSAnimations.opacityMuted, child: content);
-    }
-
-    final animatedContent = content
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .shimmer(
-          duration: DSAnimations.dHeroX4,
-          color: widget.color.withValues(alpha: DSStyles.alphaSoft),
-          delay: DSAnimations.dHeroX3,
         );
-
-    final card = GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: _onTapCancel,
-      behavior: HitTestBehavior.opaque,
-      child: ScaleTransition(scale: _scale, child: animatedContent),
+      },
     );
+
+    if (widget.onTap == null && !_canReveal) {
+      return Opacity(opacity: DSAnimations.opacityMuted, child: card);
+    }
 
     if (widget.heroTag != null) {
       return Hero(tag: widget.heroTag!, child: card);
@@ -227,7 +383,258 @@ class _StatCardState extends State<StatCard>
   }
 }
 
-class ScanButton extends StatelessWidget {
+/// Compact face — count + label; tiny hold affordance when details exist.
+class _StatCardFace extends StatelessWidget {
+  const _StatCardFace({
+    required this.icon,
+    required this.count,
+    required this.label,
+    required this.accent,
+    required this.active,
+    required this.isDark,
+    required this.labelColor,
+    required this.countColor,
+    required this.hintColor,
+    required this.showHoldHint,
+  });
+
+  final IconData icon;
+  final String count;
+  final String label;
+  final Color accent;
+  final bool active;
+  final bool isDark;
+  final Color labelColor;
+  final Color countColor;
+  final Color hintColor;
+  final bool showHoldHint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        DSSpacing.md + 4,
+        DSSpacing.md,
+        DSSpacing.md,
+        DSSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: active
+                      ? accent.withValues(alpha: isDark ? 0.22 : 0.14)
+                      : (isDark
+                            ? DSColors.secondarySurfaceDark
+                            : DSColors.secondarySurfaceLight),
+                  borderRadius: BorderRadius.circular(DSStyles.radiusLG),
+                ),
+                child: Icon(
+                  icon,
+                  size: DSIconSize.md,
+                  color: active
+                      ? accent
+                      : (isDark
+                            ? DSColors.labelTertiaryDark
+                            : DSColors.labelTertiary),
+                ),
+              ),
+              const Spacer(),
+              if (active)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DSSpacing.sm,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: DSColors.primary.withValues(
+                      alpha: isDark ? 0.2 : 0.12,
+                    ),
+                    borderRadius: DSStyles.fullRadius,
+                  ),
+                  child: Text(
+                    'OPEN',
+                    style:
+                        DSTypography.label(
+                          color: isDark
+                              ? DSColors.primaryDark
+                              : DSColors.primary,
+                        ).copyWith(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                  ),
+                )
+              else if (showHoldHint)
+                Icon(
+                  Icons.touch_app_outlined,
+                  size: 14,
+                  color: hintColor.withValues(alpha: 0.7),
+                ),
+            ],
+          ),
+          DSSpacing.hSm,
+          Text(
+            count,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: DSTypography.display(color: countColor).copyWith(
+              height: 1.0,
+              fontWeight: FontWeight.w800,
+              fontSize: 28,
+              letterSpacing: -0.5,
+            ),
+          ),
+          DSSpacing.hXs,
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: DSTypography.label(color: labelColor).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: DSTypography.sizeSm,
+            ),
+          ),
+          if (showHoldHint) ...[
+            const SizedBox(height: 2),
+            Text(
+              'dashboard.stats.hold_hint'.tr(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: DSTypography.caption(color: hintColor).copyWith(
+                height: DSStyles.heightTight,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Reverse face — stays open after hold until the close control is tapped.
+class _StatCardReverse extends StatelessWidget {
+  const _StatCardReverse({
+    required this.icon,
+    required this.count,
+    required this.label,
+    required this.details,
+    required this.accent,
+    required this.isDark,
+    required this.labelColor,
+    required this.countColor,
+    required this.detailsColor,
+    required this.hintColor,
+    required this.canOpen,
+  });
+
+  final IconData icon;
+  final String count;
+  final String label;
+  final String details;
+  final Color accent;
+  final bool isDark;
+  final Color labelColor;
+  final Color countColor;
+  final Color detailsColor;
+  final Color hintColor;
+  final bool canOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        DSSpacing.md + 4,
+        DSSpacing.md,
+        // Room for the floating close control (top-right).
+        DSSpacing.md + 28,
+        DSSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: isDark ? 0.28 : 0.16),
+                  borderRadius: BorderRadius.circular(DSStyles.radiusMD),
+                ),
+                child: Icon(icon, size: DSIconSize.sm, color: accent),
+              ),
+              DSSpacing.wSm,
+              Expanded(
+                child: Text(
+                  label.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DSTypography.label(color: accent).copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
+                    letterSpacing: 0.9,
+                  ),
+                ),
+              ),
+              Text(
+                count,
+                style: DSTypography.label(color: countColor).copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: DSTypography.sizeLg,
+                ),
+              ),
+            ],
+          ),
+          DSSpacing.hSm,
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                details,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: DSTypography.body(color: detailsColor).copyWith(
+                  height: 1.25,
+                  fontSize: DSTypography.sizeSm,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          Text(
+            canOpen
+                ? 'dashboard.stats.hold_open_hint'.tr()
+                : 'dashboard.stats.hold_close_hint'.tr(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: DSTypography.caption(color: hintColor).copyWith(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Solid scan CTA — brand primary or gold only (not status rainbow).
+///
+/// Keeps a **fixed-height** box (same footprint as the original quick-scan
+/// tiles). When [details] is set: hold reveals an overlay *inside* that box
+/// (stays open until X); tap the rest of the tile to run [onTap].
+class ScanButton extends StatefulWidget {
   const ScanButton({
     super.key,
     required this.label,
@@ -246,89 +653,341 @@ class ScanButton extends StatelessWidget {
   final double? minHeight;
 
   @override
+  State<ScanButton> createState() => _ScanButtonState();
+}
+
+class _ScanButtonState extends State<ScanButton> with TickerProviderStateMixin {
+  late final AnimationController _pressCtrl;
+  late final AnimationController _revealCtrl;
+  late final Animation<double> _pressScale;
+  late final Animation<double> _reveal;
+
+  bool _revealed = false;
+
+  bool get _canReveal =>
+      widget.details != null && widget.details!.trim().isNotEmpty;
+
+  double get _boxHeight => widget.minHeight ?? DSStyles.scanButtonHeight - 10;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressCtrl = AnimationController(
+      vsync: this,
+      duration: DSAnimations.dMicro,
+    );
+    _pressScale = Tween<double>(
+      begin: 1.0,
+      end: DSAnimations.scalePressed,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOut));
+
+    _revealCtrl = AnimationController(
+      vsync: this,
+      duration: DSAnimations.dFast,
+    );
+    _reveal = CurvedAnimation(
+      parent: _revealCtrl,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pressCtrl.dispose();
+    _revealCtrl.dispose();
+    super.dispose();
+  }
+
+  void _showDetails() {
+    if (!_canReveal || _revealed) return;
+    setState(() => _revealed = true);
+    _pressCtrl.reverse();
+    _revealCtrl.forward();
+    HapticFeedback.mediumImpact();
+  }
+
+  void _hideDetails() {
+    if (!_revealed) return;
+    setState(() => _revealed = false);
+    _revealCtrl.reverse();
+    HapticFeedback.selectionClick();
+  }
+
+  void _onTap() {
+    HapticFeedback.mediumImpact();
+    widget.onTap();
+  }
+
+  void _onLongPress() {
+    if (!_canReveal || _revealed) return;
+    _showDetails();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillTop = widget.color;
+    final fillBottom =
+        Color.lerp(widget.color, DSColors.black, isDark ? 0.18 : 0.10) ??
+        widget.color;
+    final h = _boxHeight;
 
-    return GestureDetector(
-      onTap: onTap,
-      child:
-          Container(
-                constraints: minHeight != null
-                    ? BoxConstraints(minHeight: minHeight!)
-                    : null,
-                padding: const EdgeInsets.symmetric(
-                  vertical: DSSpacing.lg,
-                  horizontal: DSSpacing.md,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withValues(alpha: DSStyles.alphaSubtle),
-                      color.withValues(alpha: DSStyles.alphaSoft),
-                    ],
-                  ),
-                  borderRadius: DSStyles.cardRadius,
-                  border: Border.all(
-                    color: color.withValues(alpha: isDark ? 0.4 : 0.25),
-                    width: DSStyles.strokeWidth,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: DSStyles.alphaSoft),
-                      blurRadius: DSStyles.radiusMD,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(DSSpacing.md),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: DSStyles.alphaSubtle),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, color: color, size: DSIconSize.xl),
-                    ),
-                    DSSpacing.hMd,
-                    Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: DSTypography.label(color: color).copyWith(
-                        fontSize: DSTypography.sizeSm,
-                        letterSpacing: DSTypography.lsExtraLoose,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    if (details != null) ...[
-                      DSSpacing.hSm,
-                      Text(
-                        details!,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: DSTypography.caption(
-                          color: isDark
-                              ? DSColors.labelSecondaryDark
-                              : DSColors.labelSecondary,
-                        ).copyWith(height: DSStyles.heightTight),
-                      ),
-                    ],
-                  ],
-                ),
-              )
-              .animate(onPlay: (c) => c.repeat())
-              .shimmer(
-                duration: DSAnimations.dHeroX4,
-                color: color.withValues(alpha: DSStyles.alphaSoft),
+    return AnimatedBuilder(
+      animation: Listenable.merge([_pressScale, _reveal]),
+      builder: (context, _) {
+        final reveal = _reveal.value;
+        final scale = _pressScale.value;
+
+        // Fixed footprint — face and reverse always share this box.
+        final tile = SizedBox(
+          width: double.infinity,
+          height: h,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [fillTop, fillBottom],
               ),
+              borderRadius: BorderRadius.circular(DSStyles.radius2XL),
+              border: reveal > 0.01
+                  ? Border.all(
+                      color: DSColors.white.withValues(alpha: 0.22 * reveal),
+                    )
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: widget.color.withValues(alpha: isDark ? 0.35 : 0.22),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(DSStyles.radius2XL),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Face: centered CTA — denser padding so fixed height never
+                  // overflows (128h − padding left only ~80–96 for content).
+                  Opacity(
+                    opacity: (1.0 - reveal).clamp(0.0, 1.0),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: DSSpacing.md,
+                        horizontal: DSSpacing.md,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: DSColors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(
+                                  DSStyles.radiusXL,
+                                ),
+                              ),
+                              child: Icon(
+                                widget.icon,
+                                color: DSColors.white,
+                                size: DSIconSize.lg,
+                              ),
+                            ),
+                            DSSpacing.hSm,
+                            Text(
+                              widget.label,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: DSTypography.label(color: DSColors.white)
+                                  .copyWith(
+                                    fontSize: DSTypography.sizeSm,
+                                    letterSpacing: DSTypography.lsWide,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.15,
+                                  ),
+                            ),
+                            if (_canReveal) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'dashboard.stats.hold_hint'.tr(),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    DSTypography.caption(
+                                      color: DSColors.white.withValues(
+                                        alpha: 0.75,
+                                      ),
+                                    ).copyWith(
+                                      height: 1.0,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Reverse: details overlay inside the same fixed box
+                  if (_canReveal)
+                    Opacity(
+                      opacity: reveal.clamp(0.0, 1.0),
+                      child: IgnorePointer(
+                        ignoring: reveal < 0.5,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            DSSpacing.md,
+                            DSSpacing.md,
+                            DSSpacing.md + 28,
+                            DSSpacing.md,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: DSColors.white.withValues(
+                                        alpha: 0.18,
+                                      ),
+                                      borderRadius: BorderRadius.circular(
+                                        DSStyles.radiusLG,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      widget.icon,
+                                      color: DSColors.white,
+                                      size: DSIconSize.md,
+                                    ),
+                                  ),
+                                  DSSpacing.wSm,
+                                  Expanded(
+                                    child: Text(
+                                      widget.label,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style:
+                                          DSTypography.label(
+                                            color: DSColors.white,
+                                          ).copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: DSTypography.sizeSm,
+                                            letterSpacing: 0.4,
+                                            height: 1.15,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              DSSpacing.hSm,
+                              Expanded(
+                                child: Text(
+                                  widget.details!,
+                                  maxLines: 5,
+                                  overflow: TextOverflow.ellipsis,
+                                  style:
+                                      DSTypography.body(
+                                        color: DSColors.white.withValues(
+                                          alpha: 0.95,
+                                        ),
+                                      ).copyWith(
+                                        height: 1.3,
+                                        fontSize: DSTypography.sizeSm,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                ),
+                              ),
+                              Text(
+                                'dashboard.stats.hold_open_hint'.tr(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    DSTypography.caption(
+                                      color: DSColors.white.withValues(
+                                        alpha: 0.78,
+                                      ),
+                                    ).copyWith(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        return Transform.scale(
+          scale: scale,
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: double.infinity,
+            height: h,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTapDown: (_) => _pressCtrl.forward(),
+                    onTapUp: (_) => _pressCtrl.reverse(),
+                    onTapCancel: () => _pressCtrl.reverse(),
+                    onTap: _onTap,
+                    onLongPress: _canReveal ? _onLongPress : null,
+                    behavior: HitTestBehavior.opaque,
+                    child: tile,
+                  ),
+                ),
+                if (_canReveal && _revealed)
+                  Positioned(
+                    top: DSSpacing.sm,
+                    right: DSSpacing.sm,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _hideDetails,
+                      child: Tooltip(
+                        message: 'dashboard.stats.hold_close_hint'.tr(),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: DSColors.white.withValues(alpha: 0.22),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: DSColors.white.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: DSIconSize.sm,
+                            color: DSColors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

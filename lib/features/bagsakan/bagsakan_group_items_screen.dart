@@ -391,8 +391,7 @@ class _BagsakanGroupItemsScreenState
       }
     });
 
-    return Scaffold(
-      backgroundColor: isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight,
+    return DsAppScaffold(
       appBar: AppHeaderBar(
         title: groupName.isEmpty
             ? 'bagsakan.group_items_header'.tr()

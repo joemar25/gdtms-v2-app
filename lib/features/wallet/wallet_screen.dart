@@ -303,6 +303,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         // delivery account-detail sheets only.
         child: Scaffold(
           extendBody: true,
+          // Transparent — main shell paints [DsAppShellBackdrop] once.
+          backgroundColor: DSColors.transparent,
           appBar: AppHeaderBar(
             title: 'wallet.screen.title'.tr(),
             pageIcon: Icons.account_balance_wallet_rounded,

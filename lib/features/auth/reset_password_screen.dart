@@ -432,6 +432,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
+          // Soft scenery behind form (quieter than full login AuthShell).
+          const DsBrandBackdrop(variant: DsBackdrop.gate),
           GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             behavior: HitTestBehavior.opaque,

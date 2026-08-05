@@ -31,11 +31,15 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await RuntimeEnvironmentService.instance.setDeveloperMode(false);
+    debugResetDevShortcutsSheetGate();
     container = ProviderContainer();
     container.read(debugToolsProvider.notifier).syncFromRuntime();
   });
 
-  tearDown(() => container.dispose());
+  tearDown(() {
+    debugResetDevShortcutsSheetGate();
+    container.dispose();
+  });
 
   testWidgets('shows DEBUG chip when tools available and pref on', (
     tester,
@@ -55,7 +59,31 @@ void main() {
     expect(find.text('Splash screen'), findsOneWidget);
     expect(find.text('Initial sync'), findsOneWidget);
     expect(find.text('Edit profile'), findsOneWidget);
+    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Light'), findsOneWidget);
+    expect(find.text('System'), findsOneWidget);
+    expect(find.text('Dark'), findsOneWidget);
     expect(find.text('Hide debug chrome'), findsOneWidget);
+  });
+
+  testWidgets('second tap does not stack sheets — closes instead', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_harness(container));
+
+    await tester.tap(find.text('DEBUG'));
+    await tester.pumpAndSettle();
+    expect(find.text('DEV SHORTCUTS'), findsOneWidget);
+
+    // Chip sits above the modal barrier in production; tap again = toggle close.
+    await tester.tap(find.text('DEBUG'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('DEV SHORTCUTS'), findsNothing);
+
+    // Re-open once — still a single sheet.
+    await tester.tap(find.text('DEBUG'));
+    await tester.pumpAndSettle();
+    expect(find.text('DEV SHORTCUTS'), findsOneWidget);
   });
 
   testWidgets('chip can be dragged on screen', (tester) async {

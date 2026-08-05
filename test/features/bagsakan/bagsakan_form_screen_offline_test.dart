@@ -63,13 +63,18 @@ void main() {
               (ref) => ConnectionStatus.networkOffline,
             ),
           ],
-          child: MaterialApp.router(
-            localizationsDelegates: const [
-              DefaultMaterialLocalizations.delegate,
-              DefaultWidgetsLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('en', 'US')],
-            routerConfig: router,
+          // DsAppScaffold's brand backdrop runs a repeating animation;
+          // disabling animations here stops it so pumpAndSettle() settles.
+          child: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: MaterialApp.router(
+              localizationsDelegates: const [
+                DefaultMaterialLocalizations.delegate,
+                DefaultWidgetsLocalizations.delegate,
+              ],
+              supportedLocales: const [Locale('en', 'US')],
+              routerConfig: router,
+            ),
           ),
         ),
       );
@@ -102,13 +107,18 @@ void main() {
               (ref) => ConnectionStatus.apiUnreachable,
             ),
           ],
-          child: MaterialApp.router(
-            localizationsDelegates: const [
-              DefaultMaterialLocalizations.delegate,
-              DefaultWidgetsLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('en', 'US')],
-            routerConfig: router,
+          // DsAppScaffold's brand backdrop runs a repeating animation;
+          // disabling animations here stops it so pumpAndSettle() settles.
+          child: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: MaterialApp.router(
+              localizationsDelegates: const [
+                DefaultMaterialLocalizations.delegate,
+                DefaultWidgetsLocalizations.delegate,
+              ],
+              supportedLocales: const [Locale('en', 'US')],
+              routerConfig: router,
+            ),
           ),
         ),
       );
@@ -141,13 +151,18 @@ void main() {
               (ref) => ConnectionStatus.online,
             ),
           ],
-          child: MaterialApp.router(
-            localizationsDelegates: const [
-              DefaultMaterialLocalizations.delegate,
-              DefaultWidgetsLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('en', 'US')],
-            routerConfig: router,
+          // DsAppScaffold's brand backdrop runs a repeating animation;
+          // disabling animations here stops it so pumpAndSettle() settles.
+          child: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: MaterialApp.router(
+              localizationsDelegates: const [
+                DefaultMaterialLocalizations.delegate,
+                DefaultWidgetsLocalizations.delegate,
+              ],
+              supportedLocales: const [Locale('en', 'US')],
+              routerConfig: router,
+            ),
           ),
         ),
       );
@@ -180,13 +195,18 @@ void main() {
               (ref) => ConnectionStatus.networkOffline,
             ),
           ],
-          child: MaterialApp.router(
-            localizationsDelegates: const [
-              DefaultMaterialLocalizations.delegate,
-              DefaultWidgetsLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('en', 'US')],
-            routerConfig: router,
+          // DsAppScaffold's brand backdrop runs a repeating animation;
+          // disabling animations here stops it so pumpAndSettle() settles.
+          child: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: MaterialApp.router(
+              localizationsDelegates: const [
+                DefaultMaterialLocalizations.delegate,
+                DefaultWidgetsLocalizations.delegate,
+              ],
+              supportedLocales: const [Locale('en', 'US')],
+              routerConfig: router,
+            ),
           ),
         ),
       );

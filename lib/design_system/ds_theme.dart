@@ -15,7 +15,6 @@ class DSTheme {
         ? DSColors.scaffoldDark
         : DSColors.scaffoldLight;
     final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
-    final appBarColor = isDark ? DSColors.cardDark : DSColors.cardLight;
     final primaryLabel = isDark
         ? DSColors.labelPrimaryDark
         : DSColors.labelPrimary;
@@ -45,9 +44,10 @@ class DSTheme {
         outline: isDark ? DSColors.separatorDark : DSColors.separatorLight,
       ),
 
-      // App Bar Theme
+      // App Bar Theme — transparent so [DSGlassChrome] / BackdropFilter can frost
+      // content & shell scenery behind header. Opaque card here kills glass.
       appBarTheme: AppBarTheme(
-        backgroundColor: appBarColor,
+        backgroundColor: DSColors.transparent,
         surfaceTintColor: DSColors.transparent,
         elevation: DSStyles.elevationNone,
         scrolledUnderElevation: DSStyles.elevationNone,
@@ -56,6 +56,12 @@ class DSTheme {
         titleTextStyle: DSTypography.subTitle(
           color: primaryLabel,
         ).copyWith(fontSize: DSTypography.sizeLg),
+      ),
+
+      // Bottom nav slot Material — must stay transparent for floating glass bar.
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: DSColors.transparent,
+        elevation: DSStyles.elevationNone,
       ),
 
       actionIconTheme: ActionIconThemeData(

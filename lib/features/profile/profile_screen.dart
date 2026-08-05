@@ -490,9 +490,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         },
         child: Scaffold(
           extendBody: true,
-          backgroundColor: isDark
-              ? DSColors.scaffoldDark
-              : DSColors.scaffoldLight,
+          // Transparent — main shell paints [DsAppShellBackdrop] once.
+          backgroundColor: DSColors.transparent,
           appBar: AppHeaderBar(
             title: 'profile.title'.tr(),
             pageIcon: Icons.person_rounded,

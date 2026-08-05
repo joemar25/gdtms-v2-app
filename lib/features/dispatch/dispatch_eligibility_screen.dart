@@ -43,6 +43,7 @@ import 'package:fsi_courier_app/shared/helpers/snackbar_helper.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 import 'package:fsi_courier_app/shared/widgets/loading_overlay.dart';
 import 'package:fsi_courier_app/shared/widgets/pagination_bar.dart';
+import 'package:fsi_courier_app/shared/widgets/pagination_swipe_area.dart';
 import 'package:fsi_courier_app/shared/widgets/app_header_bar.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/features/dispatch/widgets/dispatch_info_card.dart';
@@ -379,7 +380,7 @@ class _DispatchEligibilityScreenState
         if (didPop) return;
         await _handleBack();
       },
-      child: Scaffold(
+      child: DsAppScaffold(
         appBar: AppHeaderBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -400,304 +401,310 @@ class _DispatchEligibilityScreenState
         ),
         body: LoadingOverlay(
           isLoading: _loading,
-          child: Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(DSSpacing.md),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_error != null) ...[
-                      Center(
-                        child: Icon(
-                          Icons.error_rounded,
-                          color: DSColors.warning,
-                          size: 64,
-                        ),
-                      ).dsHeroEntry(),
-                      DSSpacing.hMd,
-                      Text(
-                        'ERROR',
-                        textAlign: TextAlign.center,
-                        style: DSTypography.heading().copyWith(
-                          color: DSColors.warning,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ).dsFadeEntry(delay: DSAnimations.stagger(1)),
-                      DSSpacing.hSm,
-                      Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: DSTypography.body(),
-                      ).dsFadeEntry(delay: DSAnimations.stagger(2)),
-                      DSSpacing.hXl,
-                      FilledButton(
-                        onPressed: _handleAccept,
-                        child: const Text('RETRY'),
-                      ).dsCtaEntry(delay: DSAnimations.stagger(3)),
-                    ] else if (!eligible) ...[
-                      Center(
-                        child: Icon(
-                          Icons.cancel_rounded,
-                          color: DSColors.error,
-                          size: DSIconSize.xl,
-                        ),
-                      ).dsHeroEntry(),
-                      DSSpacing.hMd,
-                      Text(
-                        'NOT ELIGIBLE',
-                        textAlign: TextAlign.center,
-                        style: DSTypography.heading().copyWith(
-                          color: DSColors.error,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ).dsFadeEntry(delay: DSAnimations.stagger(1)),
-                      DSSpacing.hSm,
-                      Text(
-                        reason,
-                        textAlign: TextAlign.center,
-                        style: DSTypography.body(),
-                      ).dsFadeEntry(delay: DSAnimations.stagger(2)),
-                      DSSpacing.hXl,
-                      OutlinedButton(
-                        onPressed: _handleBack,
-                        child: const Text('BACK'),
-                      ).dsCtaEntry(delay: DSAnimations.stagger(3)),
-                    ] else if (_showRejectForm) ...[
-                      DSSectionHeader(
-                        title: 'REJECT DISPATCH',
-                        padding: EdgeInsets.zero,
-                      ).dsFadeEntry(),
-                      DSSpacing.hSm,
-                      DSCard(
-                        padding: EdgeInsets.zero,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            DSHeroCard(
-                              accentColor: DSColors.error,
-                              padding: EdgeInsets.all(DSSpacing.md),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: DSIconSize.heroSm,
-                                    height: DSIconSize.heroSm,
-                                    decoration: BoxDecoration(
-                                      color: DSColors.white.withValues(
-                                        alpha: DSStyles.alphaSubtle,
+          child: PaginationSwipeArea(
+            currentPage: _currentPage,
+            totalPages: totalPages,
+            onPageChanged: (p) => setState(() => _currentPage = p),
+            child: Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(DSSpacing.md),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_error != null) ...[
+                        Center(
+                          child: Icon(
+                            Icons.error_rounded,
+                            color: DSColors.warning,
+                            size: 64,
+                          ),
+                        ).dsHeroEntry(),
+                        DSSpacing.hMd,
+                        Text(
+                          'ERROR',
+                          textAlign: TextAlign.center,
+                          style: DSTypography.heading().copyWith(
+                            color: DSColors.warning,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ).dsFadeEntry(delay: DSAnimations.stagger(1)),
+                        DSSpacing.hSm,
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: DSTypography.body(),
+                        ).dsFadeEntry(delay: DSAnimations.stagger(2)),
+                        DSSpacing.hXl,
+                        FilledButton(
+                          onPressed: _handleAccept,
+                          child: const Text('RETRY'),
+                        ).dsCtaEntry(delay: DSAnimations.stagger(3)),
+                      ] else if (!eligible) ...[
+                        Center(
+                          child: Icon(
+                            Icons.cancel_rounded,
+                            color: DSColors.error,
+                            size: DSIconSize.xl,
+                          ),
+                        ).dsHeroEntry(),
+                        DSSpacing.hMd,
+                        Text(
+                          'NOT ELIGIBLE',
+                          textAlign: TextAlign.center,
+                          style: DSTypography.heading().copyWith(
+                            color: DSColors.error,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ).dsFadeEntry(delay: DSAnimations.stagger(1)),
+                        DSSpacing.hSm,
+                        Text(
+                          reason,
+                          textAlign: TextAlign.center,
+                          style: DSTypography.body(),
+                        ).dsFadeEntry(delay: DSAnimations.stagger(2)),
+                        DSSpacing.hXl,
+                        OutlinedButton(
+                          onPressed: _handleBack,
+                          child: const Text('BACK'),
+                        ).dsCtaEntry(delay: DSAnimations.stagger(3)),
+                      ] else if (_showRejectForm) ...[
+                        DSSectionHeader(
+                          title: 'REJECT DISPATCH',
+                          padding: EdgeInsets.zero,
+                        ).dsFadeEntry(),
+                        DSSpacing.hSm,
+                        DSCard(
+                          padding: EdgeInsets.zero,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              DSHeroCard(
+                                accentColor: DSColors.error,
+                                padding: EdgeInsets.all(DSSpacing.md),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: DSIconSize.heroSm,
+                                      height: DSIconSize.heroSm,
+                                      decoration: BoxDecoration(
+                                        color: DSColors.white.withValues(
+                                          alpha: DSStyles.alphaSubtle,
+                                        ),
+                                        borderRadius: DSStyles.pillRadius,
                                       ),
-                                      borderRadius: DSStyles.pillRadius,
-                                    ),
-                                    child: const Icon(
-                                      Icons.gpp_maybe_outlined,
-                                      color: DSColors.white,
-                                      size: DSIconSize.md,
-                                    ),
-                                  ),
-                                  DSSpacing.wMd,
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'DISPATCH CODE',
-                                          style:
-                                              DSTypography.caption(
-                                                color: DSColors.white
-                                                    .withValues(
-                                                      alpha: DSStyles
-                                                          .alphaDisabled,
-                                                    ),
-                                              ).copyWith(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: DSTypography.sizeXs,
-                                                letterSpacing:
-                                                    DSTypography.lsLoose,
-                                              ),
-                                        ),
-                                        Text(
-                                          maskedCode,
-                                          style: DSTypography.heading()
-                                              .copyWith(
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: DSTypography.sizeMd,
-                                                color: DSColors.white,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.all(DSSpacing.md),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Please select the reason for rejecting this dispatch. This action is final and cannot be undone.',
-                                    style: DSTypography.caption().copyWith(
-                                      fontSize: DSTypography.sizeSm,
-                                      color: isDark
-                                          ? DSColors.labelSecondaryDark
-                                          : DSColors.labelSecondary,
-                                      height: DSStyles.heightNormal,
-                                    ),
-                                  ),
-                                  DSSpacing.hLg,
-                                  DropdownButtonFormField<String>(
-                                    initialValue: _selectedRejectReason,
-                                    isExpanded: true,
-                                    decoration: InputDecoration(
-                                      labelText: 'REJECTION REASON *',
-                                      prefixIcon: const Icon(
-                                        Icons.help_outline_rounded,
+                                      child: const Icon(
+                                        Icons.gpp_maybe_outlined,
+                                        color: DSColors.white,
+                                        size: DSIconSize.md,
                                       ),
                                     ),
-                                    items: _rejectReasons.map((r) {
-                                      return DropdownMenuItem(
-                                        value: r,
-                                        child: Text(
-                                          r,
-                                          style: DSTypography.body().copyWith(
-                                            fontSize: DSTypography.sizeSm,
+                                    DSSpacing.wMd,
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'DISPATCH CODE',
+                                            style:
+                                                DSTypography.caption(
+                                                  color: DSColors.white
+                                                      .withValues(
+                                                        alpha: DSStyles
+                                                            .alphaDisabled,
+                                                      ),
+                                                ).copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: DSTypography.sizeXs,
+                                                  letterSpacing:
+                                                      DSTypography.lsLoose,
+                                                ),
                                           ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                    onChanged: (v) => setState(
-                                      () => _selectedRejectReason = v,
+                                          Text(
+                                            maskedCode,
+                                            style: DSTypography.heading()
+                                                .copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: DSTypography.sizeMd,
+                                                  color: DSColors.white,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  if (_selectedRejectReason ==
-                                      _otherRejectReason) ...[
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.all(DSSpacing.md),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Please select the reason for rejecting this dispatch. This action is final and cannot be undone.',
+                                      style: DSTypography.caption().copyWith(
+                                        fontSize: DSTypography.sizeSm,
+                                        color: isDark
+                                            ? DSColors.labelSecondaryDark
+                                            : DSColors.labelSecondary,
+                                        height: DSStyles.heightNormal,
+                                      ),
+                                    ),
+                                    DSSpacing.hLg,
+                                    DropdownButtonFormField<String>(
+                                      initialValue: _selectedRejectReason,
+                                      isExpanded: true,
+                                      decoration: InputDecoration(
+                                        labelText: 'REJECTION REASON *',
+                                        prefixIcon: const Icon(
+                                          Icons.help_outline_rounded,
+                                        ),
+                                      ),
+                                      items: _rejectReasons.map((r) {
+                                        return DropdownMenuItem(
+                                          value: r,
+                                          child: Text(
+                                            r,
+                                            style: DSTypography.body().copyWith(
+                                              fontSize: DSTypography.sizeSm,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: (v) => setState(
+                                        () => _selectedRejectReason = v,
+                                      ),
+                                    ),
+                                    if (_selectedRejectReason ==
+                                        _otherRejectReason) ...[
+                                      DSSpacing.hMd,
+                                      TextField(
+                                        controller: _rejectReasonController,
+                                        maxLength: 100,
+                                        maxLines: 2,
+                                        decoration: const InputDecoration(
+                                          labelText: 'SPECIFY REASON *',
+                                          alignLabelWithHint: true,
+                                        ),
+                                      ),
+                                    ],
                                     DSSpacing.hMd,
                                     TextField(
-                                      controller: _rejectReasonController,
-                                      maxLength: 100,
-                                      maxLines: 2,
+                                      onChanged: (v) => _rejectRemarks = v,
+                                      maxLines: 3,
                                       decoration: const InputDecoration(
-                                        labelText: 'SPECIFY REASON *',
+                                        labelText: 'REMARKS',
+                                        hintText: 'Optional notes...',
                                         alignLabelWithHint: true,
                                       ),
                                     ),
                                   ],
-                                  DSSpacing.hMd,
-                                  TextField(
-                                    onChanged: (v) => _rejectRemarks = v,
-                                    maxLines: 3,
-                                    decoration: const InputDecoration(
-                                      labelText: 'REMARKS',
-                                      hintText: 'Optional notes...',
-                                      alignLabelWithHint: true,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ).dsCardEntry(delay: DSAnimations.stagger(1)),
-                      DSSpacing.hXl,
-                      FilledButton(
-                        onPressed: _selectedRejectReason == null
-                            ? null
-                            : _submitReject,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: DSColors.error,
-                          minimumSize: const Size(double.infinity, 52),
-                        ),
-                        child: const Text('REJECT DISPATCH'),
-                      ).dsCtaEntry(delay: DSAnimations.stagger(2)),
-                      DSSpacing.hSm,
-                      TextButton(
-                        onPressed: () =>
-                            setState(() => _showRejectForm = false),
-                        child: const Text('CANCEL'),
-                      ).dsFadeEntry(delay: DSAnimations.stagger(3)),
-                    ] else ...[
-                      DispatchInfoCard(
-                        maskedCode: maskedCode,
-                        info: info,
-                      ).dsCardEntry(),
-
-                      DSSpacing.hXl,
-                      FilledButton.icon(
-                        icon: const Icon(Icons.check_circle_outline_rounded),
-                        label: const Text('ACCEPT DISPATCH'),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 52),
-                        ),
-                        onPressed: _handleAccept,
-                      ).dsCtaEntry(delay: DSAnimations.stagger(1)),
-
-                      DSSpacing.hSm,
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.cancel_outlined),
-                        label: const Text('REJECT DISPATCH'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: DSColors.error,
-                          side: const BorderSide(color: DSColors.error),
-                          minimumSize: const Size(double.infinity, 52),
-                        ),
-                        onPressed: () => setState(() => _showRejectForm = true),
-                      ).dsCtaEntry(delay: DSAnimations.stagger(2)),
-
-                      if (deliveries.isNotEmpty) ...[
+                            ],
+                          ),
+                        ).dsCardEntry(delay: DSAnimations.stagger(1)),
                         DSSpacing.hXl,
-                        DSSectionHeader(
-                          title: 'DELIVERIES (${deliveries.length})',
-                          padding: EdgeInsets.zero,
-                        ).dsFadeEntry(delay: DSAnimations.stagger(3)),
+                        FilledButton(
+                          onPressed: _selectedRejectReason == null
+                              ? null
+                              : _submitReject,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: DSColors.error,
+                            minimumSize: const Size(double.infinity, 52),
+                          ),
+                          child: const Text('REJECT DISPATCH'),
+                        ).dsCtaEntry(delay: DSAnimations.stagger(2)),
                         DSSpacing.hSm,
+                        TextButton(
+                          onPressed: () =>
+                              setState(() => _showRejectForm = false),
+                          child: const Text('CANCEL'),
+                        ).dsFadeEntry(delay: DSAnimations.stagger(3)),
+                      ] else ...[
+                        DispatchInfoCard(
+                          maskedCode: maskedCode,
+                          info: info,
+                        ).dsCardEntry(),
 
-                        ...deliveries
-                            .skip(_currentPage * _pageSize)
-                            .take(_pageSize)
-                            .map(
-                              (d) =>
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom: DSSpacing.sm,
-                                    ),
-                                    child: DeliveryCard(
-                                      delivery: d,
-                                      compact: true,
-                                      showChevron: false,
-                                      showLockIcon: true,
-                                      enableHoldToReveal: false,
-                                      onTap: null,
-                                    ),
-                                  ).dsCardEntry(
-                                    delay: DSAnimations.stagger(
-                                      4 + deliveries.indexOf(d),
-                                      step: DSAnimations.staggerFine,
-                                    ),
-                                  ),
-                            ),
+                        DSSpacing.hXl,
+                        FilledButton.icon(
+                          icon: const Icon(Icons.check_circle_outline_rounded),
+                          label: const Text('ACCEPT DISPATCH'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 52),
+                          ),
+                          onPressed: _handleAccept,
+                        ).dsCtaEntry(delay: DSAnimations.stagger(1)),
 
-                        if (totalPages > 1) ...[
-                          DSSpacing.hMd,
-                          PaginationBar(
-                            currentPage: _currentPage,
-                            totalPages: totalPages,
-                            firstItem: _currentPage * _pageSize + 1,
-                            lastItem: math.min(
-                              (_currentPage + 1) * _pageSize,
-                              deliveries.length,
-                            ),
-                            totalCount: deliveries.length,
-                            onPageChanged: (p) =>
-                                setState(() => _currentPage = p),
-                          ).dsFadeEntry(delay: DSAnimations.stagger(5)),
+                        DSSpacing.hSm,
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.cancel_outlined),
+                          label: const Text('REJECT DISPATCH'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: DSColors.error,
+                            side: const BorderSide(color: DSColors.error),
+                            minimumSize: const Size(double.infinity, 52),
+                          ),
+                          onPressed: () =>
+                              setState(() => _showRejectForm = true),
+                        ).dsCtaEntry(delay: DSAnimations.stagger(2)),
+
+                        if (deliveries.isNotEmpty) ...[
+                          DSSpacing.hXl,
+                          DSSectionHeader(
+                            title: 'DELIVERIES (${deliveries.length})',
+                            padding: EdgeInsets.zero,
+                          ).dsFadeEntry(delay: DSAnimations.stagger(3)),
+                          DSSpacing.hSm,
+
+                          ...deliveries
+                              .skip(_currentPage * _pageSize)
+                              .take(_pageSize)
+                              .map(
+                                (d) =>
+                                    Padding(
+                                      padding: EdgeInsets.only(
+                                        bottom: DSSpacing.sm,
+                                      ),
+                                      child: DeliveryCard(
+                                        delivery: d,
+                                        compact: true,
+                                        showChevron: false,
+                                        showLockIcon: true,
+                                        enableHoldToReveal: false,
+                                        onTap: null,
+                                      ),
+                                    ).dsCardEntry(
+                                      delay: DSAnimations.stagger(
+                                        4 + deliveries.indexOf(d),
+                                        step: DSAnimations.staggerFine,
+                                      ),
+                                    ),
+                              ),
+
+                          if (totalPages > 1) ...[
+                            DSSpacing.hMd,
+                            PaginationBar(
+                              currentPage: _currentPage,
+                              totalPages: totalPages,
+                              firstItem: _currentPage * _pageSize + 1,
+                              lastItem: math.min(
+                                (_currentPage + 1) * _pageSize,
+                                deliveries.length,
+                              ),
+                              totalCount: deliveries.length,
+                              onPageChanged: (p) =>
+                                  setState(() => _currentPage = p),
+                            ).dsFadeEntry(delay: DSAnimations.stagger(5)),
+                          ],
                         ],
                       ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

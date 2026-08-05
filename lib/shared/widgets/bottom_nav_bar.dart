@@ -1,7 +1,6 @@
 // DOCS: docs/development-standards.md
 // DOCS: docs/shared/widgets.md — update that file when you edit this one.
 
-import 'dart:ui';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
@@ -20,12 +19,10 @@ class AppBottomNavBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = DSColors.primary;
-    final borderColor = isDark
-        ? DSColors.separatorDark.withValues(alpha: 0.1)
-        : DSColors.white.withValues(alpha: 0.2);
-    final inactiveColor = DSColors.white.withValues(alpha: 0.6);
+    // Primary glass bar + white sliding pill (active) + primary icons on pill.
+    final pillColor = DSColors.white;
+    final activeColor = DSColors.primary;
+    final inactiveColor = DSGlass.onChromeInactive(context);
 
     // Watch update state to show badge on Profile tab
     final hasUpdate = ref.watch(updateProvider.select((s) => s.hasUpdate));
@@ -44,131 +41,101 @@ class AppBottomNavBar extends ConsumerWidget {
         ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
-          child: Container(
-            height: DSSpacing.huge + DSSpacing.sm, // 72.0 (64 + 8)
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: DSColors.black.withValues(
-                    alpha: isDark ? DSStyles.alphaMuted : DSStyles.alphaSoft,
-                  ),
-                  blurRadius: DSSpacing.lg,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: ClipRRect(
+          child: SizedBox(
+            height: DSGlass.chromeHeight,
+            child: DSGlassChrome(
               borderRadius: DSStyles.circularRadius,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: backgroundColor,
-                    borderRadius: DSStyles.circularRadius,
-                    border: Border.all(
-                      color: borderColor,
-                      width: DSStyles.borderWidth,
-                    ),
-                  ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final currentIdx = navigationShell.currentIndex;
+              showBorder: true,
+              boxShadow: true,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final currentIdx = navigationShell.currentIndex;
 
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // ── Elastic Sliding Pill ──────────────────────────
-                          AnimatedAlign(
-                            alignment: Alignment(
-                              -1.0 + (2.0 * currentIdx / (4 - 1)),
-                              0,
-                            ),
-                            duration: DSAnimations.dNormal,
-                            curve: DSAnimations.curveElasticPill,
-                            child: FractionallySizedBox(
-                              widthFactor: 1 / 4,
-                              heightFactor: 1.0,
-                              child: Padding(
-                                padding: EdgeInsets.all(DSSpacing.sm),
-                                child: AnimatedContainer(
-                                  duration: DSAnimations.dFast,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        DSColors.white,
-                                        DSColors.white.withValues(alpha: 0.9),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // ── Elastic Sliding Pill ──────────────────────────
+                      AnimatedAlign(
+                        alignment: Alignment(
+                          -1.0 + (2.0 * currentIdx / (4 - 1)),
+                          0,
+                        ),
+                        duration: DSAnimations.dNormal,
+                        curve: DSAnimations.curveElasticPill,
+                        child: FractionallySizedBox(
+                          widthFactor: 1 / 4,
+                          heightFactor: 1.0,
+                          child: Padding(
+                            padding: EdgeInsets.all(DSSpacing.sm),
+                            child: AnimatedContainer(
+                              duration: DSAnimations.dFast,
+                              decoration: BoxDecoration(
+                                color: pillColor,
+                                borderRadius: DSStyles.cardRadius,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: DSColors.black.withValues(
+                                      alpha: DSStyles.alphaSubtle,
                                     ),
-                                    borderRadius: DSStyles.cardRadius,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: DSColors.black.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        blurRadius: DSStyles.radiusMD,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                    blurRadius: DSStyles.radiusMD,
+                                    offset: const Offset(0, DSSpacing.xs),
                                   ),
-                                ),
+                                ],
                               ),
                             ),
                           ),
+                        ),
+                      ),
 
-                          // ── Nav Items ──────────────────────────────────────
-                          Row(
-                            children: [
-                              _NavBarItem(
-                                index: 0,
-                                selectedIndex: currentIdx,
-                                icon: Icons.home_outlined,
-                                activeIcon: Icons.home_rounded,
-                                label: 'nav.home'.tr(),
-                                activeColor: DSColors.primary,
-                                inactiveColor: inactiveColor,
-                                onTap: () => _onTap(0),
-                              ),
-                              _NavBarItem(
-                                index: 1,
-                                selectedIndex: currentIdx,
-                                icon: Icons.inventory_2_outlined,
-                                activeIcon: Icons.inventory_2_rounded,
-                                label: 'nav.bagsakan'.tr(),
-                                activeColor: DSColors.primary,
-                                inactiveColor: inactiveColor,
-                                onTap: () => _onTap(1),
-                              ),
-                              _NavBarItem(
-                                index: 2,
-                                selectedIndex: currentIdx,
-                                icon: Icons.account_balance_wallet_outlined,
-                                activeIcon:
-                                    Icons.account_balance_wallet_rounded,
-                                label: 'nav.wallet'.tr(),
-                                activeColor: DSColors.primary,
-                                inactiveColor: inactiveColor,
-                                onTap: () => _onTap(2),
-                              ),
-                              _NavBarItem(
-                                index: 3,
-                                selectedIndex: currentIdx,
-                                icon: Icons.person_outline_rounded,
-                                activeIcon: Icons.person_rounded,
-                                label: 'nav.profile'.tr(),
-                                activeColor: DSColors.primary,
-                                inactiveColor: inactiveColor,
-                                showBadge: hasUpdate,
-                                onTap: () => _onTap(3),
-                              ),
-                            ],
+                      // ── Nav Items ──────────────────────────────────────
+                      Row(
+                        children: [
+                          _NavBarItem(
+                            index: 0,
+                            selectedIndex: currentIdx,
+                            icon: Icons.home_outlined,
+                            activeIcon: Icons.home_rounded,
+                            label: 'nav.home'.tr(),
+                            activeColor: activeColor,
+                            inactiveColor: inactiveColor,
+                            onTap: () => _onTap(0),
+                          ),
+                          _NavBarItem(
+                            index: 1,
+                            selectedIndex: currentIdx,
+                            icon: Icons.inventory_2_outlined,
+                            activeIcon: Icons.inventory_2_rounded,
+                            label: 'nav.bagsakan'.tr(),
+                            activeColor: activeColor,
+                            inactiveColor: inactiveColor,
+                            onTap: () => _onTap(1),
+                          ),
+                          _NavBarItem(
+                            index: 2,
+                            selectedIndex: currentIdx,
+                            icon: Icons.account_balance_wallet_outlined,
+                            activeIcon: Icons.account_balance_wallet_rounded,
+                            label: 'nav.wallet'.tr(),
+                            activeColor: activeColor,
+                            inactiveColor: inactiveColor,
+                            onTap: () => _onTap(2),
+                          ),
+                          _NavBarItem(
+                            index: 3,
+                            selectedIndex: currentIdx,
+                            icon: Icons.person_outline_rounded,
+                            activeIcon: Icons.person_rounded,
+                            label: 'nav.profile'.tr(),
+                            activeColor: activeColor,
+                            inactiveColor: inactiveColor,
+                            showBadge: hasUpdate,
+                            onTap: () => _onTap(3),
                           ),
                         ],
-                      );
-                    },
-                  ),
-                ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -252,11 +219,11 @@ class _NavBarItem extends StatelessWidget {
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: isSelected
-                                      ? Theme.of(context).primaryColor
-                                      : (Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? DSColors.cardDark
-                                            : DSColors.white),
+                                      ? DSColors.white
+                                      : DSGlass.fill(
+                                          context,
+                                          tone: DSGlassTone.chrome,
+                                        ),
                                   width: 1.5,
                                 ),
                                 boxShadow: [

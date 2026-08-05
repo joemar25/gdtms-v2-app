@@ -46,6 +46,9 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final List<Widget>? trailingActions;
   final PreferredSizeWidget? bottom;
+
+  /// Override fill. `null` = default [DSGlass] chrome (preferred).
+  /// Solid brand bars still supported for one-off screens.
   final Color? backgroundColor;
   final bool centerTitle;
   final bool showNotificationBell;
@@ -55,34 +58,50 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   final bool showBottomBorder;
 
   @override
-  Size get preferredSize =>
-      Size.fromHeight(72 + (bottom?.preferredSize.height ?? 0));
+  Size get preferredSize => Size.fromHeight(
+    DSGlass.chromeHeight + (bottom?.preferredSize.height ?? 0),
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
-    final headerColor = backgroundColor ?? Theme.of(context).primaryColor;
+    // Default: primary glass chrome. Explicit [backgroundColor] opts out.
+    final useGlass = backgroundColor == null;
+    final headerColor =
+        backgroundColor ?? DSGlass.fill(context, tone: DSGlassTone.chrome);
+    // Primary glass + solid brand bars both use white glyphs.
+    final onFg = DSGlass.onChrome(context);
+    final onFgMuted = DSGlass.onChromeMuted(context);
     final courier = ref.watch(authProvider.select((s) => s.courier)) ?? {};
     final profileUrlStr = courier['profile_picture_url']?.toString();
     final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
         ? null
         : profileUrlStr;
 
+    // Glass lives in [flexibleSpace] so Scaffold's AppBar Material can stay
+    // transparent and BackdropFilter frosts scenery/content behind it.
+    final flexibleSpace = useGlass
+        ? DSGlassChrome(showBottomBorder: showBottomBorder, showBorder: false)
+        : ColoredBox(color: headerColor);
+
     final appBar = AppBar(
       scrolledUnderElevation: 0,
       elevation: 0,
-      backgroundColor: backgroundColor ?? DSColors.transparent,
+      backgroundColor: DSColors.transparent,
       surfaceTintColor: DSColors.transparent,
-      titleSpacing: (leading == null && !context.canPop()) ? 16 : 0,
+      forceMaterialTransparency: true,
+      // Primary glass — light status icons.
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      titleSpacing: (leading == null && !context.canPop()) ? DSSpacing.md : 0,
       centerTitle: centerTitle,
+      flexibleSpace: flexibleSpace,
       leading:
           leading ??
           (context.canPop()
               ? IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded),
                   iconSize: DSIconSize.lg,
-                  color: DSColors.white,
+                  color: onFg,
                   onPressed: () {
                     if (context.canPop()) {
                       HapticFeedback.lightImpact();
@@ -91,24 +110,21 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
                   },
                 ).animate().fadeIn(duration: DSAnimations.dFast)
               : null),
-      leadingWidth: leadingWidth ?? 56,
+      leadingWidth: leadingWidth ?? DSIconSize.heroSm + DSSpacing.sm,
       title:
           titleWidget ??
           (isPersonalized
               ? _PersonalizedTitle(
                   title: title ?? '',
                   name: _formatName(courier),
-                  isDark: isDark,
+                  titleColor: onFgMuted,
+                  nameColor: onFg,
                 )
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (pageIcon != null) ...[
-                      Icon(
-                        pageIcon,
-                        size: DSIconSize.md,
-                        color: DSColors.white,
-                      ),
+                      Icon(pageIcon, size: DSIconSize.md, color: onFg),
                       DSSpacing.wSm,
                     ],
                     Flexible(
@@ -116,13 +132,13 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
                         title ?? '',
                         overflow: TextOverflow.ellipsis,
                         style: DSTypography.heading(
-                          color: DSColors.white,
+                          color: onFg,
                         ).copyWith(letterSpacing: DSTypography.lsSlightlyTight),
                       ),
                     ),
                   ],
                 ).animate().fadeIn(duration: DSAnimations.dFast)),
-      toolbarHeight: 72,
+      toolbarHeight: DSGlass.chromeHeight,
       bottom: bottom,
       actions: [
         ...(actions ?? []),
@@ -130,6 +146,7 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
           NotificationBell(
             unreadCount: unreadCount,
             onTap: () => context.push('/notifications'),
+            iconColor: onFg,
           ),
         if (showProfileAvatar && !isPersonalized) ...[
           DSSpacing.wSm,
@@ -140,38 +157,13 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
       ],
     );
 
-    final content = heroTag != null
-        ? Hero(
-            tag: heroTag!,
-            child: Material(color: DSColors.transparent, child: appBar),
-          )
-        : appBar;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: headerColor,
-        border: showBottomBorder
-            ? Border(
-                bottom: BorderSide(
-                  color: isDark
-                      ? DSColors.separatorDark.withValues(alpha: 0.1)
-                      : DSColors.white.withValues(alpha: 0.15),
-                  width: 0.5,
-                ),
-              )
-            : null,
-        boxShadow: [
-          if (backgroundColor != null &&
-              backgroundColor != DSColors.transparent)
-            BoxShadow(
-              color: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-        ],
-      ),
-      child: content,
-    );
+    if (heroTag != null) {
+      return Hero(
+        tag: heroTag!,
+        child: Material(color: DSColors.transparent, child: appBar),
+      );
+    }
+    return appBar;
   }
 
   String _formatName(Map<String, dynamic> courier) {
@@ -191,10 +183,12 @@ class NotificationBell extends StatelessWidget {
     super.key,
     required this.unreadCount,
     required this.onTap,
+    this.iconColor,
   });
 
   final int unreadCount;
   final VoidCallback onTap;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +206,7 @@ class NotificationBell extends StatelessWidget {
             ? Icons.notifications_rounded
             : Icons.notifications_outlined,
         onTap: onTap,
-        iconColor: DSColors.white,
+        iconColor: iconColor ?? DSGlass.onChrome(context),
         badge: hasUnread ? label : null,
         isFlat: true,
       ),
@@ -275,7 +269,7 @@ class DashboardHeaderBar extends ConsumerStatefulWidget
   const DashboardHeaderBar({super.key});
 
   @override
-  Size get preferredSize => const Size.fromHeight(72);
+  Size get preferredSize => const Size.fromHeight(DSGlass.chromeHeight);
 
   @override
   ConsumerState<DashboardHeaderBar> createState() => _DashboardHeaderBarState();
@@ -347,8 +341,8 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
 
   @override
   Widget build(BuildContext context) {
-    final headerColor = Theme.of(context).primaryColor;
     final courier = ref.watch(authProvider.select((s) => s.courier)) ?? {};
+    final onFg = DSGlass.onChrome(context);
 
     final profileUrlStr = courier['profile_picture_url']?.toString();
     final profileUrl = (profileUrlStr == null || profileUrlStr == 'null')
@@ -357,12 +351,12 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
     final hasUpdate = ref.watch(updateProvider.select((s) => s.hasUpdate));
 
     if (_expanded) {
+      // No backgroundColor → primary glass chrome (default).
       return AppHeaderBar(
-        backgroundColor: headerColor,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           iconSize: DSIconSize.xl,
-          color: DSColors.white,
+          color: onFg,
           onPressed: _collapse,
         ),
         titleWidget: _SearchField(
@@ -377,7 +371,7 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
               HapticFeedback.lightImpact();
               showScanModeSheet(context);
             },
-            iconColor: DSColors.white,
+            iconColor: onFg,
             isFlat: true,
           ),
         ],
@@ -385,14 +379,13 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
     }
 
     return AppHeaderBar(
-      backgroundColor: headerColor,
       leading: Padding(
         padding: const EdgeInsets.only(left: DSSpacing.md),
         child: Center(
           child: _HeaderAvatar(profileUrl: profileUrl, hasUpdate: hasUpdate),
         ),
       ),
-      leadingWidth: 80,
+      leadingWidth: DSIconSize.heroSm + DSSpacing.md * 2, // avatar + side pad
       isPersonalized: true,
       title: AppFormatters.greeting(),
       actions: [
@@ -400,6 +393,7 @@ class _DashboardHeaderBarState extends ConsumerState<DashboardHeaderBar> {
           HeaderIconButton(
             icon: Icons.search_rounded,
             onTap: _expand,
+            iconColor: onFg,
             isFlat: true,
           ),
       ],
@@ -421,6 +415,13 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Field sits on primary glass — light frosted field + dark text.
+    final fieldFill = DSColors.white.withValues(alpha: DSStyles.alphaOpaque);
+    final fieldText = DSColors.labelPrimary;
+    final fieldHint = DSColors.labelSecondary.withValues(
+      alpha: DSStyles.alphaDisabled,
+    );
+
     return SizedBox(
       height: DSIconSize.heroSm,
       child: TextField(
@@ -429,12 +430,12 @@ class _SearchField extends StatelessWidget {
         textInputAction: TextInputAction.search,
         onSubmitted: onSubmit,
         style: DSTypography.body(
-          color: DSColors.white,
+          color: fieldText,
         ).copyWith(fontSize: DSTypography.sizeMd),
         decoration: InputDecoration(
           hintText: 'dashboard.search.placeholder'.tr(),
           hintStyle: DSTypography.body(
-            color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
+            color: fieldHint,
           ).copyWith(fontSize: DSTypography.sizeMd),
           isDense: true,
           contentPadding: EdgeInsets.symmetric(
@@ -452,13 +453,11 @@ class _SearchField extends StatelessWidget {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(DSStyles.radiusMD),
             borderSide: BorderSide(
-              color: DSColors.primary.withValues(alpha: DSStyles.alphaDisabled),
+              color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
             ),
           ),
           filled: true,
-          fillColor: Theme.of(context).brightness == Brightness.dark
-              ? DSColors.scaffoldDark
-              : DSColors.scaffoldLight,
+          fillColor: fieldFill,
         ),
       ),
     );
@@ -586,7 +585,7 @@ class HeaderIconButton extends StatelessWidget {
               child: Icon(
                 icon,
                 size: DSIconSize.lg,
-                color: iconColor ?? DSColors.white,
+                color: iconColor ?? DSGlass.onChrome(context),
               ),
             ),
             if (badge != null)
@@ -624,6 +623,9 @@ class _HeaderAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ring = DSGlass.border(context, tone: DSGlassTone.chrome);
+    final iconColor = DSGlass.onChrome(context);
+
     return GestureDetector(
       onTap: () => context.go('/profile'),
       child: Stack(
@@ -635,17 +637,8 @@ class _HeaderAvatar extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: DSColors.white.withValues(alpha: DSStyles.alphaSubtle),
-              border: Border.all(
-                color: DSColors.white.withValues(alpha: DSStyles.alphaMuted),
-                width: DSStyles.strokeWidth,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: DSColors.black.withValues(alpha: DSStyles.alphaSubtle),
-                  blurRadius: DSStyles.radiusSM,
-                  offset: const Offset(0, DSSpacing.xs),
-                ),
-              ],
+              border: Border.all(color: ring, width: DSStyles.strokeWidth),
+              boxShadow: DSStyles.shadowXS(context),
             ),
             child: ClipOval(
               child: profileUrl != null && profileUrl!.isNotEmpty
@@ -657,13 +650,13 @@ class _HeaderAvatar extends StatelessWidget {
                       errorBuilder: (_, _, _) => Icon(
                         Icons.person_rounded,
                         size: DSIconSize.xl,
-                        color: DSColors.white,
+                        color: iconColor,
                       ),
                     )
                   : Icon(
                       Icons.person_rounded,
                       size: DSIconSize.xl,
-                      color: DSColors.white,
+                      color: iconColor,
                     ),
             ),
           ),
@@ -673,17 +666,14 @@ class _HeaderAvatar extends StatelessWidget {
               right: 0,
               child:
                   Container(
-                        width: 12,
-                        height: 12,
+                        width: DSSpacing.md - DSSpacing.xs,
+                        height: DSSpacing.md - DSSpacing.xs,
                         decoration: BoxDecoration(
                           color: DSColors.error,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? DSColors.cardDark
-                                : DSColors.white,
-                            width: 2.0,
+                            color: DSColors.white,
+                            width: DSStyles.strokeWidth,
                           ),
                         ),
                       )
@@ -691,7 +681,7 @@ class _HeaderAvatar extends StatelessWidget {
                       .scale(
                         begin: const Offset(1, 1),
                         end: const Offset(1.2, 1.2),
-                        duration: const Duration(milliseconds: 1200),
+                        duration: DSAnimations.dHero,
                         curve: Curves.easeInOut,
                       ),
             ),
@@ -705,12 +695,14 @@ class _PersonalizedTitle extends StatelessWidget {
   const _PersonalizedTitle({
     required this.title,
     required this.name,
-    required this.isDark,
+    required this.titleColor,
+    required this.nameColor,
   });
 
   final String title;
   final String name;
-  final bool isDark;
+  final Color titleColor;
+  final Color nameColor;
 
   @override
   Widget build(BuildContext context) {
@@ -721,20 +713,17 @@ class _PersonalizedTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style:
-              DSTypography.caption(
-                color: DSColors.white.withValues(alpha: 0.55),
-              ).copyWith(
-                fontWeight: FontWeight.w900,
-                fontSize: DSTypography.sizeXs,
-                letterSpacing: DSTypography.lsLoose,
-              ),
+          style: DSTypography.caption(color: titleColor).copyWith(
+            fontWeight: FontWeight.w900,
+            fontSize: DSTypography.sizeXs,
+            letterSpacing: DSTypography.lsLoose,
+          ),
         ).animate().fadeIn(duration: DSAnimations.dFast),
         DSSpacing.hXs,
         Text(
           name,
           style: DSTypography.heading(
-            color: DSColors.white,
+            color: nameColor,
           ).copyWith(height: DSStyles.heightTight, fontWeight: FontWeight.w900),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

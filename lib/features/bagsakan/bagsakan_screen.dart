@@ -54,9 +54,9 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: isDark
-            ? DSColors.scaffoldDark
-            : DSColors.scaffoldLight,
+        // Transparent — main shell paints [DsAppShellBackdrop] once.
+        backgroundColor: DSColors.transparent,
+        extendBody: true,
         appBar: AppHeaderBar(
           title: 'bagsakan.title'.tr(),
           pageIcon: Icons.inventory_2_rounded,

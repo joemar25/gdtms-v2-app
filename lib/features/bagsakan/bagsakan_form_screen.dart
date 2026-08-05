@@ -463,7 +463,7 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
+    return DsAppScaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _currentPage == 0
           ? DeliverySubmitFab(

@@ -65,22 +65,22 @@ Scenic chrome is **not** one-size-fits-all. Use presets from
 | Preset | Use |
 |--------|-----|
 | `DsBackdropIntensity.none` | Dense tools / no scenery |
-| `DsBackdropIntensity.quiet` | Splash, brief gates |
-| `DsBackdropIntensity.standard` | Login / reset (default `AuthShell`) |
+| `DsBackdropIntensity.quiet` | Splash, permissions, update, terms, change-password |
+| `DsBackdropIntensity.standard` | Login / forgot-password (`AuthShell`) |
 | `DsBackdropIntensity.vivid` | Marketing peaks only |
 
+Shared gate chrome:
+- `DSGateShell` — quiet shell for non-auth gates (permissions, update)
+- `DSGlassCard` — frosted cards (also used by `AuthFormCard`)
+- `DSFormActionLink` + form rhythm tokens for form stacks
+
 ```dart
-// Login (default)
+// Login
 AuthShell(child: ...)
 
-// Splash
-DsBrandBackdrop(intensity: DsBackdropIntensity.quiet)
-
-// Custom mix
-DsBrandBackdrop(config: DsBrandBackdropConfig.standard.copyWith(showParticles: false))
+// Permissions / update
+DSGateShell(backdropIntensity: DsBackdropIntensity.quiet, child: ...)
 ```
-
-`AuthLogoMark(pulse: false)` for quieter brand marks (splash).
 - **Debug UI chrome** (when `showDebugUiProvider` is true): API host panel + **View splash screen**. Global top-left **DEBUG** chip toggles chrome (see `docs/core/settings.md`)
 
 ---

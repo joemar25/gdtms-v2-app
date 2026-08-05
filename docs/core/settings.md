@@ -95,13 +95,14 @@ Works in **debug builds** and **release + developer mode**. Top-left chip opens 
 
 ### DEBUG chip → Dev shortcuts
 
-Floating fixed-size chip (drag anywhere; clamped to safe area). Tap → bottom sheet with hard-to-reach screens (develop only):
+Floating fixed-size **DSGlassCard** chip (drag anywhere; clamped to safe area). Chrome-on uses warning accent on glass; chrome-off is muted glass. Tap → bottom sheet with hard-to-reach screens (develop only):
 
 | Shortcut | Route | Notes |
 |----------|-------|--------|
 | Splash screen | `/splash` | Allowed even when authenticated (preview) |
 | Initial sync | `/initial-sync` | Requires sign-in; allowed after sync completed |
 | Edit profile | `/profile/edit` | Requires sign-in; bypasses `kEnableProfileEdit` |
+| Theme | — | Light / System / Dark via `authProvider.setThemeMode` (same as Profile) |
 | Hide / show debug chrome | — | Toggles `debugUiProvider` (labels / API panels) |
 
 Router: when `debugToolsProvider` is true, those three routes skip normal guards (auth→dashboard bounce, post-sync redirect, profile-edit feature flag, terms/permissions gates for the preview).

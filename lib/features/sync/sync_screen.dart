@@ -87,7 +87,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
       }
     });
 
-    return Scaffold(
+    return DsAppScaffold(
       appBar: AppHeaderBar(
         title: 'sync.title'.tr(),
         actions: const [DSSpacing.wSm],
