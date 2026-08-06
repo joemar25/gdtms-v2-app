@@ -125,6 +125,26 @@ class DSTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: activePrimary,
           foregroundColor: DSColors.white,
+          disabledBackgroundColor: activePrimary.withValues(alpha: 0.35),
+          disabledForegroundColor: DSColors.white.withValues(alpha: 0.85),
+          elevation: DSStyles.elevationNone,
+          minimumSize: const Size.fromHeight(48),
+          padding: EdgeInsets.symmetric(
+            vertical: DSSpacing.md,
+            horizontal: DSSpacing.xl,
+          ),
+          textStyle: DSTypography.button(),
+          shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
+        ),
+      ),
+
+      // Filled Buttons — same disabled language (avoid black-on-black docks)
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: activePrimary,
+          foregroundColor: DSColors.white,
+          disabledBackgroundColor: activePrimary.withValues(alpha: 0.35),
+          disabledForegroundColor: DSColors.white.withValues(alpha: 0.85),
           elevation: DSStyles.elevationNone,
           minimumSize: const Size.fromHeight(48),
           padding: EdgeInsets.symmetric(

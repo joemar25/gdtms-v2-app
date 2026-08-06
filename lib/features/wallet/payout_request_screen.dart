@@ -328,46 +328,45 @@ class _PayoutRequestScreenState extends ConsumerState<PayoutRequestScreen> {
             ? 'wallet.request.appbar_title_consolidate'.tr()
             : 'wallet.request.appbar_title'.tr(),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            DSSpacing.md,
-            DSSpacing.sm,
-            DSSpacing.md,
-            DSSpacing.md,
-          ),
-          child: FilledButton.icon(
-            icon: _submitting
-                ? const SizedBox(
-                    width: DSIconSize.lg,
-                    height: DSIconSize.lg,
-                    child: CircularProgressIndicator(
-                      strokeWidth: DSStyles.strokeWidth,
-                      color: DSColors.white,
-                    ),
-                  )
-                : const Icon(Icons.payments_rounded),
-            label: Text(
-              widget.isConsolidation
-                  ? 'wallet.request.confirm_button_consolidate'.tr()
-                  : 'wallet.request.confirm_button'.tr(),
-              style: DSTypography.label().copyWith(fontWeight: FontWeight.w700),
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: DSColors.primary,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),
-            ),
-            onPressed:
-                (_submitting ||
-                    _loading ||
-                    _previewData == null ||
-                    (_previewData!['eligible_delivery_count'] as int? ?? 0) ==
-                        0 ||
-                    _previewData!['has_existing_request_today'] == true)
-                ? null
-                : _submit,
-          ),
+      // Central dock — solid surface; never transparent/black under Confirm.
+      bottomNavigationBar: DsBottomActionBar(
+        child: Builder(
+          builder: (context) {
+            final canSubmit =
+                !_submitting &&
+                !_loading &&
+                _previewData != null &&
+                (_previewData!['eligible_delivery_count'] as int? ?? 0) > 0 &&
+                _previewData!['has_existing_request_today'] != true;
+
+            return FilledButton.icon(
+              icon: _submitting
+                  ? const SizedBox(
+                      width: DSIconSize.lg,
+                      height: DSIconSize.lg,
+                      child: CircularProgressIndicator(
+                        strokeWidth: DSStyles.strokeWidth,
+                        color: DSColors.white,
+                      ),
+                    )
+                  : const Icon(Icons.payments_rounded),
+              label: Text(
+                widget.isConsolidation
+                    ? 'wallet.request.confirm_button_consolidate'.tr()
+                    : 'wallet.request.confirm_button'.tr(),
+                style: DSTypography.label().copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: DSStyles.cardRadius,
+                ),
+              ),
+              onPressed: canSubmit ? _submit : null,
+            );
+          },
         ),
       ),
       body: Column(

@@ -13,9 +13,14 @@ import 'package:fsi_courier_app/design_system/widgets/molecules/ds_secure_view.d
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/shared/helpers/contact_launch_uri.dart';
 
+import '../../../helpers/screen_protector_channel_mock.dart';
+
 Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
 void main() {
+  setUp(mockScreenProtectorChannel);
+  tearDown(clearScreenProtectorChannelMock);
+
   group('DeliverySectionHeader', () {
     testWidgets('renders in a Column without errors', (tester) async {
       await tester.pumpWidget(
@@ -130,7 +135,7 @@ void main() {
     testWidgets('account details sheet separates multiple recipient numbers', (
       tester,
     ) async {
-      SecureViewManager.setDeveloperModeOverride(true);
+      await SecureViewManager.setDeveloperModeOverride(true);
       addTearDown(() => SecureViewManager.setDeveloperModeOverride(false));
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -166,7 +171,7 @@ void main() {
     testWidgets('account details sheet separates multiple auth rep numbers', (
       tester,
     ) async {
-      SecureViewManager.setDeveloperModeOverride(true);
+      await SecureViewManager.setDeveloperModeOverride(true);
       addTearDown(() => SecureViewManager.setDeveloperModeOverride(false));
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -203,7 +208,7 @@ void main() {
     testWidgets(
       'account details sheet is blocked for every locked delivery state',
       (tester) async {
-        SecureViewManager.setDeveloperModeOverride(true);
+        await SecureViewManager.setDeveloperModeOverride(true);
         addTearDown(() => SecureViewManager.setDeveloperModeOverride(false));
         tester.view.physicalSize = const Size(1080, 2400);
         tester.view.devicePixelRatio = 1.0;
@@ -271,7 +276,7 @@ void main() {
     testWidgets('account details sheet shows recipient and auth rep numbers', (
       tester,
     ) async {
-      SecureViewManager.setDeveloperModeOverride(true);
+      await SecureViewManager.setDeveloperModeOverride(true);
       addTearDown(() => SecureViewManager.setDeveloperModeOverride(false));
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;

@@ -491,6 +491,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: Scaffold(
           extendBody: true,
           // Transparent — main shell paints [DsAppShellBackdrop] once.
+          // Body below app bar (not behind): avoids missing top content.
           backgroundColor: DSColors.transparent,
           appBar: AppHeaderBar(
             title: 'profile.title'.tr(),
@@ -593,7 +594,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     //   },
                     // ),
                   ],
-                ).dsCardEntry(delay: DSAnimations.stagger(1)),
+                ).dsDashboardCardEntry(delay: DSAnimations.stagger(1)),
                 DSSpacing.hSm,
 
                 // ── Preferences Section ────────────────────────────────────
@@ -611,7 +612,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _CardDivider(isDark: isDark),
                     DSSwitchTile(
                       icon: Icons.flash_on_rounded,
-                      iconColor: DSColors.warning,
+                      iconColor: DSColors.primary,
                       title: 'profile.preferences.auto_accept'.tr(),
                       subtitle: 'profile.preferences.auto_accept_sub'.tr(),
                       value: _autoAccept,
@@ -662,7 +663,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _CardDivider(isDark: isDark),
                     DSSwitchTile(
                       icon: Icons.auto_awesome_rounded,
-                      iconColor: DSColors.pending,
+                      iconColor: DSColors.primary,
                       title: 'profile.preferences.dashboard_feel'.tr(),
                       subtitle: 'profile.preferences.dashboard_feel_sub'.tr(),
                       value: ref.watch(dashboardFeelProvider),
@@ -704,7 +705,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ],
                   ],
-                ).dsCardEntry(delay: DSAnimations.stagger(2)),
+                ).dsDashboardCardEntry(delay: DSAnimations.stagger(2)),
                 DSSpacing.hSm,
 
                 // ── Appearance Section ─────────────────────────────────────
@@ -726,7 +727,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
                   ],
-                ).dsCardEntry(delay: DSAnimations.stagger(3)),
+                ).dsDashboardCardEntry(delay: DSAnimations.stagger(3)),
                 DSSpacing.hSm,
 
                 // ── Device Section ─────────────────────────────────────────
@@ -746,7 +747,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     if (showDebugUi) ...[
                       DSDetailTile(
                         icon: Icons.cloud_outlined,
-                        iconColor: DSColors.success,
+                        iconColor: DSColors.primary,
                         subtitle: 'profile.device.backend'.tr(),
                         title: _backendLabel,
                         isSubtitleTop: true,
@@ -764,7 +765,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         icon: Platform.isAndroid
                             ? Icons.android_outlined
                             : Icons.phone_iphone_outlined,
-                        iconColor: DSColors.success,
+                        iconColor: DSColors.primary,
                         subtitle: 'profile.device.os'.tr(),
                         title: _specsLoaded ? _osVersion : '…',
                         isSubtitleTop: true,
@@ -772,7 +773,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _CardDivider(isDark: isDark),
                       DSDetailTile(
                         icon: Icons.fingerprint_outlined,
-                        iconColor: DSColors.pending,
+                        iconColor: DSColors.primary,
                         subtitle: 'profile.device.id'.tr(),
                         title: _specsLoaded ? _deviceId : '…',
                         isSubtitleTop: true,
@@ -790,7 +791,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _CardDivider(isDark: isDark),
                       DSDetailTile(
                         icon: Icons.code_rounded,
-                        iconColor: DSColors.warning,
+                        iconColor: DSColors.primary,
                         subtitle: 'profile.device.sdk_version'.tr(),
                         title: _specsLoaded ? _sdkVersion : '…',
                         isSubtitleTop: true,
@@ -818,7 +819,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       isSubtitleTop: true,
                     ),
                   ],
-                ).dsCardEntry(delay: DSAnimations.stagger(4)),
+                ).dsDashboardCardEntry(delay: DSAnimations.stagger(4)),
                 DSSpacing.hSm,
 
                 // ── Legal Section ──────────────────────────────────────────
@@ -839,7 +840,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _CardDivider(isDark: isDark),
                     DSDetailTile(
                       icon: Icons.description_outlined,
-                      iconColor: DSColors.success,
+                      iconColor: DSColors.primary,
                       title: 'profile.legal.privacy'.tr(),
                       subtitle: 'profile.legal.privacy_sub'.tr(),
                       onTap: () => context.push('/privacy'),
@@ -847,13 +848,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _CardDivider(isDark: isDark),
                     DSDetailTile(
                       icon: Icons.help_outline_rounded,
-                      iconColor: DSColors.warning,
+                      iconColor: DSColors.primary,
                       title: 'profile.legal.user_guide'.tr(),
                       subtitle: 'profile.legal.user_guide_sub'.tr(),
                       onTap: () => context.push('/user-guide'),
                     ),
                   ],
-                ).dsCardEntry(delay: DSAnimations.stagger(5)),
+                ).dsDashboardCardEntry(delay: DSAnimations.stagger(5)),
                 DSSpacing.hSm,
 
                 // ── Diagnostics Section ────────────────────────────────────
@@ -866,7 +867,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     DSDetailTile(
                       icon: Icons.bug_report_outlined,
-                      iconColor: DSColors.warning,
+                      iconColor: DSColors.primary,
                       title: 'profile.diagnostics.report_issue'.tr(),
                       subtitle: switch (connStatus) {
                         ConnectionStatus.online =>
@@ -888,7 +889,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
                   ],
-                ).dsCardEntry(delay: DSAnimations.stagger(6)),
+                ).dsDashboardCardEntry(delay: DSAnimations.stagger(6)),
                 DSSpacing.hXl,
                 // ── App Info Footer ────────────────────────────────────────
                 Center(
@@ -1244,6 +1245,7 @@ class _AccountInactiveBanner extends StatelessWidget {
   }
 }
 
+/// Settings group shell — [DSCard] (central elevated surface, not a private fork).
 class _ModernCard extends StatelessWidget {
   const _ModernCard({required this.children, required this.isDark});
 
@@ -1252,22 +1254,10 @@ class _ModernCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? DSColors.cardDark : DSColors.cardLight,
-        borderRadius: DSStyles.cardRadius,
-        border: Border.all(
-          color: isDark ? DSColors.separatorDark : DSColors.separatorLight,
-          width: DSStyles.borderWidth,
-        ),
-        boxShadow: DSStyles.shadowXS(context),
-      ),
-      child: ClipRRect(
-        borderRadius: DSStyles.cardRadius,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: children,
-        ),
+    return DSCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
       ),
     );
   }
@@ -1411,7 +1401,7 @@ class _SyncRetentionTile extends StatelessWidget {
           const DSDetailTile(
             padding: EdgeInsets.zero,
             icon: Icons.history_rounded,
-            iconColor: DSColors.success,
+            iconColor: DSColors.primary,
             title: 'Sync History',
             subtitle: 'How long synced updates are kept before auto-removal.',
           ),
@@ -1470,7 +1460,7 @@ class _ThemeSegmentedTile extends StatelessWidget {
           const DSDetailTile(
             padding: EdgeInsets.zero,
             icon: Icons.palette_outlined,
-            iconColor: DSColors.pending,
+            iconColor: DSColors.primary,
             title: 'Theme',
             subtitle: 'Choose light, dark, or system default.',
           ),

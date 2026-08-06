@@ -87,7 +87,7 @@
       "deliveries_details": "Stops on your route that still need a POD update today.",
       "delivered_label": "DELIVERED",
       "delivered_details": "Successful deliveries completed and recorded today.",
-      "attempted_label": "Attempted",
+      "attempted_label": "Failed Deliveries",
       "attempted_details": "Failed or redelivery attempts logged for today.",
       "misrouted_label": "Misrouted",
       "misrouted_details": "Parcels flagged as misrouted that need a follow-up.",

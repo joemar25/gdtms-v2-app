@@ -20,7 +20,7 @@ Reusable widgets used across two or more features.
 
 | Widget file | Export / Class | Purpose |
 |-------------|---------------|---------|
-| `app_header_bar.dart` | `AppHeaderBar` / `DashboardHeaderBar` | DS glass chrome header (`DSGlass`); solid `backgroundColor` only when opting out |
+| `app_header_bar.dart` | `AppHeaderBar` / `DashboardHeaderBar` | Default: frost glass. **Continuous** (`showBottomBorder: false` + `DsIntegratedSubHeader`): **solid** brand AppBar — never transparent (Android black void). See design-system.md § Continuous chrome |
 | `bottom_nav_bar.dart` | `AppBottomNavBar` | Shell bottom nav — `DSGlass` chrome + primary sliding pill |
 | `confirmation_dialog.dart` | `ConfirmationDialog` | Generic yes/no dialog |
 | `date_strip_with_deliveries.dart` | `DateStripWithDeliveries` | Date-grouped delivery list strip |

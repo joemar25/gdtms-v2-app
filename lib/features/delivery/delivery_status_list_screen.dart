@@ -521,6 +521,9 @@ class _DeliveryStatusListScreenState
         }
       },
       child: DsAppScaffold(
+        // FD: continuous chrome (false) + DsIntegratedSubHeader — solid brand,
+        // never transparent AppBar (Android black void). Other status lists:
+        // standalone glass (true). See docs/design-system.md § Continuous chrome.
         appBar: AppHeaderBar(
           showBottomBorder: !_isFailedDelivery,
           title: widget.title,
@@ -585,40 +588,14 @@ class _DeliveryStatusListScreenState
                   ),
                 ),
 
-                // ── Failed-delivery sub-filter integrated sub-header ──────────────
+                // ── Failed-delivery sub-filter (central integrated sub-header)
+                // Wrap content height — default selector is 72px + padding.
                 if (_isFailedDelivery)
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor,
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(DSSpacing.xl),
-                        bottomRight: Radius.circular(DSSpacing.xl),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(
-                            context,
-                          ).primaryColor.withValues(alpha: 0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.fromLTRB(
-                      DSSpacing.md,
-                      0,
-                      DSSpacing.md,
-                      DSSpacing.lg,
-                    ),
-                    child: DSSegmentedSelector<String>(
+                  DsIntegratedSubHeader(
+                    // Decoupled options + shared chrome segment standard.
+                    child: DsIntegratedSubHeader.segment<String>(
+                      context: context,
                       selected: _failedSubFilter,
-                      selectedTextColor: Theme.of(context).primaryColor,
-                      unselectedTextColor: DSColors.white.withValues(
-                        alpha: 0.75,
-                      ),
-                      backgroundColor: DSColors.white.withValues(alpha: 0.15),
-                      showBorder: false,
                       onChanged: (v) => setState(() {
                         _failedSubFilter = v;
                         _currentPage = 0;
@@ -628,14 +605,14 @@ class _DeliveryStatusListScreenState
                           value: 'redelivery',
                           label: 'For Redelivery',
                           icon: Icons.local_shipping_rounded,
-                          color: DSColors.white,
+                          color: DsIntegratedSubHeader.segmentPill,
                           badge: _countFailedSubGroup('redelivery'),
                         ),
                         DSSegmentOption(
                           value: 'rts',
                           label: 'For Return',
                           icon: Icons.assignment_return_rounded,
-                          color: DSColors.white,
+                          color: DsIntegratedSubHeader.segmentPill,
                           badge: _countFailedSubGroup('rts'),
                         ),
                       ],
@@ -645,12 +622,16 @@ class _DeliveryStatusListScreenState
                 // ── List ───────────────────────────────────────────────────────────
                 Expanded(
                   child: RefreshIndicator(
-                    color: DSColors.error,
+                    color: DSColors.primary,
                     onRefresh: _onRefresh,
                     child: _loading
-                        ? const Center(child: DSLoading(color: DSColors.error))
+                        ? const Center(
+                            child: DSLoading(color: DSColors.primary),
+                          )
                         : (_searchLoading && displayed.isEmpty)
-                        ? const Center(child: DSLoading(color: DSColors.error))
+                        ? const Center(
+                            child: DSLoading(color: DSColors.primary),
+                          )
                         : displayed.isEmpty
                         ? DeliveryListEmptyState(
                             message: isSearching
@@ -678,7 +659,8 @@ class _DeliveryStatusListScreenState
                               if (index < banners) {
                                 return _buildBanner(index, isOnline, isDark);
                               }
-                              final d = displayed[index - banners];
+                              final rowIndex = index - banners;
+                              final d = displayed[rowIndex];
                               final identifier = resolveDeliveryIdentifier(d);
                               final deliveryStatus =
                                   d['delivery_status']?.toString() ??
@@ -759,6 +741,11 @@ class _DeliveryStatusListScreenState
                                     : () => context.push(
                                         '/deliveries/$identifier/update',
                                       ),
+                              ).dsCardEntry(
+                                delay: DSAnimations.stagger(
+                                  rowIndex.clamp(0, 12),
+                                  step: DSAnimations.staggerFine,
+                                ),
                               );
                             },
                           ),

@@ -73,21 +73,34 @@ Single source of truth for all color values. **Never hardcode hex values.**
 
 ## Layout Patterns
 
-### Integrated Header System
+### Integrated Header System (continuous chrome)
 
-To create a premium, "unified" feel for complex screens (Forms, Tabbed Lists), we use the Integrated Header Pattern.
+Complex screens (delivery **update**, failed-delivery filters, bagsakan form) treat the sub-header as a **header extension** — one solid FSI green unit from status bar through segment strip.
 
-**Key Components:**
+**Always pair:**
 
-- **`AppHeaderBar`**: Set `showBottomBorder: false` to remove the separation line.
-- **Sub-Header Container**: A branded `Container` with the global `primaryColor` and `DSSpacing.xl` bottom-corner rounding.
-- **`DSSegmentedSelector`**: Integrated directly into the sub-header with borderless styling and white-alpha unselected states.
+```dart
+AppHeaderBar(showBottomBorder: false, ...)  // solid brand AppBar
+DsIntegratedSubHeader(
+  child: DsIntegratedSubHeader.segment(...), // shared look, own options
+)
+```
 
-**Usage Rules:**
+| Token / rule | Value |
+|--------------|--------|
+| Brand fill | `DSColors.primary` `#307539` (dark: `primaryDark`) — **exact**, not seed |
+| AppBar continuous | Opaque brand, `forceMaterialTransparency: false` |
+| Status bar | Solid brand (`DsShellSystemUi.shell`) — **never transparent** (black void) |
+| Strip | Solid brand, bottom radius only |
+| Segment height | `segmentHeight` = **48**, horizontal icon+label, `pillInset` = 4 |
+| Selected glyph | Exact primary on white pill |
+| Unselected glyph | White α ~0.90 |
 
-- The sub-header **must** use `Theme.of(context).primaryColor`.
-- It **must** have a subtle shadow matching the primary color's tone.
-- Unselected text/icons in the selector should use `DSColors.white.withValues(alpha: 0.7)`.
+**Decoupled:** features own options/state/callbacks; only share `DsIntegratedSubHeader.segment`.
+
+**Tests (do not delete):** `test/design_system/ds_continuous_chrome_test.dart` — anti-black + solid primary regressions.
+
+Full rules: [design-system.md](design-system.md) § Continuous chrome.
 
 ---
 
@@ -110,20 +123,30 @@ Shared frosted-glass language:
 | `DSGlassTone.chrome` | **Primary green** frosted, **mode-aware** | Header + bottom nav |
 | `DSGlassTone.card`   | Neutral elevated (α 0.90)                 | Auth forms, chips   |
 
-**Chrome light vs dark** (same API, different density):
+**Chrome light vs dark** (rich brand green glass — translucent, not pale mint):
 
-| Mode  | Fill α                 | Blur | Why                                                                            |
-| ----- | ---------------------- | ---- | ------------------------------------------------------------------------------ |
-| Light | **0.88** + white sheen | 24   | Pale scaffolds wash green; denser + sheen = brand glass, readable white glyphs |
-| Dark  | **0.50**               | 28   | Thinner frost over dark UI / scenery                                           |
+| Mode  | Green α | White frost | Blur | Why                                                                 |
+| ----- | ------- | ----------- | ---- | ------------------------------------------------------------------- |
+| Light | **0.72** | **0.04**   | 28   | Rich FSI green over white lists; low frost so not mint              |
+| Dark  | **0.74** | **0.03**   | 36   | Stronger green over dark cards; blur still shows UI structure       |
 
-**Requirements for real glass (not solid paint):**
+Combined baseline stays glass (blur of real UI + green wash). Do **not** re-add a
+post-blur brightness `ColorFilter` on chrome — it washed FSI green to pale sage.
 
-1. `appBarTheme` / `bottomNavigationBarTheme` **transparent** in [DSTheme]
-2. Header frost in `AppBar.flexibleSpace` via [DSGlassChrome]
-3. Tab roots: `extendBody: true` for nav over content; **do not** combine `extendBodyBehindAppBar` with a manual top inset (double gap)
+`DSGlass.headerShadow()` / floating `shadow()` use a strong primary ambient glow
+so chrome still reads brand-green when the blurred backdrop is pale.
 
-Use `DSGlass` / `DSGlassChrome` only — no hardcoded bar fills.
+**Header vs glass (anti dark-spot rule):**
+
+| Surface | Paint | Why |
+|---------|--------|-----|
+| **AppHeaderBar** (all brand screens) | **Solid** `DSColors.primary` / `primaryDark` | Square bottom — no L/R radius |
+| Continuous header | Solid brand + `DsIntegratedSubHeader` foot | One unit |
+| **Floating bottom nav** | `DSGlassChrome` frost | Real glass OK on pill (full rim, no header corner bug) |
+
+**Never:** transparent brand AppBar, `forceMaterialTransparency` on headers, header box shadows under rounded corners.
+
+Use `DSGlass` / `DSGlassChrome` only — no hardcoded bar fills. Edge: `header` | `floating` | `strip`.
 
 | API                                                       | Use                                    |
 | --------------------------------------------------------- | -------------------------------------- |

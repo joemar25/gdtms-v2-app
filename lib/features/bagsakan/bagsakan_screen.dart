@@ -57,6 +57,7 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
         // Transparent — main shell paints [DsAppShellBackdrop] once.
         backgroundColor: DSColors.transparent,
         extendBody: true,
+        // Body below app bar (not behind): avoids missing top content.
         appBar: AppHeaderBar(
           title: 'bagsakan.title'.tr(),
           pageIcon: Icons.inventory_2_rounded,
@@ -252,7 +253,7 @@ class _BagsakanScreenState extends ConsumerState<BagsakanScreen> {
                                 }
                               }
                             },
-                          ).dsCardEntry(delay: DSAnimations.stagger(index)),
+                          ).dsDashboardCardEntry(delay: DSAnimations.stagger(index)),
                         );
                       },
                     );

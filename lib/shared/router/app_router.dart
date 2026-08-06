@@ -143,21 +143,28 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
 
     // CENTRAL: one [DsBrandBackdrop.shell] for Home / Bagsakan / Wallet / Profile.
     // Change preset in [DsBrandBackdropConfig.shell] — not per-screen.
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: DSColors.transparent,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const DsBrandBackdrop(variant: DsBackdrop.shell),
-          KeyedSubtree(
-            key: ValueKey<int>(currentIndex),
-            child: widget.navigationShell,
-          ),
-        ],
-      ),
-      bottomNavigationBar: AppBottomNavBar(
-        navigationShell: widget.navigationShell,
+    //
+    // Nav is a Stack overlay (not Scaffold.bottomNavigationBar) so
+    // [BackdropFilter] in DSGlassChrome actually samples tab content — the
+    // scaffold bottom slot often composites as a solid slab on Android.
+    // DsShellSystemUi keeps system nav bar on-brand (not pure black under glass).
+    return DsShellSystemUi.wrap(
+      context,
+      child: Scaffold(
+        extendBody: true,
+        backgroundColor: DSColors.transparent,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            const DsBrandBackdrop(variant: DsBackdrop.shell),
+            KeyedSubtree(
+              key: ValueKey<int>(currentIndex),
+              child: widget.navigationShell,
+            ),
+            // Floating glass nav — paints above content for real frost blur.
+            AppBottomNavBar(navigationShell: widget.navigationShell),
+          ],
+        ),
       ),
     );
   }

@@ -58,14 +58,15 @@ class DsBrandBackdropConfig {
   ///
   /// Modern calm work surface: layered gradient, soft brand orbs, light ambient
   /// dots — not login-level waves. Keep [orbAlphaScale] moderate for readability.
+  /// Never set [orbAlphaScale] to 0 — dark mode becomes a pure black void.
   static const shell = DsBrandBackdropConfig(
     variant: DsBackdrop.shell,
-    showOrbs: true,
+    showOrbs: false,
     showWaves: false,
     showParticles: true,
     animate: true,
     opacity: 1.0,
-    orbAlphaScale: 0, // 0.95
+    orbAlphaScale: 0, // 0.9
     particleCount: 15,
     loopDuration: Duration(seconds: 30),
     driftScale: 0.65,

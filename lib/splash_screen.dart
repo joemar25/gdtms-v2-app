@@ -3,7 +3,6 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -171,249 +170,241 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         ? DSColors.labelSecondaryDark
         : DSColors.labelSecondary;
 
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: DSColors.transparent,
-        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: isDark
-            ? DSColors.scaffoldDark
-            : const Color(0xFFEAF6EC),
-        systemNavigationBarIconBrightness: isDark
-            ? Brightness.light
-            : Brightness.dark,
-      ),
-    );
+    // Gate scenery (no green glass app bar) — theme surface chrome.
+    return DsShellSystemUi.wrapSurface(
+      context,
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Quieter than login — brand present, not competing with gate UX.
+            const DsBrandBackdrop(variant: DsBackdrop.gate),
 
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Quieter than login — brand present, not competing with gate UX.
-          const DsBrandBackdrop(variant: DsBackdrop.gate),
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isSmallScreen = constraints.maxHeight < 600;
+                  final logoSize = isSmallScreen ? 96.0 : 112.0;
 
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isSmallScreen = constraints.maxHeight < 600;
-                final logoSize = isSmallScreen ? 96.0 : 112.0;
-
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: DSSpacing.lg,
-                        vertical: DSSpacing.xl,
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Brand mark — softer motion than login (no pulse).
-                          AuthLogoMark(
-                                size: logoSize,
-                                assetPath: AppAssets.fsiIcon,
-                                pulse: false,
-                              )
-                              .animate()
-                              .fadeIn(duration: DSAnimations.dNormal)
-                              .scale(
-                                begin: const Offset(0.72, 0.72),
-                                end: const Offset(1, 1),
-                                duration: DSAnimations.dHero,
-                                curve: Curves.easeOutBack,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: DSSpacing.lg,
+                          vertical: DSSpacing.xl,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Brand mark — softer motion than login (no pulse).
+                            AuthLogoMark(
+                                  size: logoSize,
+                                  assetPath: AppAssets.fsiIcon,
+                                  pulse: false,
+                                )
+                                .animate()
+                                .fadeIn(duration: DSAnimations.dNormal)
+                                .scale(
+                                  begin: const Offset(0.72, 0.72),
+                                  end: const Offset(1, 1),
+                                  duration: DSAnimations.dHero,
+                                  curve: Curves.easeOutBack,
+                                ),
+
+                            isSmallScreen ? DSSpacing.hLg : DSSpacing.hXl,
+
+                            Text(
+                                  'splash.title'.tr(),
+                                  style: DSTypography.display(color: textColor)
+                                      .copyWith(
+                                        fontSize: isSmallScreen
+                                            ? DSTypography.sizeXl * 1.35
+                                            : DSTypography.sizeHero,
+                                        letterSpacing:
+                                            DSTypography.lsExtraLoose *
+                                            (isSmallScreen ? 2.5 : 4),
+                                      ),
+                                )
+                                .animate()
+                                .fadeIn(
+                                  delay: 280.ms,
+                                  duration: DSAnimations.dSlow,
+                                )
+                                .slideY(
+                                  begin: 0.18,
+                                  end: 0,
+                                  delay: 280.ms,
+                                  duration: DSAnimations.dSlow,
+                                  curve: Curves.easeOutCubic,
+                                ),
+
+                            DSSpacing.hSm,
+
+                            Text(
+                                  'splash.tagline'.tr(),
+                                  textAlign: TextAlign.center,
+                                  style: DSTypography.label(color: muted)
+                                      .copyWith(
+                                        letterSpacing: DSTypography.lsWide,
+                                      ),
+                                )
+                                .animate()
+                                .fadeIn(
+                                  delay: 420.ms,
+                                  duration: DSAnimations.dNormal,
+                                )
+                                .slideY(
+                                  begin: 0.12,
+                                  end: 0,
+                                  delay: 420.ms,
+                                  duration: DSAnimations.dNormal,
+                                ),
+
+                            isSmallScreen ? DSSpacing.hLg : DSSpacing.hXl,
+                            if (!isSmallScreen) DSSpacing.hMd,
+
+                            // Feature chips — glass cards matching auth form.
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: DSSpacing.sm,
                               ),
-
-                          isSmallScreen ? DSSpacing.hLg : DSSpacing.hXl,
-
-                          Text(
-                                'splash.title'.tr(),
-                                style: DSTypography.display(color: textColor)
-                                    .copyWith(
-                                      fontSize: isSmallScreen
-                                          ? DSTypography.sizeXl * 1.35
-                                          : DSTypography.sizeHero,
-                                      letterSpacing:
-                                          DSTypography.lsExtraLoose *
-                                          (isSmallScreen ? 2.5 : 4),
-                                    ),
-                              )
-                              .animate()
-                              .fadeIn(
-                                delay: 280.ms,
-                                duration: DSAnimations.dSlow,
-                              )
-                              .slideY(
-                                begin: 0.18,
-                                end: 0,
-                                delay: 280.ms,
-                                duration: DSAnimations.dSlow,
-                                curve: Curves.easeOutCubic,
+                              child: Wrap(
+                                spacing: DSSpacing.sm,
+                                runSpacing: DSSpacing.sm,
+                                alignment: WrapAlignment.center,
+                                children: [
+                                  _SplashChip(
+                                        icon: LucideIcons.truck,
+                                        label: 'splash.feature.accept'.tr(),
+                                      )
+                                      .animate()
+                                      .fadeIn(
+                                        delay:
+                                            DSAnimations.stagger(
+                                              1,
+                                              step: DSAnimations.staggerCoarse,
+                                            ) +
+                                            500.ms,
+                                        duration: DSAnimations.dNormal,
+                                      )
+                                      .scale(
+                                        begin: const Offset(0.88, 0.88),
+                                        end: const Offset(1, 1),
+                                        delay:
+                                            DSAnimations.stagger(
+                                              1,
+                                              step: DSAnimations.staggerCoarse,
+                                            ) +
+                                            500.ms,
+                                        duration: DSAnimations.dNormal,
+                                        curve: Curves.easeOutBack,
+                                      ),
+                                  _SplashChip(
+                                        icon: LucideIcons.package,
+                                        label: 'splash.feature.deliver'.tr(),
+                                      )
+                                      .animate()
+                                      .fadeIn(
+                                        delay:
+                                            DSAnimations.stagger(
+                                              2,
+                                              step: DSAnimations.staggerCoarse,
+                                            ) +
+                                            500.ms,
+                                        duration: DSAnimations.dNormal,
+                                      )
+                                      .scale(
+                                        begin: const Offset(0.88, 0.88),
+                                        end: const Offset(1, 1),
+                                        delay:
+                                            DSAnimations.stagger(
+                                              2,
+                                              step: DSAnimations.staggerCoarse,
+                                            ) +
+                                            500.ms,
+                                        duration: DSAnimations.dNormal,
+                                        curve: Curves.easeOutBack,
+                                      ),
+                                  _SplashChip(
+                                        icon: LucideIcons.wallet,
+                                        label: 'splash.feature.payout'.tr(),
+                                      )
+                                      .animate()
+                                      .fadeIn(
+                                        delay:
+                                            DSAnimations.stagger(
+                                              3,
+                                              step: DSAnimations.staggerCoarse,
+                                            ) +
+                                            500.ms,
+                                        duration: DSAnimations.dNormal,
+                                      )
+                                      .scale(
+                                        begin: const Offset(0.88, 0.88),
+                                        end: const Offset(1, 1),
+                                        delay:
+                                            DSAnimations.stagger(
+                                              3,
+                                              step: DSAnimations.staggerCoarse,
+                                            ) +
+                                            500.ms,
+                                        duration: DSAnimations.dNormal,
+                                        curve: Curves.easeOutBack,
+                                      ),
+                                ],
                               ),
-
-                          DSSpacing.hSm,
-
-                          Text(
-                                'splash.tagline'.tr(),
-                                textAlign: TextAlign.center,
-                                style: DSTypography.label(
-                                  color: muted,
-                                ).copyWith(letterSpacing: DSTypography.lsWide),
-                              )
-                              .animate()
-                              .fadeIn(
-                                delay: 420.ms,
-                                duration: DSAnimations.dNormal,
-                              )
-                              .slideY(
-                                begin: 0.12,
-                                end: 0,
-                                delay: 420.ms,
-                                duration: DSAnimations.dNormal,
-                              ),
-
-                          isSmallScreen ? DSSpacing.hLg : DSSpacing.hXl,
-                          if (!isSmallScreen) DSSpacing.hMd,
-
-                          // Feature chips — glass cards matching auth form.
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: DSSpacing.sm,
                             ),
-                            child: Wrap(
-                              spacing: DSSpacing.sm,
-                              runSpacing: DSSpacing.sm,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                _SplashChip(
-                                      icon: LucideIcons.truck,
-                                      label: 'splash.feature.accept'.tr(),
-                                    )
-                                    .animate()
-                                    .fadeIn(
-                                      delay:
-                                          DSAnimations.stagger(
-                                            1,
-                                            step: DSAnimations.staggerCoarse,
-                                          ) +
-                                          500.ms,
-                                      duration: DSAnimations.dNormal,
-                                    )
-                                    .scale(
-                                      begin: const Offset(0.88, 0.88),
-                                      end: const Offset(1, 1),
-                                      delay:
-                                          DSAnimations.stagger(
-                                            1,
-                                            step: DSAnimations.staggerCoarse,
-                                          ) +
-                                          500.ms,
-                                      duration: DSAnimations.dNormal,
-                                      curve: Curves.easeOutBack,
-                                    ),
-                                _SplashChip(
-                                      icon: LucideIcons.package,
-                                      label: 'splash.feature.deliver'.tr(),
-                                    )
-                                    .animate()
-                                    .fadeIn(
-                                      delay:
-                                          DSAnimations.stagger(
-                                            2,
-                                            step: DSAnimations.staggerCoarse,
-                                          ) +
-                                          500.ms,
-                                      duration: DSAnimations.dNormal,
-                                    )
-                                    .scale(
-                                      begin: const Offset(0.88, 0.88),
-                                      end: const Offset(1, 1),
-                                      delay:
-                                          DSAnimations.stagger(
-                                            2,
-                                            step: DSAnimations.staggerCoarse,
-                                          ) +
-                                          500.ms,
-                                      duration: DSAnimations.dNormal,
-                                      curve: Curves.easeOutBack,
-                                    ),
-                                _SplashChip(
-                                      icon: LucideIcons.wallet,
-                                      label: 'splash.feature.payout'.tr(),
-                                    )
-                                    .animate()
-                                    .fadeIn(
-                                      delay:
-                                          DSAnimations.stagger(
-                                            3,
-                                            step: DSAnimations.staggerCoarse,
-                                          ) +
-                                          500.ms,
-                                      duration: DSAnimations.dNormal,
-                                    )
-                                    .scale(
-                                      begin: const Offset(0.88, 0.88),
-                                      end: const Offset(1, 1),
-                                      delay:
-                                          DSAnimations.stagger(
-                                            3,
-                                            step: DSAnimations.staggerCoarse,
-                                          ) +
-                                          500.ms,
-                                      duration: DSAnimations.dNormal,
-                                      curve: Curves.easeOutBack,
-                                    ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Footer — loader + brand
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: DSSpacing.xl,
-            child: SafeArea(
-              top: false,
-              child: Column(
-                children: [
-                  const SpinKitThreeBounce(
-                        color: DSColors.primary,
-                        size: DSIconSize.md,
-                      )
-                      .animate()
-                      .fadeIn(delay: 900.ms, duration: DSAnimations.dNormal)
-                      .scale(
-                        begin: const Offset(0.9, 0.9),
-                        end: const Offset(1, 1),
-                        delay: 900.ms,
-                        duration: DSAnimations.dNormal,
-                      ),
-                  DSSpacing.hMd,
-                  Text(
-                    'splash.footer_brand'.tr(),
-                    style: DSTypography.caption(color: muted).copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: DSTypography.lsWide,
-                    ),
-                  ).animate().fadeIn(
-                    delay: 1050.ms,
-                    duration: DSAnimations.dNormal,
-                  ),
-                ],
+                  );
+                },
               ),
             ),
-          ),
-        ],
+
+            // Footer — loader + brand
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: DSSpacing.xl,
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    const SpinKitThreeBounce(
+                          color: DSColors.primary,
+                          size: DSIconSize.md,
+                        )
+                        .animate()
+                        .fadeIn(delay: 900.ms, duration: DSAnimations.dNormal)
+                        .scale(
+                          begin: const Offset(0.9, 0.9),
+                          end: const Offset(1, 1),
+                          delay: 900.ms,
+                          duration: DSAnimations.dNormal,
+                        ),
+                    DSSpacing.hMd,
+                    Text(
+                      'splash.footer_brand'.tr(),
+                      style: DSTypography.caption(color: muted).copyWith(
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: DSTypography.lsWide,
+                      ),
+                    ).animate().fadeIn(
+                      delay: 1050.ms,
+                      duration: DSAnimations.dNormal,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

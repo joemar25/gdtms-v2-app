@@ -43,14 +43,14 @@ class DsBackdropPainter extends CustomPainter {
     final scene = config.opacity.clamp(0.0, 1.5);
     final drift = config.driftScale;
 
-    // 1) Depth gradient — cool charcoal / soft mint, not flat black
+    // 1) Depth gradient — charcoal-mint in dark (readable, not pure black void)
     final shift = config.animate ? math.sin(t * 0.6) * 0.04 * drift : 0.0;
     final baseColors = isDark
         ? const [
-            Color(0xFF0A0F0C),
-            Color(0xFF101612),
-            Color(0xFF141A16),
-            Color(0xFF0D0D0D),
+            Color(0xFF121A15), // deep green-charcoal
+            Color(0xFF161E19),
+            Color(0xFF1A221C),
+            Color(0xFF141814),
           ]
         : const [
             Color(0xFFEEF7F0),
@@ -75,17 +75,17 @@ class DsBackdropPainter extends CustomPainter {
       Paint()
         ..shader = ui.Gradient.linear(
           Offset.zero,
-          Offset(0, h * 0.42),
+          Offset(0, h * 0.48),
           [
-            DSColors.primary.withValues(alpha: isDark ? 0.14 : 0.09),
-            DSColors.primary.withValues(alpha: isDark ? 0.04 : 0.02),
+            DSColors.primary.withValues(alpha: isDark ? 0.22 : 0.09),
+            DSColors.primary.withValues(alpha: isDark ? 0.08 : 0.02),
             DSColors.primary.withValues(alpha: 0),
           ],
           const [0.0, 0.45, 1.0],
         ),
     );
 
-    // 3) Bottom-right gold ambient (brand warmth, low)
+    // 3) Bottom-right gold ambient (brand warmth)
     canvas.drawRect(
       Offset.zero & size,
       Paint()
@@ -93,7 +93,7 @@ class DsBackdropPainter extends CustomPainter {
           Offset(w * 0.95, h * 1.05),
           size.shortestSide * 0.85,
           [
-            DSColors.gold.withValues(alpha: isDark ? 0.10 : 0.06),
+            DSColors.gold.withValues(alpha: isDark ? 0.14 : 0.06),
             DSColors.gold.withValues(alpha: 0),
           ],
         ),

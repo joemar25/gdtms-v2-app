@@ -1,7 +1,13 @@
+// DOCS: docs/development-standards.md
+// DOCS: docs/features/dispatch.md — update that file when you edit this one.
+
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
 import 'package:fsi_courier_app/shared/helpers/date_format_helper.dart';
 
+/// Dispatch summary card — gold hero (start-work hierarchy) + detail tiles.
+///
+/// Used on [DispatchEligibilityScreen] (dispatch details).
 class DispatchInfoCard extends StatelessWidget {
   const DispatchInfoCard({
     super.key,
@@ -14,19 +20,23 @@ class DispatchInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final branch = info['branch'] is Map
         ? info['branch'] as Map
         : <String, dynamic>{};
-    final branchName = branch['branch_name']?.toString() ?? '-';
-    final volume = info['volume']?.toString() ?? '-';
+    final branchName = branch['branch_name']?.toString() ?? '—';
+    final volume = info['volume']?.toString() ?? '—';
     final tat = info['tat']?.toString() ?? '';
     final transmittalDate = info['transmittal_date']?.toString() ?? '';
 
     return DSCard(
       padding: EdgeInsets.zero,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Gold = start-work accent (same hierarchy as dashboard Dispatch).
           DSHeroCard(
+            accentColor: DSColors.gold,
             padding: EdgeInsets.all(DSSpacing.md),
             child: Row(
               children: [
@@ -40,7 +50,7 @@ class DispatchInfoCard extends StatelessWidget {
                     borderRadius: DSStyles.pillRadius,
                   ),
                   child: const Icon(
-                    Icons.local_shipping_outlined,
+                    Icons.qr_code_rounded,
                     color: DSColors.white,
                     size: DSIconSize.md,
                   ),
@@ -63,6 +73,7 @@ class DispatchInfoCard extends StatelessWidget {
                               letterSpacing: DSTypography.lsLoose,
                             ),
                       ),
+                      DSSpacing.hXs,
                       Text(
                         maskedCode,
                         style: DSTypography.heading().copyWith(
@@ -70,6 +81,7 @@ class DispatchInfoCard extends StatelessWidget {
                           fontSize: DSTypography.sizeMd,
                           color: DSColors.white,
                           letterSpacing: DSTypography.lsLoose,
+                          height: DSStyles.heightTight,
                         ),
                       ),
                     ],
@@ -78,10 +90,13 @@ class DispatchInfoCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // Details List (Icon First)
           Padding(
-            padding: EdgeInsets.all(DSSpacing.md),
+            padding: EdgeInsets.fromLTRB(
+              DSSpacing.md,
+              DSSpacing.sm,
+              DSSpacing.md,
+              DSSpacing.md,
+            ),
             child: Column(
               children: [
                 DSDetailTile(
@@ -96,25 +111,27 @@ class DispatchInfoCard extends StatelessWidget {
                   subtitle: 'ITEMS',
                   isSubtitleTop: true,
                   icon: Icons.inventory_2_outlined,
-                  iconColor: DSColors.pending,
+                  iconColor: DSColors.primary,
                 ),
                 DSDetailTile(
                   title: transmittalDate.isNotEmpty
                       ? formatDate(transmittalDate)
-                      : '-',
+                      : '—',
                   subtitle: 'TRANSMITTAL DATE',
                   isSubtitleTop: true,
                   icon: Icons.event_outlined,
-                  iconColor: DSColors.success,
+                  iconColor: DSColors.primary,
                 ),
                 DSDetailTile(
                   title: tat.isNotEmpty
                       ? formatDate(tat, includeTime: false)
-                      : '-',
+                      : '—',
                   subtitle: 'TAT',
                   isSubtitleTop: true,
                   icon: Icons.schedule_outlined,
-                  iconColor: DSColors.warning,
+                  iconColor: isDark
+                      ? DSColors.labelSecondaryDark
+                      : DSColors.primary,
                 ),
               ],
             ),

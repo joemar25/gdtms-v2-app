@@ -6,6 +6,8 @@ import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/services/runtime_environment_service.dart';
 import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
 
+import '../../helpers/screen_protector_channel_mock.dart';
+
 void main() {
   group('computeDebugToolsAvailable', () {
     test('debug build always has tools', () {
@@ -71,10 +73,12 @@ void main() {
     late ProviderContainer container;
 
     setUp(() async {
+      mockScreenProtectorChannel();
       SharedPreferences.setMockInitialValues({});
       await RuntimeEnvironmentService.instance.setDeveloperMode(false);
       container = ProviderContainer();
       addTearDown(container.dispose);
+      addTearDown(clearScreenProtectorChannelMock);
     });
 
     test('default: preference on, showDebugUi follows tools', () {

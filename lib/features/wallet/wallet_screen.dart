@@ -304,6 +304,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         child: Scaffold(
           extendBody: true,
           // Transparent — main shell paints [DsAppShellBackdrop] once.
+          // Body below app bar (not behind): avoids missing top content.
           backgroundColor: DSColors.transparent,
           appBar: AppHeaderBar(
             title: 'wallet.screen.title'.tr(),
@@ -380,7 +381,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         onConsolidate: () =>
                             context.push('/wallet/request?consolidate=1'),
                         onRequest: () => context.push('/wallet/request'),
-                      ).dsCardEntry(duration: DSAnimations.dNormal),
+                      ).dsDashboardCardEntry(duration: DSAnimations.dNormal),
 
                       DSSpacing.hLg,
 

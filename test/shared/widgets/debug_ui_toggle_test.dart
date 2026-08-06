@@ -8,6 +8,8 @@ import 'package:fsi_courier_app/core/settings/debug_ui_provider.dart';
 import 'package:fsi_courier_app/shared/router/router_keys.dart';
 import 'package:fsi_courier_app/shared/widgets/debug_ui_toggle.dart';
 
+import '../../helpers/screen_protector_channel_mock.dart';
+
 /// Mirrors production: chip is a Stack sibling of navigator content, and
 /// sheets must go through [rootNavigatorKey].
 Widget _harness(ProviderContainer container) {
@@ -29,6 +31,7 @@ void main() {
   late ProviderContainer container;
 
   setUp(() async {
+    mockScreenProtectorChannel();
     SharedPreferences.setMockInitialValues({});
     await RuntimeEnvironmentService.instance.setDeveloperMode(false);
     debugResetDevShortcutsSheetGate();
@@ -39,6 +42,7 @@ void main() {
   tearDown(() {
     debugResetDevShortcutsSheetGate();
     container.dispose();
+    clearScreenProtectorChannelMock();
   });
 
   testWidgets('shows DEBUG chip when tools available and pref on', (

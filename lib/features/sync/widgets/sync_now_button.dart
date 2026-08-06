@@ -5,7 +5,6 @@ import 'dart:async' show unawaited;
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -273,138 +272,131 @@ class _SyncOverlayState extends ConsumerState<SyncOverlay> {
         ? DSColors.labelSecondaryDark
         : DSColors.labelSecondary;
 
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: DSColors.transparent,
-        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: isDark
-            ? DSColors.scaffoldDark
-            : const Color(0xFFEAF6EC),
-        systemNavigationBarIconBrightness: isDark
-            ? Brightness.light
-            : Brightness.dark,
-      ),
-    );
-
-    return PopScope(
-      canPop: done,
-      child: Material(
-        color: DSColors.transparent,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            DsBrandBackdrop(config: _backdropConfig),
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(
-                    DSSpacing.lg,
-                    DSSpacing.xl,
-                    DSSpacing.lg,
-                    DSSpacing.xl,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SyncAiOrb(done: _doneVisual || done, size: 176)
-                            .animate()
-                            .fadeIn(duration: DSAnimations.dSlow)
-                            .scale(
-                              begin: const Offset(0.85, 0.85),
-                              end: const Offset(1, 1),
-                              duration: DSAnimations.dHero,
-                              curve: Curves.easeOutCubic,
-                            ),
-
-                        DSSpacing.hXl,
-
-                        AnimatedSwitcher(
-                          duration: DSAnimations.dNormal,
-                          child: Text(
-                            done
-                                ? 'sync.status.up_to_date'.tr()
-                                : 'sync.actions.syncing'.tr(),
-                            key: ValueKey(done),
-                            textAlign: TextAlign.center,
-                            style: DSTypography.heading(color: titleColor)
-                                .copyWith(
-                                  fontSize: DSTypography.sizeXl,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: DSTypography.lsTight,
-                                ),
-                          ),
-                        ),
-
-                        DSSpacing.hXs,
-
-                        Text(
-                          done
-                              ? 'Your updates are on the server'
-                              : 'Please wait — uploading local changes',
-                          textAlign: TextAlign.center,
-                          style: DSTypography.body(
-                            color: muted,
-                          ).copyWith(fontSize: DSTypography.sizeMd),
-                        ),
-
-                        DSSpacing.hXl,
-
-                        SyncAiPhaseRail(active: phase).animate().fadeIn(
-                          delay: 120.ms,
-                          duration: DSAnimations.dNormal,
-                        ),
-
-                        DSSpacing.hLg,
-
-                        SyncAiStatusStream(
-                          message: message,
-                          done: done,
-                        ).animate().fadeIn(
-                          delay: 180.ms,
-                          duration: DSAnimations.dNormal,
-                        ),
-
-                        if (isSyncing && syncState.total > 0) ...[
-                          DSSpacing.hMd,
-                          Text(
-                            '${syncState.processed} / ${syncState.total}',
-                            style: DSTypography.caption(color: muted).copyWith(
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: DSTypography.lsWide,
-                            ),
-                          ),
-                        ],
-
-                        if (done) ...[
-                          DSSpacing.hXl,
-                          _SyncDoneButton(
-                                countdown: _countdown,
-                                onPressed: _dismiss,
-                              )
+    // Sync loader has no green app bar — use surface chrome (theme-adaptive).
+    // Do NOT use sticky SystemChrome.
+    return DsShellSystemUi.wrapSurface(
+      context,
+      child: PopScope(
+        canPop: done,
+        child: Material(
+          color: DSColors.transparent,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              DsBrandBackdrop(config: _backdropConfig),
+              SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(
+                      DSSpacing.lg,
+                      DSSpacing.xl,
+                      DSSpacing.lg,
+                      DSSpacing.xl,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SyncAiOrb(done: _doneVisual || done, size: 176)
                               .animate()
-                              .fadeIn(duration: DSAnimations.dNormal)
-                              .slideY(
-                                begin: 0.15,
-                                end: 0,
-                                duration: DSAnimations.dNormal,
-                                curve: Curves.easeOutCubic,
-                              )
+                              .fadeIn(duration: DSAnimations.dSlow)
                               .scale(
-                                begin: const Offset(0.96, 0.96),
+                                begin: const Offset(0.85, 0.85),
                                 end: const Offset(1, 1),
-                                duration: DSAnimations.dNormal,
+                                duration: DSAnimations.dHero,
+                                curve: Curves.easeOutCubic,
                               ),
+
+                          DSSpacing.hXl,
+
+                          AnimatedSwitcher(
+                            duration: DSAnimations.dNormal,
+                            child: Text(
+                              done
+                                  ? 'sync.status.up_to_date'.tr()
+                                  : 'sync.actions.syncing'.tr(),
+                              key: ValueKey(done),
+                              textAlign: TextAlign.center,
+                              style: DSTypography.heading(color: titleColor)
+                                  .copyWith(
+                                    fontSize: DSTypography.sizeXl,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: DSTypography.lsTight,
+                                  ),
+                            ),
+                          ),
+
+                          DSSpacing.hXs,
+
+                          Text(
+                            done
+                                ? 'Your updates are on the server'
+                                : 'Please wait — uploading local changes',
+                            textAlign: TextAlign.center,
+                            style: DSTypography.body(
+                              color: muted,
+                            ).copyWith(fontSize: DSTypography.sizeMd),
+                          ),
+
+                          DSSpacing.hXl,
+
+                          SyncAiPhaseRail(active: phase).animate().fadeIn(
+                            delay: 120.ms,
+                            duration: DSAnimations.dNormal,
+                          ),
+
+                          DSSpacing.hLg,
+
+                          SyncAiStatusStream(
+                            message: message,
+                            done: done,
+                          ).animate().fadeIn(
+                            delay: 180.ms,
+                            duration: DSAnimations.dNormal,
+                          ),
+
+                          if (isSyncing && syncState.total > 0) ...[
+                            DSSpacing.hMd,
+                            Text(
+                              '${syncState.processed} / ${syncState.total}',
+                              style: DSTypography.caption(color: muted)
+                                  .copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: DSTypography.lsWide,
+                                  ),
+                            ),
+                          ],
+
+                          if (done) ...[
+                            DSSpacing.hXl,
+                            _SyncDoneButton(
+                                  countdown: _countdown,
+                                  onPressed: _dismiss,
+                                )
+                                .animate()
+                                .fadeIn(duration: DSAnimations.dNormal)
+                                .slideY(
+                                  begin: 0.15,
+                                  end: 0,
+                                  duration: DSAnimations.dNormal,
+                                  curve: Curves.easeOutCubic,
+                                )
+                                .scale(
+                                  begin: const Offset(0.96, 0.96),
+                                  end: const Offset(1, 1),
+                                  duration: DSAnimations.dNormal,
+                                ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

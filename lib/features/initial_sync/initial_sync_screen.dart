@@ -4,7 +4,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -162,151 +161,148 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
         : DSColors.labelSecondary;
     final phase = syncPhaseFromProgress(_progressText, done: _done);
 
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: DSColors.transparent,
-        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: isDark
-            ? DSColors.scaffoldDark
-            : const Color(0xFFEAF6EC),
-        systemNavigationBarIconBrightness: isDark
-            ? Brightness.light
-            : Brightness.dark,
-      ),
-    );
+    // No green glass app bar — surface chrome follows light/dark theme.
+    return DsShellSystemUi.wrapSurface(
+      context,
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            DsBrandBackdrop(config: _backdropConfig),
 
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          DsBrandBackdrop(config: _backdropConfig),
-
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(
-                  DSSpacing.lg,
-                  DSSpacing.xl,
-                  DSSpacing.lg,
-                  DSSpacing.xl,
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Loading orb — visual only, no tech jargon in UI
-                      SyncAiOrb(
-                            done: _done,
-                            size: 176,
-                            onSuccessComplete: _onOrbSuccessComplete,
-                          )
-                          .animate()
-                          .fadeIn(duration: DSAnimations.dSlow)
-                          .scale(
-                            begin: const Offset(0.85, 0.85),
-                            end: const Offset(1, 1),
-                            duration: DSAnimations.dHero,
-                            curve: Curves.easeOutCubic,
-                          ),
-
-                      DSSpacing.hXl,
-
-                      // Plain courier language
-                      AnimatedSwitcher(
-                            duration: DSAnimations.dNormal,
-                            child: Text(
-                              _done
-                                  ? 'You\'re ready to go!'
-                                  : 'Getting your deliveries ready',
-                              key: ValueKey(_done),
-                              textAlign: TextAlign.center,
-                              style: DSTypography.heading(color: titleColor)
-                                  .copyWith(
-                                    fontSize: DSTypography.sizeXl,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: DSTypography.lsTight,
-                                  ),
-                            ),
-                          )
-                          .animate()
-                          .fadeIn(delay: 100.ms, duration: DSAnimations.dNormal)
-                          .slideY(
-                            begin: 0.12,
-                            end: 0,
-                            delay: 100.ms,
-                            duration: DSAnimations.dNormal,
-                          ),
-
-                      DSSpacing.hXs,
-
-                      Text(
-                        _done
-                            ? 'You can start your deliveries on this phone'
-                            : 'Please wait a moment — this only happens once',
-                        textAlign: TextAlign.center,
-                        style: DSTypography.body(
-                          color: muted,
-                        ).copyWith(fontSize: DSTypography.sizeMd),
-                      ).animate().fadeIn(
-                        delay: 180.ms,
-                        duration: DSAnimations.dNormal,
-                      ),
-
-                      DSSpacing.hXl,
-
-                      // ── Phase rail ─────────────────────────────────────
-                      SyncAiPhaseRail(active: phase)
-                          .animate()
-                          .fadeIn(delay: 220.ms, duration: DSAnimations.dNormal)
-                          .slideY(
-                            begin: 0.1,
-                            end: 0,
-                            delay: 220.ms,
-                            duration: DSAnimations.dNormal,
-                          ),
-
-                      DSSpacing.hLg,
-
-                      // ── Live stream status ─────────────────────────────
-                      SyncAiStatusStream(
-                        message: _progressText,
-                        done: _done,
-                      ).animate().fadeIn(
-                        delay: 280.ms,
-                        duration: DSAnimations.dNormal,
-                      ),
-
-                      DSSpacing.hXl,
-
-                      // ── CTA ────────────────────────────────────────────
-                      if (_done && _canContinue)
-                        _SyncContinueButton(
-                              countdown: _countdown,
-                              loading: _isNavigating,
-                              onPressed: _onContinue,
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(
+                    DSSpacing.lg,
+                    DSSpacing.xl,
+                    DSSpacing.lg,
+                    DSSpacing.xl,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Loading orb — visual only, no tech jargon in UI
+                        SyncAiOrb(
+                              done: _done,
+                              size: 176,
+                              onSuccessComplete: _onOrbSuccessComplete,
                             )
                             .animate()
-                            .fadeIn(duration: DSAnimations.dNormal)
-                            .slideY(
-                              begin: 0.15,
-                              end: 0,
-                              duration: DSAnimations.dNormal,
-                              curve: Curves.easeOutCubic,
-                            )
+                            .fadeIn(duration: DSAnimations.dSlow)
                             .scale(
-                              begin: const Offset(0.96, 0.96),
+                              begin: const Offset(0.85, 0.85),
                               end: const Offset(1, 1),
+                              duration: DSAnimations.dHero,
+                              curve: Curves.easeOutCubic,
+                            ),
+
+                        DSSpacing.hXl,
+
+                        // Plain courier language
+                        AnimatedSwitcher(
+                              duration: DSAnimations.dNormal,
+                              child: Text(
+                                _done
+                                    ? 'You\'re ready to go!'
+                                    : 'Getting your deliveries ready',
+                                key: ValueKey(_done),
+                                textAlign: TextAlign.center,
+                                style: DSTypography.heading(color: titleColor)
+                                    .copyWith(
+                                      fontSize: DSTypography.sizeXl,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: DSTypography.lsTight,
+                                    ),
+                              ),
+                            )
+                            .animate()
+                            .fadeIn(
+                              delay: 100.ms,
+                              duration: DSAnimations.dNormal,
+                            )
+                            .slideY(
+                              begin: 0.12,
+                              end: 0,
+                              delay: 100.ms,
                               duration: DSAnimations.dNormal,
                             ),
-                    ],
+
+                        DSSpacing.hXs,
+
+                        Text(
+                          _done
+                              ? 'You can start your deliveries on this phone'
+                              : 'Please wait a moment — this only happens once',
+                          textAlign: TextAlign.center,
+                          style: DSTypography.body(
+                            color: muted,
+                          ).copyWith(fontSize: DSTypography.sizeMd),
+                        ).animate().fadeIn(
+                          delay: 180.ms,
+                          duration: DSAnimations.dNormal,
+                        ),
+
+                        DSSpacing.hXl,
+
+                        // ── Phase rail ─────────────────────────────────────
+                        SyncAiPhaseRail(active: phase)
+                            .animate()
+                            .fadeIn(
+                              delay: 220.ms,
+                              duration: DSAnimations.dNormal,
+                            )
+                            .slideY(
+                              begin: 0.1,
+                              end: 0,
+                              delay: 220.ms,
+                              duration: DSAnimations.dNormal,
+                            ),
+
+                        DSSpacing.hLg,
+
+                        // ── Live stream status ─────────────────────────────
+                        SyncAiStatusStream(
+                          message: _progressText,
+                          done: _done,
+                        ).animate().fadeIn(
+                          delay: 280.ms,
+                          duration: DSAnimations.dNormal,
+                        ),
+
+                        DSSpacing.hXl,
+
+                        // ── CTA ────────────────────────────────────────────
+                        if (_done && _canContinue)
+                          _SyncContinueButton(
+                                countdown: _countdown,
+                                loading: _isNavigating,
+                                onPressed: _onContinue,
+                              )
+                              .animate()
+                              .fadeIn(duration: DSAnimations.dNormal)
+                              .slideY(
+                                begin: 0.15,
+                                end: 0,
+                                duration: DSAnimations.dNormal,
+                                curve: Curves.easeOutCubic,
+                              )
+                              .scale(
+                                begin: const Offset(0.96, 0.96),
+                                end: const Offset(1, 1),
+                                duration: DSAnimations.dNormal,
+                              ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

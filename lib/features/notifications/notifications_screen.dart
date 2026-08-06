@@ -290,21 +290,13 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: EdgeInsets.only(
+    // Shell section language (dashboard / design-system.md §4).
+    return DSSectionHeader(
+      title: label,
+      padding: const EdgeInsets.only(
         top: DSSpacing.md,
         bottom: DSSpacing.sm,
         left: DSSpacing.xs,
-      ),
-      child: Text(
-        label.toUpperCase(),
-        style: DSTypography.label().copyWith(
-          fontSize: DSTypography.sizeSm,
-          fontWeight: FontWeight.w700,
-          color: isDark ? DSColors.labelTertiaryDark : DSColors.labelTertiary,
-          letterSpacing: DSTypography.lsExtraLoose,
-        ),
       ),
     );
   }
@@ -333,208 +325,163 @@ class _NotificationCard extends StatelessWidget {
     final isUnread = !notification.read;
     final (iconData, accentColor) = _resolve(notification.type);
 
-    final cardColor = isDark ? DSColors.cardDark : DSColors.cardLight;
     final unreadBg = accentColor.withValues(alpha: DSStyles.alphaSoft);
-    final bg = isUnread ? unreadBg : cardColor;
 
     return Padding(
       padding: EdgeInsets.only(bottom: DSSpacing.sm),
-      child: Material(
-        color: bg,
-        borderRadius: DSStyles.cardRadius,
-        elevation: isDark ? 0 : 1,
-        shadowColor: DSColors.black.withValues(alpha: DSStyles.alphaSoft),
+      child: DSCard(
+        accentBar: isUnread ? accentColor : null,
+        backgroundColor: isUnread ? unreadBg : null,
+        padding: EdgeInsets.all(DSSpacing.sm),
         child: InkWell(
           borderRadius: DSStyles.cardRadius,
           onTap: () {
             HapticFeedback.selectionClick();
             onTap();
           },
-          child: ClipRRect(
-            borderRadius: DSStyles.cardRadius,
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Left accent bar — rendered as a plain Container, no Border.
-                  Container(
-                    width: DSSpacing.xs,
-                    color: isUnread ? accentColor : DSColors.transparent,
-                  ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Icon container
+              Container(
+                width: DSIconSize.heroSm,
+                height: DSIconSize.heroSm,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: DSStyles.alphaSubtle),
+                  borderRadius: DSStyles.pillRadius,
+                ),
+                child: Icon(iconData, size: DSIconSize.lg, color: accentColor),
+              ),
+              DSSpacing.wMd,
 
-                  // Card body
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.all(DSSpacing.sm),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Icon container
+              // Text content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            notification.message,
+                            style: DSTypography.body().copyWith(
+                              fontSize: DSTypography.sizeMd,
+                              fontWeight: isUnread
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: isDark
+                                  ? DSColors.labelPrimaryDark
+                                  : DSColors.labelPrimary,
+                              height: DSStyles.heightNormal,
+                            ),
+                          ),
+                        ),
+                        if (isUnread) ...[
+                          DSSpacing.wSm,
+                          Padding(
+                            padding: EdgeInsets.only(top: DSSpacing.xs),
+                            child: Container(
+                              width: DSIconSize.xs,
+                              height: DSIconSize.xs,
+                              decoration: BoxDecoration(
+                                color: accentColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (notification.rejectionReason != null) ...[
+                      DSSpacing.hSm,
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DSSpacing.sm,
+                          vertical: DSSpacing.xs,
+                        ),
+                        decoration: BoxDecoration(
+                          color: DSColors.error.withValues(
+                            alpha: DSStyles.alphaSoft,
+                          ),
+                          borderRadius: DSStyles.pillRadius,
+                          border: Border.all(
+                            color: DSColors.error.withValues(
+                              alpha: DSStyles.alphaSubtle,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          notification.rejectionReason!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: DSTypography.caption().copyWith(
+                            fontSize: DSTypography.sizeSm,
+                            color: DSColors.error,
+                            fontWeight: FontWeight.w500,
+                            height: DSStyles.heightNormal,
+                          ),
+                        ),
+                      ),
+                    ],
+                    DSSpacing.hSm,
+                    Row(
+                      children: [
+                        if (notification.transactionReference != null &&
+                            notification.dispatchCode == null) ...[
                           Container(
-                            width: DSIconSize.heroSm,
-                            height: DSIconSize.heroSm,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: DSSpacing.sm,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: accentColor.withValues(
                                 alpha: DSStyles.alphaSubtle,
                               ),
-                              borderRadius: DSStyles.pillRadius,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Icon(
-                              iconData,
-                              size: DSIconSize.lg,
-                              color: accentColor,
+                            child: Text(
+                              notification.transactionReference!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: DSTypography.label().copyWith(
+                                fontSize: DSTypography.sizeXs,
+                                fontWeight: FontWeight.w700,
+                                color: accentColor,
+                                letterSpacing: DSTypography.lsLoose,
+                              ),
                             ),
                           ),
-                          DSSpacing.wMd,
-
-                          // Text content
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Message + unread dot
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        notification.message,
-                                        style: DSTypography.body().copyWith(
-                                          fontSize: DSTypography.sizeMd,
-                                          fontWeight: isUnread
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                          color: isDark
-                                              ? DSColors.labelPrimaryDark
-                                              : DSColors.labelPrimary,
-                                          height: DSStyles.heightNormal,
-                                        ),
-                                      ),
-                                    ),
-                                    if (isUnread) ...[
-                                      DSSpacing.wSm,
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                          top: DSSpacing.xs,
-                                        ),
-                                        child: Container(
-                                          width: DSIconSize.xs,
-                                          height: DSIconSize.xs,
-                                          decoration: BoxDecoration(
-                                            color: accentColor,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-
-                                // Rejection reason pill
-                                if (notification.rejectionReason != null) ...[
-                                  DSSpacing.hSm,
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: DSSpacing.sm,
-                                      vertical: DSSpacing.xs,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: DSColors.error.withValues(
-                                        alpha: DSStyles.alphaSoft,
-                                      ),
-                                      borderRadius: DSStyles.pillRadius,
-                                      border: Border.all(
-                                        color: DSColors.error.withValues(
-                                          alpha: DSStyles.alphaSubtle,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      notification.rejectionReason!,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: DSTypography.caption().copyWith(
-                                        fontSize: DSTypography.sizeSm,
-                                        color: DSColors.error,
-                                        fontWeight: FontWeight.w500,
-                                        height: DSStyles.heightNormal,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-
-                                DSSpacing.hSm,
-
-                                // Meta row
-                                Row(
-                                  children: [
-                                    if (notification.transactionReference !=
-                                            null &&
-                                        notification.dispatchCode == null) ...[
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: DSSpacing.sm,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: accentColor.withValues(
-                                            alpha: DSStyles.alphaSubtle,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          notification.transactionReference!,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: DSTypography.label().copyWith(
-                                            fontSize: DSTypography.sizeXs,
-                                            fontWeight: FontWeight.w700,
-                                            color: accentColor,
-                                            letterSpacing: DSTypography.lsLoose,
-                                          ),
-                                        ),
-                                      ),
-                                      DSSpacing.wSm,
-                                    ],
-                                    Expanded(
-                                      child: Text(
-                                        formatDate(
-                                          notification.date,
-                                          includeTime: true,
-                                        ),
-                                        style: DSTypography.caption().copyWith(
-                                          fontSize: DSTypography.sizeSm,
-                                          color: isDark
-                                              ? DSColors.labelTertiaryDark
-                                              : DSColors.labelTertiary,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (_isNavigable) ...[
-                                      DSSpacing.wXs,
-                                      Icon(
-                                        Icons.chevron_right_rounded,
-                                        size: DSIconSize.sm,
-                                        color: isDark
-                                            ? DSColors.labelTertiaryDark
-                                            : DSColors.labelTertiary,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
+                          DSSpacing.wSm,
+                        ],
+                        Expanded(
+                          child: Text(
+                            formatDate(notification.date, includeTime: true),
+                            style: DSTypography.caption().copyWith(
+                              fontSize: DSTypography.sizeSm,
+                              color: isDark
+                                  ? DSColors.labelTertiaryDark
+                                  : DSColors.labelTertiary,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (_isNavigable) ...[
+                          DSSpacing.wXs,
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: DSIconSize.sm,
+                            color: isDark
+                                ? DSColors.labelTertiaryDark
+                                : DSColors.labelTertiary,
                           ),
                         ],
-                      ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

@@ -44,6 +44,7 @@ class AppBottomNavBar extends ConsumerWidget {
           child: SizedBox(
             height: DSGlass.chromeHeight,
             child: DSGlassChrome(
+              edge: DSGlassChromeEdge.floating,
               borderRadius: DSStyles.circularRadius,
               showBorder: true,
               boxShadow: true,

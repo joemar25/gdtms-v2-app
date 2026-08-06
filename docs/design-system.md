@@ -80,9 +80,61 @@ Status colors **are** correct for:
 | Surface             | API                                               | Notes                                          |
 | ------------------- | ------------------------------------------------- | ---------------------------------------------- |
 | Shell scenery       | `DsBrandBackdrop` / `DsBrandBackdropConfig.shell` | One painter; intensity only in config          |
-| Header + bottom nav | `DSGlass` / `DSGlassChrome`                       | Primary frosted chrome; theme bars transparent |
-| Content cards       | Solid elevated cards (not glass for work metrics) | `StatCard`, `DSCard`                           |
-| Glass cards         | `DSGlassCard`                                     | Auth / marketing only — not metric grids       |
+| App header | `AppHeaderBar` — **solid** brand green | No glass frost; **square** bottom (no bottom L/R radius) |
+| Floating bottom nav | `DSGlassChrome` | Frost glass pill only |
+| Content cards         | Solid elevated cards (not glass for work metrics) | `StatCard`, `DSCard` (+ optional `accentBar`) |
+| Glass cards           | `DSGlassCard`                                     | Auth / marketing only — not metric grids      |
+| Integrated sub-header | `DsIntegratedSubHeader`                           | **Header extension** — pair `AppHeaderBar(showBottomBorder: false)`; both **solid** `DSColors.primary` (update / FD filters / bagsakan) |
+| Bottom Confirm docks  | **`DsBottomActionBar`**                           | Solid elevated surface for `bottomNavigationBar` — never bare `SafeArea` on transparent scaffold |
+| System nav strip      | `DsShellSystemUi`                                 | Applied by `DsAppScaffold` + tab `ScaffoldWithNavBar` |
+| Loaders / refresh     | Primary                                           | Never default to `error` on non-error lists   |
+
+**Black bottom bar anti-pattern:** transparent `Scaffold` + `bottomNavigationBar` without extendBody/surface → Android window shows black. Always use `DsAppScaffold` (auto extendBody) + `DsBottomActionBar` for docks.
+
+### Continuous chrome (header extension) — **always do this**
+
+Used by: **delivery update**, **failed-delivery filters**, **bagsakan form**.
+
+```dart
+// REQUIRED pair — do not use one without the other.
+appBar: AppHeaderBar(
+  showBottomBorder: false, // continuous = solid brand AppBar
+  title: '...',
+),
+body: Column(
+  children: [
+    DsIntegratedSubHeader(
+      child: DsIntegratedSubHeader.segment( // shared segment standard
+        context: context,
+        selected: ...,
+        onChanged: ...,
+        options: [...], // feature-owned; decoupled
+      ),
+    ),
+    Expanded(child: ...),
+  ],
+)
+```
+
+| Rule | Continuous (`showBottomBorder: false`) | Standalone (default) |
+|------|----------------------------------------|----------------------|
+| AppBar `backgroundColor` | **Solid** `DSColors.primary` / `primaryDark` | **Same solid brand** |
+| `forceMaterialTransparency` | **`false`** | **`false`** |
+| Shape | Square bottom | Square bottom (no L/R radius) |
+| Shadow / elevation | **None** | **None** |
+| Status bar | Solid brand | Solid brand |
+| Strip / segments | Solid primary + `DsIntegratedSubHeader.segment` | n/a |
+
+**Black header anti-pattern:** transparent AppBar + `forceMaterialTransparency` → Android **window black**.  
+**Dark corner anti-pattern:** glass frost + ClipRRect + header shadow under rounded bottom.  
+Regression suite: `test/design_system/ds_continuous_chrome_test.dart`.
+
+**Never:**
+- Transparent brand AppBar
+- `DSGlassChrome` as header flexibleSpace (glass is for floating nav only)
+- Header box shadows under rounded corners
+- `statusBarColor: transparent` on shell
+- `Theme.of(context).primaryColor` for chrome selected glyphs (seed ≠ `#307539`)
 
 **Card box rules (`StatCard` / `ScanButton`)**
 
@@ -95,22 +147,23 @@ Status colors **are** correct for:
 
 ## 4. Section headers
 
-Standard pattern (dashboard default + new-feel):
+Use **`DSSectionHeader`** with tone:
+
+| Tone | When |
+|------|------|
+| `DsSectionTone.shell` (default) | Post-login lists/settings — secondary caption, matches dashboard |
+| `DsSectionTone.brand` | Rare primary emphasis |
 
 ```dart
-Text(
-  'section.key'.tr().toUpperCase(),
-  style: DSTypography.caption(color: labelSecondary).copyWith(
-    fontWeight: FontWeight.w700,
-    letterSpacing: 1.2,
-  ),
-)
+const DSSectionHeader(
+  title: 'profile.sections.account',
+  useLocalization: true,
+  // tone: DsSectionTone.shell, // default
+),
 ```
 
 - Shared i18n keys across layouts (no hardcoded “Today” / “Quick scan”).
 - Optional motion: fade + slight `slideX` on section titles.
-- `DSSectionHeader` exists but is **primary-colored**; for shell grids prefer
-  **secondary label** caption (dashboard style) so gold/green CTAs stay louder.
 
 ---
 
@@ -203,22 +256,24 @@ Shared pieces:
 
 Priority for **standardization** (highest first):
 
-| Page                | Shell                                               | Cards / color                                  | Motion                                | Notes                        |
-| ------------------- | --------------------------------------------------- | ---------------------------------------------- | ------------------------------------- | ---------------------------- |
-| **Bagsakan** tab    | Ensure transparent + shell; no solid opaque full bg | Stat-like summaries → `StatCard` brand palette | `dsDashboardCardEntry` on group cards | Replace rainbow chips if any |
-| **Wallet** tab      | Same                                                | Earnings / pending tiles → primary/gold only   | Stagger entry                         | Keep SecureView for PII      |
-| **Profile** tab     | Same                                                | Prefer `DSCard` + section caption style        | `dsCardEntry`                         | Already partial DS           |
-| **Dispatch list**   | `DsAppScaffold` ✓                                   | List rows stay status-colored badges           | `dsCardEntry` on rows                 | OK semantic status           |
-| **Deliveries list** | `DsAppScaffold` ✓                                   | Status badges OK                               | Stagger                               |                              |
-| **Sync history**    | `DsAppScaffold` ✓                                   | Header Sync Now uses overlay ✓                 |                                       | Overlay already aligned      |
-| **Notifications**   | `DsAppScaffold` ✓                                   | Error accent OK for alerts                     | `dsCardEntry`                         |                              |
-| **Scan**            | Immersive                                           | N/A                                            | N/A                                   | Keep camera-first            |
+| Page | Shell | Cards / color | Motion | Status |
+|------|-------|---------------|--------|--------|
+| **Bagsakan** tab | Transparent ✓ | `DSCard` + status accent bar | `dsDashboardCardEntry` | Done |
+| **Wallet** tab | Transparent ✓ | Primary hero + **gold** Request Payout | `dsDashboardCardEntry` | Done |
+| **Profile** tab | Transparent ✓ | `DSCard` groups; primary icons | `dsDashboardCardEntry` | Done |
+| **Dispatch list** | `DsAppScaffold` ✓ | Status badges | `dsCardEntry` | Done |
+| **Dispatch eligibility** | `DsAppScaffold` ✓ | Icons primary; **Accept gold** | `dsDashboardCtaEntry` | Done |
+| **Deliveries list** | `DsAppScaffold` ✓ | Status badges; primary loaders | `dsCardEntry` fine stagger | Done |
+| **Delivery update** | `DsAppScaffold` ✓ | `DsIntegratedSubHeader` status | light entry | Done |
+| **Sync history** | `DsAppScaffold` ✓ | Overlay ✓ | tile stagger | Done |
+| **Notifications** | `DsAppScaffold` ✓ | `DSCard` + accent; shell section | `dsCardEntry` | Done |
+| **Scan** | Immersive | N/A | N/A | Exception (keep) |
 
 ### Checklist per screen
 
-1. [ ] Correct shell wrapper (tab vs `DsAppScaffold`)
-2. [ ] No second backdrop / no solid white full-bleed killing shell
-3. [ ] Glass chrome header (`AppHeaderBar`) unless immersive
+1. [x] Correct shell wrapper (tab vs `DsAppScaffold`)
+2. [x] No second backdrop / no solid white full-bleed killing shell
+3. [x] Glass chrome header (`AppHeaderBar`) unless immersive
 4. [ ] Section titles = uppercase caption secondary (or shared key)
 5. [ ] Metric tiles = `StatCard` + primary/gold only
 6. [ ] Primary CTAs = brand green or gold solid (not random Material blue)

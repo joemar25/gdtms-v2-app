@@ -204,7 +204,9 @@ class _StatCardState extends State<StatCard> with TickerProviderStateMixin {
         ? DSColors.labelTertiaryDark
         : DSColors.labelTertiary;
 
-    final minH = widget.minHeight ?? DSStyles.statCardHeight + 24;
+    // Face content (icon + count + label + optional hold hint) needs ≥128
+    // after padding — default +24 (124) overflowed by ~3px with hold hint.
+    final minH = widget.minHeight ?? DSStyles.statCardHeight + 32;
 
     final card = AnimatedBuilder(
       animation: Listenable.merge([_pressScale, _reveal, _liftScale]),
@@ -517,7 +519,7 @@ class _StatCardFace extends StatelessWidget {
     final countStyle = DSTypography.display(color: countColor).copyWith(
       height: 1.0,
       fontWeight: FontWeight.w800,
-      fontSize: 28,
+      fontSize: 26,
       letterSpacing: -0.5,
     );
 
@@ -557,16 +559,17 @@ class _StatCardFace extends StatelessWidget {
           );
     }
 
+    // Fixed footprint from parent SizedBox — never let Column exceed it.
+    // Top: icon row. Bottom: count + label (+ hold hint). Spacer absorbs slack.
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         DSSpacing.md + 4,
+        DSSpacing.sm + 4, // 12 — was 16; holds hint without 3px overflow
         DSSpacing.md,
-        DSSpacing.md,
-        DSSpacing.md,
+        DSSpacing.sm + 4,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
@@ -593,9 +596,9 @@ class _StatCardFace extends StatelessWidget {
                     ),
             ],
           ),
-          DSSpacing.hSm,
+          const Spacer(),
           countWidget,
-          DSSpacing.hXs,
+          const SizedBox(height: 2),
           Text(
             label,
             maxLines: 1,
@@ -603,6 +606,7 @@ class _StatCardFace extends StatelessWidget {
             style: DSTypography.label(color: labelColor).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: DSTypography.sizeSm,
+              height: 1.1,
             ),
           ),
           if (showHoldHint) ...[
@@ -612,7 +616,7 @@ class _StatCardFace extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: DSTypography.caption(color: hintColor).copyWith(
-                height: DSStyles.heightTight,
+                height: 1.1,
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
               ),

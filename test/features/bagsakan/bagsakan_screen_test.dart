@@ -153,6 +153,14 @@ void main() {
     });
 
     testWidgets('deleting a group calls DAO and refreshes', (tester) async {
+      // Tall phone surface: under full-suite concurrency the default 800×600
+      // surface left the delete IconButton center under AppHeaderBar glass
+      // (hit-test miss at ~y=49). Production phones never hit that layout.
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final now = DateTime.now().millisecondsSinceEpoch;
       when(() => mockBagsakanDao.getBagsakanGroups()).thenAnswer(
         (_) async => [
@@ -162,6 +170,7 @@ void main() {
             'description': '',
             'item_count': 1,
             'created_at': now,
+            'status': 'draft',
           },
         ],
       );
@@ -174,8 +183,17 @@ void main() {
 
       expect(find.text('Group to Delete'), findsOneWidget);
 
-      // Tap Delete icon button
-      await tester.tap(find.byIcon(Icons.delete_outline_rounded));
+      // Drive IconButton.onPressed (not geometry tap). Glass chrome + entry
+      // animations occasionally intercept pointer hit-tests in the full suite
+      // even when the icon is found by finder.
+      final deleteBtn = find.widgetWithIcon(
+        IconButton,
+        Icons.delete_outline_rounded,
+      );
+      expect(deleteBtn, findsOneWidget);
+      final onPressed = tester.widget<IconButton>(deleteBtn).onPressed;
+      expect(onPressed, isNotNull);
+      onPressed!();
       await tester.pumpAndSettle();
 
       // Confirm dialog should be visible

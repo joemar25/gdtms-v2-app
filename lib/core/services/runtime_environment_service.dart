@@ -32,7 +32,7 @@ class RuntimeEnvironmentService {
     final prefs = await SharedPreferences.getInstance();
     _isDeveloperMode = prefs.getBool(AppKeys.developerMode) ?? false;
     // Apply screenshot bypass immediately based on persisted developer mode.
-    SecureViewManager.setDeveloperModeOverride(_isDeveloperMode);
+    await SecureViewManager.setDeveloperModeOverride(_isDeveloperMode);
   }
 
   Future<void> setDeveloperMode(bool enabled) async {
@@ -40,6 +40,6 @@ class RuntimeEnvironmentService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(AppKeys.developerMode, enabled);
     // Propagate to screenshot protection in real time.
-    SecureViewManager.setDeveloperModeOverride(enabled);
+    await SecureViewManager.setDeveloperModeOverride(enabled);
   }
 }

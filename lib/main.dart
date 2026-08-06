@@ -11,12 +11,15 @@ import 'app.dart';
 import 'core/constants.dart';
 import 'core/auth/auth_provider.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:fsi_courier_app/design_system/design_system.dart';
 
 Future<void> main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await EasyLocalization.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // Green-glass shell chrome by default (white status icons on brand green).
+  SystemChrome.setSystemUIOverlayStyle(DsShellSystemUi.shellStyleLightFallback);
 
   // Cap the image cache once from startup: 80 MB / 150 images max.
   // Default Flutter limits (unlimited count, 100 MB) are too generous for a

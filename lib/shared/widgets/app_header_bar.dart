@@ -47,14 +47,19 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   final List<Widget>? trailingActions;
   final PreferredSizeWidget? bottom;
 
-  /// Override fill. `null` = default [DSGlass] chrome (preferred).
-  /// Solid brand bars still supported for one-off screens.
+  /// Override fill. **`null` = default green glass** ([DSGlassTone.chrome]).
+  /// Only pass a color to opt out of glass (rare non-brand screens).
   final Color? backgroundColor;
   final bool centerTitle;
   final bool showNotificationBell;
   final String? heroTag;
   final bool showProfileAvatar;
   final bool isPersonalized;
+
+  /// When **false**, continuous chrome with [DsIntegratedSubHeader]:
+  /// solid brand AppBar (status bar + toolbar) — **never** transparent /
+  /// [AppBar.forceMaterialTransparency] (Android black window regression).
+  /// Always pair with [DsIntegratedSubHeader]. See docs/design-system.md.
   final bool showBottomBorder;
 
   @override
@@ -65,11 +70,20 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(notificationsUnreadCountProvider);
-    // Default: primary glass chrome. Explicit [backgroundColor] opts out.
-    final useGlass = backgroundColor == null;
-    final headerColor =
-        backgroundColor ?? DSGlass.fill(context, tone: DSGlassTone.chrome);
-    // Primary glass + solid brand bars both use white glyphs.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Default = solid brand green (not glass frost — avoids dark corner spots).
+    final themePrimary = Theme.of(context).primaryColor;
+    final isBrandColor =
+        backgroundColor == null ||
+        backgroundColor == DSColors.primary ||
+        backgroundColor == DSColors.primaryDark ||
+        backgroundColor == themePrimary;
+    final brandSolid = isDark ? DSColors.primaryDark : DSColors.primary;
+    final materialColor = isBrandColor
+        ? brandSolid
+        : (backgroundColor ?? brandSolid);
+
+    // White glyphs on brand chrome.
     final onFg = DSGlass.onChrome(context);
     final onFgMuted = DSGlass.onChromeMuted(context);
     final courier = ref.watch(authProvider.select((s) => s.courier)) ?? {};
@@ -78,23 +92,29 @@ class AppHeaderBar extends ConsumerWidget implements PreferredSizeWidget {
         ? null
         : profileUrlStr;
 
-    // Glass lives in [flexibleSpace] so Scaffold's AppBar Material can stay
-    // transparent and BackdropFilter frosts scenery/content behind it.
-    final flexibleSpace = useGlass
-        ? DSGlassChrome(showBottomBorder: showBottomBorder, showBorder: false)
-        : ColoredBox(color: headerColor);
+    // Brand headers = solid FSI green, square bottom (no bottom L/R radius).
+    // [showBottomBorder: false] still marks continuous pair with
+    // [DsIntegratedSubHeader] (strip owns bottom rounding if any).
+    // Floating bottom nav still uses [DSGlassChrome] glass.
+    final overlayStyle = isBrandColor
+        ? DsShellSystemUi.shell(context).copyWith(statusBarColor: brandSolid)
+        : (isDark
+              ? DsShellSystemUi.darkSurface
+              : DsShellSystemUi.lightSurface);
 
     final appBar = AppBar(
       scrolledUnderElevation: 0,
       elevation: 0,
-      backgroundColor: DSColors.transparent,
+      // Solid brand, square edges — no bottom radius, no shadow.
+      backgroundColor: isBrandColor ? brandSolid : materialColor,
       surfaceTintColor: DSColors.transparent,
-      forceMaterialTransparency: true,
-      // Primary glass — light status icons.
-      systemOverlayStyle: SystemUiOverlayStyle.light,
+      shadowColor: DSColors.transparent,
+      forceMaterialTransparency: false,
+      shape: null,
+      systemOverlayStyle: overlayStyle,
       titleSpacing: (leading == null && !context.canPop()) ? DSSpacing.md : 0,
       centerTitle: centerTitle,
-      flexibleSpace: flexibleSpace,
+      flexibleSpace: null,
       leading:
           leading ??
           (context.canPop()

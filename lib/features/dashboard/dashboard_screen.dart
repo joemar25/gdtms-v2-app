@@ -150,8 +150,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Scaffold(
           extendBody: true,
           // Transparent — shell paints DsBrandBackdrop.shell once for all tabs.
-          // Do NOT use extendBodyBehindAppBar here: Scaffold already lays body
-          // below the app bar; a manual topInset caused double top gap.
+          // Body stays BELOW app bar (not extendBodyBehindAppBar): manual top
+          // inset under glass caused missing top content / double-gap. Header
+          // glass still frosts shell backdrop; nav frosts scrolling body.
           backgroundColor: DSColors.transparent,
           appBar: const DashboardHeaderBar(),
           body: _loading

@@ -154,6 +154,11 @@ class SyncEntryList extends ConsumerWidget {
                         }
                       }
                     : null,
+              ).dsCardEntry(
+                delay: DSAnimations.stagger(
+                  index.clamp(0, 12),
+                  step: DSAnimations.staggerFine,
+                ),
               );
             },
           ),

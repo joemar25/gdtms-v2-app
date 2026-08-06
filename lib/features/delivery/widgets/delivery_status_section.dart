@@ -30,6 +30,7 @@ class DeliveryStatusSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         if (!isHeaderIntegrated) ...[
           DeliverySectionHeader(
@@ -48,9 +49,16 @@ class DeliveryStatusSection extends StatelessWidget {
             padding: EdgeInsets.only(top: DSSpacing.sm),
             child: Text(
               error!,
-              style: DSTypography.body(
-                color: DSColors.error,
-              ).copyWith(fontSize: DSTypography.sizeSm),
+              style:
+                  DSTypography.body(
+                    // On green integrated chrome use light error tint for contrast.
+                    color: isHeaderIntegrated
+                        ? DSColors.errorBorder
+                        : DSColors.error,
+                  ).copyWith(
+                    fontSize: DSTypography.sizeSm,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
       ],

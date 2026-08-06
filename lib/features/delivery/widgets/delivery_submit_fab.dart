@@ -70,6 +70,9 @@ class DeliverySubmitFab extends StatelessWidget {
           ),
           style: FilledButton.styleFrom(
             backgroundColor: DSColors.transparent,
+            disabledBackgroundColor: DSColors.transparent,
+            foregroundColor: DSColors.white,
+            disabledForegroundColor: DSColors.white.withValues(alpha: 0.7),
             shadowColor: DSColors.transparent,
             minimumSize: const Size(double.infinity, DSIconSize.heroSm),
             shape: RoundedRectangleBorder(borderRadius: DSStyles.cardRadius),

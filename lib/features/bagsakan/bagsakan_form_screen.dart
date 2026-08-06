@@ -497,6 +497,9 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
                         ? Icons.save_rounded
                         : Icons.inventory_2_rounded,
                   )),
+      // Continuous chrome: solid brand AppBar + DsIntegratedSubHeader.
+      // Never transparent continuous AppBar (Android black void).
+      // See docs/design-system.md § Continuous chrome.
       appBar: AppHeaderBar(
         showBottomBorder: false,
         title: widget.groupId != null
@@ -509,52 +512,12 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
           children: [
             // ── CONNECTION STATUS BANNER ────────────────────────────────────
             const ConnectionStatusBanner(isMinimal: true),
-            // ── PREMIUM SUB-HEADER ──────────────────────────────────────────
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(DSSpacing.xl),
-                  bottomRight: Radius.circular(DSSpacing.xl),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(
-                      context,
-                    ).primaryColor.withValues(alpha: 0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.fromLTRB(
-                DSSpacing.md,
-                0,
-                DSSpacing.md,
-                DSSpacing.lg,
-              ),
-              child: DSSegmentedSelector<int>(
-                height: 64,
-                selectedTextColor: Theme.of(context).primaryColor,
-                unselectedTextColor: DSColors.white.withValues(alpha: 0.75),
-                backgroundColor: DSColors.white.withValues(alpha: 0.15),
-                showBorder: false,
-                options: [
-                  DSSegmentOption(
-                    value: 0,
-                    label: 'bagsakan.tab_info'.tr(),
-                    icon: Icons.info_outline_rounded,
-                    color: DSColors.white,
-                  ),
-                  DSSegmentOption(
-                    value: 1,
-                    label: 'bagsakan.tab_deliveries'.tr(),
-                    icon: Icons.inventory_2_outlined,
-                    color: DSColors.white,
-                    badge: _groupItems.length,
-                  ),
-                ],
+            // ── PREMIUM SUB-HEADER (central integrated chrome) ─────────────
+            // No fixed height — segmented control + padding size naturally.
+            DsIntegratedSubHeader(
+              // Decoupled options + shared chrome segment standard.
+              child: DsIntegratedSubHeader.segment<int>(
+                context: context,
                 selected: _currentPage,
                 onChanged: (page) {
                   _pageController.animateToPage(
@@ -563,6 +526,21 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
                     curve: Curves.easeInOut,
                   );
                 },
+                options: [
+                  DSSegmentOption(
+                    value: 0,
+                    label: 'bagsakan.tab_info'.tr(),
+                    icon: Icons.info_outline_rounded,
+                    color: DsIntegratedSubHeader.segmentPill,
+                  ),
+                  DSSegmentOption(
+                    value: 1,
+                    label: 'bagsakan.tab_deliveries'.tr(),
+                    icon: Icons.inventory_2_outlined,
+                    color: DsIntegratedSubHeader.segmentPill,
+                    badge: _groupItems.length,
+                  ),
+                ],
               ),
             ),
             // ── CONTENT ─────────────────────────────────────────────────────
@@ -589,14 +567,16 @@ class _BagsakanFormScreenState extends ConsumerState<BagsakanFormScreen> {
         100,
       ),
       children: [
-        DeliverySectionHeader(label: 'bagsakan.group_info_header'.tr()),
+        DeliverySectionHeader(
+          label: 'bagsakan.group_info_header'.tr(),
+        ).dsFadeEntry(),
         _kInnerGap,
         DSInput(
           label: 'bagsakan.group_name'.tr(),
           hintText: 'bagsakan.group_name_hint'.tr(),
           controller: _groupNameController,
           autofocus: widget.groupId == null,
-        ),
+        ).dsCardEntry(delay: DSAnimations.stagger(0)),
         // Multiline description input — allows multi-sentence notes.
         TextFormField(
           controller: _groupDescriptionController,

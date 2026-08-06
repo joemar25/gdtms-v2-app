@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fsi_courier_app/design_system/backdrop/backdrop.dart';
+import 'package:fsi_courier_app/design_system/layout/ds_shell_system_ui.dart';
 import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
 
 /// Scaffold for **post-login** list / detail / settings pages.
@@ -14,6 +15,10 @@ import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
 ///
 /// Tab roots only need `backgroundColor: transparent` (shell is in
 /// ScaffoldWithNavBar).
+///
+/// When [bottomNavigationBar] is set, body automatically [extendBody]s so the
+/// shell backdrop continues under the action bar (avoids a black void strip).
+/// Prefer [DsBottomActionBar] for Confirm/CTA docks.
 class DsAppScaffold extends StatelessWidget {
   const DsAppScaffold({
     super.key,
@@ -48,6 +53,13 @@ class DsAppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasBottomBar = bottomNavigationBar != null;
+    // Backdrop must paint under bottom action bars — otherwise transparent
+    // scaffold shows a black window strip (see payout request Confirm).
+    final effectiveExtendBody =
+        extendBody || (showShellBackdrop && hasBottomBar);
+
     final layered = showShellBackdrop
         ? Stack(
             fit: StackFit.expand,
@@ -58,8 +70,10 @@ class DsAppScaffold extends StatelessWidget {
           )
         : body;
 
-    return Scaffold(
-      backgroundColor: DSColors.transparent,
+    final scaffold = Scaffold(
+      backgroundColor: showShellBackdrop
+          ? DSColors.transparent
+          : (isDark ? DSColors.scaffoldDark : DSColors.scaffoldLight),
       appBar: appBar,
       body: layered,
       floatingActionButton: floatingActionButton,
@@ -68,10 +82,12 @@ class DsAppScaffold extends StatelessWidget {
       bottomSheet: bottomSheet,
       drawer: drawer,
       endDrawer: endDrawer,
-      extendBody: extendBody,
+      extendBody: effectiveExtendBody,
       extendBodyBehindAppBar: extendBodyBehindAppBar,
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       primary: primary,
     );
+
+    return DsShellSystemUi.wrap(context, child: scaffold);
   }
 }

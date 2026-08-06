@@ -5,6 +5,8 @@ import 'package:fsi_courier_app/design_system/widgets/molecules/ds_secure_view.d
 import 'package:fsi_courier_app/features/delivery/widgets/delivery_form_helpers.dart';
 import 'package:fsi_courier_app/shared/widgets/delivery_card.dart';
 
+import '../../helpers/screen_protector_channel_mock.dart';
+
 /// PII fields used to detect accidental account-detail leaks in widget tests.
 const _secretName = 'SECRET RECIPIENT';
 const _secretAddress = '123 PRIVATE STREET';
@@ -32,7 +34,9 @@ Future<void> _pumpCard(
   bool enableHoldToReveal = true,
   bool isChecking = false,
 }) async {
-  SecureViewManager.setDeveloperModeOverride(true);
+  mockScreenProtectorChannel();
+  addTearDown(clearScreenProtectorChannelMock);
+  await SecureViewManager.setDeveloperModeOverride(true);
   addTearDown(() => SecureViewManager.setDeveloperModeOverride(false));
   _configureLargeScreen(tester);
 
@@ -175,7 +179,9 @@ void main() {
               ),
             ),
           );
-          SecureViewManager.setDeveloperModeOverride(true);
+          mockScreenProtectorChannel();
+          addTearDown(clearScreenProtectorChannelMock);
+          await SecureViewManager.setDeveloperModeOverride(true);
           addTearDown(() => SecureViewManager.setDeveloperModeOverride(false));
           _configureLargeScreen(tester);
 

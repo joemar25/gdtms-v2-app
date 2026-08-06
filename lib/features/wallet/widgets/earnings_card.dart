@@ -304,9 +304,10 @@ class EarningsCard extends StatelessWidget {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
+                                      // Gold = primary work CTA (dashboard hierarchy).
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: DSColors.white,
-                                        foregroundColor: DSColors.primary,
+                                        backgroundColor: DSColors.gold,
+                                        foregroundColor: DSColors.white,
                                         elevation: 0,
                                         padding: EdgeInsets.symmetric(
                                           horizontal: DSSpacing.md,
@@ -335,8 +336,8 @@ class EarningsCard extends StatelessWidget {
                                   'wallet.screen.request_payout'.tr(),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: DSColors.white,
-                                  foregroundColor: DSColors.primary,
+                                  backgroundColor: DSColors.gold,
+                                  foregroundColor: DSColors.white,
                                   elevation: 0,
                                   minimumSize: const Size.fromHeight(48),
                                   shape: RoundedRectangleBorder(

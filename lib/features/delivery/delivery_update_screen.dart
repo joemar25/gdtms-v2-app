@@ -970,6 +970,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
           isLoading: _loading,
           onPressed: _submit,
         ),
+        // Continuous chrome (required pattern — see design-system.md):
+        // showBottomBorder:false → solid brand AppBar (never transparent/
+        // forceMaterialTransparency — Android black void). Strip matches.
         appBar: AppHeaderBar(
           showBottomBorder: false,
           titleWidget: DeliveryUpdateAppBarTitle(
@@ -987,7 +990,6 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             ),
           ],
           showNotificationBell: false,
-          backgroundColor: Theme.of(context).primaryColor,
         ),
         body: SecureView(
           child: GestureDetector(
@@ -1001,31 +1003,9 @@ class _DeliveryUpdateScreenState extends ConsumerState<DeliveryUpdateScreen> {
             },
             child: Column(
               children: [
-                // ── STATUS SELECTION SUB-HEADER ──────────────────────────────────
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(DSSpacing.xl),
-                      bottomRight: Radius.circular(DSSpacing.xl),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(
-                          context,
-                        ).primaryColor.withValues(alpha: 0.3),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.fromLTRB(
-                    DSSpacing.md,
-                    0,
-                    DSSpacing.md,
-                    DSSpacing.lg,
-                  ),
+                // Header extension — solid brand + chrome segment standard
+                // (same padding/height/track as failed-delivery filters).
+                DsIntegratedSubHeader(
                   child: DeliveryStatusSection(
                     statusSelectorKey: _statusSelectorKey,
                     currentStatus: _status,

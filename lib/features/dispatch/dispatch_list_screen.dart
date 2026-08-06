@@ -206,10 +206,11 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
     return DsAppScaffold(
       appBar: AppHeaderBar(
         title: 'Dispatch',
+        pageIcon: Icons.local_shipping_rounded,
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded),
-            color: DSColors.white,
+            color: DSGlass.onChrome(context),
             tooltip: 'Scan Dispatch',
             onPressed: () => context.push('/scan', extra: {'mode': 'dispatch'}),
           ),
@@ -218,7 +219,7 @@ class _DispatchListScreenState extends ConsumerState<DispatchListScreen> {
       body: !isOnline
           ? OfflinePlaceholder(onRetry: _load, message: offlineMessage)
           : _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: DSLoading(color: DSColors.primary))
           : PaginationSwipeArea(
               currentPage: _currentPage,
               totalPages: _lastPage,

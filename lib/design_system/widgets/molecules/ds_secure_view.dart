@@ -1,4 +1,6 @@
 // DOCS: docs/shared/widgets.md
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:screen_protector/screen_protector.dart';
 import 'package:fsi_courier_app/design_system/tokens/ds_colors.dart';
@@ -15,9 +17,15 @@ class SecureViewManager {
 
   /// Apply or remove the developer-mode screenshot bypass.
   /// Call this in [RuntimeEnvironmentService.init] and [RuntimeEnvironmentService.setDeveloperMode].
-  static void setDeveloperModeOverride(bool isDeveloper) {
-    _SecureManager.setDeveloperModeOverride(isDeveloper);
+  static Future<void> setDeveloperModeOverride(bool isDeveloper) {
+    return _SecureManager.setDeveloperModeOverride(isDeveloper);
   }
+
+  /// Whether protection is currently bypassed (debug build, developer mode,
+  /// or the `SECURE_SCREENSHOTS` dart-define off). Test-only introspection.
+  @visibleForTesting
+  static bool get debugBypassProtection =>
+      _SecureManager.instance._bypassProtection;
 }
 
 class _SecureManager {
@@ -30,40 +38,77 @@ class _SecureManager {
   /// Set via [setDeveloperModeOverride] during app init and when toggling developer mode.
   static bool _developerModeOverride = false;
 
-  static void setDeveloperModeOverride(bool isDeveloper) {
+  static Future<void> setDeveloperModeOverride(bool isDeveloper) async {
     _developerModeOverride = isDeveloper;
     // If developer mode just turned on while protection was active, disable it now.
+    // No counter reset here: `_counter` only ever reflects widgets that
+    // genuinely claimed a slot via [enable] (see [_SecureViewState]), so it
+    // stays accurate across a toggle — resetting it would desync widgets
+    // that mounted before the toggle from the count they legitimately hold.
     if (isDeveloper) {
       try {
-        ScreenProtector.preventScreenshotOff().catchError((_) {});
-      } catch (_) {}
-    }
-  }
-
-  bool get _bypassProtection => !kSecureScreenshots || _developerModeOverride;
-
-  Future<void> enable() async {
-    if (_bypassProtection) return;
-    _counter++;
-    if (_counter == 1) {
-      try {
-        await ScreenProtector.preventScreenshotOn();
+        // Timeout: unmocked platform channel never completes in tests and
+        // rare plugin failures on device must not block developer-mode toggle.
+        await ScreenProtector.preventScreenshotOff().timeout(
+          const Duration(seconds: 2),
+        );
       } catch (e) {
-        debugPrint('[SECURE] Error enabling protection: $e');
+        debugPrint(
+          '[SECURE] Error clearing protection on developer-mode toggle: $e',
+        );
       }
     }
   }
 
-  Future<void> disable() async {
-    if (_bypassProtection) return;
+  bool get _bypassProtection =>
+      !kSecureScreenshots || _developerModeOverride || kAppDebugMode;
+
+  /// Synchronously claims a reference-count slot if protection is currently
+  /// required, and returns whether it did. Callers (see [_SecureViewState])
+  /// must call [disable] later **only** when this returned `true` — a widget
+  /// that mounts while bypassed never held a slot and must not decrement one
+  /// it never claimed.
+  bool enable() {
+    if (_bypassProtection) {
+      // Re-assert rather than trust an earlier clear — closes the gap if a
+      // prior preventScreenshotOff() call (e.g. from a developer-mode
+      // toggle) didn't fully apply before this screen mounted.
+      unawaited(_applyOff());
+      return false;
+    }
+    _counter++;
+    if (_counter == 1) {
+      unawaited(_applyOn());
+    }
+    return true;
+  }
+
+  /// Releases a slot previously claimed by [enable] returning `true`.
+  void disable() {
     _counter--;
     if (_counter <= 0) {
       _counter = 0;
-      try {
-        await ScreenProtector.preventScreenshotOff();
-      } catch (e) {
-        debugPrint('[SECURE] Error disabling protection: $e');
-      }
+      unawaited(_applyOff());
+    }
+  }
+
+  Future<void> _applyOn() async {
+    try {
+      await ScreenProtector.preventScreenshotOn().timeout(
+        const Duration(seconds: 2),
+      );
+    } catch (e) {
+      debugPrint('[SECURE] Error enabling protection: $e');
+    }
+  }
+
+  Future<void> _applyOff() async {
+    try {
+      await ScreenProtector.preventScreenshotOff().timeout(
+        const Duration(seconds: 2),
+      );
+    } catch (e) {
+      debugPrint('[SECURE] Error disabling protection: $e');
     }
   }
 }
@@ -96,15 +141,19 @@ class SecureView extends StatefulWidget {
 }
 
 class _SecureViewState extends State<SecureView> {
+  bool _holdsSlot = false;
+
   @override
   void initState() {
     super.initState();
-    _SecureManager.instance.enable();
+    _holdsSlot = _SecureManager.instance.enable();
   }
 
   @override
   void dispose() {
-    _SecureManager.instance.disable();
+    if (_holdsSlot) {
+      _SecureManager.instance.disable();
+    }
     super.dispose();
   }
 

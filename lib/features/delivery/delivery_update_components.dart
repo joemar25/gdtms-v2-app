@@ -28,6 +28,7 @@ import 'package:fsi_courier_app/core/constants.dart';
 import 'package:fsi_courier_app/core/models/delivery_status.dart';
 import 'package:fsi_courier_app/core/models/photo_entry.dart';
 import 'package:fsi_courier_app/design_system/design_system.dart';
+import 'package:fsi_courier_app/shared/widgets/ds_segmented_selector.dart';
 
 // ── Layout constants ─────────────────────────────────────────────────────────
 const kPhotoSlotHeight = 160.0;
@@ -563,76 +564,125 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedIndex = kUpdateStatuses.indexOf(widget.currentStatus);
-    final activeStatus = selectedIndex >= 0
-        ? widget.currentStatus
-        : kUpdateStatuses[0];
+    final safeIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    final activeStatus = kUpdateStatuses[safeIndex];
     final activeMeta = _kStatusMeta[activeStatus]!;
+    final integrated = widget.isHeaderIntegrated;
+
+    // Integrated chrome: shared standard via [DsIntegratedSubHeader.segment]
+    // (decoupled from FD/bagsakan — same look, own options).
+    if (integrated) {
+      final hintColor = DsIntegratedSubHeader.segmentUnselectedText(context);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DsIntegratedSubHeader.segment<String>(
+            context: context,
+            selected: widget.currentStatus,
+            onChanged: (rawStatus) async {
+              markInteracted();
+              await widget.onStatusChanged(rawStatus);
+            },
+            options: [
+              for (final rawStatus in kUpdateStatuses)
+                DSSegmentOption(
+                  value: rawStatus,
+                  label: _kStatusMeta[rawStatus]!.label,
+                  icon: _kStatusMeta[rawStatus]!.icon,
+                  color: DsIntegratedSubHeader.segmentPill,
+                ),
+            ],
+          ),
+          if (!_hasInteracted)
+            Padding(
+              padding: const EdgeInsets.only(top: DSSpacing.sm),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.touch_app_rounded,
+                    size: DSIconSize.xs,
+                    color: hintColor,
+                  ),
+                  DSSpacing.wXs,
+                  Flexible(
+                    child: Text(
+                      'delivery_update.header.tap_swipe_change_status'.tr(),
+                      textAlign: TextAlign.center,
+                      style: DSTypography.label().copyWith(
+                        fontSize: DSTypography.sizeXs,
+                        color: hintColor,
+                        letterSpacing: DSTypography.lsLoose,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+
+    // Standalone (body section): taller track + status-colored gradient pill.
+    final trackColor = isDark
+        ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+        : DSColors.secondarySurfaceLight;
+    final unselectedColor = isDark
+        ? DSColors.white.withValues(alpha: DSStyles.alphaDisabled)
+        : DSColors.labelSecondary;
+    const selectedGlyphColor = DSColors.white;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           height: 80,
           decoration: BoxDecoration(
-            color: widget.isHeaderIntegrated
-                ? DSColors.white.withValues(alpha: 0.15)
-                : (isDark
-                      ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-                      : DSColors.secondarySurfaceLight),
+            color: trackColor,
             borderRadius: DSStyles.cardRadius,
-            border: widget.isHeaderIntegrated
-                ? null
-                : Border.all(
-                    color: isDark
-                        ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
-                        : DSColors.separatorLight,
-                    width: DSStyles.borderWidth,
-                  ),
+            border: Border.all(
+              color: isDark
+                  ? DSColors.white.withValues(alpha: DSStyles.alphaSubtle)
+                  : DSColors.separatorLight,
+              width: DSStyles.borderWidth,
+            ),
           ),
           child: Stack(
             children: [
-              // Animated gradient pill
               AnimatedAlign(
-                alignment: selectedIndex == 0
+                alignment: safeIndex == 0
                     ? Alignment.centerLeft
-                    : selectedIndex == 1
+                    : safeIndex == 1
                     ? Alignment.center
                     : Alignment.centerRight,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.elasticOut,
+                duration: DSAnimations.dNormal,
+                curve: DSAnimations.curveElasticPill,
                 child: FractionallySizedBox(
                   widthFactor: 1 / 3,
                   heightFactor: 1.0,
                   child: Padding(
-                    padding: EdgeInsets.all(DSSpacing.sm),
+                    padding: const EdgeInsets.all(DSSpacing.sm),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
+                      duration: DSAnimations.dFast,
                       decoration: BoxDecoration(
-                        color: widget.isHeaderIntegrated
-                            ? DSColors.white
-                            : null,
-                        gradient: widget.isHeaderIntegrated
-                            ? null
-                            : LinearGradient(
-                                colors: [
-                                  activeMeta.color,
-                                  activeMeta.color.withValues(
-                                    alpha: DSStyles.alphaOpaque,
-                                  ),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                        gradient: LinearGradient(
+                          colors: [
+                            activeMeta.color,
+                            activeMeta.color.withValues(
+                              alpha: DSStyles.alphaOpaque,
+                            ),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: DSStyles.cardRadius,
                         boxShadow: [
                           BoxShadow(
-                            color:
-                                (widget.isHeaderIntegrated
-                                        ? DSColors.white
-                                        : activeMeta.color)
-                                    .withValues(alpha: 0.3),
+                            color: activeMeta.color.withValues(alpha: 0.3),
                             blurRadius: DSStyles.radiusMD,
-                            offset: const Offset(0, 4),
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
@@ -640,11 +690,11 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
                   ),
                 ),
               ),
-              // Tappable status options
               Row(
                 children: kUpdateStatuses.map((rawStatus) {
                   final meta = _kStatusMeta[rawStatus]!;
                   final selected = widget.currentStatus == rawStatus;
+                  final glyph = selected ? selectedGlyphColor : unselectedColor;
 
                   return Expanded(
                     child: GestureDetector(
@@ -658,47 +708,24 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             AnimatedScale(
-                              scale: selected ? 1.15 : 1.0,
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOutBack,
+                              scale: selected ? 1.12 : 1.0,
+                              duration: DSAnimations.dFast,
+                              curve: DSAnimations.curveIconPop,
                               child: Icon(
                                 meta.icon,
-                                color: selected
-                                    ? (widget.isHeaderIntegrated
-                                          ? Theme.of(context).primaryColor
-                                          : DSColors.white)
-                                    : (widget.isHeaderIntegrated
-                                          ? DSColors.white.withValues(
-                                              alpha: 0.7,
-                                            )
-                                          : (isDark
-                                                ? DSColors.white.withValues(
-                                                    alpha:
-                                                        DSStyles.alphaDisabled,
-                                                  )
-                                                : DSColors.labelSecondary)),
+                                color: glyph,
                                 size: selected ? DSIconSize.xl : DSIconSize.lg,
                               ),
                             ),
                             DSSpacing.hXs,
                             AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 250),
+                              duration: DSAnimations.dFast,
                               style: DSTypography.label().copyWith(
                                 fontWeight: selected
                                     ? FontWeight.w800
                                     : FontWeight.w600,
                                 fontSize: selected ? 11 : 10,
-                                color: selected
-                                    ? (widget.isHeaderIntegrated
-                                          ? Theme.of(context).primaryColor
-                                          : DSColors.white)
-                                    : (widget.isHeaderIntegrated
-                                          ? DSColors.white.withValues(
-                                              alpha: 0.7,
-                                            )
-                                          : (isDark
-                                                ? DSColors.labelSecondaryDark
-                                                : DSColors.labelSecondary)),
+                                color: glyph,
                                 letterSpacing: DSTypography.lsLoose,
                               ),
                               child: FittedBox(
@@ -721,7 +748,7 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
         ),
         if (!_hasInteracted)
           Padding(
-            padding: EdgeInsets.only(top: DSSpacing.sm),
+            padding: const EdgeInsets.only(top: DSSpacing.sm),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -729,7 +756,7 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
                   Icons.touch_app_rounded,
                   size: DSIconSize.xs,
                   color: isDark
-                      ? DSColors.white.withValues(alpha: DSStyles.alphaMuted)
+                      ? DSColors.labelTertiaryDark
                       : DSColors.labelTertiary,
                 ),
                 DSSpacing.wXs,
@@ -737,11 +764,9 @@ class DeliveryStatusSelectorState extends State<DeliveryStatusSelector> {
                   'delivery_update.header.tap_swipe_change_status'.tr(),
                   style: DSTypography.label().copyWith(
                     fontSize: DSTypography.sizeXs,
-                    color: widget.isHeaderIntegrated
-                        ? DSColors.white.withValues(alpha: 0.7)
-                        : (isDark
-                              ? DSColors.labelTertiaryDark
-                              : DSColors.labelTertiary),
+                    color: isDark
+                        ? DSColors.labelTertiaryDark
+                        : DSColors.labelTertiary,
                     letterSpacing: DSTypography.lsLoose,
                   ),
                 ),
