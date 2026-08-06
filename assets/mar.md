@@ -37,7 +37,6 @@ All asset paths are centralised in `AppAssets`. **Never hardcode `'assets/...'` 
 | `AppAssets.animSuccess`   | `assets/anim/successfully-done.json` | `success_overlay.dart`, `initial_sync_screen.dart`, `sync_screen.dart`                                                |
 | `AppAssets.animEmpty`     | `assets/anim/empty.json`             | `empty_state.dart`                                                                                                    |
 | `AppAssets.legalTerms`    | `assets/legal/terms.md`              | `terms_screen.dart`                                                                                                   |
-| `AppAssets.legalPrivacy`  | `assets/legal/privacy.md`            | `privacy_screen.dart`                                                                                                 |
 | `AppAssets.fsiIcon`       | `assets/images/fsi_icon.svg`         | Auth login brand mark                                                                                                 |
 | `AppAssets.fsiLogo`       | `assets/images/fsi_logo.svg`         | Full FSI wordmark                                                                                                     |
 

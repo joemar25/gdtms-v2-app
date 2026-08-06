@@ -363,6 +363,159 @@
             ]
         },
         {
+            "name": "Legal (Public)",
+            "item": [
+                {
+                    "name": "Get Privacy Policy",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"Has policy fields\", function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.success).to.eql(true);",
+                                    "    pm.expect(json.data).to.have.property(\"content\");",
+                                    "    pm.expect(json.data.content_type).to.eql(\"markdown\");",
+                                    "});",
+                                    "pm.test(\"Cache-Control header set\", function () {",
+                                    "    pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"max-age=3600\");",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/privacy-policy",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "mbl",
+                                "privacy-policy"
+                            ]
+                        },
+                        "description": "Public endpoint - no auth required. Returns the ITMS Privacy Policy as markdown for display in the mobile app. Consumed by lib/features/legal/privacy_screen.dart (cached locally in SharedPreferences for offline use). Cache-Control: public, max-age=3600. CORS: *."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Privacy Policy",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                },
+                                {
+                                    "key": "Cache-Control",
+                                    "value": "public, max-age=3600"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Origin",
+                                    "value": "*"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"slug\": \"privacy-policy\",\n        \"title\": \"Privacy Policy\",\n        \"app\": \"ITMS — Fastrak Services Inc.\",\n        \"effective_date\": \"April 2026\",\n        \"last_updated\": \"April 2026\",\n        \"content_type\": \"markdown\",\n        \"content\": \"# Privacy Policy\\n\\n**Effective Date:** April 2026\\n\\n## 1. Introduction\\n\\n...\",\n        \"contact_email\": \"joemar.cardino@fsi.com.ph\"\n    }\n}"
+                        },
+                        {
+                            "name": "500 - Document Missing",
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Legal document is temporarily unavailable.\",\n    \"code\": \"LEGAL_DOCUMENT_MISSING\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Terms and Conditions",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseURL}}/api/mbl/terms-and-conditions",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "mbl",
+                                "terms-and-conditions"
+                            ]
+                        },
+                        "description": "Public endpoint - no auth required. Returns the ITMS Terms and Conditions as markdown. NOT YET consumed by the mobile app — TermsScreen still ships a bundled asset (assets/legal/terms.md) and gates app entry via a locally-stored acceptance flag. Available for a future migration to match Privacy Policy. Cache-Control: public, max-age=3600. CORS: *."
+                    },
+                    "response": [
+                        {
+                            "name": "200 - Terms and Conditions",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                },
+                                {
+                                    "key": "Cache-Control",
+                                    "value": "public, max-age=3600"
+                                },
+                                {
+                                    "key": "Access-Control-Allow-Origin",
+                                    "value": "*"
+                                }
+                            ],
+                            "body": "{\n    \"success\": true,\n    \"data\": {\n        \"slug\": \"terms-and-conditions\",\n        \"title\": \"Terms and Conditions\",\n        \"app\": \"ITMS — Fastrak Services Inc.\",\n        \"effective_date\": \"April 2026\",\n        \"last_updated\": \"April 2026\",\n        \"content_type\": \"markdown\",\n        \"content\": \"# Terms and Conditions\\n\\n**Effective Date:** April 2026\\n\\n## 1. Acceptance of Terms\\n\\n...\",\n        \"contact_email\": \"joemar.cardino@fsi.com.ph\"\n    }\n}"
+                        },
+                        {
+                            "name": "500 - Document Missing",
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Legal document is temporarily unavailable.\",\n    \"code\": \"LEGAL_DOCUMENT_MISSING\"\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "App Versioning (Public)",
             "item": [
                 {

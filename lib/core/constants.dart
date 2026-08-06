@@ -24,8 +24,9 @@ abstract final class AppAssets {
   static const String animEmpty = 'assets/anim/empty.json';
 
   // ── Legal ────────────────────────────────────────────────────────────────
+  // Privacy Policy is no longer a bundled asset — it's fetched from
+  // GET /privacy-policy (see lib/features/legal/privacy_screen.dart).
   static const String legalTerms = 'assets/legal/terms.md';
-  static const String legalPrivacy = 'assets/legal/privacy.md';
   static const String userGuide = 'assets/legal/user_guide.md';
 }
 

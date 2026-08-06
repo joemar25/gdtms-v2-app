@@ -56,6 +56,13 @@ no longer the source of truth — that is documentation debt that causes future 
 
 ## Changelog
 
+### 2026-08-06 — Legal documents via API
+
+- **NEW** `GET /api/mbl/privacy-policy` — public, no auth. Returns the Privacy Policy as markdown, backend-managed so content can be edited without an app release. Consumed by `PrivacyScreen` (`lib/features/legal/privacy_screen.dart`), cached in SharedPreferences for offline viewing.
+- **NEW** `GET /api/mbl/terms-and-conditions` — public, no auth, same response shape. Live on the backend but **not yet consumed** by the app — `TermsScreen` still ships a bundled asset and gates app entry via a local acceptance flag; migrating it is a follow-up.
+- Response envelope for both: `{"success": true, "data": {slug, title, app, effective_date, last_updated, content_type, content, contact_email}}`. `Cache-Control: public, max-age=3600`.
+- Note: this dated entry (rather than a `vX.Y` bump) is deliberate — the web repo's Postman export is already ahead at v4.3.0 for unrelated FCM-token changes that were never backfilled into this changelog. That version reconciliation is a separate gap, not addressed here.
+
 ### v4.2 (June 2026) — media upload flow
 
 - **Client-side S3 upload** for delivery media. `GET /api/mbl/media/upload-params?barcode={barcode}&type={type}` returns only `data.upload_url` (the target S3 object URL). The app generates a SigV4 pre-signed PUT from its own AWS credentials, PUTs the file directly to S3, then PATCHes `delivery_images: [{ file, type }]`.
@@ -266,6 +273,35 @@ Body: `{ "latitude": 14.5995, "longitude": 120.9842, "accuracy": 10.5 }`
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/app/version` | No | Returns `{ min_version, force_update }`. Used by `VersionCheckService`. |
+
+---
+
+### Legal Documents
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/privacy-policy` | No | Returns Privacy Policy as markdown. Consumed by `PrivacyScreen`, cached locally for offline use. |
+| GET | `/terms-and-conditions` | No | Returns Terms & Conditions as markdown. **Not yet consumed** by the app — `TermsScreen` still ships a bundled asset. |
+
+**Response shape** (both endpoints)
+
+```json
+{
+  "success": true,
+  "data": {
+    "slug": "privacy-policy",
+    "title": "Privacy Policy",
+    "app": "ITMS — Fastrak Services Inc.",
+    "effective_date": "April 2026",
+    "last_updated": "April 2026",
+    "content_type": "markdown",
+    "content": "...",
+    "contact_email": "joemar.cardino@fsi.com.ph"
+  }
+}
+```
+
+`Cache-Control: public, max-age=3600`. On failure (HTTP 500): `{"success": false, "message": "Legal document is temporarily unavailable.", "code": "LEGAL_DOCUMENT_MISSING"}`.
 
 ---
 
